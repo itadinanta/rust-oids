@@ -1,0 +1,18 @@
+[package]
+
+name = "hello_world"
+version = "0.0.1"
+authors = [ "Your name <you@example.com>" ]
+
+[dependencies.amethyst]
+path = "../3rdParty/amethyst/"
+
+[dependencies.amethyst_engine]
+path = "../3rdParty/amethyst/src/engine/"
+
+[dependencies.amethyst_renderer]
+path = "../3rdParty/amethyst/src/renderer/"
+
+[[bin]]
+
+name = "hello_world"
