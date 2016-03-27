@@ -12,7 +12,7 @@ use opengl_graphics::{GlGraphics, OpenGL};
 use box2d::b2;
 
 pub struct App {
-    gl: GlGraphics, // OpenGL drawing backend.
+    gl: GlGraphics,
     world: b2::World,
 }
 
@@ -22,16 +22,45 @@ impl App {
 
         const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
         const RED: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
+        const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
         let ref world = self.world;
         self.gl.draw(args.viewport(), |c, gl| {
             clear(GREEN, gl);
 
             for (_, b) in world.bodies() {
-                let ref body = (*b.borrow());
-                let body_type = body.body_type();
-                let fixtures = body.fixtures();
-                // let position = body.position;
+                let body = b.borrow();
+                let position = (*body).position();
+                let angle = (*body).angle();
+
+                let transform = c.transform
+                                 .trans((args.width as f64 * 0.5), (args.height as f64 * 0.5))
+                                 .scale(2.0, 2.0)
+                                 .trans(position.x as f64, position.y as f64)
+                                 .rot_deg(angle as f64);
+
+                let square = rectangle::square(0.0, 0.0, 50.0);
+
+                for (_, f) in body.fixtures() {
+                    let fixture = f.borrow();
+                    let shape = (*fixture).shape();
+
+                    match *shape {
+                        b2::UnknownShape::Circle(ref s) => {
+                            let p = s.position();
+                            let r = s.radius() as f64;
+                            let extent = rectangle::square(p.x as f64 - r / 2.0,
+                                                           p.y as f64 - r / 2.0,
+                                                           r);
+                            Ellipse::new(RED).draw(extent, default_draw_state(), transform, gl);
+                        }
+                        b2::UnknownShape::Polygon(ref s) => {
+                            rectangle(BLACK, square, transform, gl);
+                        }
+                        _ => (),
+                    }
+
+                }
             }
         });
         //         let square = rectangle::square(0.0, 0.0, 50.0);
@@ -44,7 +73,7 @@ impl App {
         // .trans(-25.0, -25.0);
         //
         // Draw a box rotating around the middle of the screen.
-        // rectangle(RED, square, transform, gl);
+        //
         // });
         //
     }
