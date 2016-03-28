@@ -3,6 +3,7 @@ extern crate graphics;
 extern crate glutin_window;
 extern crate opengl_graphics;
 extern crate box2d;
+extern crate rand;
 
 use piston::window::WindowSettings;
 use piston::event_loop::*;
@@ -11,6 +12,7 @@ use piston::input::Input::*;
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{GlGraphics, OpenGL};
 use box2d::b2;
+use rand::Rng;
 
 pub struct Viewport {
     width: u32,
@@ -31,8 +33,11 @@ pub struct App {
 }
 
 fn new_ball(world: &mut b2::World, pos: b2::Vec2) {
+    let mut rng = rand::thread_rng();
+    let radius: f32 = (rng.gen::<f32>() * 1.0) + 1.0;
+
     let mut circle_shape = b2::CircleShape::new();
-    circle_shape.set_radius(1.);
+    circle_shape.set_radius(radius);
 
     let mut f_def = b2::FixtureDef::new();
     f_def.density = 1.;
