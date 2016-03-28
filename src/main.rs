@@ -13,6 +13,7 @@ use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{GlGraphics, OpenGL};
 use box2d::b2;
 use rand::Rng;
+use std::f64::consts;
 
 pub struct Viewport {
     width: u32,
@@ -40,7 +41,7 @@ fn new_ball(world: &mut b2::World, pos: b2::Vec2) {
     circle_shape.set_radius(radius);
 
     let mut f_def = b2::FixtureDef::new();
-    f_def.density = 1.;
+    f_def.density = (rng.gen::<f32>() * 1.0) + 1.0;
     f_def.restitution = 0.2;
     f_def.friction = 0.3;
 
@@ -112,11 +113,10 @@ impl App {
         use graphics::*;
 
         const WHITE: [f32; 4] = [1.0; 4];
-        const RED: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
         const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
-        let ref world = self.world;
-        let ref viewport = self.viewport;
+        let world = &self.world;
+        let viewport = &self.viewport;
 
         self.gl.draw(args.viewport(), |c, g| {
             clear(WHITE, g);
@@ -130,18 +130,20 @@ impl App {
                                  .trans((viewport.width as f64 * 0.5), (viewport.height as f64 * 0.5))
                                  .scale(viewport.scale as f64, -viewport.scale as f64)
                                  .trans(position.x as f64, position.y as f64)
-                                 .rot_deg(angle as f64);
+                                 .rot_rad(angle as f64);
 
                 for (_, f) in body.fixtures() {
                     let fixture = f.borrow();
                     let shape = (*fixture).shape();
-
+    	            let density = (*fixture).density();
+	
                     match *shape {
                         b2::UnknownShape::Circle(ref s) => {
                             let p = s.position();
                             let r = s.radius() as f64;
                             let extent = rectangle::square(p.x as f64 - r, p.y as f64 - r, r * 2.0);
-                            Ellipse::new(RED).draw(extent, default_draw_state(), transform, g);
+                            let colour = [1.0, 0.0, 0.0, density - 1.0];
+                            Ellipse::new(colour).draw(extent, default_draw_state(), transform, g);
                         }
                         b2::UnknownShape::Polygon(ref s) => {
                             let n = s.vertex_count();
@@ -161,8 +163,21 @@ impl App {
     }
 
     fn update(&mut self, args: &UpdateArgs) {
-        // Rotate 2 radians per second.
-        self.world.step(args.dt as f32, 8, 3);
+        let world = &mut self.world;
+        world.step(args.dt as f32, 8, 3);
+        const MAX_RADIUS: f32 = 5.0;
+        let edge = -(self.viewport.height as f32) / 2.0 / self.viewport.scale - MAX_RADIUS;
+        let mut v = Vec::new();
+        for (h, b) in world.bodies() {
+            let body = b.borrow();
+            let position = (*body).position();
+            if position.y < edge {
+                v.push(h);
+            }
+        }
+        for h in v {
+            world.destroy_body(h);
+        }
     }
 }
 
@@ -180,10 +195,16 @@ fn new_world() -> b2::World {
         let ground = &mut world.get_body_mut(ground_handle);
         ground.create_fast_fixture(&ground_box, 0.);
 
-        ground_box.set_as_oriented_box(1.0, 5.0, &b2::Vec2 { x: 20.0, y: 5.0 }, 0.0);
+        ground_box.set_as_oriented_box(1.0,
+                                       5.0,
+                                       &b2::Vec2 { x: 21.0, y: 5.0 },
+                                       (-consts::FRAC_PI_8) as f32);
         ground.create_fast_fixture(&ground_box, 0.);
 
-        ground_box.set_as_oriented_box(1.0, 5.0, &b2::Vec2 { x: -20.0, y: 5.0 }, 0.0);
+        ground_box.set_as_oriented_box(1.0,
+                                       5.0,
+                                       &b2::Vec2 { x: -21.0, y: 5.0 },
+                                       (consts::FRAC_PI_8) as f32);
         ground.create_fast_fixture(&ground_box, 0.);
     }
     return world;
