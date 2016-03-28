@@ -19,6 +19,7 @@ pub struct Viewport {
 }
 
 pub struct InputState {
+    left_button_pressed: bool,
     mouse_position: b2::Vec2,
 }
 
@@ -29,24 +30,69 @@ pub struct App {
     world: b2::World,
 }
 
+fn new_ball(world: &mut b2::World, pos: b2::Vec2) {
+    let mut circle_shape = b2::CircleShape::new();
+    circle_shape.set_radius(1.);
+
+    let mut f_def = b2::FixtureDef::new();
+    f_def.density = 1.;
+    f_def.restitution = 0.2;
+    f_def.friction = 0.3;
+
+    let mut b_def = b2::BodyDef::new();
+    b_def.body_type = b2::BodyType::Dynamic;
+    b_def.position = pos;
+    let handle = world.create_body(&b_def);
+    world.get_body_mut(handle)
+         .create_fixture(&circle_shape, &mut f_def);
+}
+
 impl App {
-    fn onClick(&mut self, btn: MouseButton, pos: b2::Vec2) {
-    
-    
-    
+    fn on_click(&mut self, btn: MouseButton, pos: b2::Vec2) {
+        match btn {
+            MouseButton::Left => {
+                self.input_state.left_button_pressed = true;
+                new_ball(&mut self.world, pos);
+            }
+            _ => (),
+        }
+    }
+
+    fn on_drag(&mut self, pos: b2::Vec2) {
+        new_ball(&mut self.world, pos);
+    }
+
+    fn on_release(&mut self, btn: MouseButton, _: b2::Vec2) {
+        match btn {
+            MouseButton::Left => {
+                self.input_state.left_button_pressed = false;
+            }
+            _ => (),
+        }
     }
 
     fn input(&mut self, i: &Input) {
         match *i {
-            Input::Press(Button::Mouse(b)) => {
-            	let pos = self.input_state.mouse_position;
-                self.onClick(b, pos);
+            Release(Button::Mouse(b)) => {
+                let pos = self.input_state.mouse_position;
+                self.on_release(b, pos);
+            }
+            Press(Button::Mouse(b)) => {
+                let pos = self.input_state.mouse_position;
+                self.on_click(b, pos);
             }
             Move(Motion::MouseCursor(x, y)) => {
-                let ref viewport = self.viewport;
-                let tx = (x as f32 - (viewport.width as f32 * 0.5)) / viewport.scale;
-                let ty = ((viewport.height as f32 * 0.5) - y as f32)  / viewport.scale;
-                self.input_state.mouse_position = b2::Vec2 { x: tx, y: ty };
+                fn transform_pos(viewport: &Viewport, x: f64, y: f64) -> b2::Vec2 {
+                    let viewport = &viewport;
+                    let tx = (x as f32 - (viewport.width as f32 * 0.5)) / viewport.scale;
+                    let ty = ((viewport.height as f32 * 0.5) - y as f32) / viewport.scale;
+                    return b2::Vec2 { x: tx, y: ty };
+                }
+                let pos = transform_pos(&self.viewport, x, y);
+                self.input_state.mouse_position = pos;
+                if self.input_state.left_button_pressed {
+                    self.on_drag(pos);
+                }
             }
             Resize(w, h) => {
                 self.viewport.width = w;
@@ -61,7 +107,6 @@ impl App {
         use graphics::*;
 
         const WHITE: [f32; 4] = [1.0; 4];
-        const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
         const RED: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
         const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
@@ -121,49 +166,31 @@ fn new_world() -> b2::World {
 
     let mut b_def = b2::BodyDef::new();
     b_def.body_type = b2::BodyType::Static;
-    b_def.position = b2::Vec2 { x: 0., y: -20. };
+    b_def.position = b2::Vec2 { x: 0.0, y: -20.0 };
 
     let mut ground_box = b2::PolygonShape::new();
-    ground_box.set_as_box(20., 1.);
+    {
+        ground_box.set_as_box(20.0, 1.0);
+        let ground_handle = world.create_body(&b_def);
+        let ground = &mut world.get_body_mut(ground_handle);
+        ground.create_fast_fixture(&ground_box, 0.);
 
-    let ground_handle = world.create_body(&b_def);
-    world.get_body_mut(ground_handle)
-         .create_fast_fixture(&ground_box, 0.);
+        ground_box.set_as_oriented_box(1.0, 5.0, &b2::Vec2 { x: 20.0, y: 5.0 }, 0.0);
+        ground.create_fast_fixture(&ground_box, 0.);
 
-    let mut b_def = b2::BodyDef::new();
-    b_def.body_type = b2::BodyType::Dynamic;
-    b_def.position = b2::Vec2 { x: 0., y: 0. };
-
-    let mut cube_shape = b2::PolygonShape::new();
-    cube_shape.set_as_box(1., 1.);
-
-    let mut circle_shape = b2::CircleShape::new();
-    circle_shape.set_radius(1.);
-
-    let mut f_def = b2::FixtureDef::new();
-    f_def.density = 1.;
-    f_def.restitution = 0.2;
-    f_def.friction = 0.3;
-
-    b_def.position.x += 0.5;
-    if b_def.position.x > 20. {
-        b_def.position.x = -20.;
+        ground_box.set_as_oriented_box(1.0, 5.0, &b2::Vec2 { x: -20.0, y: 5.0 }, 0.0);
+        ground.create_fast_fixture(&ground_box, 0.);
     }
-    let handle = world.create_body(&b_def);
-    world.get_body_mut(handle)
-         .create_fixture(&circle_shape, &mut f_def);
-
     return world;
 }
 
 fn main() {
-	const WIDTH: u32 = 1920;
-	const HEIGHT: u32 = 1080;
+    const WIDTH: u32 = 1920;
+    const HEIGHT: u32 = 1080;
     // Change this to OpenGL::V2_1 if not working.
     let opengl = OpenGL::V3_2;
     // Create an Glutin window.
-    let mut window: Window = WindowSettings::new("box2d",
-                                                 [WIDTH, HEIGHT])
+    let mut window: Window = WindowSettings::new("box2d", [WIDTH, HEIGHT])
                                  .opengl(opengl)
                                  .exit_on_esc(true)
                                  .build()
@@ -172,7 +199,10 @@ fn main() {
     // Create a new game and run it.
     let mut app = App {
         gl: GlGraphics::new(opengl),
-        input_state: InputState { mouse_position: b2::Vec2 { x: 0.0, y: 0.0 } },
+        input_state: InputState {
+            left_button_pressed: false,
+            mouse_position: b2::Vec2 { x: 0.0, y: 0.0 },
+        },
         viewport: Viewport {
             width: WIDTH,
             height: HEIGHT,
@@ -180,9 +210,6 @@ fn main() {
         },
         world: new_world(),
     };
-
-
-
 
     let mut events = window.events();
     while let Some(e) = events.next(&mut window) {
