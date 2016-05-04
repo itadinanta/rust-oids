@@ -2,7 +2,7 @@ extern crate piston;
 extern crate graphics;
 extern crate glutin_window;
 extern crate opengl_graphics;
-extern crate box2d;
+extern crate wrapped2d;
 extern crate rand;
 
 use piston::window::WindowSettings;
@@ -11,7 +11,7 @@ use piston::input::*;
 use piston::input::Input::*;
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{GlGraphics, OpenGL};
-use box2d::b2;
+use wrapped2d::b2;
 use rand::Rng;
 use std::f64::consts;
 
@@ -143,7 +143,7 @@ impl App {
                             let r = s.radius() as f64;
                             let extent = rectangle::square(p.x as f64 - r, p.y as f64 - r, r * 2.0);
                             let colour = [1.0, 0.0, 0.0, density - 1.0];
-                            Ellipse::new(colour).draw(extent, default_draw_state(), transform, g);
+                            Ellipse::new(colour).draw(extent, &DrawState::default(), transform, g);
                         }
                         b2::UnknownShape::Polygon(ref s) => {
                             let n = s.vertex_count();
@@ -153,7 +153,7 @@ impl App {
                                 v.push([vertex.x as f64, vertex.y as f64]);
                             }
                             Polygon::new(BLACK)
-                                .draw(v.as_slice(), default_draw_state(), transform, g);
+                                .draw(v.as_slice(), &DrawState::default(), transform, g);
                         }
                         _ => (),
                     }
