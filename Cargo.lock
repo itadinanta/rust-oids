@@ -1,5 +1,5 @@
 [root]
-name = "getting-started-spinning-square"
+name = "rust-evaluation"
 version = "0.1.0"
 dependencies = [
  "piston 0.22.0 (registry+https://github.com/rust-lang/crates.io-index)",
