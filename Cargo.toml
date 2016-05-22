@@ -8,11 +8,20 @@ authors = [
 
 [[bin]]
 name = "rust-evaluation"
+path = "src/main.rs"
 
 [dependencies]
 piston = "0.22.0"
 piston2d-graphics = "0.16.0"
 pistoncore-glutin_window = "0.26.0"
 piston2d-opengl_graphics = "0.28.0"
-rand = "0.3"
+cgmath="0.7"
 wrapped2d = { git = "https://github.com/itadinanta/rust_box2d.git", branch = "master"}
+gfx = "0.11"
+gfx_core = "0.3"
+gfx_device_gl = "0.10"
+gfx_window_glutin = "0.11"
+glutin = "0.5"
+rand = "0.3"
+mopa ="0.2"
+genmesh="0.4"
