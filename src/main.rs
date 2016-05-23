@@ -1,4 +1,5 @@
 mod shaders;
+mod render;
 
 extern crate piston;
 extern crate graphics;
@@ -60,15 +61,15 @@ gfx_defines!{
 }
 
 const TRIANGLE: [Vertex; 3] = [Vertex {
-	                               pos: [-0.5, -0.5],
+	                               pos: [-1.0, -1.0],
 	                               color: [1.0, 0.0, 0.0]
                                },
                                Vertex {
-	                               pos: [0.5, -0.5],
+	                               pos: [1.0, -1.0],
 	                               color: [0.0, 1.0, 0.0]
                                },
                                Vertex {
-	                               pos: [0.0, 0.5],
+	                               pos: [0.0, 1.0],
 	                               color: [0.0, 0.0, 1.0]
                                }];
 
@@ -239,18 +240,18 @@ fn new_world() -> b2::World {
 }
 
 fn main() {
-	const WIDTH: u32 = 1920;
-	const HEIGHT: u32 = 1080;
+	const WIDTH: u32 = 1000;
+	const HEIGHT: u32 = 1000;
 
 	let builder = glutin::WindowBuilder::new()
-		              .with_title("Amethyst Renderer Demo".to_string())
+		              .with_title("Box2d + GFX".to_string())
 		              .with_dimensions(WIDTH, HEIGHT)
 		              .with_vsync();
 
 	let (window, mut device, mut factory, main_color, main_depth) =
 		gfx_window_glutin::init::<ColorFormat, DepthFormat>(builder);
 	let combuf = factory.create_command_buffer();
-	let (mut w, mut h, _, _) = main_color.get_dimensions();
+	let (w, h, _, _) = main_color.get_dimensions();
 
 	// Create a new game and run it.
 	let mut app = App {
@@ -261,7 +262,6 @@ fn main() {
 		world: new_world()
 	};
 
-	let mut start = SystemTime::now();
 	let c = main_color;
 
 	let mut encoder: gfx::Encoder<_, _> = factory.create_command_buffer().into();
@@ -279,6 +279,7 @@ fn main() {
 		out: c
 	};
 
+	let mut start = SystemTime::now();
 	'main: loop {
 		// events
 		for event in window.poll_events() {
@@ -291,7 +292,10 @@ fn main() {
 
 		// update
 		match start.elapsed() {
-			Ok(dt) => app.update((dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9),
+			Ok(dt) => {
+				let frame = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
+				app.update(frame)
+			}
 			Err(_) => {}
 		}
 
