@@ -79,7 +79,7 @@ pub type DepthFormat = gfx::format::DepthStencil;
 
 
 // placeholder
-gfx_vertex_struct!(VertexPosNormal {
+gfx_vertex_struct!( VertexPosNormal {
 	pos: [f32; 3] = "a_Pos",
 	normal: [f32; 3] = "a_Normal",
 	tex_coord: [f32; 2] = "a_TexCoord",
@@ -128,7 +128,7 @@ gfx_defines!(
 
     constant VertexArgs {
         proj: [[f32; 4]; 4] = "u_Proj",
-      view: [[f32; 4]; 4] = "u_View",
+        view: [[f32; 4]; 4] = "u_View",
         model: [[f32; 4]; 4] = "u_Model",
     }
 
@@ -183,7 +183,7 @@ impl<R: gfx::Resources> DrawShaded<R> {
 		}
 	}
 
-	fn draw<C: gfx::CommandBuffer<R>>(self: &mut DrawShaded<R>,
+	fn draw<C: gfx::CommandBuffer<R>>(&self,
 	                                  target: &ColorBuffer<R>,
 	                                  encoder: &mut gfx::Encoder<R, C>,
 	                                  lights: &Vec<PointLight>) {
