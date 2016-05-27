@@ -87,7 +87,7 @@ gfx_vertex_struct!(VertexPosNormal {
 /// holds a 1x1 texture that can be used to store constant colors
 pub struct ConstantColorTexture<R: gfx::Resources> {
 	texture: gfx::handle::Texture<R, gfx::format::R8_G8_B8_A8>,
-	view: gfx::handle::ShaderResourceView<R, [f32; 4]>
+	view: gfx::handle::ShaderResourceView<R, [f32; 4]>,
 }
 
 impl<R: gfx::Resources> ConstantColorTexture<R> {
@@ -108,14 +108,14 @@ impl<R: gfx::Resources> ConstantColorTexture<R> {
 			.unwrap();
 		ConstantColorTexture {
 			texture: tex,
-			view: view
+			view: view,
 		}
 	}
 }
 
 pub struct ColorBuffer<R: gfx::Resources> {
 	pub color: gfx::handle::RenderTargetView<R, ColorFormat>,
-	pub output_depth: gfx::handle::DepthStencilView<R, DepthFormat>
+	pub output_depth: gfx::handle::DepthStencilView<R, DepthFormat>,
 }
 
 pub type GFormat = [f32; 4];
@@ -155,14 +155,17 @@ pub struct DrawShaded<R: gfx::Resources> {
 	fragment: gfx::handle::Buffer<R, FragmentArgs>,
 	lights: gfx::handle::Buffer<R, PointLight>,
 	pso: gfx::pso::PipelineState<R, shaded::Meta>,
-	sampler: gfx::handle::Sampler<R>
+	sampler: gfx::handle::Sampler<R>,
 }
 
 pub struct Camera {
 	pub projection: M44,
-	pub view: M44
+	pub view: M44,
 }
 
+fn pad(x: [f32; 3]) -> [f32; 4] {
+	[x[0], x[1], x[2], 0.]
+}
 impl<R: gfx::Resources> DrawShaded<R> {
 	pub fn new<F>(factory: &mut F) -> DrawShaded<R>
 		where R: gfx::Resources,
@@ -182,7 +185,7 @@ impl<R: gfx::Resources> DrawShaded<R> {
 			fragment: fragment,
 			lights: lights,
 			pso: pso,
-			sampler: sampler
+			sampler: sampler,
 		}
 	}
 
@@ -202,7 +205,7 @@ impl<R: gfx::Resources> DrawShaded<R> {
 			lights_buf.push(PointLight {
 				propagation: [0., 0., 0., 0.],
 				color: [0., 0., 0., 0.],
-				center: [0., 0., 0., 0.]
+				center: [0., 0., 0., 0.],
 			})
 		}
 		encoder.update_buffer(&self.lights, &lights_buf[..], 0).unwrap();
@@ -211,7 +214,7 @@ impl<R: gfx::Resources> DrawShaded<R> {
 		                               &VertexArgs {
 			                               proj: camera.projection,
 			                               view: camera.view,
-			                               model: *transform
+			                               model: *transform,
 		                               });
 
 		encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32 });
@@ -224,11 +227,7 @@ impl<R: gfx::Resources> DrawShaded<R> {
 			             vertex_args: self.vertex.clone(),
 			             lights: self.lights.clone(),
 			             out_ka: target.color.clone(),
-			             out_depth: target.output_depth.clone()
-					});
+			             out_depth: target.output_depth.clone(),
+		             });
 	}
-}
-
-fn pad(x: [f32; 3]) -> [f32; 4] {
-	[x[0], x[1], x[2], 0.]
 }
