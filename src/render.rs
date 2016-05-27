@@ -46,9 +46,6 @@ pub static FRAGMENT_SRC: &'static [u8] = b"
         Light light[MAX_NUM_TOTAL_LIGHTS];
     };
 
-    uniform sampler2D t_Ka;
-    uniform sampler2D t_Kd;
-
     in VertexData {
         vec4 Position;
         vec3 Normal;
@@ -58,15 +55,17 @@ pub static FRAGMENT_SRC: &'static [u8] = b"
     out vec4 o_Color;
 
     void main() {
-        vec4 kd = texture(t_Kd, v_In.TexCoord);
-        vec4 color = texture(t_Ka, v_In.TexCoord);
+        vec4 kd = vec4(1.0, 1.0, 1.0, 1.0);
+        vec4 color = vec4(1.0, 1.0, 1.0, 1.0);
         for (int i = 0; i < u_LightCount; i++) {
             vec4 delta = light[i].center - v_In.Position;
             float dist = length(delta);
             float inv_dist = 1. / dist;
             vec4 light_to_point_normal = delta * inv_dist;
-            float intensity = dot(light[i].propagation.xyz, vec3(1., inv_dist, inv_dist * inv_dist));
-            color += kd * light[i].color * intensity * max(0, dot(light_to_point_normal, vec4(v_In.Normal, 0.)));
+            float intensity = dot(light[i].propagation.xyz,
+	            vec3(1., inv_dist, inv_dist * inv_dist));
+            color += kd * light[i].color * intensity
+	            * max(0, dot(light_to_point_normal, vec4(v_In.Normal, 0.)));
         }
         o_Color = color;
     }
@@ -79,7 +78,7 @@ pub type DepthFormat = gfx::format::DepthStencil;
 
 
 // placeholder
-gfx_vertex_struct!( VertexPosNormal {
+gfx_vertex_struct!(VertexPosNormal {
 	pos: [f32; 3] = "a_Pos",
 	normal: [f32; 3] = "a_Normal",
 	tex_coord: [f32; 2] = "a_TexCoord",
@@ -96,15 +95,17 @@ impl<R: gfx::Resources> ConstantColorTexture<R> {
 	pub fn new<F>(factory: &mut F) -> ConstantColorTexture<R>
 		where F: gfx::Factory<R> {
 		let kind = gfx::tex::Kind::D2(1, 1, gfx::tex::AaMode::Single);
-		let tex = factory.create_texture::<gfx::format::R8_G8_B8_A8>(
-            kind,
-            1,
-            gfx::SHADER_RESOURCE,
-            gfx::Usage::Dynamic,
-            Some(gfx::format::ChannelType::Unorm)
-        ).unwrap();
+		let tex = factory.create_texture::<gfx::format::R8_G8_B8_A8>(kind,
+			                                            1,
+			                                            gfx::SHADER_RESOURCE,
+			                                            gfx::Usage::Dynamic,
+			                                            Some(gfx::format::ChannelType::Unorm))
+			.unwrap();
 		let levels = (0, tex.get_info().levels - 1);
-		let view = factory.view_texture_as_shader_resource::<gfx::format::Rgba8>(&tex, levels, gfx::format::Swizzle::new()).unwrap();
+		let view = factory.view_texture_as_shader_resource::<gfx::format::Rgba8>(&tex,
+			                                                       levels,
+			                                                       gfx::format::Swizzle::new())
+			.unwrap();
 		ConstantColorTexture {
 			texture: tex,
 			view: view
@@ -119,6 +120,8 @@ pub struct ColorBuffer<R: gfx::Resources> {
 
 pub type GFormat = [f32; 4];
 
+pub type M44 = [[f32; 4]; 4];
+
 gfx_defines!(
     constant PointLight {
         propagation: [f32; 4] = "propagation",
@@ -127,9 +130,9 @@ gfx_defines!(
     }
 
     constant VertexArgs {
-        proj: [[f32; 4]; 4] = "u_Proj",
-        view: [[f32; 4]; 4] = "u_View",
-        model: [[f32; 4]; 4] = "u_Model",
+        proj: M44 = "u_Proj",
+        view: M44 = "u_View",
+        model: M44 = "u_Model",
     }
 
     constant FragmentArgs {
@@ -142,9 +145,8 @@ gfx_defines!(
         fragment_args: gfx::ConstantBuffer<FragmentArgs> = "cb_FragmentArgs",
         lights: gfx::ConstantBuffer<PointLight> = "u_Lights",
         out_ka: gfx::RenderTarget<gfx::format::Rgba8> = "o_Color",
-        out_depth: gfx::DepthTarget<gfx::format::DepthStencil> = gfx::preset::depth::LESS_EQUAL_WRITE,
-        ka: gfx::TextureSampler<[f32; 4]> = "t_Ka",
-        kd: gfx::TextureSampler<[f32; 4]> = "t_Kd",
+        out_depth: gfx::DepthTarget<gfx::format::DepthStencil>
+	        = gfx::preset::depth::LESS_EQUAL_WRITE,
     }
 );
 
@@ -153,9 +155,12 @@ pub struct DrawShaded<R: gfx::Resources> {
 	fragment: gfx::handle::Buffer<R, FragmentArgs>,
 	lights: gfx::handle::Buffer<R, PointLight>,
 	pso: gfx::pso::PipelineState<R, shaded::Meta>,
-	sampler: gfx::handle::Sampler<R>,
-	ka: ConstantColorTexture<R>,
-	kd: ConstantColorTexture<R>
+	sampler: gfx::handle::Sampler<R>
+}
+
+pub struct Camera {
+	pub projection: M44,
+	pub view: M44
 }
 
 impl<R: gfx::Resources> DrawShaded<R> {
@@ -166,7 +171,7 @@ impl<R: gfx::Resources> DrawShaded<R> {
 		let vertex = factory.create_constant_buffer(1);
 		let fragment = factory.create_constant_buffer(1);
 		let pso = factory.create_pipeline_simple(VERTEX_SRC, FRAGMENT_SRC, shaded::new())
-		                 .unwrap();
+			.unwrap();
 
 		let sampler =
 			factory.create_sampler(gfx::tex::SamplerInfo::new(gfx::tex::FilterMethod::Scale,
@@ -177,51 +182,50 @@ impl<R: gfx::Resources> DrawShaded<R> {
 			fragment: fragment,
 			lights: lights,
 			pso: pso,
-			ka: ConstantColorTexture::new(factory),
-			kd: ConstantColorTexture::new(factory),
 			sampler: sampler
 		}
 	}
 
 	fn draw<C: gfx::CommandBuffer<R>>(&self,
+	                                  vertices: &gfx::handle::Buffer<R, VertexPosNormal>,
+	                                  indices: &gfx::Slice<R>,
+	                                  camera: &Camera,
+	                                  transform: &M44,
 	                                  target: &ColorBuffer<R>,
 	                                  encoder: &mut gfx::Encoder<R, C>,
 	                                  lights: &Vec<PointLight>) {
 
+		let mut lights_buf = lights.clone();
+
 		let count = lights.len();
-		while lights.len() < 512 {
-			lights.push(PointLight {
+		while lights_buf.len() < 512 {
+			lights_buf.push(PointLight {
 				propagation: [0., 0., 0., 0.],
 				color: [0., 0., 0., 0.],
 				center: [0., 0., 0., 0.]
 			})
 		}
-		encoder.update_buffer(&self.lights, &lights[..], 0).unwrap();
+		encoder.update_buffer(&self.lights, &lights_buf[..], 0).unwrap();
 
 		encoder.update_constant_buffer(&self.vertex,
 		                               &VertexArgs {
-			                               proj: projection,
-			                               view: view,
-			                               model: transform
+			                               proj: camera.projection,
+			                               view: camera.view,
+			                               model: *transform
 		                               });
 
 		encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32 });
 
-		let ka = e.ka.to_view(&self.ka, encoder);
-		let kd = e.kd.to_view(&self.kd, encoder);
-
-		encoder.draw(&e.slice,
+		encoder.draw(&indices,
 		             &self.pso,
 		             &shaded::Data {
-			             vbuf: e.buffer.clone(),
+			             vbuf: vertices.clone(),
 			             fragment_args: self.fragment.clone(),
 			             vertex_args: self.vertex.clone(),
 			             lights: self.lights.clone(),
 			             out_ka: target.color.clone(),
-			             out_depth: target.output_depth.clone(),
-			             ka: (ka, self.sampler.clone()),
-			             kd: (kd, self.sampler.clone())
-		             });
+			             out_depth: target.output_depth.clone()
+					});
 	}
 }
 

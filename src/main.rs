@@ -90,7 +90,7 @@ fn new_ball(world: &mut b2::World, pos: b2::Vec2) {
 	b_def.position = pos;
 	let handle = world.create_body(&b_def);
 	world.get_body_mut(handle)
-	     .create_fixture(&circle_shape, &mut f_def);
+		.create_fixture(&circle_shape, &mut f_def);
 }
 struct App {
 	input_state: InputState,
@@ -244,9 +244,9 @@ fn main() {
 	const HEIGHT: u32 = 1000;
 
 	let builder = glutin::WindowBuilder::new()
-		              .with_title("Box2d + GFX".to_string())
-		              .with_dimensions(WIDTH, HEIGHT)
-		              .with_vsync();
+		.with_title("Box2d + GFX".to_string())
+		.with_dimensions(WIDTH, HEIGHT)
+		.with_vsync();
 
 	let (window, mut device, mut factory, main_color, main_depth) =
 		gfx_window_glutin::init::<ColorFormat, DepthFormat>(builder);
@@ -265,10 +265,9 @@ fn main() {
 	let c = main_color;
 
 	let mut encoder: gfx::Encoder<_, _> = factory.create_command_buffer().into();
-	let pso = factory.create_pipeline_simple(&shaders::SIMPLE_VERTEX,
-	                                         &shaders::SIMPLE_PIXEL,
-	                                         pipe::new())
-	                 .unwrap();
+	let pso =
+		factory.create_pipeline_simple(&shaders::SIMPLE_VERTEX, &shaders::SIMPLE_PIXEL, pipe::new())
+			.unwrap();
 
 	const WHITE: [f32; 4] = [1.0; 4];
 	const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
