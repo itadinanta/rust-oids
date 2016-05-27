@@ -1,6 +1,8 @@
 use gfx;
 use gfx::traits::FactoryExt;
 
+extern crate cgmath;
+
 pub static VERTEX_SRC: &'static [u8] = b"
     #version 150 core
 
@@ -102,10 +104,9 @@ impl<R: gfx::Resources> ConstantColorTexture<R> {
 			                                            Some(gfx::format::ChannelType::Unorm))
 			.unwrap();
 		let levels = (0, tex.get_info().levels - 1);
-		let view = factory.view_texture_as_shader_resource::<gfx::format::Rgba8>(&tex,
-			                                                       levels,
-			                                                       gfx::format::Swizzle::new())
-			.unwrap();
+		let view =
+			factory.view_texture_as_shader_resource::<gfx::format::Rgba8>(&tex, levels, gfx::format::Swizzle::new())
+				.unwrap();
 		ConstantColorTexture {
 			texture: tex,
 			view: view,
@@ -120,7 +121,10 @@ pub struct ColorBuffer<R: gfx::Resources> {
 
 pub type GFormat = [f32; 4];
 
-pub type M44 = [[f32; 4]; 4];
+pub type M44 = cgmath::Matrix4<f32>;
+
+pub const WHITE: [f32; 4] = [1.0; 4];
+pub const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 gfx_defines!(
     constant PointLight {
@@ -189,18 +193,26 @@ impl<R: gfx::Resources> DrawShaded<R> {
 		}
 	}
 
-	fn draw<C: gfx::CommandBuffer<R>>(&self,
-	                                  vertices: &gfx::handle::Buffer<R, VertexPosNormal>,
-	                                  indices: &gfx::Slice<R>,
-	                                  camera: &Camera,
-	                                  transform: &M44,
-	                                  target: &ColorBuffer<R>,
-	                                  encoder: &mut gfx::Encoder<R, C>,
-	                                  lights: &Vec<PointLight>) {
+	pub fn begin_frame<C: gfx::CommandBuffer<R>>(&self,
+	                                             encoder: &mut gfx::Encoder<R, C>,
+	                                             target: &gfx::handle::RenderTargetView<R, ColorFormat>) {
+		// clear
+		encoder.clear(&target, BLACK);
+	}
+
+	pub fn draw<C: gfx::CommandBuffer<R>>(&self,
+	                                      encoder: &mut gfx::Encoder<R, C>,
+	                                      vertices: &gfx::handle::Buffer<R, VertexPosNormal>,
+	                                      indices: &gfx::Slice<R>,
+	                                      camera: &Camera,
+	                                      transform: &M44,
+	                                      color: &gfx::handle::RenderTargetView<R, ColorFormat>,
+	                                      output_depth: &gfx::handle::DepthStencilView<R, DepthFormat>,
+	                                      lights: &Vec<PointLight>) {
 
 		let mut lights_buf = lights.clone();
 
-		let count = lights.len();
+		let count = lights_buf.len();
 		while lights_buf.len() < 512 {
 			lights_buf.push(PointLight {
 				propagation: [0., 0., 0., 0.],
@@ -208,6 +220,7 @@ impl<R: gfx::Resources> DrawShaded<R> {
 				center: [0., 0., 0., 0.],
 			})
 		}
+		// only one draw call per frame just to prove the point
 		encoder.update_buffer(&self.lights, &lights_buf[..], 0).unwrap();
 
 		encoder.update_constant_buffer(&self.vertex,
@@ -226,8 +239,8 @@ impl<R: gfx::Resources> DrawShaded<R> {
 			             fragment_args: self.fragment.clone(),
 			             vertex_args: self.vertex.clone(),
 			             lights: self.lights.clone(),
-			             out_ka: target.color.clone(),
-			             out_depth: target.output_depth.clone(),
+			             out_ka: color.clone(),
+			             out_depth: output_depth.clone(),
 		             });
 	}
 }

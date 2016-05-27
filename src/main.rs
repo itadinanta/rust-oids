@@ -36,41 +36,32 @@ use std::f64::consts;
 pub struct Viewport {
 	width: u32,
 	height: u32,
-	scale: f32
+	scale: f32,
 }
 
 pub struct InputState {
 	left_button_pressed: bool,
-	mouse_position: b2::Vec2
+	mouse_position: b2::Vec2,
 }
 
-pub type ColorFormat = gfx::format::Rgba8;
-pub type DepthFormat = gfx::format::DepthStencil;
-
-
-gfx_defines!{
-    vertex Vertex {
-        pos: [f32; 2] = "a_Pos",
-        color: [f32; 3] = "a_Color",
-    }
-
-    pipeline pipe {
-        vbuf: gfx::VertexBuffer<Vertex> = (),
-        out: gfx::RenderTarget<ColorFormat> = "Target0",
-    }
-}
+use render::VertexPosNormal as Vertex;
+use render::ColorFormat;
+use render::DepthFormat;
 
 const TRIANGLE: [Vertex; 3] = [Vertex {
-	                               pos: [-1.0, -1.0],
-	                               color: [1.0, 0.0, 0.0]
+	                               pos: [-1.0, -1.0, 0.0],
+	                               normal: [-1.0, -1.0, 0.0],
+	                               tex_coord: [1.0, 0.0],
                                },
                                Vertex {
-	                               pos: [1.0, -1.0],
-	                               color: [0.0, 1.0, 0.0]
+	                               pos: [1.0, -1.0, 0.0],
+	                               normal: [-1.0, -1.0, 0.0],
+	                               tex_coord: [1.0, 0.0],
                                },
                                Vertex {
-	                               pos: [0.0, 1.0],
-	                               color: [0.0, 0.0, 1.0]
+	                               pos: [0.0, 1.0, 0.0],
+	                               normal: [-1.0, -1.0, 0.0],
+	                               tex_coord: [1.0, 0.0],
                                }];
 
 fn new_ball(world: &mut b2::World, pos: b2::Vec2) {
@@ -94,7 +85,7 @@ fn new_ball(world: &mut b2::World, pos: b2::Vec2) {
 }
 struct App {
 	input_state: InputState,
-	world: b2::World
+	world: b2::World,
 }
 
 impl App {
@@ -248,35 +239,37 @@ fn main() {
 		.with_dimensions(WIDTH, HEIGHT)
 		.with_vsync();
 
-	let (window, mut device, mut factory, main_color, main_depth) =
-		gfx_window_glutin::init::<ColorFormat, DepthFormat>(builder);
+	let (window, mut device, mut factory, main_color, main_depth) = gfx_window_glutin::init::<ColorFormat,
+	                                                                                          DepthFormat>(builder);
 	let combuf = factory.create_command_buffer();
 	let (w, h, _, _) = main_color.get_dimensions();
+
+	let renderer = render::DrawShaded::new(&mut factory);
 
 	// Create a new game and run it.
 	let mut app = App {
 		input_state: InputState {
 			left_button_pressed: false,
-			mouse_position: b2::Vec2 { x: 0.0, y: 0.0 }
+			mouse_position: b2::Vec2 { x: 0.0, y: 0.0 },
 		},
-		world: new_world()
+		world: new_world(),
 	};
 
 	let c = main_color;
 
 	let mut encoder: gfx::Encoder<_, _> = factory.create_command_buffer().into();
-	let pso =
-		factory.create_pipeline_simple(&shaders::SIMPLE_VERTEX, &shaders::SIMPLE_PIXEL, pipe::new())
-			.unwrap();
-
-	const WHITE: [f32; 4] = [1.0; 4];
-	const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 	let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&TRIANGLE, ());
-	let data = pipe::Data {
-		vbuf: vertex_buffer,
-		out: c
+
+	let camera = render::Camera {
+		projection: AffineMatrix3::look_at(cgmath::Point3::new(0.0f32, 0.0, 0.0),
+		                                   cgmath::Point3::new(0.0f32, 0.0, 0.0),
+		                                   cgmath::Vector3::new(0.0f32, 0.0, 0.0))
+			.into(),
+		view: AffineMatrix3::one().into(),
 	};
+
+	let lights: Vec<render::PointLight> = vec![];
 
 	let mut start = SystemTime::now();
 	'main: loop {
@@ -299,9 +292,19 @@ fn main() {
 		}
 
 		// draw a frame
-		encoder.clear(&data.out, BLACK);
-		encoder.draw(&slice, &pso, &data);
+		renderer.begin_frame(&mut encoder, &main_color);
+
+		renderer.draw(&mut encoder,
+		              &vertex_buffer,
+		              &slice,
+		              &camera,
+		              &AffineMatrix3::one().into(),
+		              &main_color,
+		              &main_depth,
+		              &lights);
+
 		encoder.flush(&mut device);
+
 		window.swap_buffers().unwrap();
 		device.cleanup();
 
