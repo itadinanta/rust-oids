@@ -1,4 +1,3 @@
-mod shaders;
 mod render;
 
 extern crate piston;
@@ -255,21 +254,26 @@ fn main() {
 		world: new_world(),
 	};
 
-	let c = main_color;
+	// 	let c = main_color;
 
 	let mut encoder: gfx::Encoder<_, _> = factory.create_command_buffer().into();
 
 	let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&TRIANGLE, ());
 
 	let camera = render::Camera {
-		projection: AffineMatrix3::look_at(cgmath::Point3::new(0.0f32, 0.0, 0.0),
-		                                   cgmath::Point3::new(0.0f32, 0.0, 0.0),
-		                                   cgmath::Vector3::new(0.0f32, 0.0, 0.0))
+		projection: cgmath::ortho(-1.0f32, 1.0, -1.0f32, 1.0f32, -1.0f32, 1.0f32).into(),
+		view: AffineMatrix3::look_at(cgmath::Point3::new(0.0f32, 0.0, 1.0),
+		                             cgmath::Point3::new(0.0f32, 0.0, 0.0),
+		                             cgmath::Vector3::unit_z())
 			.into(),
-		view: AffineMatrix3::one().into(),
 	};
 
-	let lights: Vec<render::PointLight> = vec![];
+	let lights: Vec<render::PointLight> = vec![render::PointLight {
+		                                           propagation: [1.0; 4],
+		                                           center: [0.0f32, 0.0f32, 1.0f32, 1.0f32],
+		                                           color: [1.0f32, 0.0f32, 0.0f32, 1.0f32],
+	                                           }];
+	let transform = AffineMatrix3::one();
 
 	let mut start = SystemTime::now();
 	'main: loop {
@@ -298,7 +302,7 @@ fn main() {
 		              &vertex_buffer,
 		              &slice,
 		              &camera,
-		              &AffineMatrix3::one().into(),
+		              &transform.into(),
 		              &main_color,
 		              &main_depth,
 		              &lights);

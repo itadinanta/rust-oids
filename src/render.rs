@@ -134,9 +134,9 @@ gfx_defines!(
     }
 
     constant VertexArgs {
-        proj: M44 = "u_Proj",
-        view: M44 = "u_View",
-        model: M44 = "u_Model",
+        proj: [[f32; 4]; 4] = "u_Proj",
+        view: [[f32; 4]; 4] = "u_View",
+        model: [[f32; 4]; 4] = "u_Model",
     }
 
     constant FragmentArgs {
@@ -149,8 +149,7 @@ gfx_defines!(
         fragment_args: gfx::ConstantBuffer<FragmentArgs> = "cb_FragmentArgs",
         lights: gfx::ConstantBuffer<PointLight> = "u_Lights",
         out_ka: gfx::RenderTarget<gfx::format::Rgba8> = "o_Color",
-        out_depth: gfx::DepthTarget<gfx::format::DepthStencil>
-	        = gfx::preset::depth::LESS_EQUAL_WRITE,
+        out_depth: gfx::DepthTarget<gfx::format::DepthStencil> = gfx::preset::depth::LESS_EQUAL_WRITE,
     }
 );
 
@@ -167,9 +166,6 @@ pub struct Camera {
 	pub view: M44,
 }
 
-fn pad(x: [f32; 3]) -> [f32; 4] {
-	[x[0], x[1], x[2], 0.]
-}
 impl<R: gfx::Resources> DrawShaded<R> {
 	pub fn new<F>(factory: &mut F) -> DrawShaded<R>
 		where R: gfx::Resources,
@@ -225,9 +221,9 @@ impl<R: gfx::Resources> DrawShaded<R> {
 
 		encoder.update_constant_buffer(&self.vertex,
 		                               &VertexArgs {
-			                               proj: camera.projection,
-			                               view: camera.view,
-			                               model: *transform,
+			                               proj: camera.projection.into(),
+			                               view: camera.view.into(),
+			                               model: (*transform).into(),
 		                               });
 
 		encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32 });
