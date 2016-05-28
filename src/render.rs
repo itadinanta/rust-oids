@@ -58,16 +58,14 @@ pub static FRAGMENT_SRC: &'static [u8] = b"
 
     void main() {
         vec4 kd = vec4(1.0, 1.0, 1.0, 1.0);
-        vec4 color = vec4(1.0, 1.0, 1.0, 1.0);
+        vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
         for (int i = 0; i < u_LightCount; i++) {
             vec4 delta = light[i].center - v_In.Position;
             float dist = length(delta);
             float inv_dist = 1. / dist;
             vec4 light_to_point_normal = delta * inv_dist;
-            float intensity = dot(light[i].propagation.xyz,
-	            vec3(1., inv_dist, inv_dist * inv_dist));
-            color += kd * light[i].color * intensity
-	            * max(0, dot(light_to_point_normal, vec4(v_In.Normal, 0.)));
+            float intensity = dot(light[i].propagation.xyz, vec3(1., inv_dist, inv_dist * inv_dist));
+            color += kd * light[i].color * intensity * max(0, dot(light_to_point_normal, vec4(v_In.Normal, 0.)));
         }
         o_Color = color;
     }
@@ -86,44 +84,10 @@ gfx_vertex_struct!(VertexPosNormal {
 	tex_coord: [f32; 2] = "a_TexCoord",
 });
 
-/// holds a 1x1 texture that can be used to store constant colors
-pub struct ConstantColorTexture<R: gfx::Resources> {
-	texture: gfx::handle::Texture<R, gfx::format::R8_G8_B8_A8>,
-	view: gfx::handle::ShaderResourceView<R, [f32; 4]>,
-}
-
-impl<R: gfx::Resources> ConstantColorTexture<R> {
-	/// Create a texture buffer
-	pub fn new<F>(factory: &mut F) -> ConstantColorTexture<R>
-		where F: gfx::Factory<R> {
-		let kind = gfx::tex::Kind::D2(1, 1, gfx::tex::AaMode::Single);
-		let tex = factory.create_texture::<gfx::format::R8_G8_B8_A8>(kind,
-			                                            1,
-			                                            gfx::SHADER_RESOURCE,
-			                                            gfx::Usage::Dynamic,
-			                                            Some(gfx::format::ChannelType::Unorm))
-			.unwrap();
-		let levels = (0, tex.get_info().levels - 1);
-		let view =
-			factory.view_texture_as_shader_resource::<gfx::format::Rgba8>(&tex, levels, gfx::format::Swizzle::new())
-				.unwrap();
-		ConstantColorTexture {
-			texture: tex,
-			view: view,
-		}
-	}
-}
-
-pub struct ColorBuffer<R: gfx::Resources> {
-	pub color: gfx::handle::RenderTargetView<R, ColorFormat>,
-	pub output_depth: gfx::handle::DepthStencilView<R, DepthFormat>,
-}
-
 pub type GFormat = [f32; 4];
 
 pub type M44 = cgmath::Matrix4<f32>;
 
-pub const WHITE: [f32; 4] = [1.0; 4];
 pub const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 gfx_defines!(
@@ -158,7 +122,6 @@ pub struct DrawShaded<R: gfx::Resources> {
 	fragment: gfx::handle::Buffer<R, FragmentArgs>,
 	lights: gfx::handle::Buffer<R, PointLight>,
 	pso: gfx::pso::PipelineState<R, shaded::Meta>,
-	sampler: gfx::handle::Sampler<R>,
 }
 
 pub struct Camera {
@@ -176,35 +139,38 @@ impl<R: gfx::Resources> DrawShaded<R> {
 		let pso = factory.create_pipeline_simple(VERTEX_SRC, FRAGMENT_SRC, shaded::new())
 			.unwrap();
 
-		let sampler =
-			factory.create_sampler(gfx::tex::SamplerInfo::new(gfx::tex::FilterMethod::Scale,
-			                                                  gfx::tex::WrapMode::Clamp));
-
 		DrawShaded {
 			vertex: vertex,
 			fragment: fragment,
 			lights: lights,
 			pso: pso,
-			sampler: sampler,
 		}
 	}
 
 	pub fn begin_frame<C: gfx::CommandBuffer<R>>(&self,
 	                                             encoder: &mut gfx::Encoder<R, C>,
-	                                             target: &gfx::handle::RenderTargetView<R, ColorFormat>) {
+	                                             target: &gfx::handle::RenderTargetView<R, ColorFormat>,
+	                                             depth: &gfx::handle::DepthStencilView<R, DepthFormat>) {
 		// clear
 		encoder.clear(&target, BLACK);
+		encoder.clear_depth(&depth, 1.0f32);
 	}
 
-	pub fn draw<C: gfx::CommandBuffer<R>>(&self,
-	                                      encoder: &mut gfx::Encoder<R, C>,
-	                                      vertices: &gfx::handle::Buffer<R, VertexPosNormal>,
-	                                      indices: &gfx::Slice<R>,
-	                                      camera: &Camera,
-	                                      transform: &M44,
-	                                      color: &gfx::handle::RenderTargetView<R, ColorFormat>,
-	                                      output_depth: &gfx::handle::DepthStencilView<R, DepthFormat>,
-	                                      lights: &Vec<PointLight>) {
+	pub fn end_frame<C: gfx::CommandBuffer<R>, D: gfx::Device<Resources = R, CommandBuffer = C>>(&self,
+	                                           encoder: &mut gfx::Encoder<R, C>,
+	                                           device: &mut D) {
+		encoder.flush(device);
+	}
+
+	pub fn cleanup<C: gfx::CommandBuffer<R>, D: gfx::Device<Resources = R, CommandBuffer = C>>(&self, device: &mut D) {
+		device.cleanup();
+	}
+
+	pub fn setup<C: gfx::CommandBuffer<R>>(&self,
+	                                       encoder: &mut gfx::Encoder<R, C>,
+	                                       camera: &Camera,
+	                                       transform: &M44,
+	                                       lights: &Vec<PointLight>) {
 
 		let mut lights_buf = lights.clone();
 
@@ -223,10 +189,18 @@ impl<R: gfx::Resources> DrawShaded<R> {
 		                               &VertexArgs {
 			                               proj: camera.projection.into(),
 			                               view: camera.view.into(),
-			                               model: (*transform).into(),
+			                               model: transform.clone().into(),
 		                               });
 
 		encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32 });
+	}
+
+	pub fn draw<C: gfx::CommandBuffer<R>>(&self,
+	                                      encoder: &mut gfx::Encoder<R, C>,
+	                                      vertices: &gfx::handle::Buffer<R, VertexPosNormal>,
+	                                      indices: &gfx::Slice<R>,
+	                                      color: &gfx::handle::RenderTargetView<R, ColorFormat>,
+	                                      output_depth: &gfx::handle::DepthStencilView<R, DepthFormat>) {
 
 		encoder.draw(&indices,
 		             &self.pso,

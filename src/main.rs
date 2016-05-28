@@ -49,17 +49,17 @@ use render::DepthFormat;
 
 const TRIANGLE: [Vertex; 3] = [Vertex {
 	                               pos: [-1.0, -1.0, 0.0],
-	                               normal: [-1.0, -1.0, 0.0],
+	                               normal: [0.0, 0.0, 1.0],
 	                               tex_coord: [1.0, 0.0],
                                },
                                Vertex {
 	                               pos: [1.0, -1.0, 0.0],
-	                               normal: [-1.0, -1.0, 0.0],
+	                               normal: [0.0, 0.0, 1.0],
 	                               tex_coord: [1.0, 0.0],
                                },
                                Vertex {
 	                               pos: [0.0, 1.0, 0.0],
-	                               normal: [-1.0, -1.0, 0.0],
+	                               normal: [0.0, 0.0, 1.0],
 	                               tex_coord: [1.0, 0.0],
                                }];
 
@@ -254,24 +254,22 @@ fn main() {
 		world: new_world(),
 	};
 
-	// 	let c = main_color;
-
 	let mut encoder: gfx::Encoder<_, _> = factory.create_command_buffer().into();
 
 	let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&TRIANGLE, ());
 
 	let camera = render::Camera {
-		projection: cgmath::ortho(-1.0f32, 1.0, -1.0f32, 1.0f32, -1.0f32, 1.0f32).into(),
-		view: AffineMatrix3::look_at(cgmath::Point3::new(0.0f32, 0.0, 1.0),
-		                             cgmath::Point3::new(0.0f32, 0.0, 0.0),
-		                             cgmath::Vector3::unit_z())
+		projection: cgmath::ortho(-2.0f32, 2.0, -2.0, 2.0, 1.0, -1.0).into(),
+		view: Matrix4::look_at(cgmath::Point3::new(0.0, 0.0, 1.0),
+		                       cgmath::Point3::new(0.0, 0.0, 0.0),
+		                       cgmath::Vector3::unit_y())
 			.into(),
 	};
 
 	let lights: Vec<render::PointLight> = vec![render::PointLight {
 		                                           propagation: [1.0; 4],
-		                                           center: [0.0f32, 0.0f32, 1.0f32, 1.0f32],
-		                                           color: [1.0f32, 0.0f32, 0.0f32, 1.0f32],
+		                                           center: [0.0, 0.0, 1.0, 1.0],
+		                                           color: [1.0, 0.0, 0.0, 1.0],
 	                                           }];
 	let transform = AffineMatrix3::one();
 
@@ -296,21 +294,21 @@ fn main() {
 		}
 
 		// draw a frame
-		renderer.begin_frame(&mut encoder, &main_color);
+		renderer.begin_frame(&mut encoder, &main_color, &main_depth);
+
+		renderer.setup(&mut encoder, &camera, &transform.into(), &lights);
 
 		renderer.draw(&mut encoder,
 		              &vertex_buffer,
 		              &slice,
-		              &camera,
-		              &transform.into(),
 		              &main_color,
-		              &main_depth,
-		              &lights);
+		              &main_depth);
 
-		encoder.flush(&mut device);
+		renderer.end_frame(&mut encoder, &mut device);
 
 		window.swap_buffers().unwrap();
-		device.cleanup();
+
+		renderer.cleanup(&mut device);
 
 		start = SystemTime::now();
 	}
