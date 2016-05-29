@@ -6,9 +6,12 @@ extern crate cgmath;
 pub static VERTEX_SRC: &'static [u8] = b"
     #version 150 core
 
-    layout (std140) uniform cb_VertexArgs {
+    layout (std140) uniform cb_CameraArgs {
         uniform mat4 u_Proj;
         uniform mat4 u_View;
+    };
+
+    layout (std140) uniform cb_ModelArgs {
         uniform mat4 u_Model;
     };
 
@@ -58,7 +61,7 @@ pub static FRAGMENT_SRC: &'static [u8] = b"
 
     void main() {
         vec4 kd = vec4(1.0, 1.0, 1.0, 1.0);
-        vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
+        vec4 color = vec4(0.0, 0.0, 0.5, 0.0);
         for (int i = 0; i < u_LightCount; i++) {
             vec4 delta = light[i].center - v_In.Position;
             float dist = length(delta);
@@ -97,9 +100,12 @@ gfx_defines!(
         color: [f32; 4] = "color",
     }
 
-    constant VertexArgs {
+    constant CameraArgs {
         proj: [[f32; 4]; 4] = "u_Proj",
         view: [[f32; 4]; 4] = "u_View",
+    }
+
+    constant ModelArgs {
         model: [[f32; 4]; 4] = "u_Model",
     }
 
@@ -109,7 +115,8 @@ gfx_defines!(
 
     pipeline shaded {
         vbuf: gfx::VertexBuffer<VertexPosNormal> = (),
-        vertex_args: gfx::ConstantBuffer<VertexArgs> = "cb_VertexArgs",
+        camera_args: gfx::ConstantBuffer<CameraArgs> = "cb_CameraArgs",
+        model_args: gfx::ConstantBuffer<ModelArgs> = "cb_ModelArgs",
         fragment_args: gfx::ConstantBuffer<FragmentArgs> = "cb_FragmentArgs",
         lights: gfx::ConstantBuffer<PointLight> = "u_Lights",
         out_ka: gfx::RenderTarget<gfx::format::Rgba8> = "o_Color",
@@ -118,7 +125,8 @@ gfx_defines!(
 );
 
 pub struct DrawShaded<R: gfx::Resources> {
-	vertex: gfx::handle::Buffer<R, VertexArgs>,
+	camera: gfx::handle::Buffer<R, CameraArgs>,
+	model: gfx::handle::Buffer<R, ModelArgs>,
 	fragment: gfx::handle::Buffer<R, FragmentArgs>,
 	lights: gfx::handle::Buffer<R, PointLight>,
 	pso: gfx::pso::PipelineState<R, shaded::Meta>,
@@ -134,13 +142,15 @@ impl<R: gfx::Resources> DrawShaded<R> {
 		where R: gfx::Resources,
 		      F: gfx::Factory<R> {
 		let lights = factory.create_constant_buffer(512);
-		let vertex = factory.create_constant_buffer(1);
+		let camera = factory.create_constant_buffer(1);
+		let model = factory.create_constant_buffer(1);
 		let fragment = factory.create_constant_buffer(1);
 		let pso = factory.create_pipeline_simple(VERTEX_SRC, FRAGMENT_SRC, shaded::new())
 			.unwrap();
 
 		DrawShaded {
-			vertex: vertex,
+			camera: camera,
+			model: model,
 			fragment: fragment,
 			lights: lights,
 			pso: pso,
@@ -169,7 +179,6 @@ impl<R: gfx::Resources> DrawShaded<R> {
 	pub fn setup<C: gfx::CommandBuffer<R>>(&self,
 	                                       encoder: &mut gfx::Encoder<R, C>,
 	                                       camera: &Camera,
-	                                       transform: &M44,
 	                                       lights: &Vec<PointLight>) {
 
 		let mut lights_buf = lights.clone();
@@ -185,11 +194,10 @@ impl<R: gfx::Resources> DrawShaded<R> {
 		// only one draw call per frame just to prove the point
 		encoder.update_buffer(&self.lights, &lights_buf[..], 0).unwrap();
 
-		encoder.update_constant_buffer(&self.vertex,
-		                               &VertexArgs {
+		encoder.update_constant_buffer(&self.camera,
+		                               &CameraArgs {
 			                               proj: camera.projection.into(),
 			                               view: camera.view.into(),
-			                               model: transform.clone().into(),
 		                               });
 
 		encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32 });
@@ -199,15 +207,19 @@ impl<R: gfx::Resources> DrawShaded<R> {
 	                                      encoder: &mut gfx::Encoder<R, C>,
 	                                      vertices: &gfx::handle::Buffer<R, VertexPosNormal>,
 	                                      indices: &gfx::Slice<R>,
+	                                      transform: &M44,
 	                                      color: &gfx::handle::RenderTargetView<R, ColorFormat>,
 	                                      output_depth: &gfx::handle::DepthStencilView<R, DepthFormat>) {
+
+		encoder.update_constant_buffer(&self.model, &ModelArgs { model: transform.clone().into() });
 
 		encoder.draw(&indices,
 		             &self.pso,
 		             &shaded::Data {
 			             vbuf: vertices.clone(),
 			             fragment_args: self.fragment.clone(),
-			             vertex_args: self.vertex.clone(),
+			             camera_args: self.camera.clone(),
+			             model_args: self.model.clone(),
 			             lights: self.lights.clone(),
 			             out_ka: color.clone(),
 			             out_depth: output_depth.clone(),

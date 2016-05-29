@@ -240,7 +240,6 @@ fn main() {
 
 	let (window, mut device, mut factory, main_color, main_depth) = gfx_window_glutin::init::<ColorFormat,
 	                                                                                          DepthFormat>(builder);
-	let combuf = factory.create_command_buffer();
 	let (w, h, _, _) = main_color.get_dimensions();
 
 	let renderer = render::DrawShaded::new(&mut factory);
@@ -259,7 +258,7 @@ fn main() {
 	let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&TRIANGLE, ());
 
 	let camera = render::Camera {
-		projection: cgmath::ortho(-2.0f32, 2.0, -2.0, 2.0, 1.0, -1.0).into(),
+		projection: cgmath::ortho(-10.0f32, 10.0, -10.0, 10.0, 10.0, -10.0).into(),
 		view: Matrix4::look_at(cgmath::Point3::new(0.0, 0.0, 1.0),
 		                       cgmath::Point3::new(0.0, 0.0, 0.0),
 		                       cgmath::Vector3::unit_y())
@@ -271,10 +270,14 @@ fn main() {
 		                                           center: [0.0, 0.0, 1.0, 1.0],
 		                                           color: [1.0, 0.0, 0.0, 1.0],
 	                                           }];
-	let transform = AffineMatrix3::one();
 
+
+	let mut elapsed = 0.0f32;
 	let mut start = SystemTime::now();
+	let mut encoder: gfx::Encoder<_, _> = factory.create_command_buffer().into();
 	'main: loop {
+		renderer.setup(&mut encoder, &camera, &lights);
+
 		// events
 		for event in window.poll_events() {
 			match event {
@@ -288,22 +291,31 @@ fn main() {
 		match start.elapsed() {
 			Ok(dt) => {
 				let frame = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
-				app.update(frame)
+				app.update(frame);
+				elapsed += frame;
 			}
 			Err(_) => {}
 		}
 
 		// draw a frame
 		renderer.begin_frame(&mut encoder, &main_color, &main_depth);
+		use cgmath::Rotation3;
+		for i in -2..3 {
+			for j in -2..3 {
+				let angle = cgmath::rad(elapsed * 5. + i as f32 + j as f32);
+				let rot = Matrix4::from(cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_y(), angle));
+				let trans = Matrix4::from_translation(cgmath::Vector3::new(i as f32, j as f32, 0.0));
 
-		renderer.setup(&mut encoder, &camera, &transform.into(), &lights);
+				let transform = trans * rot;
 
-		renderer.draw(&mut encoder,
-		              &vertex_buffer,
-		              &slice,
-		              &main_color,
-		              &main_depth);
-
+				renderer.draw(&mut encoder,
+				              &vertex_buffer,
+				              &slice,
+				              &transform.into(),
+				              &main_color,
+				              &main_depth);
+			}
+		}
 		renderer.end_frame(&mut encoder, &mut device);
 
 		window.swap_buffers().unwrap();
@@ -312,4 +324,5 @@ fn main() {
 
 		start = SystemTime::now();
 	}
+
 }
