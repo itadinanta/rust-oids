@@ -47,10 +47,10 @@ use render::VertexPosNormal as Vertex;
 use render::ColorFormat;
 use render::DepthFormat;
 
-const TRIANGLE: [Vertex; 3] = [Vertex {
+const QUAD: [Vertex; 6] = [Vertex {
 	                               pos: [-1.0, -1.0, 0.0],
 	                               normal: [0.0, 0.0, 1.0],
-	                               tex_coord: [1.0, 0.0],
+	                               tex_coord: [0.0, 0.0],
                                },
                                Vertex {
 	                               pos: [1.0, -1.0, 0.0],
@@ -58,9 +58,24 @@ const TRIANGLE: [Vertex; 3] = [Vertex {
 	                               tex_coord: [1.0, 0.0],
                                },
                                Vertex {
-	                               pos: [0.0, 1.0, 0.0],
+	                               pos: [1.0, 1.0, 0.0],
 	                               normal: [0.0, 0.0, 1.0],
-	                               tex_coord: [1.0, 0.0],
+	                               tex_coord: [1.0, 1.0],
+                               },
+                               Vertex {
+	                               pos: [-1.0, -1.0, 0.0],
+	                               normal: [0.0, 0.0, 1.0],
+	                               tex_coord: [0.0, 0.0],
+                               },
+                               Vertex {
+	                               pos: [-1.0, 1.0, 0.0],
+	                               normal: [0.0, 0.0, 1.0],
+	                               tex_coord: [0.0, 1.0],
+                               },
+                               Vertex {
+	                               pos: [1.0, 1.0, 0.0],
+	                               normal: [0.0, 0.0, 1.0],
+	                               tex_coord: [1.0, 1.0],
                                }];
 
 fn new_ball(world: &mut b2::World, pos: b2::Vec2) {
@@ -253,9 +268,7 @@ fn main() {
 		world: new_world(),
 	};
 
-	let mut encoder: gfx::Encoder<_, _> = factory.create_command_buffer().into();
-
-	let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&TRIANGLE, ());
+	let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&QUAD, ());
 
 	let camera = render::Camera {
 		projection: cgmath::ortho(-10.0f32, 10.0, -10.0, 10.0, 10.0, -10.0).into(),
@@ -300,8 +313,8 @@ fn main() {
 		// draw a frame
 		renderer.begin_frame(&mut encoder, &main_color, &main_depth);
 		use cgmath::Rotation3;
-		for i in -2..3 {
-			for j in -2..3 {
+		for i in -5..6 {
+			for j in -5..6 {
 				let angle = cgmath::rad(elapsed * 5. + i as f32 + j as f32);
 				let rot = Matrix4::from(cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_y(), angle));
 				let trans = Matrix4::from_translation(cgmath::Vector3::new(i as f32, j as f32, 0.0));
@@ -317,9 +330,7 @@ fn main() {
 			}
 		}
 		renderer.end_frame(&mut encoder, &mut device);
-
 		window.swap_buffers().unwrap();
-
 		renderer.cleanup(&mut device);
 
 		start = SystemTime::now();
