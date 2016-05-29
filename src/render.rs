@@ -62,6 +62,14 @@ pub static FRAGMENT_SRC: &'static [u8] = b"
     void main() {
         vec4 kd = vec4(1.0, 1.0, 1.0, 1.0);
         vec4 color = vec4(0.0, 0.0, 0.5, 0.0);
+        
+        float dx = v_In.TexCoord.x - 0.5;
+        float dy = v_In.TexCoord.y - 0.5;
+        
+        if (dx * dx + dy * dy > 0.25) {
+	        discard;
+	    }
+        
         for (int i = 0; i < u_LightCount; i++) {
             vec4 delta = light[i].center - v_In.Position;
             float dist = length(delta);
