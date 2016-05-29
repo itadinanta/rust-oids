@@ -61,7 +61,7 @@ pub static FRAGMENT_SRC: &'static [u8] = b"
 
     void main() {
         vec4 kd = vec4(1.0, 1.0, 1.0, 1.0);
-        vec4 color = vec4(0.0, 0.0, 0.5, 0.0);
+        vec4 color = vec4(0.0, 0.0, 0.1, 0.0);
         
         float dx = v_In.TexCoord.x - 0.5;
         float dy = v_In.TexCoord.y - 0.5;
