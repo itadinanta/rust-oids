@@ -293,7 +293,7 @@ fn main() {
 
 	// Create a new game and run it.
 	let mut app = App {
-		viewport: Viewport::rect(w as u32, h as u32, 100.0),
+		viewport: Viewport::rect(w as u32, h as u32, 50.0),
 		input_state: InputState {
 			left_button_pressed: false,
 			mouse_position: b2::Vec2 { x: 0.0, y: 0.0 },
