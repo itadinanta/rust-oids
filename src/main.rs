@@ -378,7 +378,7 @@ fn main() {
 
 		renderer.setup(&mut encoder, &camera, &lights);
 
-		// update
+		// update and measure
 		let (frame_time, smooth_frame_time, fps) = match start.elapsed() {
 			Ok(dt) => {
 				let frame = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
@@ -391,9 +391,12 @@ fn main() {
 			Err(_) => (-1.0, -1.0, -1.0),
 		};
 		frame_count += 1;
+
+
 		// draw a frame
 		renderer.begin_frame(&mut encoder, &main_color, &main_depth);
 
+		// draw the box2d bodies
 		app.render(&renderer,
 		           &mut encoder,
 		           &vertex_buffer,
@@ -401,6 +404,7 @@ fn main() {
 		           &main_color,
 		           &main_depth);
 
+		// draw some debug text on screen
 		renderer.draw_text(&mut encoder,
 		                   &mut text_renderer,
 		                   &format!("F: {} E: {:.3} FT: {:.2} SFT: {:.2} FPS: {:.1}",
@@ -413,6 +417,7 @@ fn main() {
 		                   [1.0; 4],
 		                   &main_color);
 
+		// push the commands
 		renderer.end_frame(&mut encoder, &mut device);
 
 		window.swap_buffers().unwrap();
