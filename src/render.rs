@@ -17,17 +17,28 @@ pub static VERTEX_SRC: &'static [u8] = b"
 
     in vec3 a_Pos;
     in vec3 a_Normal;
+    in vec3 a_Tangent;
     in vec2 a_TexCoord;
 
     out VertexData {
         vec4 Position;
         vec3 Normal;
+        mat3 TBN;
         vec2 TexCoord;
     } v_Out;
 
     void main() {
         v_Out.Position = u_Model * vec4(a_Pos, 1.0);
-        v_Out.Normal = mat3(u_Model) * a_Normal;
+        v_Out.Normal = normalize(mat3(u_Model) * a_Normal);
+
+        mat3 viewModel = mat3(u_View) * mat3(u_Model);
+
+        vec3 normal = normalize(viewModel * a_Normal);
+        vec3 tangent = normalize(viewModel * a_Tangent);
+        vec3 bitangent = cross(normal, tangent);
+
+        v_Out.TBN = mat3(tangent, bitangent, normal);
+
         v_Out.TexCoord = a_TexCoord;
         gl_Position = u_Proj * u_View * v_Out.Position;
     }
@@ -36,6 +47,9 @@ pub static VERTEX_SRC: &'static [u8] = b"
 pub static FRAGMENT_SRC: &'static [u8] = b"
     #version 150 core
     #define MAX_NUM_TOTAL_LIGHTS 512
+
+	const float PI = 3.1415926535897932384626433832795;
+	const float PI_2 = 1.57079632679489661923;
 
     layout (std140) uniform cb_FragmentArgs {
         int u_LightCount;
@@ -54,29 +68,64 @@ pub static FRAGMENT_SRC: &'static [u8] = b"
     in VertexData {
         vec4 Position;
         vec3 Normal;
+        mat3 TBN;
         vec2 TexCoord;
     } v_In;
 
     out vec4 o_Color;
 
     void main() {
-        vec4 kd = vec4(1.0, 1.0, 1.0, 1.0);
-        vec4 color = vec4(0.0, 0.0, 0.1, 0.0);
-        
+        vec4 kd = vec4(0.2, 0.2, 0.2, 1.0);
+        vec4 ks = vec4(1.0, 1.0, 1.0, 1.0);
+        vec4 kp = vec4(64.0, 32.0, 64.0, 64.0);
+        vec4 ka = vec4(0.0, 0.0, 0.1, 0.0);
+
+        vec4 color = ka;
+
         float dx = v_In.TexCoord.x - 0.5;
         float dy = v_In.TexCoord.y - 0.5;
-        
+
         if (dx * dx + dy * dy > 0.25) {
 	        discard;
 	    }
-        
+	    
+	    dx *= 2;
+	    dy *= 2;
+	    
+	    vec3 normal_map = vec3(dx, dy, sqrt(1 - dx * dx - dy * dy));
+	    
+		vec3 normal = normalize(v_In.TBN * normal_map);
+
         for (int i = 0; i < u_LightCount; i++) {
             vec4 delta = light[i].center - v_In.Position;
             float dist = length(delta);
             float inv_dist = 1. / dist;
             vec4 light_to_point_normal = delta * inv_dist;
             float intensity = dot(light[i].propagation.xyz, vec3(1., inv_dist, inv_dist * inv_dist));
-            color += kd * light[i].color * intensity * max(0, dot(light_to_point_normal, vec4(v_In.Normal, 0.)));
+            
+            float lambert = max(0, dot(light_to_point_normal, vec4(normal, 0.0)));
+           
+
+			vec4 specular;
+			if (lambert >= 0.0) 
+			{
+                vec3 lightDir = light_to_point_normal.xyz;
+                vec3 viewDir = vec3(0.0, 0.0, 1.0); // ortho, normalize(-v_In.Position.xyz); perspective
+                vec3 halfDir = normalize(lightDir + viewDir);
+		        float specAngle = max(dot(halfDir, normal), 0.0);
+		        specular = pow(vec4(specAngle), kp);
+
+//	            vec3 lightDir = light_to_point_normal.xyz;
+//	            vec3 viewDir = vec3(0.0, 0.0, 1.0); // ortho
+//	            vec3 reflectDir = reflect(-lightDir, v_In.Normal.xyz);
+//	            float specAngle = max(dot(reflectDir, viewDir), 0.0);
+//			    specular = pow(vec4(specAngle), kp/4.0);
+			}
+			else
+			{
+				specular = vec4(0.0);
+			}
+            color += light[i].color * intensity * (kd * lambert + ks * specular);
         }
         o_Color = color;
     }
@@ -92,6 +141,7 @@ pub type DepthFormat = gfx::format::DepthStencil;
 gfx_vertex_struct!(VertexPosNormal {
 	pos: [f32; 3] = "a_Pos",
 	normal: [f32; 3] = "a_Normal",
+	tangent: [f32; 3] = "a_Tangent",
 	tex_coord: [f32; 2] = "a_TexCoord",
 });
 
@@ -132,17 +182,36 @@ gfx_defines!(
     }
 );
 
+pub struct Camera {
+	pub projection: M44,
+	pub view: M44,
+}
+
+impl Camera {
+	pub fn ortho(center: cgmath::Point2<f32>, scale: f32, ratio: f32) -> Camera {
+		Camera {
+			projection: {
+					let hw = 0.5 * scale;
+					let hh = hw / ratio;
+					let near = 10.0;
+					let far = -near;
+					cgmath::ortho(-hw, hw, -hh, hh, near, far)
+				}
+				.into(),
+			view: cgmath::Matrix4::look_at(cgmath::Point3::new(center.x, center.y, 1.0),
+			                               cgmath::Point3::new(center.x, center.y, 0.0),
+			                               cgmath::Vector3::unit_y())
+				.into(),
+		}
+	}
+}
+
 pub struct DrawShaded<R: gfx::Resources> {
 	camera: gfx::handle::Buffer<R, CameraArgs>,
 	model: gfx::handle::Buffer<R, ModelArgs>,
 	fragment: gfx::handle::Buffer<R, FragmentArgs>,
 	lights: gfx::handle::Buffer<R, PointLight>,
 	pso: gfx::pso::PipelineState<R, shaded::Meta>,
-}
-
-pub struct Camera {
-	pub projection: M44,
-	pub view: M44,
 }
 
 impl<R: gfx::Resources> DrawShaded<R> {

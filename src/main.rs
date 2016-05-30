@@ -35,7 +35,26 @@ use std::f64::consts;
 pub struct Viewport {
 	width: u32,
 	height: u32,
+	ratio: f32,
 	scale: f32,
+}
+
+impl Viewport {
+	fn rect(w: u32, h: u32, scale: f32) -> Viewport {
+		Viewport {
+			width: w,
+			height: h,
+			ratio: (w as f32 / h as f32),
+			scale: scale,
+		}
+	}
+
+	fn to_world(&self, x: u32, y: u32) -> (f32, f32) {
+		let dx = self.width as f32 / self.scale;
+		let tx = (x as f32 - (self.width as f32 * 0.5)) / dx;
+		let ty = ((self.height as f32 * 0.5) - y as f32) / dx;
+		(tx, ty)
+	}
 }
 
 pub struct InputState {
@@ -48,35 +67,41 @@ use render::ColorFormat;
 use render::DepthFormat;
 
 const QUAD: [Vertex; 6] = [Vertex {
-	                               pos: [-1.0, -1.0, 0.0],
-	                               normal: [0.0, 0.0, 1.0],
-	                               tex_coord: [0.0, 0.0],
-                               },
-                               Vertex {
-	                               pos: [1.0, -1.0, 0.0],
-	                               normal: [0.0, 0.0, 1.0],
-	                               tex_coord: [1.0, 0.0],
-                               },
-                               Vertex {
-	                               pos: [1.0, 1.0, 0.0],
-	                               normal: [0.0, 0.0, 1.0],
-	                               tex_coord: [1.0, 1.0],
-                               },
-                               Vertex {
-	                               pos: [-1.0, -1.0, 0.0],
-	                               normal: [0.0, 0.0, 1.0],
-	                               tex_coord: [0.0, 0.0],
-                               },
-                               Vertex {
-	                               pos: [-1.0, 1.0, 0.0],
-	                               normal: [0.0, 0.0, 1.0],
-	                               tex_coord: [0.0, 1.0],
-                               },
-                               Vertex {
-	                               pos: [1.0, 1.0, 0.0],
-	                               normal: [0.0, 0.0, 1.0],
-	                               tex_coord: [1.0, 1.0],
-                               }];
+	                           pos: [-1.0, -1.0, 0.0],
+	                           normal: [0.0, 0.0, 1.0],
+	                           tangent: [1.0, 0.0, 0.0],
+	                           tex_coord: [0.0, 0.0],
+                           },
+                           Vertex {
+	                           pos: [1.0, -1.0, 0.0],
+	                           normal: [0.0, 0.0, 1.0],
+	                           tangent: [1.0, 0.0, 0.0],
+	                           tex_coord: [1.0, 0.0],
+                           },
+                           Vertex {
+	                           pos: [1.0, 1.0, 0.0],
+	                           normal: [0.0, 0.0, 1.0],
+	                           tangent: [1.0, 0.0, 0.0],
+	                           tex_coord: [1.0, 1.0],
+                           },
+                           Vertex {
+	                           pos: [-1.0, -1.0, 0.0],
+	                           normal: [0.0, 0.0, 1.0],
+	                           tangent: [1.0, 0.0, 0.0],
+	                           tex_coord: [0.0, 0.0],
+                           },
+                           Vertex {
+	                           pos: [-1.0, 1.0, 0.0],
+	                           normal: [0.0, 0.0, 1.0],
+	                           tangent: [1.0, 0.0, 0.0],
+	                           tex_coord: [0.0, 1.0],
+                           },
+                           Vertex {
+	                           pos: [1.0, 1.0, 0.0],
+	                           normal: [0.0, 0.0, 1.0],
+	                           tangent: [1.0, 0.0, 0.0],
+	                           tex_coord: [1.0, 1.0],
+                           }];
 
 fn new_ball(world: &mut b2::World, pos: b2::Vec2) {
 	let mut rng = rand::thread_rng();
@@ -98,14 +123,15 @@ fn new_ball(world: &mut b2::World, pos: b2::Vec2) {
 		.create_fixture(&circle_shape, &mut f_def);
 }
 struct App {
+	viewport: Viewport,
 	input_state: InputState,
 	world: b2::World,
 }
 
 impl App {
-	fn on_click(&mut self, btn: MouseButton, pos: b2::Vec2) {
+	fn on_click(&mut self, btn: glutin::MouseButton, pos: b2::Vec2) {
 		match btn {
-			MouseButton::Left => {
+			glutin::MouseButton::Left => {
 				self.input_state.left_button_pressed = true;
 				new_ball(&mut self.world, pos);
 			}
@@ -117,95 +143,101 @@ impl App {
 		new_ball(&mut self.world, pos);
 	}
 
-	fn on_release(&mut self, btn: MouseButton, _: b2::Vec2) {
+	fn on_release(&mut self, btn: glutin::MouseButton, _: b2::Vec2) {
 		match btn {
-			MouseButton::Left => {
+			glutin::MouseButton::Left => {
 				self.input_state.left_button_pressed = false;
 			}
 			_ => (),
 		}
 	}
 
-	fn input(&mut self, i: &Input) {
-		match *i {
-			Release(Button::Mouse(b)) => {
+	fn mouse_input(&mut self, e: glutin::Event) {
+		match e {
+			glutin::Event::MouseInput(glutin::ElementState::Released, b) => {
 				let pos = self.input_state.mouse_position;
 				self.on_release(b, pos);
 			}
-			Press(Button::Mouse(b)) => {
+			glutin::Event::MouseInput(glutin::ElementState::Pressed, b) => {
 				let pos = self.input_state.mouse_position;
 				self.on_click(b, pos);
 			}
-			Move(Motion::MouseCursor(x, y)) => {
-				fn transform_pos(viewport: &Viewport, x: f64, y: f64) -> b2::Vec2 {
-					let viewport = &viewport;
-					let tx = (x as f32 - (viewport.width as f32 * 0.5)) / viewport.scale;
-					let ty = ((viewport.height as f32 * 0.5) - y as f32) / viewport.scale;
+			glutin::Event::MouseMoved(x, y) => {
+				fn transform_pos(viewport: &Viewport, x: u32, y: u32) -> b2::Vec2 {
+					let (tx, ty) = viewport.to_world(x, y);
 					return b2::Vec2 { x: tx, y: ty };
+				}
+				let pos = transform_pos(&self.viewport, x as u32, y as u32);
+				self.input_state.mouse_position = pos;
+				if self.input_state.left_button_pressed {
+					self.on_drag(pos);
 				}
 			}
 			_ => (),
 		}
 	}
 
-	fn render(&mut self, args: &RenderArgs) {
-		use graphics::*;
+	fn on_resize(&mut self, width: u32, height: u32) {
+		self.viewport = Viewport::rect(width, height, self.viewport.scale);
+	}
 
-		// self.gl.draw(args.viewport(), |c, g| {
-		// clear(WHITE, g);
-		//
-		// for (_, b) in world.bodies() {
-		// let body = b.borrow();
-		// let position = (*body).position();
-		// let angle = (*body).angle();
-		//
-		// let transform = c.transform // transform compose right to left
-		// .trans((viewport.width as f64 * 0.5), (viewport.height as f64 * 0.5))
-		// .scale(viewport.scale as f64, -viewport.scale as f64)
-		// .trans(position.x as f64, position.y as f64)
-		// .rot_rad(angle as f64);
-		//
-		// for (_, f) in body.fixtures() {
-		// let fixture = f.borrow();
-		// let shape = (*fixture).shape();
-		// let density = (*fixture).density();
-		//
-		// match *shape {
-		// b2::UnknownShape::Circle(ref s) => {
-		// let p = s.position();
-		// let r = s.radius() as f64;
-		// let extent = rectangle::square(p.x as f64 - r, p.y as f64 - r, r * 2.0);
-		// let colour = [1.0, 0.0, 0.0, density - 1.0];
-		// Ellipse::new(colour).draw(extent, &DrawState::default(), transform, g);
-		// }
-		// b2::UnknownShape::Polygon(ref s) => {
-		// let n = s.vertex_count();
-		// let mut v = Vec::with_capacity(n as usize);
-		// for i in 0..n {
-		// let vertex = s.vertex(i);
-		// v.push([vertex.x as f64, vertex.y as f64]);
-		// }
-		// Polygon::new(BLACK)
-		// .draw(v.as_slice(), &DrawState::default(), transform, g);
-		// }
-		// _ => (),
-		// }
-		// }
-		// }
-		// });
-		//
+	fn render<R: gfx::Resources, C: gfx::CommandBuffer<R>>(&self,
+	                                                       renderer: &render::DrawShaded<R>,
+	                                                       mut encoder: &mut gfx::Encoder<R, C>,
+	                                                       vertices: &gfx::handle::Buffer<R, Vertex>,
+	                                                       indices: &gfx::Slice<R>,
+	                                                       color: &gfx::handle::RenderTargetView<R, ColorFormat>,
+	                                                       depth: &gfx::handle::DepthStencilView<R, DepthFormat>) {
+		for (_, b) in self.world.bodies() {
+			let body = b.borrow();
+			let position = (*body).position();
+			let angle = (*body).angle() as f32;
+			use cgmath::Rotation3;
+			let body_rot = Matrix4::from(cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(),
+			                                                                 cgmath::rad(angle)));
+			let body_trans = Matrix4::from_translation(cgmath::Vector3::new(position.x, position.y, 0.0));
+
+			for (_, f) in body.fixtures() {
+				let fixture = f.borrow();
+				let shape = (*fixture).shape();
+				let density = (*fixture).density();
+
+				match *shape {
+					b2::UnknownShape::Circle(ref s) => {
+						let p = s.position();
+						let r = s.radius() as f32;
+
+						let fixture_scale = Matrix4::from_scale(r);
+						let fixture_trans = Matrix4::from_translation(cgmath::Vector3::new(p.x, p.y, 0.0));
+						let transform = body_trans * body_rot * fixture_trans * fixture_scale;
+
+						renderer.draw(&mut encoder,
+						              &vertices,
+						              &indices,
+						              &transform.into(),
+						              &color,
+						              &depth);
+					}
+					b2::UnknownShape::Polygon(ref s) => {
+						// TODO: need to draw fill poly
+					}
+					_ => (),
+				}
+			}
+		}
+
 	}
 
 	fn update(&mut self, dt: f32) {
 		let world = &mut self.world;
 		world.step(dt, 8, 3);
 		const MAX_RADIUS: f32 = 5.0;
-		let edge = 0.0f32; //-(self.viewport.height as f32) / 2.0 / self.viewport.scale - MAX_RADIUS;
+		let (_, edge) = self.viewport.to_world(0, self.viewport.height);
 		let mut v = Vec::new();
 		for (h, b) in world.bodies() {
 			let body = b.borrow();
 			let position = (*body).position();
-			if position.y < edge {
+			if position.y < (edge - MAX_RADIUS) {
 				v.push(h);
 			}
 		}
@@ -245,22 +277,23 @@ fn new_world() -> b2::World {
 }
 
 fn main() {
-	const WIDTH: u32 = 1000;
-	const HEIGHT: u32 = 1000;
+	const WIDTH: u32 = 1280;
+	const HEIGHT: u32 = 720;
 
 	let builder = glutin::WindowBuilder::new()
 		.with_title("Box2d + GFX".to_string())
 		.with_dimensions(WIDTH, HEIGHT)
 		.with_vsync();
 
-	let (window, mut device, mut factory, main_color, main_depth) = gfx_window_glutin::init::<ColorFormat,
-	                                                                                          DepthFormat>(builder);
+	let (window, mut device, mut factory, mut main_color, mut main_depth) =
+		gfx_window_glutin::init::<ColorFormat, DepthFormat>(builder);
 	let (w, h, _, _) = main_color.get_dimensions();
 
 	let renderer = render::DrawShaded::new(&mut factory);
 
 	// Create a new game and run it.
 	let mut app = App {
+		viewport: Viewport::rect(w as u32, h as u32, 100.0),
 		input_state: InputState {
 			left_button_pressed: false,
 			mouse_position: b2::Vec2 { x: 0.0, y: 0.0 },
@@ -270,35 +303,42 @@ fn main() {
 
 	let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&QUAD, ());
 
-	let camera = render::Camera {
-		projection: cgmath::ortho(-10.0f32, 10.0, -10.0, 10.0, 10.0, -10.0).into(),
-		view: Matrix4::look_at(cgmath::Point3::new(0.0, 0.0, 1.0),
-		                       cgmath::Point3::new(0.0, 0.0, 0.0),
-		                       cgmath::Vector3::unit_y())
-			.into(),
-	};
 
 	let lights: Vec<render::PointLight> = vec![render::PointLight {
-		                                           propagation: [1.0; 4],
-		                                           center: [0.0, 0.0, 1.0, 1.0],
+		                                           propagation: [0.3, 0.5, 0.4, 0.0],
+		                                           center: [-15.0, -5.0, 1.0, 1.0],
 		                                           color: [1.0, 0.0, 0.0, 1.0],
+	                                           },
+	                                           render::PointLight {
+		                                           propagation: [0.5, 0.5, 0.5, 0.0],
+		                                           center: [10.0, 10.0, 2.0, 1.0],
+		                                           color: [0.9, 0.9, 0.8, 1.0],
 	                                           }];
-
 
 	let mut elapsed = 0.0f32;
 	let mut start = SystemTime::now();
 	let mut encoder: gfx::Encoder<_, _> = factory.create_command_buffer().into();
 	'main: loop {
-		renderer.setup(&mut encoder, &camera, &lights);
 
-		// events
 		for event in window.poll_events() {
 			match event {
-				// glutin::Event::Input(e) => app.input(e),
+				e @ glutin::Event::MouseMoved(_, _) |
+				e @ glutin::Event::MouseInput(_, _) => app.mouse_input(e),
+
+				glutin::Event::Resized(new_width, new_height) => {
+					gfx_window_glutin::update_views(&window, &mut main_color, &mut main_depth);
+					app.on_resize(new_width, new_height);
+				}
 				glutin::Event::Closed => break 'main,
 				_ => {}
 			}
 		}
+
+		let camera = render::Camera::ortho(cgmath::Point2::new(0.0f32, 0.0),
+		                                   app.viewport.scale,
+		                                   app.viewport.ratio);
+
+		renderer.setup(&mut encoder, &camera, &lights);
 
 		// update
 		match start.elapsed() {
@@ -312,23 +352,14 @@ fn main() {
 
 		// draw a frame
 		renderer.begin_frame(&mut encoder, &main_color, &main_depth);
-		use cgmath::Rotation3;
-		for i in -5..6 {
-			for j in -5..6 {
-				let angle = cgmath::rad(elapsed * 5. + i as f32 + j as f32);
-				let rot = Matrix4::from(cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_y(), angle));
-				let trans = Matrix4::from_translation(cgmath::Vector3::new(i as f32, j as f32, 0.0));
 
-				let transform = trans * rot;
+		app.render(&renderer,
+		           &mut encoder,
+		           &vertex_buffer,
+		           &slice,
+		           &main_color,
+		           &main_depth);
 
-				renderer.draw(&mut encoder,
-				              &vertex_buffer,
-				              &slice,
-				              &transform.into(),
-				              &main_color,
-				              &main_depth);
-			}
-		}
 		renderer.end_frame(&mut encoder, &mut device);
 		window.swap_buffers().unwrap();
 		renderer.cleanup(&mut device);
