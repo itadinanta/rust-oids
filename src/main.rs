@@ -1,10 +1,17 @@
 mod render;
 
-extern crate piston;
+extern crate rand;
+extern crate num;
+extern crate gfx_text;
+
+#[macro_use]
+extern crate log;
+extern crate simplelog;
+
+extern crate cgmath;
+
 extern crate graphics;
 extern crate wrapped2d;
-extern crate rand;
-extern crate cgmath;
 
 #[macro_use]
 extern crate gfx;
@@ -12,22 +19,18 @@ extern crate gfx_device_gl;
 extern crate gfx_window_glutin;
 extern crate glutin;
 extern crate genmesh;
+extern crate piston;
 
 use std::time::SystemTime;
 use rand::Rng;
 
-use piston::window::WindowSettings;
 use piston::event_loop::*;
 use piston::input::*;
-use piston::input::Input::*;
 
 use gfx::Device;
 use gfx::traits::FactoryExt;
 
-use cgmath::{Point3, Vector3, Matrix4, EuclideanVector};
-use cgmath::{Transform, AffineMatrix3};
-use genmesh::generators::SphereUV;
-use genmesh::{Triangulate, MapToVertices, Vertices};
+use cgmath::{Matrix4, EuclideanVector};
 
 use wrapped2d::b2;
 use std::f64::consts;
@@ -197,6 +200,8 @@ impl App {
 			                                                                 cgmath::rad(angle)));
 			let body_trans = Matrix4::from_translation(cgmath::Vector3::new(position.x, position.y, 0.0));
 
+			let body_transform = body_trans * body_rot;
+
 			for (_, f) in body.fixtures() {
 				let fixture = f.borrow();
 				let shape = (*fixture).shape();
@@ -209,7 +214,7 @@ impl App {
 
 						let fixture_scale = Matrix4::from_scale(r);
 						let fixture_trans = Matrix4::from_translation(cgmath::Vector3::new(p.x, p.y, 0.0));
-						let transform = body_trans * body_rot * fixture_trans * fixture_scale;
+						let transform = body_transform * fixture_trans * fixture_scale;
 
 						renderer.draw(&mut encoder,
 						              &vertices,
@@ -218,7 +223,7 @@ impl App {
 						              &color,
 						              &depth);
 					}
-					b2::UnknownShape::Polygon(ref s) => {
+					b2::UnknownShape::Polygon(_) => {
 						// TODO: need to draw fill poly
 					}
 					_ => (),
@@ -276,6 +281,36 @@ fn new_world() -> b2::World {
 	world
 }
 
+pub struct Smooth<S: num::Num> {
+	ptr: usize,
+	count: usize,
+	acc: S,
+	values: Vec<S>,
+}
+
+impl<S: num::Num + num::NumCast + std::marker::Copy> Smooth<S> {
+	pub fn new(window_size: usize) -> Smooth<S> {
+		Smooth {
+			ptr: 0,
+			count: 0,
+			acc: S::zero(),
+			values: vec![S::zero(); window_size],
+		}
+	}
+	pub fn smooth(&mut self, value: S) -> S {
+		let len = self.values.len();
+		if self.count < len {
+			self.count = self.count + 1;
+		} else {
+			self.acc = self.acc - self.values[self.ptr];
+		}
+		self.acc = self.acc + value;
+		self.values[self.ptr] = value;
+		self.ptr = ((self.ptr + 1) % len) as usize;
+		self.acc / num::cast(self.count).unwrap()
+	}
+}
+
 fn main() {
 	const WIDTH: u32 = 1280;
 	const HEIGHT: u32 = 720;
@@ -303,6 +338,7 @@ fn main() {
 
 	let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&QUAD, ());
 
+	let mut text_renderer = gfx_text::new(factory.clone()).build().unwrap();
 
 	let lights: Vec<render::PointLight> = vec![render::PointLight {
 		                                           propagation: [0.3, 0.5, 0.4, 0.0],
@@ -316,7 +352,9 @@ fn main() {
 	                                           }];
 
 	let mut elapsed = 0.0f32;
+	let mut frame_count = 0u32;
 	let mut start = SystemTime::now();
+	let mut smooth: Smooth<f32> = Smooth::new(120);
 	let mut encoder: gfx::Encoder<_, _> = factory.create_command_buffer().into();
 	'main: loop {
 
@@ -341,15 +379,18 @@ fn main() {
 		renderer.setup(&mut encoder, &camera, &lights);
 
 		// update
-		match start.elapsed() {
+		let (frame_time, smooth_frame_time, fps) = match start.elapsed() {
 			Ok(dt) => {
 				let frame = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
-				app.update(frame);
+				let smoothed = smooth.smooth(frame);
+				app.update(smoothed);
 				elapsed += frame;
+				start = SystemTime::now();
+				(frame, smoothed, 1.0 / smoothed)
 			}
-			Err(_) => {}
-		}
-
+			Err(_) => (-1.0, -1.0, -1.0),
+		};
+		frame_count += 1;
 		// draw a frame
 		renderer.begin_frame(&mut encoder, &main_color, &main_depth);
 
@@ -360,11 +401,22 @@ fn main() {
 		           &main_color,
 		           &main_depth);
 
+		renderer.draw_text(&mut encoder,
+		                   &mut text_renderer,
+		                   &format!("F: {} E: {:.3} FT: {:.2} SFT: {:.2} FPS: {:.1}",
+		                            frame_count,
+		                            elapsed,
+		                            frame_time * 1000.0,
+		                            smooth_frame_time * 1000.0,
+		                            fps),
+		                   [10, 10],
+		                   [1.0; 4],
+		                   &main_color);
+
 		renderer.end_frame(&mut encoder, &mut device);
+
 		window.swap_buffers().unwrap();
 		renderer.cleanup(&mut device);
-
-		start = SystemTime::now();
 	}
 
 }

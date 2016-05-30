@@ -2,6 +2,7 @@ use gfx;
 use gfx::traits::FactoryExt;
 
 extern crate cgmath;
+extern crate gfx_text;
 
 pub static VERTEX_SRC: &'static [u8] = b"
     #version 150 core
@@ -88,12 +89,12 @@ pub static FRAGMENT_SRC: &'static [u8] = b"
         if (dx * dx + dy * dy > 0.25) {
 	        discard;
 	    }
-	    
+
 	    dx *= 2;
 	    dy *= 2;
-	    
+
 	    vec3 normal_map = vec3(dx, dy, sqrt(1 - dx * dx - dy * dy));
-	    
+
 		vec3 normal = normalize(v_In.TBN * normal_map);
 
         for (int i = 0; i < u_LightCount; i++) {
@@ -102,12 +103,11 @@ pub static FRAGMENT_SRC: &'static [u8] = b"
             float inv_dist = 1. / dist;
             vec4 light_to_point_normal = delta * inv_dist;
             float intensity = dot(light[i].propagation.xyz, vec3(1., inv_dist, inv_dist * inv_dist));
-            
+
             float lambert = max(0, dot(light_to_point_normal, vec4(normal, 0.0)));
-           
 
 			vec4 specular;
-			if (lambert >= 0.0) 
+			if (lambert >= 0.0)
 			{
                 vec3 lightDir = light_to_point_normal.xyz;
                 vec3 viewDir = vec3(0.0, 0.0, 1.0); // ortho, normalize(-v_In.Position.xyz); perspective
@@ -278,6 +278,18 @@ impl<R: gfx::Resources> DrawShaded<R> {
 		                               });
 
 		encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32 });
+	}
+
+	pub fn draw_text<C: gfx::CommandBuffer<R>, F: gfx::Factory<R>>(&self,
+	                                                               encoder: &mut gfx::Encoder<R, C>,
+	                                                               text_renderer: &mut gfx_text::Renderer<R, F>,
+	                                                               text: &str,
+	                                                               screen_position: [i32; 2],
+	                                                               text_color: [f32; 4],
+	                                                               color: &gfx::handle::RenderTargetView<R,
+	                                                                                                     ColorFormat>) {
+		text_renderer.add(text, screen_position, text_color);
+		text_renderer.draw(encoder, &color).unwrap();
 	}
 
 	pub fn draw<C: gfx::CommandBuffer<R>>(&self,
