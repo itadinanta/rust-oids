@@ -257,7 +257,7 @@ fn new_world() -> b2::World {
 
 	let mut b_def = b2::BodyDef::new();
 	b_def.body_type = b2::BodyType::Static;
-	b_def.position = b2::Vec2 { x: 0.0, y: -20.0 };
+	b_def.position = b2::Vec2 { x: 0.0, y: -8.0 };
 
 	let mut ground_box = b2::PolygonShape::new();
 	{

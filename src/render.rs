@@ -109,17 +109,15 @@ pub static FRAGMENT_SRC: &'static [u8] = b"
 			vec4 specular;
 			if (lambert >= 0.0)
 			{
+//				Blinn-Phong:
                 vec3 lightDir = light_to_point_normal.xyz;
                 vec3 viewDir = vec3(0.0, 0.0, 1.0); // ortho, normalize(-v_In.Position.xyz); perspective
-                vec3 halfDir = normalize(lightDir + viewDir);
+                vec3 halfDir = normalize(lightDir + viewDir); // can be done in vertex shader
 		        float specAngle = max(dot(halfDir, normal), 0.0);
-		        specular = pow(vec4(specAngle), kp);
-
-//	            vec3 lightDir = light_to_point_normal.xyz;
-//	            vec3 viewDir = vec3(0.0, 0.0, 1.0); // ortho
+//				Phong:
 //	            vec3 reflectDir = reflect(-lightDir, v_In.Normal.xyz);
 //	            float specAngle = max(dot(reflectDir, viewDir), 0.0);
-//			    specular = pow(vec4(specAngle), kp/4.0);
+		        specular = pow(vec4(specAngle), kp);
 			}
 			else
 			{
