@@ -1,4 +1,5 @@
 mod render;
+mod blit;
 
 extern crate rand;
 extern crate num;

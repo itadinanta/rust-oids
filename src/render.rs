@@ -5,139 +5,138 @@ extern crate cgmath;
 extern crate gfx_text;
 
 pub static VERTEX_SRC: &'static [u8] = b"
-    #version 150 core
 
-    layout (std140) uniform cb_CameraArgs {
-        uniform mat4 u_Proj;
-        uniform mat4 u_View;
-    };
+#version 150 core
 
-    layout (std140) uniform cb_ModelArgs {
-        uniform mat4 u_Model;
-    };
+layout (std140) uniform cb_CameraArgs {
+    uniform mat4 u_Proj;
+    uniform mat4 u_View;
+};
 
-    in vec3 a_Pos;
-    in vec3 a_Normal;
-    in vec3 a_Tangent;
-    in vec2 a_TexCoord;
+layout (std140) uniform cb_ModelArgs {
+    uniform mat4 u_Model;
+};
 
-    out VertexData {
-        vec4 Position;
-        vec3 Normal;
-        mat3 TBN;
-        vec2 TexCoord;
-    } v_Out;
+in vec3 a_Pos;
+in vec3 a_Normal;
+in vec3 a_Tangent;
+in vec2 a_TexCoord;
 
-    void main() {
-        v_Out.Position = u_Model * vec4(a_Pos, 1.0);
-        v_Out.Normal = normalize(mat3(u_Model) * a_Normal);
+out VertexData {
+    vec4 Position;
+    vec3 Normal;
+    mat3 TBN;
+    vec2 TexCoord;
+} v_Out;
 
-        mat3 viewModel = mat3(u_View) * mat3(u_Model);
+void main() {
+    v_Out.Position = u_Model * vec4(a_Pos, 1.0);
+    v_Out.Normal = normalize(mat3(u_Model) * a_Normal);
 
-        vec3 normal = normalize(viewModel * a_Normal);
-        vec3 tangent = normalize(viewModel * a_Tangent);
-        vec3 bitangent = cross(normal, tangent);
+    mat3 viewModel = mat3(u_View) * mat3(u_Model);
 
-        v_Out.TBN = mat3(tangent, bitangent, normal);
+    vec3 normal = normalize(viewModel * a_Normal);
+    vec3 tangent = normalize(viewModel * a_Tangent);
+    vec3 bitangent = cross(normal, tangent);
 
-        v_Out.TexCoord = a_TexCoord;
-        gl_Position = u_Proj * u_View * v_Out.Position;
-    }
+    v_Out.TBN = mat3(tangent, bitangent, normal);
+
+    v_Out.TexCoord = a_TexCoord;
+    gl_Position = u_Proj * u_View * v_Out.Position;
+}
+
 ";
 
 pub static FRAGMENT_SRC: &'static [u8] = b"
-    #version 150 core
-    #define MAX_NUM_TOTAL_LIGHTS 512
 
-	const float PI = 3.1415926535897932384626433832795;
-	const float PI_2 = 1.57079632679489661923;
+#version 150 core
+#define MAX_NUM_TOTAL_LIGHTS 512
 
-    layout (std140) uniform cb_FragmentArgs {
-        int u_LightCount;
-    };
+const float PI = 3.1415926535897932384626433832795;
+const float PI_2 = 1.57079632679489661923;
 
-    struct Light {
-        vec4 propagation;
-        vec4 center;
-        vec4 color;
-    };
+layout (std140) uniform cb_FragmentArgs {
+    int u_LightCount;
+};
 
-    layout (std140) uniform u_Lights {
-        Light light[MAX_NUM_TOTAL_LIGHTS];
-    };
+struct Light {
+    vec4 propagation;
+    vec4 center;
+    vec4 color;
+};
 
-    in VertexData {
-        vec4 Position;
-        vec3 Normal;
-        mat3 TBN;
-        vec2 TexCoord;
-    } v_In;
+layout (std140) uniform u_Lights {
+    Light light[MAX_NUM_TOTAL_LIGHTS];
+};
 
-    out vec4 o_Color;
+in VertexData {
+    vec4 Position;
+    vec3 Normal;
+    mat3 TBN;
+    vec2 TexCoord;
+} v_In;
 
-    void main() {
-        vec4 kd = vec4(0.2, 0.2, 0.2, 1.0);
-        vec4 ks = vec4(1.0, 1.0, 1.0, 1.0);
-        vec4 kp = vec4(64.0, 32.0, 64.0, 64.0);
-        vec4 ka = vec4(0.0, 0.0, 0.1, 0.0);
+out vec4 o_Color;
 
-        vec4 color = ka;
+void main() {
+    vec4 kd = vec4(0.2, 0.2, 0.2, 1.0);
+    vec4 ks = vec4(1.0, 1.0, 1.0, 1.0);
+    vec4 kp = vec4(64.0, 32.0, 64.0, 64.0);
+    vec4 ka = vec4(0.0, 0.0, 0.1, 0.0);
 
-        float dx = v_In.TexCoord.x - 0.5;
-        float dy = v_In.TexCoord.y - 0.5;
+    vec4 color = ka;
 
-        if (dx * dx + dy * dy > 0.25) {
-	        discard;
-	    }
+    float dx = v_In.TexCoord.x - 0.5;
+    float dy = v_In.TexCoord.y - 0.5;
 
-	    dx *= 2;
-	    dy *= 2;
-	    
-		float bump = sqrt(1 - dx * dx - dy * dy);
-	    vec3 normal_map = vec3(dx, dy, bump);
-
-		vec3 normal = normalize(v_In.TBN * normal_map);
-
-        for (int i = 0; i < u_LightCount; i++) {
-            vec4 delta = light[i].center - v_In.Position;
-            float dist = length(delta);
-            float inv_dist = 1. / dist;
-            vec4 light_to_point_normal = delta * inv_dist;
-            float intensity = dot(light[i].propagation.xyz, vec3(1., inv_dist, inv_dist * inv_dist));
-
-            float lambert = max(0, dot(light_to_point_normal, vec4(normal, 0.0)));
-
-			vec4 specular;
-			if (lambert >= 0.0)
-			{
-//				Blinn-Phong:
-                vec3 lightDir = light_to_point_normal.xyz;
-                vec3 viewDir = vec3(0.0, 0.0, 1.0); // ortho, normalize(-v_In.Position.xyz); perspective
-                vec3 halfDir = normalize(lightDir + viewDir); // can be done in vertex shader
-		        float specAngle = max(dot(halfDir, normal), 0.0);
-//				Phong:
-//	            vec3 reflectDir = reflect(-lightDir, v_In.Normal.xyz);
-//	            float specAngle = max(dot(reflectDir, viewDir), 0.0);
-		        specular = pow(vec4(specAngle), kp);
-			}
-			else
-			{
-				specular = vec4(0.0);
-			}
-            color += light[i].color * intensity * (kd * lambert + ks * specular);
-        }
-        gl_FragDepth = 0.0; //bump / gl_FragCoord.w;
-        o_Color = color;
+    if (dx * dx + dy * dy > 0.25) {
+        discard;
     }
+
+    dx *= 2;
+    dy *= 2;
+
+	float bump = sqrt(1 - dx * dx - dy * dy);
+	vec3 normal_map = vec3(dx, dy, bump);
+
+	vec3 normal = normalize(v_In.TBN * normal_map);
+
+	for (int i = 0; i < u_LightCount; i++) {
+		vec4 delta = light[i].center - v_In.Position;
+		float dist = length(delta);
+		float inv_dist = 1. / dist;
+		vec4 light_to_point_normal = delta * inv_dist;
+		float intensity = dot(light[i].propagation.xyz, vec3(1., inv_dist, inv_dist * inv_dist));
+
+		float lambert = max(0, dot(light_to_point_normal, vec4(normal, 0.0)));
+
+		vec4 specular;
+		if (lambert >= 0.0) {
+//			Blinn-Phong:
+			vec3 lightDir = light_to_point_normal.xyz;
+            vec3 viewDir = vec3(0.0, 0.0, 1.0); // ortho, normalize(-v_In.Position.xyz); perspective
+            vec3 halfDir = normalize(lightDir + viewDir); // can be done in vertex shader
+			float specAngle = max(dot(halfDir, normal), 0.0);
+//			Phong:
+//	        vec3 reflectDir = reflect(-lightDir, v_In.Normal.xyz);
+//	        float specAngle = max(dot(reflectDir, viewDir), 0.0);
+			specular = pow(vec4(specAngle), kp);
+		}
+		else {
+			specular = vec4(0.0);
+		}
+		color += light[i].color * intensity * (kd * lambert + ks * specular);
+	}
+	// gl_FragDepth = bump;
+	o_Color = color;
+}
+
 ";
 
-/// Placeholder Color format
+pub type HDRColorFormat = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
 pub type ColorFormat = gfx::format::Rgba8;
-/// Placeholder Depth Format
 pub type DepthFormat = gfx::format::DepthStencil;
 
-
-// placeholder
 gfx_vertex_struct!(VertexPosNormal {
 	pos: [f32; 3] = "a_Pos",
 	normal: [f32; 3] = "a_Normal",
@@ -177,7 +176,7 @@ gfx_defines!(
         model_args: gfx::ConstantBuffer<ModelArgs> = "cb_ModelArgs",
         fragment_args: gfx::ConstantBuffer<FragmentArgs> = "cb_FragmentArgs",
         lights: gfx::ConstantBuffer<PointLight> = "u_Lights",
-        out_ka: gfx::RenderTarget<gfx::format::Rgba8> = "o_Color",
+        out_ka: gfx::RenderTarget<ColorFormat> = "o_Color",
         out_depth: gfx::DepthTarget<gfx::format::DepthStencil> = gfx::preset::depth::LESS_EQUAL_WRITE,
     }
 );
