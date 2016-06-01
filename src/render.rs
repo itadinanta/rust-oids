@@ -92,8 +92,9 @@ pub static FRAGMENT_SRC: &'static [u8] = b"
 
 	    dx *= 2;
 	    dy *= 2;
-
-	    vec3 normal_map = vec3(dx, dy, sqrt(1 - dx * dx - dy * dy));
+	    
+		float bump = sqrt(1 - dx * dx - dy * dy);
+	    vec3 normal_map = vec3(dx, dy, bump);
 
 		vec3 normal = normalize(v_In.TBN * normal_map);
 
@@ -125,6 +126,7 @@ pub static FRAGMENT_SRC: &'static [u8] = b"
 			}
             color += light[i].color * intensity * (kd * lambert + ks * specular);
         }
+        gl_FragDepth = 0.0; //bump / gl_FragCoord.w;
         o_Color = color;
     }
 ";
@@ -220,8 +222,7 @@ impl<R: gfx::Resources> DrawShaded<R> {
 		let camera = factory.create_constant_buffer(1);
 		let model = factory.create_constant_buffer(1);
 		let fragment = factory.create_constant_buffer(1);
-		let pso = factory.create_pipeline_simple(VERTEX_SRC, FRAGMENT_SRC, shaded::new())
-			.unwrap();
+		let pso = factory.create_pipeline_simple(VERTEX_SRC, FRAGMENT_SRC, shaded::new()).unwrap();
 
 		DrawShaded {
 			camera: camera,
