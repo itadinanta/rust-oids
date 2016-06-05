@@ -22,19 +22,12 @@ extern crate glutin;
 extern crate genmesh;
 extern crate piston;
 
-use rand::Rng;
-
 use piston::event_loop::*;
 use piston::input::*;
 
 use gfx::Device;
-use gfx::traits::FactoryExt;
-
-use cgmath::{Matrix4, EuclideanVector};
-
 
 use render::Renderer;
-use render::ForwardRenderer;
 
 fn main() {
 	const WIDTH: u32 = 1280;
@@ -87,6 +80,8 @@ fn main() {
 
 		// draw the box2d bodies
 		app.render(renderer);
+		
+		renderer.resolve_frame_buffer();
 
 		if let Ok(r) = update_result {
 			use render::Draw;

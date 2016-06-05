@@ -45,12 +45,15 @@ void main() {
     gl_Position = u_Proj * u_View * v_Out.Position;
 }
 
+
+
 ";
+const MAX_NUM_TOTAL_LIGHTS : usize = 16;
 
 pub static FRAGMENT_SRC: &'static [u8] = b"
 
 #version 150 core
-#define MAX_NUM_TOTAL_LIGHTS 512
+#define MAX_NUM_TOTAL_LIGHTS 16
 
 const float PI = 3.1415926535897932384626433832795;
 const float PI_2 = 1.57079632679489661923;
@@ -149,8 +152,6 @@ pub type GFormat = [f32; 4];
 
 pub type M44 = cgmath::Matrix4<f32>;
 
-pub const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
-
 gfx_defines!(
     constant PointLight {
         propagation: [f32; 4] = "propagation",
@@ -177,8 +178,8 @@ gfx_defines!(
         model_args: gfx::ConstantBuffer<ModelArgs> = "cb_ModelArgs",
         fragment_args: gfx::ConstantBuffer<FragmentArgs> = "cb_FragmentArgs",
         lights: gfx::ConstantBuffer<PointLight> = "u_Lights",
-        out_ka: gfx::RenderTarget<ColorFormat> = "o_Color",
-        out_depth: gfx::DepthTarget<gfx::format::DepthStencil> = gfx::preset::depth::LESS_EQUAL_WRITE,
+        color_target: gfx::RenderTarget<HDRColorFormat> = "o_Color",
+        depth_target: gfx::DepthTarget<gfx::format::DepthStencil> = gfx::preset::depth::LESS_EQUAL_WRITE,
     }
 );
 
@@ -193,9 +194,9 @@ pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 }
 
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
-	pub fn new<F>(factory: &mut F) -> Self
+	pub fn new<F>(factory: &mut F) -> ForwardLighting<R, C>
 		where F: gfx::Factory<R> {
-		let lights = factory.create_constant_buffer(512);
+		let lights = factory.create_constant_buffer(MAX_NUM_TOTAL_LIGHTS);
 		let camera = factory.create_constant_buffer(1);
 		let model = factory.create_constant_buffer(1);
 		let fragment = factory.create_constant_buffer(1);
@@ -211,10 +212,6 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 		}
 	}
 
-	pub fn cleanup<D: gfx::Device<Resources = R, CommandBuffer = C>>(&self, device: &mut D) {
-		device.cleanup();
-	}
-
 	pub fn setup(&self,
 	             encoder: &mut gfx::Encoder<R, C>,
 	             camera_projection: M44,
@@ -224,14 +221,14 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 		let mut lights_buf = lights.clone();
 
 		let count = lights_buf.len();
-		while lights_buf.len() < 512 {
+		while lights_buf.len() < MAX_NUM_TOTAL_LIGHTS {
 			lights_buf.push(PointLight {
 				propagation: [0., 0., 0., 0.],
 				color: [0., 0., 0., 0.],
 				center: [0., 0., 0., 0.],
 			})
 		}
-		// only one draw call per frame just to prove the point
+
 		encoder.update_buffer(&self.lights, &lights_buf[..], 0).unwrap();
 
 		encoder.update_constant_buffer(&self.camera,
@@ -248,8 +245,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 	                      vertices: &gfx::handle::Buffer<R, VertexPosNormal>,
 	                      indices: &gfx::Slice<R>,
 	                      transform: &M44,
-	                      color: &gfx::handle::RenderTargetView<R, ColorFormat>,
-	                      output_depth: &gfx::handle::DepthStencilView<R, DepthFormat>) {
+	                      color_buffer: &gfx::handle::RenderTargetView<R, HDRColorFormat>,
+	                      depth_buffer: &gfx::handle::DepthStencilView<R, DepthFormat>) {
 
 		encoder.update_constant_buffer(&self.model, &ModelArgs { model: transform.clone().into() });
 
@@ -261,8 +258,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 			             camera_args: self.camera.clone(),
 			             model_args: self.model.clone(),
 			             lights: self.lights.clone(),
-			             out_ka: color.clone(),
-			             out_depth: output_depth.clone(),
+			             color_target: color_buffer.clone(),
+			             depth_target: depth_buffer.clone(),
 		             });
 	}
 }

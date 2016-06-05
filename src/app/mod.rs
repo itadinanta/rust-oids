@@ -291,8 +291,4 @@ impl<S: ::num::Num + ::num::NumCast + ::std::marker::Copy> Smooth<S> {
 		self.last = self.acc / ::num::cast(self.count).unwrap();
 		self.last
 	}
-
-	pub fn last(&self) -> S {
-		self.last
-	}
 }
