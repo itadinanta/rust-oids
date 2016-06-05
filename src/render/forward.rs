@@ -193,7 +193,7 @@ pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 }
 
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
-	pub fn new<F>(factory: &F) -> Self
+	pub fn new<F>(factory: &mut F) -> Self
 		where F: gfx::Factory<R> {
 		let lights = factory.create_constant_buffer(512);
 		let camera = factory.create_constant_buffer(1);

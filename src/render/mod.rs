@@ -84,16 +84,15 @@ pub trait Draw {
 	fn draw_text(&mut self, text: &str, screen_position: [i32; 2], text_color: [f32; 4]);
 }
 
-pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>, D: gfx::Device<Resources = R, CommandBuffer = C>>
-    : Draw {
+pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>>: Draw {
 	fn setup(&mut self, camera: &Camera);
 	fn begin_frame(&mut self);
-	fn end_frame(&mut self, device: &mut D);
-	fn cleanup(&mut self, device: &mut D);
+	fn end_frame<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D);
+	fn cleanup<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D);
 }
 
 pub struct ForwardRenderer<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: gfx::Factory<R>> {
-	encoder: &'e gfx::Encoder<R, C>,
+	encoder: &'e mut gfx::Encoder<R, C>,
 	color: gfx::handle::RenderTargetView<R, ColorFormat>,
 	depth: gfx::handle::DepthStencilView<R, DepthFormat>,
 
@@ -107,30 +106,20 @@ pub struct ForwardRenderer<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>,
 use gfx::Factory;
 use gfx::traits::FactoryExt;
 
-pub impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> ForwardRenderer<'e, R, C, F> {
+use std::clone::Clone;
+impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> ForwardRenderer<'e, R, C, F> {
 	pub fn new(factory: &mut F,
-	           encoder: &'e gfx::Encoder<R, C>,
+	           encoder: &'e mut gfx::Encoder<R, C>,
 	           color: &gfx::handle::RenderTargetView<R, ColorFormat>,
 	           depth: &gfx::handle::DepthStencilView<R, DepthFormat>)
 	           -> ForwardRenderer<'e, R, C, F> {
 		let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&QUAD, ());
 
-		let lights: Vec<forward::PointLight> = vec![forward::PointLight {
-			                                            propagation: [0.3, 0.5, 0.4, 0.0],
-			                                            center: [-15.0, -5.0, 1.0, 1.0],
-			                                            color: [1.0, 0.0, 0.0, 1.0],
-		                                            },
-		                                            forward::PointLight {
-			                                            propagation: [0.5, 0.5, 0.5, 0.0],
-			                                            center: [10.0, 10.0, 2.0, 1.0],
-			                                            color: [0.9, 0.9, 0.8, 1.0],
-		                                            }];
-
 		ForwardRenderer {
 			encoder: encoder,
 			color: color.clone(),
 			depth: depth.clone(),
-			text_renderer: gfx_text::new(*factory).build().unwrap(),
+			text_renderer: gfx_text::new(factory.clone()).build().unwrap(),
 			vertex_buffer: vertex_buffer,
 			index_buffer_slice: slice,
 			pass_forward_lighting: forward::ForwardLighting::new(factory),
@@ -138,8 +127,8 @@ pub impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Forward
 	}
 }
 
-pub impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: gfx::Factory<R>> Draw for ForwardRenderer<'e, R, C, F> {
-	pub fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>) {
+impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: gfx::Factory<R>> Draw for ForwardRenderer<'e, R, C, F> {
+	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>) {
 		self.pass_forward_lighting.draw_triangles(&mut self.encoder,
 		                                          &self.vertex_buffer,
 		                                          &self.index_buffer_slice,
@@ -148,18 +137,17 @@ pub impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: gfx::Factory<R>> Dr
 		                                          &mut self.depth);
 	}
 
-	pub fn draw_text(&mut self, text: &str, screen_position: [i32; 2], text_color: [f32; 4]) {
+	fn draw_text(&mut self, text: &str, screen_position: [i32; 2], text_color: [f32; 4]) {
 		self.text_renderer.add(&text, screen_position, text_color);
 		self.text_renderer.draw(&mut self.encoder, &mut self.color).unwrap();
 	}
 }
 
-pub impl<'e, R: gfx::Resources,
-		C: gfx::CommandBuffer<R>,
-		F: gfx::Factory<R>,
-		D: gfx::Device<Resources = R, CommandBuffer = C>> Renderer<R, C, D>
-		for ForwardRenderer<'e, R, C, F> {
-	pub fn setup(&mut self, camera: &Camera) {
+impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: gfx::Factory<R>> Renderer<R, C> for ForwardRenderer<'e,
+                                                                                                             R,
+                                                                                                             C,
+                                                                                                             F> {
+	fn setup(&mut self, camera: &Camera) {
 		let lights: Vec<forward::PointLight> = vec![forward::PointLight {
 			                                            propagation: [0.3, 0.5, 0.4, 0.0],
 			                                            center: [-15.0, -5.0, 1.0, 1.0],
@@ -174,17 +162,17 @@ pub impl<'e, R: gfx::Resources,
 		self.pass_forward_lighting.setup(&mut self.encoder, camera.view, camera.projection, &lights);
 	}
 
-	pub fn begin_frame(&mut self) {
+	fn begin_frame(&mut self) {
 		self.encoder.clear(&self.color, BLACK);
-	    self.encoder.clear_depth(&self.depth, 1.0f32);
+		self.encoder.clear_depth(&self.depth, 1.0f32);
 	}
 
 
-	pub fn end_frame(&mut self, device: &mut D) {
+	fn end_frame<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D) {
 		self.encoder.flush(device);
 	}
 
-	pub fn cleanup(&mut self, device: &mut D) {
+	fn cleanup<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D) {
 		device.cleanup();
 	}
 }

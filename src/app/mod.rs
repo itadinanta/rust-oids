@@ -1,4 +1,3 @@
-
 use std::time::{SystemTime, Duration};
 use rand;
 use rand::Rng;
@@ -33,9 +32,34 @@ fn new_ball(world: &mut b2::World, pos: b2::Vec2) {
 	world.get_body_mut(handle)
 		.create_fixture(&circle_shape, &mut f_def);
 }
-use super::*;
+
 use wrapped2d::b2;
 use std::f64::consts;
+
+pub struct Viewport {
+	width: u32,
+	height: u32,
+	pub ratio: f32,
+	pub scale: f32,
+}
+
+impl Viewport {
+	fn rect(w: u32, h: u32, scale: f32) -> Viewport {
+		Viewport {
+			width: w,
+			height: h,
+			ratio: (w as f32 / h as f32),
+			scale: scale,
+		}
+	}
+
+	fn to_world(&self, x: u32, y: u32) -> (f32, f32) {
+		let dx = self.width as f32 / self.scale;
+		let tx = (x as f32 - (self.width as f32 * 0.5)) / dx;
+		let ty = ((self.height as f32 * 0.5) - y as f32) / dx;
+		(tx, ty)
+	}
+}
 
 pub struct App {
 	pub viewport: Viewport,
@@ -163,7 +187,7 @@ impl App {
 		}
 	}
 
-	pub fn update(&self) -> Result<Update, ()> {
+	pub fn update(&mut self) -> Result<Update, ()> {
 		match self.frame_start.elapsed() {
 			Ok(dt) => {
 				let frame_time = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
@@ -184,7 +208,7 @@ impl App {
 			}
 
 			Err(_) => Err(()),
-		};
+		}
 	}
 
 	fn update_physics(&mut self, dt: f32) {

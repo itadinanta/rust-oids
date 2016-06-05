@@ -32,30 +32,6 @@ use gfx::traits::FactoryExt;
 
 use cgmath::{Matrix4, EuclideanVector};
 
-pub struct Viewport {
-	width: u32,
-	height: u32,
-	ratio: f32,
-	scale: f32,
-}
-
-impl Viewport {
-	fn rect(w: u32, h: u32, scale: f32) -> Viewport {
-		Viewport {
-			width: w,
-			height: h,
-			ratio: (w as f32 / h as f32),
-			scale: scale,
-		}
-	}
-
-	fn to_world(&self, x: u32, y: u32) -> (f32, f32) {
-		let dx = self.width as f32 / self.scale;
-		let tx = (x as f32 - (self.width as f32 * 0.5)) / dx;
-		let ty = ((self.height as f32 * 0.5) - y as f32) / dx;
-		(tx, ty)
-	}
-}
 
 use render::Renderer;
 use render::ForwardRenderer;
@@ -69,13 +45,12 @@ fn main() {
 		.with_dimensions(WIDTH, HEIGHT)
 		.with_vsync();
 
-	let (window, device, factory, frame_buffer, depth_buffer) = gfx_window_glutin::init::<render::ColorFormat,
-	                                                                                      render::DepthFormat>(builder);
+	let (window, mut device, mut factory, mut frame_buffer, mut depth_buffer) =
+		gfx_window_glutin::init::<render::ColorFormat, render::DepthFormat>(builder);
 
 	let (w, h, _, _) = frame_buffer.get_dimensions();
 
-	let encoder = factory.create_command_buffer().into();
-
+	let mut encoder = factory.create_command_buffer().into();
 
 	let renderer = &mut render::ForwardRenderer::new(&mut factory, &mut encoder, &frame_buffer, &depth_buffer);
 
