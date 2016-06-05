@@ -133,16 +133,17 @@ void main() {
 
 ";
 
-pub type HDRColorFormat = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
-pub type ColorFormat = gfx::format::Rgba8;
-pub type DepthFormat = gfx::format::DepthStencil;
-
 gfx_vertex_struct!(VertexPosNormal {
 	pos: [f32; 3] = "a_Pos",
 	normal: [f32; 3] = "a_Normal",
 	tangent: [f32; 3] = "a_Tangent",
 	tex_coord: [f32; 2] = "a_TexCoord",
 });
+
+pub type Vertex = VertexPosNormal;
+pub type HDRColorFormat = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
+pub type ColorFormat = gfx::format::Rgba8;
+pub type DepthFormat = gfx::format::DepthStencil;
 
 pub type GFormat = [f32; 4];
 
@@ -181,80 +182,44 @@ gfx_defines!(
     }
 );
 
-pub struct Camera {
-	pub projection: M44,
-	pub view: M44,
-}
-
-impl Camera {
-	pub fn ortho(center: cgmath::Point2<f32>, scale: f32, ratio: f32) -> Camera {
-		Camera {
-			projection: {
-					let hw = 0.5 * scale;
-					let hh = hw / ratio;
-					let near = 10.0;
-					let far = -near;
-					cgmath::ortho(-hw, hw, -hh, hh, near, far)
-				}
-				.into(),
-			view: cgmath::Matrix4::look_at(cgmath::Point3::new(center.x, center.y, 1.0),
-			                               cgmath::Point3::new(center.x, center.y, 0.0),
-			                               cgmath::Vector3::unit_y())
-				.into(),
-		}
-	}
-}
-
-pub struct DrawShaded<R: gfx::Resources> {
+use std::marker::PhantomData;
+pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 	camera: gfx::handle::Buffer<R, CameraArgs>,
 	model: gfx::handle::Buffer<R, ModelArgs>,
 	fragment: gfx::handle::Buffer<R, FragmentArgs>,
 	lights: gfx::handle::Buffer<R, PointLight>,
 	pso: gfx::pso::PipelineState<R, shaded::Meta>,
+	_buffer: PhantomData<C>,
 }
 
-impl<R: gfx::Resources> DrawShaded<R> {
-	pub fn new<F>(factory: &mut F) -> DrawShaded<R>
-		where R: gfx::Resources,
-		      F: gfx::Factory<R> {
+impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
+	pub fn new<F>(factory: &F) -> Self
+		where F: gfx::Factory<R> {
 		let lights = factory.create_constant_buffer(512);
 		let camera = factory.create_constant_buffer(1);
 		let model = factory.create_constant_buffer(1);
 		let fragment = factory.create_constant_buffer(1);
 		let pso = factory.create_pipeline_simple(VERTEX_SRC, FRAGMENT_SRC, shaded::new()).unwrap();
 
-		DrawShaded {
+		ForwardLighting {
 			camera: camera,
 			model: model,
 			fragment: fragment,
 			lights: lights,
 			pso: pso,
+			_buffer: PhantomData,
 		}
 	}
 
-	pub fn begin_frame<C: gfx::CommandBuffer<R>>(&self,
-	                                             encoder: &mut gfx::Encoder<R, C>,
-	                                             target: &gfx::handle::RenderTargetView<R, ColorFormat>,
-	                                             depth: &gfx::handle::DepthStencilView<R, DepthFormat>) {
-		// clear
-		encoder.clear(&target, BLACK);
-		encoder.clear_depth(&depth, 1.0f32);
-	}
-
-	pub fn end_frame<C: gfx::CommandBuffer<R>, D: gfx::Device<Resources = R, CommandBuffer = C>>(&self,
-	                                           encoder: &mut gfx::Encoder<R, C>,
-	                                           device: &mut D) {
-		encoder.flush(device);
-	}
-
-	pub fn cleanup<C: gfx::CommandBuffer<R>, D: gfx::Device<Resources = R, CommandBuffer = C>>(&self, device: &mut D) {
+	pub fn cleanup<D: gfx::Device<Resources = R, CommandBuffer = C>>(&self, device: &mut D) {
 		device.cleanup();
 	}
 
-	pub fn setup<C: gfx::CommandBuffer<R>>(&self,
-	                                       encoder: &mut gfx::Encoder<R, C>,
-	                                       camera: &Camera,
-	                                       lights: &Vec<PointLight>) {
+	pub fn setup(&self,
+	             encoder: &mut gfx::Encoder<R, C>,
+	             camera_projection: M44,
+	             camera_view: M44,
+	             lights: &Vec<PointLight>) {
 
 		let mut lights_buf = lights.clone();
 
@@ -271,32 +236,20 @@ impl<R: gfx::Resources> DrawShaded<R> {
 
 		encoder.update_constant_buffer(&self.camera,
 		                               &CameraArgs {
-			                               proj: camera.projection.into(),
-			                               view: camera.view.into(),
+			                               proj: camera_projection.into(),
+			                               view: camera_view.into(),
 		                               });
 
 		encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32 });
 	}
 
-	pub fn draw_text<C: gfx::CommandBuffer<R>, F: gfx::Factory<R>>(&self,
-	                                                               encoder: &mut gfx::Encoder<R, C>,
-	                                                               text_renderer: &mut gfx_text::Renderer<R, F>,
-	                                                               text: &str,
-	                                                               screen_position: [i32; 2],
-	                                                               text_color: [f32; 4],
-	                                                               color: &gfx::handle::RenderTargetView<R,
-	                                                                                                     ColorFormat>) {
-		text_renderer.add(text, screen_position, text_color);
-		text_renderer.draw(encoder, &color).unwrap();
-	}
-
-	pub fn draw<C: gfx::CommandBuffer<R>>(&self,
-	                                      encoder: &mut gfx::Encoder<R, C>,
-	                                      vertices: &gfx::handle::Buffer<R, VertexPosNormal>,
-	                                      indices: &gfx::Slice<R>,
-	                                      transform: &M44,
-	                                      color: &gfx::handle::RenderTargetView<R, ColorFormat>,
-	                                      output_depth: &gfx::handle::DepthStencilView<R, DepthFormat>) {
+	pub fn draw_triangles(&self,
+	                      encoder: &mut gfx::Encoder<R, C>,
+	                      vertices: &gfx::handle::Buffer<R, VertexPosNormal>,
+	                      indices: &gfx::Slice<R>,
+	                      transform: &M44,
+	                      color: &gfx::handle::RenderTargetView<R, ColorFormat>,
+	                      output_depth: &gfx::handle::DepthStencilView<R, DepthFormat>) {
 
 		encoder.update_constant_buffer(&self.model, &ModelArgs { model: transform.clone().into() });
 
