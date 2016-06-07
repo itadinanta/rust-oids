@@ -1,4 +1,4 @@
-mod blit;
+mod effects;
 mod forward;
 
 use gfx;
@@ -92,7 +92,7 @@ pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>>: Draw {
 	fn cleanup<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D);
 }
 
-pub struct ForwardRenderer<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: gfx::Factory<R>> {
+pub struct ForwardRenderer<'e, 'f, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: 'f + gfx::Factory<R>> {
 	encoder: &'e mut gfx::Encoder<R, C>,
 
 	frame_buffer: gfx::handle::RenderTargetView<R, ColorFormat>,
@@ -106,19 +106,19 @@ pub struct ForwardRenderer<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>,
 
 	text_renderer: gfx_text::Renderer<R, F>,
 	pass_forward_lighting: forward::ForwardLighting<R, C>,
-	pass_blit: blit::Blit<R, C>,
+	pass_effects: effects::PostLighting<'f, R, C, F>,
 }
 
 use gfx::Factory;
 use gfx::traits::FactoryExt;
 
 use std::clone::Clone;
-impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> ForwardRenderer<'e, R, C, F> {
-	pub fn new(factory: &mut F,
+impl<'e, 'f, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: 'f + Factory<R> + Clone> ForwardRenderer<'e, 'f, R, C, F> {
+	pub fn new(factory: &'f mut F,
 	           encoder: &'e mut gfx::Encoder<R, C>,
 	           frame_buffer: &gfx::handle::RenderTargetView<R, ColorFormat>,
 	           depth: &gfx::handle::DepthStencilView<R, DepthFormat>)
-	           -> ForwardRenderer<'e, R, C, F> {
+	           -> ForwardRenderer<'e, 'f, R, C, F> {
 		let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&QUAD, ());
 
 		let (w, h, _, _) = frame_buffer.get_dimensions();
@@ -135,12 +135,12 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 			vertex_buffer: vertex_buffer,
 			index_buffer_slice: slice,
 			pass_forward_lighting: forward::ForwardLighting::new(factory),
-			pass_blit: blit::Blit::new(factory),
+			pass_effects: effects::PostLighting::new(factory),
 		}
 	}
 }
 
-impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: gfx::Factory<R>> Draw for ForwardRenderer<'e, R, C, F> {
+impl<'e, 'f, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: gfx::Factory<R>> Draw for ForwardRenderer<'e, 'f, R, C, F> {
 	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>) {
 		self.pass_forward_lighting.draw_triangles(&mut self.encoder,
 		                                          &self.vertex_buffer,
@@ -156,7 +156,7 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: gfx::Factory<R>> Draw f
 	}
 }
 
-impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: gfx::Factory<R>> Renderer<R, C> for ForwardRenderer<'e,
+impl<'e, 'f, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: 'f + gfx::Factory<R>> Renderer<R, C> for ForwardRenderer<'e, 'f, 
                                                                                                              R,
                                                                                                              C,
                                                                                                              F> {
@@ -182,9 +182,9 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: gfx::Factory<R>> Render
 	}
 
 	fn resolve_frame_buffer(&mut self) {
-		self.pass_blit.tone_map(&mut self.encoder,
-		                        self.hdr_srv.clone(),
-		                        self.frame_buffer.clone());
+		self.pass_effects.apply_all(&mut self.encoder,
+		                            self.hdr_srv.clone(),
+		                            self.frame_buffer.clone());
 	}
 
 	fn end_frame<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D) {

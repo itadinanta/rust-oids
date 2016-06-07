@@ -1,0 +1,289 @@
+use gfx;
+use gfx::traits::FactoryExt;
+
+pub static VERTEX_SRC: &'static [u8] = b"
+
+#version 150 core
+
+in vec2 a_Pos;
+in vec2 a_TexCoord;
+out vec2 v_TexCoord;
+
+void main() {
+    v_TexCoord = a_TexCoord;
+    gl_Position = vec4(a_Pos, 0.0, 1.0);
+}
+
+";
+
+pub static SIMPLE_BLIT_SRC: &'static [u8] = b"
+
+#version 150 core
+
+uniform sampler2D t_Source;
+
+in vec2 v_TexCoord;
+out vec4 o_Color;
+
+void main() {
+	o_Color = texture(t_Source, v_TexCoord, 0);
+}
+
+";
+
+// http://learnopengl.com/#!Advanced-Lighting/Bloom
+pub static GAUSSIAN_BLUR_HORIZONTAL_SRC: &'static [u8] = b"
+
+#version 150 core
+
+uniform sampler2D t_Source;
+
+in vec2 v_TexCoord;
+out vec4 o_Color;
+
+const int KERNEL_RADIUS = 5;
+
+const float weight[KERNEL_RADIUS] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
+
+void main()
+{
+    vec2 tex_offset = 1.0 / textureSize(t_Source, 0); // gets size of single texel
+    vec3 result = texture(t_Source, v_TexCoord).rgb * weight[0]; // current fragment's contribution
+
+    for(int i = 1; i < KERNEL_RADIUS; ++i)
+    {
+        result += texture(t_Source, v_TexCoord + vec2(tex_offset.x * i, 0.0)).rgb * weight[i];
+        result += texture(t_Source, v_TexCoord - vec2(tex_offset.x * i, 0.0)).rgb * weight[i];
+    }
+
+    o_Color = vec4(result, 1.0);
+}
+";
+
+pub static GAUSSIAN_BLUR_VERTICAL_SRC: &'static [u8] = b"
+
+#version 150 core
+
+uniform sampler2D t_Source;
+
+in vec2 v_TexCoord;
+out vec4 o_Color;
+
+const int KERNEL_RADIUS = 5;
+
+const float weight[KERNEL_RADIUS] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
+
+void main()
+{
+    vec2 tex_offset = 1.0 / textureSize(t_Source, 0); // gets size of single texel
+    vec3 result = texture(t_Source, v_TexCoord).rgb * weight[0]; // current fragment's contribution
+
+    for(int i = 1; i < KERNEL_RADIUS; ++i)
+    {
+        result += texture(t_Source, v_TexCoord + vec2(0.0, tex_offset.y * i)).rgb * weight[i];
+        result += texture(t_Source, v_TexCoord - vec2(0.0, tex_offset.y * i)).rgb * weight[i];
+    }
+
+    o_Color = vec4(result, 1.0);
+}
+";
+
+pub static EXPOSURE_TONE_MAP_SRC: &'static [u8] = b"
+
+#version 150 core
+
+layout (std140) uniform cb_FragmentArgs {
+    float u_Exposure;
+};
+
+uniform sampler2D t_Source;
+
+in vec2 v_TexCoord;
+out vec4 o_Color;
+
+void main() {
+	o_Color = u_Exposure * texture(t_Source, v_TexCoord, 0);
+}
+
+";
+
+pub static CLIP_LUMINANCE_SRC: &'static [u8] = b"
+
+#version 150 core
+
+uniform sampler2D t_Source;
+
+in vec2 v_TexCoord;
+out vec4 o_Color;
+
+void main() {
+	vec4 src = texture(t_Source, v_TexCoord, 0);
+	float l = float((dot(vec3(0.2126, 0.7152, 0.0722), src.rgb) >= 1.));
+
+	o_Color = l * src;
+}
+
+";
+
+pub static QUAD_SMOOTH_SRC: &'static [u8] = b"
+
+#version 150 core
+
+uniform sampler2D t_Source;
+
+in vec2 v_TexCoord;
+out vec4 o_Color;
+
+void main() {
+	vec2 d = 1.0 / textureSize(t_Source, 0); // gets size of single texel
+	float x1 = v_TexCoord.x + d.x/2;
+	float x2 = x1 + d.x;
+	float y1 = v_TexCoord.y + d.y/2.;
+	float y2 = y1 + d.y;
+    o_Color = (texture(t_Source, vec2(x1, y1), 0)
+	         + texture(t_Source, vec2(x1, y2), 0)
+	         + texture(t_Source, vec2(x2, y1), 0)
+	         + texture(t_Source, vec2(x2, y2), 0)) / 4.0;
+}
+
+";
+
+pub type HDR = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
+pub type LDR = gfx::format::Rgba8;
+
+gfx_defines!{
+	vertex BlitVertex {
+		pos: [f32; 2] = "a_Pos",
+		tex_coord: [f32; 2] = "a_TexCoord",
+	}
+
+	pipeline postprocess {
+		vbuf: gfx::VertexBuffer<BlitVertex> = (),
+		src: gfx::TextureSampler<[f32; 4]> = "t_Source",
+		dst: gfx::RenderTarget<HDR> = "o_Color",
+	}
+	constant ToneMapFragmentArgs {
+        exposure: f32 = "u_Exposure",
+    }
+	pipeline tone_map {
+		vbuf: gfx::VertexBuffer<BlitVertex> = (),
+		fragment_args: gfx::ConstantBuffer<ToneMapFragmentArgs> = "cb_FragmentArgs",
+		src: gfx::TextureSampler<[f32; 4]> = "t_Source",
+		dst: gfx::RenderTarget<LDR> = "o_Color",
+	}
+}
+
+use std::marker::PhantomData;
+pub struct PostLighting<'f, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: 'f + gfx::Factory<R>> {
+	factory: &'f mut F,
+	vertex_buffer: gfx::handle::Buffer<R, BlitVertex>,
+	index_buffer_slice: gfx::Slice<R>,
+	nearest_sampler: gfx::handle::Sampler<R>,
+
+	highlight_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
+	blur_h_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
+	blur_v_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
+
+	tone_map_fragment_args: gfx::handle::Buffer<R, ToneMapFragmentArgs>,
+	tone_map_pso: gfx::pso::PipelineState<R, tone_map::Meta>,
+	_buffer: PhantomData<C>,
+}
+
+impl<'f, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: 'f + gfx::Factory<R>> PostLighting<'f, R, C, F> {
+	pub fn new(factory: &mut F) -> PostLighting<R, C, F> {
+
+		let full_screen_triangle = vec![BlitVertex {
+			                                pos: [-1., -1.],
+			                                tex_coord: [0., 0.],
+		                                },
+		                                BlitVertex {
+			                                pos: [-1., 3.],
+			                                tex_coord: [0., 2.],
+		                                },
+		                                BlitVertex {
+			                                pos: [3., -1.],
+			                                tex_coord: [2., 0.],
+		                                }];
+
+		let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&full_screen_triangle, ());
+
+		let sampler = factory.create_sampler(gfx::tex::SamplerInfo::new(
+				gfx::tex::FilterMethod::Scale,
+				gfx::tex::WrapMode::Clamp));
+
+		let tone_map_fragment_args = factory.create_constant_buffer(1);
+
+		let tone_map_pso = factory.create_pipeline_simple(VERTEX_SRC, EXPOSURE_TONE_MAP_SRC, tone_map::new()).unwrap();
+		let highlight_pso = factory.create_pipeline_simple(VERTEX_SRC, CLIP_LUMINANCE_SRC, postprocess::new()).unwrap();
+		let blur_h_pso = factory.create_pipeline_simple(VERTEX_SRC, GAUSSIAN_BLUR_HORIZONTAL_SRC, postprocess::new())
+			.unwrap();
+		let blur_v_pso = factory.create_pipeline_simple(VERTEX_SRC, GAUSSIAN_BLUR_VERTICAL_SRC, postprocess::new())
+			.unwrap();
+
+		PostLighting {
+			factory: factory,
+			vertex_buffer: vertex_buffer,
+			index_buffer_slice: slice,
+			nearest_sampler: sampler,
+
+			tone_map_fragment_args: tone_map_fragment_args,
+			tone_map_pso: tone_map_pso,
+
+			highlight_pso: highlight_pso,
+			blur_h_pso: blur_h_pso,
+			blur_v_pso: blur_v_pso,
+
+			_buffer: PhantomData,
+		}
+	}
+
+	pub fn apply_all(&mut self,
+	                 encoder: &mut gfx::Encoder<R, C>,
+	                 hdr_srv: gfx::handle::ShaderResourceView<R, [f32; 4]>,
+	                 color_target: gfx::handle::RenderTargetView<R, LDR>) {
+
+		let (w, h, _, _) = color_target.get_dimensions();
+
+		// TODO: this can't be done for every frame, move out!
+		let ping_pong = [self.factory.create_render_target::<HDR>(w/4, h/4).unwrap(),
+		                 self.factory.create_render_target::<HDR>(w/4, h/4).unwrap()];
+
+		// TODO: factor out the simple ping_pong pass
+		encoder.draw(&self.index_buffer_slice,
+		             &self.highlight_pso,
+		             &postprocess::Data {
+			             vbuf: self.vertex_buffer.clone(),
+			             src: (hdr_srv.clone(), self.nearest_sampler.clone()),
+			             dst: (ping_pong[0].2.clone()),
+		             });
+
+		encoder.draw(&self.index_buffer_slice,
+		             &self.blur_h_pso,
+		             &postprocess::Data {
+			             vbuf: self.vertex_buffer.clone(),
+			             src: (ping_pong[0].1.clone(), self.nearest_sampler.clone()),
+			             dst: (ping_pong[1].2.clone()),
+		             });
+
+		encoder.draw(&self.index_buffer_slice,
+		             &self.blur_v_pso,
+		             &postprocess::Data {
+			             vbuf: self.vertex_buffer.clone(),
+			             src: (ping_pong[1].1.clone(), self.nearest_sampler.clone()),
+			             dst: (ping_pong[0].2.clone()),
+		             });
+
+		// Tone mapping
+		encoder.update_constant_buffer(&self.tone_map_fragment_args,
+		                               &ToneMapFragmentArgs { exposure: 3.0 });
+		encoder.draw(&self.index_buffer_slice,
+		             &self.tone_map_pso,
+		             &tone_map::Data {
+			             vbuf: self.vertex_buffer.clone(),
+			             fragment_args: self.tone_map_fragment_args.clone(),
+			             // src: (hdr_srv.clone(), self.nearest_sampler.clone()),
+			             src: (ping_pong[0].1.clone(), self.nearest_sampler.clone()),
+			             dst: color_target.clone(),
+		             });
+	}
+}
