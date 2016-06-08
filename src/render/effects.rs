@@ -107,6 +107,22 @@ void main() {
 
 ";
 
+pub static COMPOSE_2_SRC: &'static [u8] = b"
+
+#version 150 core
+
+uniform sampler2D t_Source1;
+uniform sampler2D t_Source2;
+
+in vec2 v_TexCoord;
+out vec4 o_Color;
+
+void main() {
+	o_Color = texture(t_Source1, v_TexCoord, 0) + texture(t_Source2, v_TexCoord, 0);
+}
+
+";
+
 pub static CLIP_LUMINANCE_SRC: &'static [u8] = b"
 
 #version 150 core
@@ -169,16 +185,29 @@ gfx_defines!{
 		vbuf: gfx::VertexBuffer<BlitVertex> = (),
 		fragment_args: gfx::ConstantBuffer<ToneMapFragmentArgs> = "cb_FragmentArgs",
 		src: gfx::TextureSampler<[f32; 4]> = "t_Source",
+		dst: gfx::RenderTarget<HDR> = "o_Color",
+	}
+	pipeline compose {
+		vbuf: gfx::VertexBuffer<BlitVertex> = (),
+		src1: gfx::TextureSampler<[f32; 4]> = "t_Source1",
+		src2: gfx::TextureSampler<[f32; 4]> = "t_Source2",
 		dst: gfx::RenderTarget<LDR> = "o_Color",
 	}
 }
 
 use std::marker::PhantomData;
-pub struct PostLighting<'f, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: 'f + gfx::Factory<R>> {
-	factory: &'f mut F,
+pub struct PostLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 	vertex_buffer: gfx::handle::Buffer<R, BlitVertex>,
 	index_buffer_slice: gfx::Slice<R>,
 	nearest_sampler: gfx::handle::Sampler<R>,
+	linear_sampler: gfx::handle::Sampler<R>,
+
+	ping_pong_small: [(gfx::handle::Texture<R, gfx::format::R16_G16_B16_A16>,
+		gfx::handle::ShaderResourceView<R, [f32; 4]>,
+		gfx::handle::RenderTargetView<R, (gfx::format::R16_G16_B16_A16, gfx::format::Float)>); 2],
+	ping_pong_large: [(gfx::handle::Texture<R, gfx::format::R16_G16_B16_A16>,
+		gfx::handle::ShaderResourceView<R, [f32; 4]>,
+		gfx::handle::RenderTargetView<R, (gfx::format::R16_G16_B16_A16, gfx::format::Float)>); 2],
 
 	highlight_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
 	blur_h_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
@@ -186,11 +215,15 @@ pub struct PostLighting<'f, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: 'f +
 
 	tone_map_fragment_args: gfx::handle::Buffer<R, ToneMapFragmentArgs>,
 	tone_map_pso: gfx::pso::PipelineState<R, tone_map::Meta>,
+
+	compose_pso: gfx::pso::PipelineState<R, compose::Meta>,
+
 	_buffer: PhantomData<C>,
 }
 
-impl<'f, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: 'f + gfx::Factory<R>> PostLighting<'f, R, C, F> {
-	pub fn new(factory: &mut F) -> PostLighting<R, C, F> {
+impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
+	pub fn new<F>(factory: &mut F, w: u16, h: u16) -> PostLighting<R, C>
+		where F: gfx::Factory<R> {
 
 		let full_screen_triangle = vec![BlitVertex {
 			                                pos: [-1., -1.],
@@ -207,9 +240,13 @@ impl<'f, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: 'f + gfx::Factory<R>> P
 
 		let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&full_screen_triangle, ());
 
-		let sampler = factory.create_sampler(gfx::tex::SamplerInfo::new(
+		let nearest_sampler = factory.create_sampler(gfx::tex::SamplerInfo::new(
 				gfx::tex::FilterMethod::Scale,
 				gfx::tex::WrapMode::Clamp));
+
+		let linear_sampler =
+			factory.create_sampler(gfx::tex::SamplerInfo::new(gfx::tex::FilterMethod::Bilinear,
+			                                                  gfx::tex::WrapMode::Clamp));
 
 		let tone_map_fragment_args = factory.create_constant_buffer(1);
 
@@ -219,12 +256,20 @@ impl<'f, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: 'f + gfx::Factory<R>> P
 			.unwrap();
 		let blur_v_pso = factory.create_pipeline_simple(VERTEX_SRC, GAUSSIAN_BLUR_VERTICAL_SRC, postprocess::new())
 			.unwrap();
+		let compose_pso = factory.create_pipeline_simple(VERTEX_SRC, COMPOSE_2_SRC, compose::new())
+			.unwrap();
+
+		let ping_pong_small = [factory.create_render_target::<HDR>(w / 4, h / 4).unwrap(),
+		                       factory.create_render_target::<HDR>(w / 4, h / 4).unwrap()];
+
+		let ping_pong_large = [factory.create_render_target::<HDR>(w, h).unwrap(),
+		                       factory.create_render_target::<HDR>(w, h).unwrap()];
 
 		PostLighting {
-			factory: factory,
 			vertex_buffer: vertex_buffer,
 			index_buffer_slice: slice,
-			nearest_sampler: sampler,
+			nearest_sampler: nearest_sampler,
+			linear_sampler: linear_sampler,
 
 			tone_map_fragment_args: tone_map_fragment_args,
 			tone_map_pso: tone_map_pso,
@@ -233,56 +278,73 @@ impl<'f, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: 'f + gfx::Factory<R>> P
 			blur_h_pso: blur_h_pso,
 			blur_v_pso: blur_v_pso,
 
+			compose_pso: compose_pso,
+
+			ping_pong_small: ping_pong_small,
+			ping_pong_large: ping_pong_large,
+
 			_buffer: PhantomData,
 		}
 	}
 
+	fn full_screen_pass(&self,
+	                    encoder: &mut gfx::Encoder<R, C>,
+	                    pso: &gfx::pso::PipelineState<R, postprocess::Meta>,
+	                    src: &gfx::handle::ShaderResourceView<R, [f32; 4]>,
+	                    dst: &gfx::handle::RenderTargetView<R, HDR>) {
+		encoder.draw(&self.index_buffer_slice,
+		             pso,
+		             &postprocess::Data {
+			             vbuf: self.vertex_buffer.clone(),
+			             src: (src.clone(), self.nearest_sampler.clone()),
+			             dst: (dst.clone()),
+		             });
+	}
+
 	pub fn apply_all(&mut self,
 	                 encoder: &mut gfx::Encoder<R, C>,
-	                 hdr_srv: gfx::handle::ShaderResourceView<R, [f32; 4]>,
+	                 raw_hdr_src: gfx::handle::ShaderResourceView<R, [f32; 4]>,
 	                 color_target: gfx::handle::RenderTargetView<R, LDR>) {
 
-		let (w, h, _, _) = color_target.get_dimensions();
-
-		// TODO: this can't be done for every frame, move out!
-		let ping_pong = [self.factory.create_render_target::<HDR>(w/4, h/4).unwrap(),
-		                 self.factory.create_render_target::<HDR>(w/4, h/4).unwrap()];
-
-		// TODO: factor out the simple ping_pong pass
-		encoder.draw(&self.index_buffer_slice,
-		             &self.highlight_pso,
-		             &postprocess::Data {
-			             vbuf: self.vertex_buffer.clone(),
-			             src: (hdr_srv.clone(), self.nearest_sampler.clone()),
-			             dst: (ping_pong[0].2.clone()),
-		             });
-
-		encoder.draw(&self.index_buffer_slice,
-		             &self.blur_h_pso,
-		             &postprocess::Data {
-			             vbuf: self.vertex_buffer.clone(),
-			             src: (ping_pong[0].1.clone(), self.nearest_sampler.clone()),
-			             dst: (ping_pong[1].2.clone()),
-		             });
-
-		encoder.draw(&self.index_buffer_slice,
-		             &self.blur_v_pso,
-		             &postprocess::Data {
-			             vbuf: self.vertex_buffer.clone(),
-			             src: (ping_pong[1].1.clone(), self.nearest_sampler.clone()),
-			             dst: (ping_pong[0].2.clone()),
-		             });
+		let ping_pong_large = &self.ping_pong_large[..];
+		let ping_pong_small = &self.ping_pong_small[..];
 
 		// Tone mapping
 		encoder.update_constant_buffer(&self.tone_map_fragment_args,
-		                               &ToneMapFragmentArgs { exposure: 3.0 });
+		                               &ToneMapFragmentArgs { exposure: 1.0 });
 		encoder.draw(&self.index_buffer_slice,
 		             &self.tone_map_pso,
 		             &tone_map::Data {
 			             vbuf: self.vertex_buffer.clone(),
 			             fragment_args: self.tone_map_fragment_args.clone(),
-			             // src: (hdr_srv.clone(), self.nearest_sampler.clone()),
-			             src: (ping_pong[0].1.clone(), self.nearest_sampler.clone()),
+			             src: (raw_hdr_src, self.nearest_sampler.clone()),
+			             dst: ping_pong_large[0].2.clone(),
+		             });
+
+		// Bloom
+		// 1. extract high luminance
+		self.full_screen_pass(encoder,
+		                      &self.highlight_pso,
+		                      &ping_pong_large[0].1,
+		                      &ping_pong_small[0].2);
+		// 2. horizontal 4x, 9x9 gaussian blur
+		self.full_screen_pass(encoder,
+		                      &self.blur_h_pso,
+		                      &ping_pong_small[0].1,
+		                      &ping_pong_small[1].2);
+		// 2. vertical 4x, 9x9 gaussian blur
+		self.full_screen_pass(encoder,
+		                      &self.blur_v_pso,
+		                      &ping_pong_small[1].1,
+		                      &ping_pong_small[0].2);
+
+		// compose tone mapped + bloom and resolve
+		encoder.draw(&self.index_buffer_slice,
+		             &self.compose_pso,
+		             &compose::Data {
+			             vbuf: self.vertex_buffer.clone(),
+			             src1: (ping_pong_large[0].1.clone(), self.nearest_sampler.clone()),
+			             src2: (ping_pong_small[0].1.clone(), self.linear_sampler.clone()),
 			             dst: color_target.clone(),
 		             });
 	}
