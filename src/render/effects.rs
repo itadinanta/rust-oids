@@ -196,19 +196,23 @@ gfx_defines!{
 }
 
 use std::marker::PhantomData;
+type HDRRenderSurface<R: gfx::Resources> = (gfx::handle::Texture<R, gfx::format::R16_G16_B16_A16>,
+                                            gfx::handle::ShaderResourceView<R, [f32; 4]>,
+                                            gfx::handle::RenderTargetView<R,
+                                                                          (gfx::format::R16_G16_B16_A16,
+                                                                           gfx::format::Float)>);
 pub struct PostLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 	vertex_buffer: gfx::handle::Buffer<R, BlitVertex>,
 	index_buffer_slice: gfx::Slice<R>,
 	nearest_sampler: gfx::handle::Sampler<R>,
 	linear_sampler: gfx::handle::Sampler<R>,
 
-	ping_pong_small: [(gfx::handle::Texture<R, gfx::format::R16_G16_B16_A16>,
-		gfx::handle::ShaderResourceView<R, [f32; 4]>,
-		gfx::handle::RenderTargetView<R, (gfx::format::R16_G16_B16_A16, gfx::format::Float)>); 2],
-	ping_pong_large: [(gfx::handle::Texture<R, gfx::format::R16_G16_B16_A16>,
-		gfx::handle::ShaderResourceView<R, [f32; 4]>,
-		gfx::handle::RenderTargetView<R, (gfx::format::R16_G16_B16_A16, gfx::format::Float)>); 2],
+	ping_pong_small: [HDRRenderSurface<R>; 2],
+	ping_pong_large: [HDRRenderSurface<R>; 2],
 
+	mips: Vec<HDRRenderSurface<R>>,
+
+	average_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
 	highlight_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
 	blur_h_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
 	blur_v_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
@@ -256,6 +260,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 			.unwrap();
 		let blur_v_pso = factory.create_pipeline_simple(VERTEX_SRC, GAUSSIAN_BLUR_VERTICAL_SRC, postprocess::new())
 			.unwrap();
+		let average_pso = factory.create_pipeline_simple(VERTEX_SRC, QUAD_SMOOTH_SRC, postprocess::new())
+			.unwrap();
 		let compose_pso = factory.create_pipeline_simple(VERTEX_SRC, COMPOSE_2_SRC, compose::new())
 			.unwrap();
 
@@ -265,11 +271,24 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		let ping_pong_large = [factory.create_render_target::<HDR>(w, h).unwrap(),
 		                       factory.create_render_target::<HDR>(w, h).unwrap()];
 
+		let mut mips: Vec<HDRRenderSurface<R>> = Vec::new();
+		let mut w2 = w;
+		let mut h2 = h;
+
+		while w2 > 1 || h2 > 1 {
+			w2 = (w2 + 1) / 2;
+			h2 = (h2 + 1) / 2;
+			println!("{}x{}", w2, h2);
+			mips.push(factory.create_render_target::<HDR>(w2, h2).unwrap());
+		}
+
 		PostLighting {
 			vertex_buffer: vertex_buffer,
 			index_buffer_slice: slice,
 			nearest_sampler: nearest_sampler,
 			linear_sampler: linear_sampler,
+
+			average_pso: average_pso,
 
 			tone_map_fragment_args: tone_map_fragment_args,
 			tone_map_pso: tone_map_pso,
@@ -279,6 +298,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 			blur_v_pso: blur_v_pso,
 
 			compose_pso: compose_pso,
+
+			mips: mips,
 
 			ping_pong_small: ping_pong_small,
 			ping_pong_large: ping_pong_large,
@@ -309,6 +330,16 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		let ping_pong_large = &self.ping_pong_large[..];
 		let ping_pong_small = &self.ping_pong_small[..];
 
+		// get average lum
+		let mut src = raw_hdr_src.clone();
+		let mut dst;
+		// this is a fold, can we do it functionally?
+		for mip in &self.mips {
+			dst = mip.2.clone();
+			self.full_screen_pass(encoder, &self.average_pso, &src, &dst);
+			src = mip.1.clone();
+			println!("{:?}", mip.0.clone());
+		}
 		// Tone mapping
 		encoder.update_constant_buffer(&self.tone_map_fragment_args,
 		                               &ToneMapFragmentArgs { exposure: 1.0 });
