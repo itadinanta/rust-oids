@@ -109,17 +109,17 @@ pub static FRAGMENT_SRC: &'static [u8] = b"
 			vec4 specular;
 			if (lambert >= 0.0) 
 			{
+				// blinn-phong
                 vec3 lightDir = light_to_point_normal.xyz;
                 vec3 viewDir = vec3(0.0, 0.0, 1.0); // ortho, normalize(-v_In.Position.xyz); perspective
-                vec3 halfDir = normalize(lightDir + viewDir);
-		        float specAngle = max(dot(halfDir, normal), 0.0);
-		        specular = pow(vec4(specAngle), kp);
 
-//	            vec3 lightDir = light_to_point_normal.xyz;
-//	            vec3 viewDir = vec3(0.0, 0.0, 1.0); // ortho
+                // phong
+                vec3 halfDir = normalize(lightDir + viewDir);
 //	            vec3 reflectDir = reflect(-lightDir, v_In.Normal.xyz);
 //	            float specAngle = max(dot(reflectDir, viewDir), 0.0);
-//			    specular = pow(vec4(specAngle), kp/4.0);
+
+		        float specAngle = max(dot(halfDir, normal), 0.0);
+		        specular = pow(vec4(specAngle), kp);
 			}
 			else
 			{
@@ -191,17 +191,17 @@ impl Camera {
 	pub fn ortho(center: cgmath::Point2<f32>, scale: f32, ratio: f32) -> Camera {
 		Camera {
 			projection: {
-					let hw = 0.5 * scale;
-					let hh = hw / ratio;
-					let near = 10.0;
-					let far = -near;
-					cgmath::ortho(-hw, hw, -hh, hh, near, far)
-				}
-				.into(),
+				            let hw = 0.5 * scale;
+				            let hh = hw / ratio;
+				            let near = 10.0;
+				            let far = -near;
+				            cgmath::ortho(-hw, hw, -hh, hh, near, far)
+				           }
+			            .into(),
 			view: cgmath::Matrix4::look_at(cgmath::Point3::new(center.x, center.y, 1.0),
 			                               cgmath::Point3::new(center.x, center.y, 0.0),
 			                               cgmath::Vector3::unit_y())
-				.into(),
+				      .into(),
 		}
 	}
 }
@@ -223,7 +223,7 @@ impl<R: gfx::Resources> DrawShaded<R> {
 		let model = factory.create_constant_buffer(1);
 		let fragment = factory.create_constant_buffer(1);
 		let pso = factory.create_pipeline_simple(VERTEX_SRC, FRAGMENT_SRC, shaded::new())
-			.unwrap();
+		                 .unwrap();
 
 		DrawShaded {
 			camera: camera,
