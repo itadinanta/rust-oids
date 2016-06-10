@@ -160,9 +160,9 @@ out vec4 o_Color;
 
 void main() {
 	vec4 src = texture(t_Source, v_TexCoord, 0);
-	float l = float((dot(vec3(0.2126, 0.7152, 0.0722), src.rgb) >= 1.));
+	float l = max((dot(vec3(0.2126, 0.7152, 0.0722), src.rgb) - 1.), 0.);
 
-	o_Color = l * src;
+	o_Color = src * l;
 }
 
 ";
@@ -371,7 +371,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		encoder.update_constant_buffer(&self.tone_map_vertex_args,
 		                               &ToneMapVertexArgs {
 			                               exposure: 0.5,
-			                               white: 0.5,
+			                               white: 1.0,
 		                               });
 		encoder.draw(&self.index_buffer_slice,
 		             &self.tone_map_pso,

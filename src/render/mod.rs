@@ -14,7 +14,7 @@ pub type GFormat = [f32; 4];
 
 pub type M44 = cgmath::Matrix4<f32>;
 
-pub const BRIGHT: [f32; 4] = [0.01, 5.0, 1.5, 1.0];
+pub const BACKGROUND: [f32; 4] = [0.01, 0.01, 0.01, 1.0];
 pub const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 
@@ -82,7 +82,7 @@ impl Camera {
 }
 
 pub trait Draw {
-	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>);
+	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>, color: [f32; 4]);
 	fn draw_text(&mut self, text: &str, screen_position: [i32; 2], text_color: [f32; 4]);
 }
 
@@ -144,11 +144,12 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 }
 
 impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for ForwardRenderer<'e, R, C, F> {
-	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>) {
+	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>, color: [f32; 4]) {
 		self.pass_forward_lighting.draw_triangles(&mut self.encoder,
 		                                          &self.vertex_buffer,
 		                                          &self.index_buffer_slice,
 		                                          transform.into(),
+		                                          color,
 		                                          &mut self.hdr_color,
 		                                          &mut self.depth);
 	}
@@ -179,9 +180,9 @@ impl<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>> Render
 	}
 
 	fn begin_frame(&mut self) {
-		self.encoder.clear(&self.hdr_color, BRIGHT);
+		self.encoder.clear(&self.hdr_color, BACKGROUND);
 		self.encoder.clear_depth(&self.depth, 1.0f32);
-		self.encoder.clear(&self.frame_buffer, BLACK);
+		self.encoder.clear(&self.frame_buffer, BACKGROUND);
 	}
 
 	fn resolve_frame_buffer(&mut self) {

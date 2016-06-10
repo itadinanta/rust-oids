@@ -15,6 +15,7 @@ layout (std140) uniform cb_CameraArgs {
 
 layout (std140) uniform cb_ModelArgs {
     uniform mat4 u_Model;
+    uniform vec4 u_Emissive;
 };
 
 in vec3 a_Pos;
@@ -27,6 +28,7 @@ out VertexData {
     vec3 Normal;
     mat3 TBN;
     vec2 TexCoord;
+    vec4 Emissive;
 } v_Out;
 
 void main() {
@@ -42,13 +44,14 @@ void main() {
     v_Out.TBN = mat3(tangent, bitangent, normal);
 
     v_Out.TexCoord = a_TexCoord;
+    v_Out.Emissive = u_Emissive;
     gl_Position = u_Proj * u_View * v_Out.Position;
 }
 
 
 
 ";
-const MAX_NUM_TOTAL_LIGHTS : usize = 16;
+const MAX_NUM_TOTAL_LIGHTS: usize = 16;
 
 pub static FRAGMENT_SRC: &'static [u8] = b"
 
@@ -60,7 +63,6 @@ const float PI_2 = 1.57079632679489661923;
 
 layout (std140) uniform cb_FragmentArgs {
     int u_LightCount;
-    vec4 u_Emissive;
 };
 
 struct Light {
@@ -78,6 +80,7 @@ in VertexData {
     vec3 Normal;
     mat3 TBN;
     vec2 TexCoord;
+    vec4 Emissive;
 } v_In;
 
 out vec4 o_Color;
@@ -88,7 +91,7 @@ void main() {
     vec4 kp = vec4(64.0, 32.0, 64.0, 64.0);
     vec4 ka = vec4(0.0, 0.0, 0.1, 0.0);
 
-    vec4 color = ka;
+    vec4 color = (ka + v_In.Emissive);
 
     float dx = v_In.TexCoord.x - 0.5;
     float dy = v_In.TexCoord.y - 0.5;
@@ -167,11 +170,11 @@ gfx_defines!(
 
     constant ModelArgs {
         model: [[f32; 4]; 4] = "u_Model",
+        emissive: [f32; 4] = "u_Emissive",
     }
 
     constant FragmentArgs {
         light_count: i32 = "u_LightCount",
-        emissive: [f32; 4] = "u_Emissive",
     }
 
     pipeline shaded {
@@ -239,7 +242,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 			                               view: camera_view.into(),
 		                               });
 
-		encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32, emissive: [0., 0., 0., 0.] });
+		encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32 });
 	}
 
 	pub fn draw_triangles(&self,
@@ -247,10 +250,15 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 	                      vertices: &gfx::handle::Buffer<R, VertexPosNormal>,
 	                      indices: &gfx::Slice<R>,
 	                      transform: &M44,
+	                      color: [f32; 4],
 	                      color_buffer: &gfx::handle::RenderTargetView<R, HDRColorFormat>,
 	                      depth_buffer: &gfx::handle::DepthStencilView<R, DepthFormat>) {
 
-		encoder.update_constant_buffer(&self.model, &ModelArgs { model: transform.clone().into() });
+		encoder.update_constant_buffer(&self.model,
+		                               &ModelArgs {
+			                               model: transform.clone().into(),
+			                               emissive: color,
+		                               });
 
 		encoder.draw(&indices,
 		             &self.pso,

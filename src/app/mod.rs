@@ -2,10 +2,8 @@ use std::time::{SystemTime, Duration};
 use rand;
 use rand::Rng;
 use glutin;
-use gfx;
 use cgmath;
 use cgmath::{Matrix4, EuclideanVector};
-use std::marker;
 use render;
 
 pub struct InputState {
@@ -176,7 +174,11 @@ impl App {
 						let fixture_trans = Matrix4::from_translation(cgmath::Vector3::new(p.x, p.y, 0.0));
 						let transform = body_transform * fixture_trans * fixture_scale;
 
-						renderer.draw_quad(&transform.into());
+						let lightness = 0.; //1. / (density - 1.0);
+
+						let color = [0., 0., lightness, 1.];
+
+						renderer.draw_quad(&transform.into(), color);
 					}
 					b2::UnknownShape::Polygon(_) => {
 						// TODO: need to draw fill poly
