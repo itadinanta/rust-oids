@@ -16,6 +16,49 @@ void main() {
 
 ";
 
+pub static LUMINANCE_VERTEX_SRC: &'static [u8] = b"
+
+#version 150 core
+
+uniform sampler2D t_VertexLuminance;
+
+layout (std140) uniform cb_VertexArgs {
+    float u_Exposure;
+    float u_White;
+};
+
+in vec2 a_Pos;
+in vec2 a_TexCoord;
+out vec2 v_TexCoord;
+out float v_Exposure;
+
+void main() {
+    v_TexCoord = a_TexCoord;
+    float luminance = dot(vec3(0.2126, 0.7152, 0.0722), texture(t_VertexLuminance, vec2(0.5, 0.5)).rgb);
+    // todo: interpolate flat
+    v_Exposure = u_Exposure / (u_White + luminance);
+    gl_Position = vec4(a_Pos, 0.0, 1.0);
+}
+
+";
+
+pub static EXPOSURE_TONE_MAP_SRC: &'static [u8] = b"
+
+#version 150 core
+
+
+uniform sampler2D t_Source;
+
+in vec2 v_TexCoord;
+in float v_Exposure;
+out vec4 o_Color;
+
+void main() {
+	o_Color = v_Exposure * texture(t_Source, v_TexCoord, 0);
+}
+
+";
+
 pub static SIMPLE_BLIT_SRC: &'static [u8] = b"
 
 #version 150 core
@@ -88,24 +131,7 @@ void main()
 }
 ";
 
-pub static EXPOSURE_TONE_MAP_SRC: &'static [u8] = b"
 
-#version 150 core
-
-layout (std140) uniform cb_FragmentArgs {
-    float u_Exposure;
-};
-
-uniform sampler2D t_Source;
-
-in vec2 v_TexCoord;
-out vec4 o_Color;
-
-void main() {
-	o_Color = u_Exposure * texture(t_Source, v_TexCoord, 0);
-}
-
-";
 
 pub static COMPOSE_2_SRC: &'static [u8] = b"
 
@@ -152,9 +178,9 @@ out vec4 o_Color;
 
 void main() {
 	vec2 d = 1.0 / textureSize(t_Source, 0); // gets size of single texel
-	float x1 = v_TexCoord.x + d.x/2;
+	float x1 = v_TexCoord.x - d.x/2;
 	float x2 = x1 + d.x;
-	float y1 = v_TexCoord.y + d.y/2.;
+	float y1 = v_TexCoord.y - d.y/2.;
 	float y2 = y1 + d.y;
     o_Color = (texture(t_Source, vec2(x1, y1), 0)
 	         + texture(t_Source, vec2(x1, y2), 0)
@@ -178,12 +204,14 @@ gfx_defines!{
 		src: gfx::TextureSampler<[f32; 4]> = "t_Source",
 		dst: gfx::RenderTarget<HDR> = "o_Color",
 	}
-	constant ToneMapFragmentArgs {
+	constant ToneMapVertexArgs {
         exposure: f32 = "u_Exposure",
+        white: f32 = "u_White",
     }
 	pipeline tone_map {
 		vbuf: gfx::VertexBuffer<BlitVertex> = (),
-		fragment_args: gfx::ConstantBuffer<ToneMapFragmentArgs> = "cb_FragmentArgs",
+		vertex_luminance: gfx::TextureSampler<[f32; 4]> = "t_VertexLuminance",
+		vertex_args: gfx::ConstantBuffer<ToneMapVertexArgs> = "cb_VertexArgs",
 		src: gfx::TextureSampler<[f32; 4]> = "t_Source",
 		dst: gfx::RenderTarget<HDR> = "o_Color",
 	}
@@ -217,7 +245,7 @@ pub struct PostLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 	blur_h_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
 	blur_v_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
 
-	tone_map_fragment_args: gfx::handle::Buffer<R, ToneMapFragmentArgs>,
+	tone_map_vertex_args: gfx::handle::Buffer<R, ToneMapVertexArgs>,
 	tone_map_pso: gfx::pso::PipelineState<R, tone_map::Meta>,
 
 	compose_pso: gfx::pso::PipelineState<R, compose::Meta>,
@@ -244,26 +272,25 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 
 		let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&full_screen_triangle, ());
 
-		let nearest_sampler = factory.create_sampler(gfx::tex::SamplerInfo::new(
-				gfx::tex::FilterMethod::Scale,
-				gfx::tex::WrapMode::Clamp));
+		let nearest_sampler = factory.create_sampler(gfx::tex::SamplerInfo::new(gfx::tex::FilterMethod::Scale,
+		                                                                        gfx::tex::WrapMode::Clamp));
 
-		let linear_sampler =
-			factory.create_sampler(gfx::tex::SamplerInfo::new(gfx::tex::FilterMethod::Bilinear,
-			                                                  gfx::tex::WrapMode::Clamp));
+		let linear_sampler = factory.create_sampler(gfx::tex::SamplerInfo::new(gfx::tex::FilterMethod::Bilinear,
+		                                                                       gfx::tex::WrapMode::Clamp));
 
-		let tone_map_fragment_args = factory.create_constant_buffer(1);
+		let tone_map_vertex_args = factory.create_constant_buffer(1);
 
-		let tone_map_pso = factory.create_pipeline_simple(VERTEX_SRC, EXPOSURE_TONE_MAP_SRC, tone_map::new()).unwrap();
+		let tone_map_pso = factory.create_pipeline_simple(LUMINANCE_VERTEX_SRC, EXPOSURE_TONE_MAP_SRC, tone_map::new())
+		                          .unwrap();
 		let highlight_pso = factory.create_pipeline_simple(VERTEX_SRC, CLIP_LUMINANCE_SRC, postprocess::new()).unwrap();
 		let blur_h_pso = factory.create_pipeline_simple(VERTEX_SRC, GAUSSIAN_BLUR_HORIZONTAL_SRC, postprocess::new())
-			.unwrap();
+		                        .unwrap();
 		let blur_v_pso = factory.create_pipeline_simple(VERTEX_SRC, GAUSSIAN_BLUR_VERTICAL_SRC, postprocess::new())
-			.unwrap();
+		                        .unwrap();
 		let average_pso = factory.create_pipeline_simple(VERTEX_SRC, QUAD_SMOOTH_SRC, postprocess::new())
-			.unwrap();
+		                         .unwrap();
 		let compose_pso = factory.create_pipeline_simple(VERTEX_SRC, COMPOSE_2_SRC, compose::new())
-			.unwrap();
+		                         .unwrap();
 
 		let ping_pong_small = [factory.create_render_target::<HDR>(w / 4, h / 4).unwrap(),
 		                       factory.create_render_target::<HDR>(w / 4, h / 4).unwrap()];
@@ -278,7 +305,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		while w2 > 1 || h2 > 1 {
 			w2 = (w2 + 1) / 2;
 			h2 = (h2 + 1) / 2;
-			println!("{}x{}", w2, h2);
+			// println!("{}x{}", w2, h2);
 			mips.push(factory.create_render_target::<HDR>(w2, h2).unwrap());
 		}
 
@@ -290,7 +317,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 
 			average_pso: average_pso,
 
-			tone_map_fragment_args: tone_map_fragment_args,
+			tone_map_vertex_args: tone_map_vertex_args,
 			tone_map_pso: tone_map_pso,
 
 			highlight_pso: highlight_pso,
@@ -331,23 +358,27 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		let ping_pong_small = &self.ping_pong_small[..];
 
 		// get average lum
-		let mut src = raw_hdr_src.clone();
-		let mut dst;
+		let mut exposure_src = raw_hdr_src.clone();
+		let mut exposure_dst;
 		// this is a fold, can we do it functionally?
 		for mip in &self.mips {
-			dst = mip.2.clone();
-			self.full_screen_pass(encoder, &self.average_pso, &src, &dst);
-			src = mip.1.clone();
-			println!("{:?}", mip.0.clone());
+			exposure_dst = mip.2.clone();
+			self.full_screen_pass(encoder, &self.average_pso, &exposure_src, &exposure_dst);
+			exposure_src = mip.1.clone();
+			// println!("{:?}", mip.0.clone());
 		}
 		// Tone mapping
-		encoder.update_constant_buffer(&self.tone_map_fragment_args,
-		                               &ToneMapFragmentArgs { exposure: 1.0 });
+		encoder.update_constant_buffer(&self.tone_map_vertex_args,
+		                               &ToneMapVertexArgs {
+			                               exposure: 0.5,
+			                               white: 0.5,
+		                               });
 		encoder.draw(&self.index_buffer_slice,
 		             &self.tone_map_pso,
 		             &tone_map::Data {
 			             vbuf: self.vertex_buffer.clone(),
-			             fragment_args: self.tone_map_fragment_args.clone(),
+			             vertex_luminance: (exposure_src.clone(), self.nearest_sampler.clone()),
+			             vertex_args: self.tone_map_vertex_args.clone(),
 			             src: (raw_hdr_src, self.nearest_sampler.clone()),
 			             dst: ping_pong_large[0].2.clone(),
 		             });
@@ -375,6 +406,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		             &compose::Data {
 			             vbuf: self.vertex_buffer.clone(),
 			             src1: (ping_pong_large[0].1.clone(), self.nearest_sampler.clone()),
+			             // src1: (self.mips[10].1.clone(), self.nearest_sampler.clone()),
 			             src2: (ping_pong_small[0].1.clone(), self.linear_sampler.clone()),
 			             dst: color_target.clone(),
 		             });

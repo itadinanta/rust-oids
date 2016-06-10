@@ -14,7 +14,7 @@ pub type GFormat = [f32; 4];
 
 pub type M44 = cgmath::Matrix4<f32>;
 
-pub const BRIGHT: [f32; 4] = [2.0, 3.0, 4.0, 1.0];
+pub const BRIGHT: [f32; 4] = [0.01, 2.0, 1.5, 1.0];
 pub const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 
@@ -167,12 +167,12 @@ impl<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>> Render
 		let lights: Vec<forward::PointLight> = vec![forward::PointLight {
 			                                            propagation: [0.3, 0.5, 0.4, 0.0],
 			                                            center: [-15.0, -5.0, 1.0, 1.0],
-			                                            color: [1.0, 0.0, 0.0, 1.0],
+			                                            color: [3.0, 0.0, 0.0, 1.0],
 		                                            },
 		                                            forward::PointLight {
-			                                            propagation: [0.1, 0.7, 0.1, 0.1],
+			                                            propagation: [0.2, 0.8, 0.1, 0.1],
 			                                            center: [10.0, 10.0, 2.0, 1.0],
-			                                            color: [4., 4., 4., 1.],
+			                                            color: [10., 10., 10., 1.],
 		                                            }];
 
 		self.pass_forward_lighting.setup(&mut self.encoder, camera.view, camera.projection, &lights);

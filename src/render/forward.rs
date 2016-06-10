@@ -60,6 +60,7 @@ const float PI_2 = 1.57079632679489661923;
 
 layout (std140) uniform cb_FragmentArgs {
     int u_LightCount;
+    vec4 u_Emissive;
 };
 
 struct Light {
@@ -170,6 +171,7 @@ gfx_defines!(
 
     constant FragmentArgs {
         light_count: i32 = "u_LightCount",
+        emissive: [f32; 4] = "u_Emissive",
     }
 
     pipeline shaded {
@@ -237,7 +239,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 			                               view: camera_view.into(),
 		                               });
 
-		encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32 });
+		encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32, emissive: [0., 0., 0., 0.] });
 	}
 
 	pub fn draw_triangles(&self,
