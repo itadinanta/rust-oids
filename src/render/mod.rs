@@ -14,7 +14,7 @@ pub type GFormat = [f32; 4];
 
 pub type M44 = cgmath::Matrix4<f32>;
 
-pub const BRIGHT: [f32; 4] = [0.01, 2.0, 1.5, 1.0];
+pub const BRIGHT: [f32; 4] = [0.01, 5.0, 1.5, 1.0];
 pub const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 
