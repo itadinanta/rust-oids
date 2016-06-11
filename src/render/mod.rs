@@ -176,7 +176,7 @@ impl<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>> Render
 			                                            color: [10., 10., 10., 1.],
 		                                            }];
 
-		self.pass_forward_lighting.setup(&mut self.encoder, camera.view, camera.projection, &lights);
+		self.pass_forward_lighting.setup(&mut self.encoder, camera.projection, camera.view, &lights);
 	}
 
 	fn begin_frame(&mut self) {

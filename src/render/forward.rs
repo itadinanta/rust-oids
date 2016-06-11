@@ -4,7 +4,7 @@ use gfx::traits::FactoryExt;
 extern crate cgmath;
 extern crate gfx_text;
 
-pub static VERTEX_SRC: &'static [u8] = b"
+pub static LIGHTING_VERTEX_SRC: &'static [u8] = b"
 
 #version 150 core
 
@@ -15,7 +15,6 @@ layout (std140) uniform cb_CameraArgs {
 
 layout (std140) uniform cb_ModelArgs {
     uniform mat4 u_Model;
-    uniform vec4 u_Emissive;
 };
 
 in vec3 a_Pos;
@@ -28,32 +27,27 @@ out VertexData {
     vec3 Normal;
     mat3 TBN;
     vec2 TexCoord;
-    vec4 Emissive;
 } v_Out;
 
 void main() {
     v_Out.Position = u_Model * vec4(a_Pos, 1.0);
-    v_Out.Normal = normalize(mat3(u_Model) * a_Normal);
+    mat3 model = mat3(u_Model);
+	vec3 normal = normalize(model * a_Normal);
 
-    mat3 viewModel = mat3(u_View) * mat3(u_Model);
-
-    vec3 normal = normalize(viewModel * a_Normal);
-    vec3 tangent = normalize(viewModel * a_Tangent);
-    vec3 bitangent = cross(normal, tangent);
+    v_Out.Normal = normal;
+	vec3 tangent = normalize(model * a_Tangent);
+	vec3 bitangent = cross(normal, tangent);
 
     v_Out.TBN = mat3(tangent, bitangent, normal);
 
     v_Out.TexCoord = a_TexCoord;
-    v_Out.Emissive = u_Emissive;
     gl_Position = u_Proj * u_View * v_Out.Position;
 }
-
-
 
 ";
 const MAX_NUM_TOTAL_LIGHTS: usize = 16;
 
-pub static FRAGMENT_SRC: &'static [u8] = b"
+pub static LIGHTING_FRAGMENT_SRC: &'static [u8] = b"
 
 #version 150 core
 #define MAX_NUM_TOTAL_LIGHTS 16
@@ -75,12 +69,15 @@ layout (std140) uniform u_Lights {
     Light light[MAX_NUM_TOTAL_LIGHTS];
 };
 
+layout (std140) uniform cb_MaterialArgs {
+    uniform vec4 u_Emissive;
+};
+
 in VertexData {
     vec4 Position;
     vec3 Normal;
     mat3 TBN;
     vec2 TexCoord;
-    vec4 Emissive;
 } v_In;
 
 out vec4 o_Color;
@@ -91,22 +88,24 @@ void main() {
     vec4 kp = vec4(64.0, 32.0, 64.0, 64.0);
     vec4 ka = vec4(0.0, 0.0, 0.1, 0.0);
 
-    vec4 color = (ka + v_In.Emissive);
+    vec4 color = (ka + u_Emissive);
 
     float dx = v_In.TexCoord.x - 0.5;
     float dy = v_In.TexCoord.y - 0.5;
-
-    if (dx * dx + dy * dy > 0.25) {
+	float r = dx * dx + dy * dy;
+	vec3 normal_map = vec3(0., 0., 1.);
+    if (r > 0.25) {
         discard;
-    }
+    } 
+    else {
+	    dx *= 2;
+	    dy *= 2;
 
-    dx *= 2;
-    dy *= 2;
-
-	float bump = sqrt(1 - dx * dx - dy * dy);
-	vec3 normal_map = vec3(dx, dy, bump);
-
-	vec3 normal = normalize(v_In.TBN * normal_map);
+		float bump = sqrt(1. - dx * dx - dy * dy);
+		normal_map = vec3(dx, dy, bump);
+	};
+	
+	vec3 normal = v_In.TBN * normal_map;
 
 	for (int i = 0; i < u_LightCount; i++) {
 		vec4 delta = light[i].center - v_In.Position;
@@ -170,18 +169,22 @@ gfx_defines!(
 
     constant ModelArgs {
         model: [[f32; 4]; 4] = "u_Model",
-        emissive: [f32; 4] = "u_Emissive",
     }
 
     constant FragmentArgs {
         light_count: i32 = "u_LightCount",
     }
 
+	constant MaterialArgs {
+		emissive: [f32; 4] = "u_Emissive",
+	}
+
     pipeline shaded {
         vbuf: gfx::VertexBuffer<VertexPosNormal> = (),
         camera_args: gfx::ConstantBuffer<CameraArgs> = "cb_CameraArgs",
         model_args: gfx::ConstantBuffer<ModelArgs> = "cb_ModelArgs",
         fragment_args: gfx::ConstantBuffer<FragmentArgs> = "cb_FragmentArgs",
+        material_args: gfx::ConstantBuffer<MaterialArgs> = "cb_MaterialArgs",
         lights: gfx::ConstantBuffer<PointLight> = "u_Lights",
         color_target: gfx::RenderTarget<HDRColorFormat> = "o_Color",
         depth_target: gfx::DepthTarget<gfx::format::DepthStencil> = gfx::preset::depth::LESS_EQUAL_WRITE,
@@ -193,6 +196,7 @@ pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 	camera: gfx::handle::Buffer<R, CameraArgs>,
 	model: gfx::handle::Buffer<R, ModelArgs>,
 	fragment: gfx::handle::Buffer<R, FragmentArgs>,
+	material: gfx::handle::Buffer<R, MaterialArgs>,
 	lights: gfx::handle::Buffer<R, PointLight>,
 	pso: gfx::pso::PipelineState<R, shaded::Meta>,
 	_buffer: PhantomData<C>,
@@ -205,12 +209,14 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 		let camera = factory.create_constant_buffer(1);
 		let model = factory.create_constant_buffer(1);
 		let fragment = factory.create_constant_buffer(1);
-		let pso = factory.create_pipeline_simple(VERTEX_SRC, FRAGMENT_SRC, shaded::new()).unwrap();
+		let material = factory.create_constant_buffer(1);
+		let pso = factory.create_pipeline_simple(LIGHTING_VERTEX_SRC, LIGHTING_FRAGMENT_SRC, shaded::new()).unwrap();
 
 		ForwardLighting {
 			camera: camera,
 			model: model,
 			fragment: fragment,
+			material: material,
 			lights: lights,
 			pso: pso,
 			_buffer: PhantomData,
@@ -254,17 +260,16 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 	                      color_buffer: &gfx::handle::RenderTargetView<R, HDRColorFormat>,
 	                      depth_buffer: &gfx::handle::DepthStencilView<R, DepthFormat>) {
 
-		encoder.update_constant_buffer(&self.model,
-		                               &ModelArgs {
-			                               model: transform.clone().into(),
-			                               emissive: color,
-		                               });
+		encoder.update_constant_buffer(&self.model, &ModelArgs { model: transform.clone().into() });
+
+		encoder.update_constant_buffer(&self.material, &MaterialArgs { emissive: color });
 
 		encoder.draw(&indices,
 		             &self.pso,
 		             &shaded::Data {
 			             vbuf: vertices.clone(),
 			             fragment_args: self.fragment.clone(),
+			             material_args: self.material.clone(),
 			             camera_args: self.camera.clone(),
 			             model_args: self.model.clone(),
 			             lights: self.lights.clone(),

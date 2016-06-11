@@ -65,7 +65,7 @@ fn main() {
 			}
 		}
 
-		let camera = render::Camera::ortho(cgmath::Point2::new(0.0f32, 0.0),
+		let camera = render::Camera::ortho(cgmath::Point2::new(0., 0.),
 		                                   app.viewport.scale,
 		                                   app.viewport.ratio);
 
