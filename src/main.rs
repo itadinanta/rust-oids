@@ -11,7 +11,6 @@ extern crate simplelog;
 
 extern crate cgmath;
 
-extern crate graphics;
 extern crate wrapped2d;
 
 #[macro_use]
