@@ -55,6 +55,7 @@ fn main() {
 			match event {
 				e @ glutin::Event::MouseMoved(_, _) |
 				e @ glutin::Event::MouseInput(_, _) => app.on_mouse_input(e),
+				e @ glutin::Event::KeyboardInput(_, _, _) => app.on_keyboard_input(e),
 
 				glutin::Event::Resized(new_width, new_height) => {
 					gfx_window_glutin::update_views(&window, &mut frame_buffer, &mut depth_buffer);
@@ -69,7 +70,9 @@ fn main() {
 		                                   app.viewport.scale,
 		                                   app.viewport.ratio);
 
-		renderer.setup(&camera);
+		let environment = app.environment();
+
+		renderer.setup(&camera, environment.background, environment.light);
 
 		// update and measure
 		let update_result = app.update();
@@ -79,7 +82,7 @@ fn main() {
 
 		// draw the box2d bodies
 		app.render(renderer);
-		
+
 		renderer.resolve_frame_buffer();
 
 		if let Ok(r) = update_result {

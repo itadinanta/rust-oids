@@ -23,8 +23,8 @@ pub static LUMINANCE_VERTEX_SRC: &'static [u8] = b"
 uniform sampler2D t_VertexLuminance;
 
 layout (std140) uniform cb_VertexArgs {
-    float u_Exposure;
     float u_White;
+    float u_Black;
 };
 
 in vec2 a_Pos;
@@ -36,7 +36,7 @@ void main() {
     v_TexCoord = a_TexCoord;
     float luminance = dot(vec3(0.2126, 0.7152, 0.0722), texture(t_VertexLuminance, vec2(0.5, 0.5)).rgb);
     // todo: interpolate flat
-    v_Exposure = u_Exposure / (u_White + luminance);
+    v_Exposure =  1.0 / (u_Black + (u_White * luminance));
     gl_Position = vec4(a_Pos, 0.0, 1.0);
 }
 
@@ -205,8 +205,8 @@ gfx_defines!{
 		dst: gfx::RenderTarget<HDR> = "o_Color",
 	}
 	constant ToneMapVertexArgs {
-        exposure: f32 = "u_Exposure",
         white: f32 = "u_White",
+        black: f32 = "u_Black",
     }
 	pipeline tone_map {
 		vbuf: gfx::VertexBuffer<BlitVertex> = (),
@@ -275,22 +275,23 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		let nearest_sampler = factory.create_sampler(gfx::tex::SamplerInfo::new(gfx::tex::FilterMethod::Scale,
 		                                                                        gfx::tex::WrapMode::Clamp));
 
-		let linear_sampler = factory.create_sampler(gfx::tex::SamplerInfo::new(gfx::tex::FilterMethod::Bilinear,
-		                                                                       gfx::tex::WrapMode::Clamp));
+		let linear_sampler =
+			factory.create_sampler(gfx::tex::SamplerInfo::new(gfx::tex::FilterMethod::Bilinear,
+			                                                  gfx::tex::WrapMode::Clamp));
 
 		let tone_map_vertex_args = factory.create_constant_buffer(1);
 
 		let tone_map_pso = factory.create_pipeline_simple(LUMINANCE_VERTEX_SRC, EXPOSURE_TONE_MAP_SRC, tone_map::new())
-		                          .unwrap();
+			.unwrap();
 		let highlight_pso = factory.create_pipeline_simple(VERTEX_SRC, CLIP_LUMINANCE_SRC, postprocess::new()).unwrap();
 		let blur_h_pso = factory.create_pipeline_simple(VERTEX_SRC, GAUSSIAN_BLUR_HORIZONTAL_SRC, postprocess::new())
-		                        .unwrap();
+			.unwrap();
 		let blur_v_pso = factory.create_pipeline_simple(VERTEX_SRC, GAUSSIAN_BLUR_VERTICAL_SRC, postprocess::new())
-		                        .unwrap();
+			.unwrap();
 		let average_pso = factory.create_pipeline_simple(VERTEX_SRC, QUAD_SMOOTH_SRC, postprocess::new())
-		                         .unwrap();
+			.unwrap();
 		let compose_pso = factory.create_pipeline_simple(VERTEX_SRC, COMPOSE_2_SRC, compose::new())
-		                         .unwrap();
+			.unwrap();
 
 		let ping_pong_small = [factory.create_render_target::<HDR>(w / 4, h / 4).unwrap(),
 		                       factory.create_render_target::<HDR>(w / 4, h / 4).unwrap()];
@@ -370,8 +371,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		// Tone mapping
 		encoder.update_constant_buffer(&self.tone_map_vertex_args,
 		                               &ToneMapVertexArgs {
-			                               exposure: 0.5,
-			                               white: 1.0,
+			                               white: 4.0,
+			                               black: 0.5,
 		                               });
 		encoder.draw(&self.index_buffer_slice,
 		             &self.tone_map_pso,

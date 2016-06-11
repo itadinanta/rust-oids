@@ -87,7 +87,7 @@ pub trait Draw {
 }
 
 pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>>: Draw {
-	fn setup(&mut self, camera: &Camera);
+	fn setup(&mut self, camera: &Camera, background_color: [f32; 4], light_color: [f32; 4]);
 	fn begin_frame(&mut self);
 	fn resolve_frame_buffer(&mut self);
 	fn end_frame<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D);
@@ -109,6 +109,9 @@ pub struct ForwardRenderer<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>,
 	text_renderer: gfx_text::Renderer<R, F>,
 	pass_forward_lighting: forward::ForwardLighting<R, C>,
 	pass_effects: effects::PostLighting<R, C>,
+
+	background_color: [f32; 4],
+	light_color: [f32; 4],
 }
 
 use gfx::Factory;
@@ -139,6 +142,8 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 			index_buffer_slice: slice,
 			pass_forward_lighting: forward::ForwardLighting::new(factory),
 			pass_effects: effects::PostLighting::new(factory, w, h),
+			background_color: BACKGROUND,
+			light_color: BLACK,
 		}
 	}
 }
@@ -164,25 +169,27 @@ impl<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>> Render
                                                                                                              R,
                                                                                                              C,
                                                                                                              F> {
-	fn setup(&mut self, camera: &Camera) {
+	fn setup(&mut self, camera: &Camera, background_color: [f32; 4], light_color: [f32; 4]) {
+		self.background_color = background_color;
+		self.light_color = light_color;
 		let lights: Vec<forward::PointLight> = vec![forward::PointLight {
 			                                            propagation: [0.3, 0.5, 0.4, 0.0],
 			                                            center: [-15.0, -5.0, 1.0, 1.0],
-			                                            color: [3.0, 0.0, 0.0, 1.0],
+			                                            color: [0.3, 0.0, 0.0, 1.0],
 		                                            },
 		                                            forward::PointLight {
 			                                            propagation: [0.2, 0.8, 0.1, 0.1],
 			                                            center: [10.0, 10.0, 2.0, 1.0],
-			                                            color: [10., 10., 10., 1.],
+			                                            color: self.light_color,
 		                                            }];
 
 		self.pass_forward_lighting.setup(&mut self.encoder, camera.projection, camera.view, &lights);
 	}
 
 	fn begin_frame(&mut self) {
-		self.encoder.clear(&self.hdr_color, BACKGROUND);
+		self.encoder.clear(&self.hdr_color, self.background_color);
 		self.encoder.clear_depth(&self.depth, 1.0f32);
-		self.encoder.clear(&self.frame_buffer, BACKGROUND);
+		self.encoder.clear(&self.frame_buffer, self.background_color);
 	}
 
 	fn resolve_frame_buffer(&mut self) {

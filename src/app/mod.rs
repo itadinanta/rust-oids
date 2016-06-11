@@ -59,6 +59,31 @@ impl Viewport {
 	}
 }
 
+struct Cycle<T: Copy> {
+	items: Vec<T>,
+	index: usize,
+}
+
+impl<T> Cycle<T>
+    where T: Copy
+{
+	pub fn new(items: &[T]) -> Cycle<T> {
+		Cycle {
+			items: items.to_vec(),
+			index: 0,
+		}
+	}
+
+	pub fn get(&self) -> T {
+		self.items[self.index]
+	}
+
+	pub fn next(&mut self) -> T {
+		self.index = (self.index + 1) % self.items.len();
+		self.items[self.index]
+	}
+}
+
 pub struct App {
 	pub viewport: Viewport,
 	input_state: InputState,
@@ -68,6 +93,13 @@ pub struct App {
 	frame_start: SystemTime,
 	frame_elapsed: f32,
 	frame_smooth: Smooth<f32>,
+	lights: Cycle<[f32; 4]>,
+	backgrounds: Cycle<[f32; 4]>,
+}
+
+pub struct Environment {
+	pub light: [f32; 4],
+	pub background: [f32; 4],
 }
 
 pub struct Update {
@@ -82,11 +114,13 @@ pub struct Update {
 impl App {
 	pub fn new(w: u32, h: u32, scale: f32) -> App {
 		App {
-			viewport: Viewport::rect(w, h, 50.0),
+			viewport: Viewport::rect(w, h, scale),
 			input_state: InputState {
 				left_button_pressed: false,
 				mouse_position: b2::Vec2 { x: 0.0, y: 0.0 },
 			},
+			lights: Self::init_lights(),
+			backgrounds: Self::init_backgrounds(),
 			world: new_world(),
 			frame_count: 0u32,
 			frame_elapsed: 0.0f32,
@@ -95,6 +129,29 @@ impl App {
 			frame_smooth: Smooth::new(120),
 		}
 	}
+
+	fn init_lights() -> Cycle<[f32; 4]> {
+		Cycle::new(&[[0.001, 0.001, 0.001, 1.0],
+					 [0.01, 0.01, 0.01, 1.0],
+		             [0.1, 0.1, 0.1, 1.0],
+		             [0.31, 0.31, 0.31, 0.5],
+		             [1.0, 1.0, 1.0, 1.0],
+		             [3.1, 3.1, 3.1, 1.0],
+		             [10.0, 10.0, 10.0, 1.0],
+		             [31.0, 31.0, 31.0, 1.0],
+		             [100.0, 100.0, 100.0, 1.0]])
+	}
+
+	fn init_backgrounds() -> Cycle<[f32; 4]> {
+		Cycle::new(&[[0., 0., 0., 1.0],
+					 [0.01, 0.01, 0.01, 1.0],
+		             [0.1, 0.1, 0.1, 1.0],
+		             [0.5, 0.5, 0.5, 0.5],
+		             [1.0, 1.0, 1.0, 1.0],
+		             [3.1, 3.1, 3.1, 1.0],
+		             [10.0, 10.0, 10.0, 1.0]])
+	}
+
 
 	fn on_click(&mut self, btn: glutin::MouseButton, pos: b2::Vec2) {
 		match btn {
@@ -114,6 +171,28 @@ impl App {
 		match btn {
 			glutin::MouseButton::Left => {
 				self.input_state.left_button_pressed = false;
+			}
+			_ => (),
+		}
+	}
+
+	pub fn on_keyboard_input(&mut self, e: glutin::Event) {
+		match e {
+			glutin::Event::ReceivedCharacter(char) => {
+				match char {
+					_ => println!("Key pressed {:?}", char),
+				}
+			}
+			glutin::Event::KeyboardInput(glutin::ElementState::Pressed, scancode, vk) => {
+				match vk {
+					Some(glutin::VirtualKeyCode::L) => {
+						self.lights.next();
+					}
+					Some(glutin::VirtualKeyCode::B) => {
+						self.backgrounds.next();
+					}
+					_ => println!("Key pressed {:?}/{:?}", scancode, vk),
+				}
 			}
 			_ => (),
 		}
@@ -186,6 +265,13 @@ impl App {
 					_ => (),
 				}
 			}
+		}
+	}
+
+	pub fn environment(&self) -> Environment {
+		Environment {
+			light: self.lights.get(),
+			background: self.backgrounds.get(),
 		}
 	}
 
