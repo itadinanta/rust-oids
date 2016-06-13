@@ -255,7 +255,7 @@ impl App {
 
 						let lightness = 1. - density * 0.5;
 
-						let color = [0., lightness, 0., 1.];
+						let color = [0., 10. * lightness, 0., 1.];
 
 						renderer.draw_quad(&transform.into(), color);
 					}
