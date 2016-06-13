@@ -20,7 +20,8 @@ pub static LUMINANCE_VERTEX_SRC: &'static [u8] = b"
 
 #version 150 core
 
-uniform sampler2D t_VertexLuminance;
+uniform sampler2D t_VertexLuminance_0;
+uniform sampler2D t_VertexLuminance_1;
 
 layout (std140) uniform cb_VertexArgs {
     float u_White;
@@ -34,7 +35,11 @@ out float v_Exposure;
 
 void main() {
     v_TexCoord = a_TexCoord;
-    float luminance = dot(vec3(0.2126, 0.7152, 0.0722), texture(t_VertexLuminance, vec2(0.5, 0.5)).rgb);
+    float luminance_0 = dot(vec3(0.2126, 0.7152, 0.0722), texture(t_VertexLuminance_0, vec2(0.5, 0.5)).rgb);
+    float luminance_1 = dot(vec3(0.2126, 0.7152, 0.0722), texture(t_VertexLuminance_1, vec2(0.5, 0.5)).rgb);
+	const float alpha = 1./60.;
+	
+	float luminance = luminance_0; // alpha * luminance_0 + (1.0 - alpha) * luminance_1;
     // todo: interpolate flat
     v_Exposure =  1.0 / (u_Black + (u_White * luminance));
     gl_Position = vec4(a_Pos, 0.0, 1.0);
@@ -54,7 +59,8 @@ in float v_Exposure;
 out vec4 o_Color;
 
 void main() {
-	o_Color = v_Exposure * texture(t_Source, v_TexCoord, 0);
+	vec4 linear_color = v_Exposure * texture(t_Source, v_TexCoord, 0);
+	o_Color = vec4(linear_color.rgb, 1.0);
 }
 
 ";
@@ -210,7 +216,8 @@ gfx_defines!{
     }
 	pipeline tone_map {
 		vbuf: gfx::VertexBuffer<BlitVertex> = (),
-		vertex_luminance: gfx::TextureSampler<[f32; 4]> = "t_VertexLuminance",
+		vertex_luminance_0: gfx::TextureSampler<[f32; 4]> = "t_VertexLuminance_0",
+		vertex_luminance_1: gfx::TextureSampler<[f32; 4]> = "t_VertexLuminance_1",
 		vertex_args: gfx::ConstantBuffer<ToneMapVertexArgs> = "cb_VertexArgs",
 		src: gfx::TextureSampler<[f32; 4]> = "t_Source",
 		dst: gfx::RenderTarget<HDR> = "o_Color",
@@ -239,7 +246,9 @@ pub struct PostLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 	ping_pong_large: [HDRRenderSurface<R>; 2],
 
 	mips: Vec<HDRRenderSurface<R>>,
-
+	luminance_last: HDRRenderSurface<R>,
+	
+	blit_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
 	average_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
 	highlight_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
 	blur_h_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
@@ -290,6 +299,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 			.unwrap();
 		let average_pso = factory.create_pipeline_simple(VERTEX_SRC, QUAD_SMOOTH_SRC, postprocess::new())
 			.unwrap();
+		let blit_pso = factory.create_pipeline_simple(VERTEX_SRC, SIMPLE_BLIT_SRC, postprocess::new())
+			.unwrap();
 		let compose_pso = factory.create_pipeline_simple(VERTEX_SRC, COMPOSE_2_SRC, compose::new())
 			.unwrap();
 
@@ -309,6 +320,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 			// println!("{}x{}", w2, h2);
 			mips.push(factory.create_render_target::<HDR>(w2, h2).unwrap());
 		}
+		
+		let luminance_last = factory.create_render_target::<HDR>(1, 1).unwrap();
 
 		PostLighting {
 			vertex_buffer: vertex_buffer,
@@ -316,6 +329,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 			nearest_sampler: nearest_sampler,
 			linear_sampler: linear_sampler,
 
+			blit_pso: blit_pso,
 			average_pso: average_pso,
 
 			tone_map_vertex_args: tone_map_vertex_args,
@@ -328,6 +342,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 			compose_pso: compose_pso,
 
 			mips: mips,
+			luminance_last: luminance_last,
 
 			ping_pong_small: ping_pong_small,
 			ping_pong_large: ping_pong_large,
@@ -378,12 +393,18 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		             &self.tone_map_pso,
 		             &tone_map::Data {
 			             vbuf: self.vertex_buffer.clone(),
-			             vertex_luminance: (exposure_src.clone(), self.nearest_sampler.clone()),
+			             vertex_luminance_0: (exposure_src.clone(), self.nearest_sampler.clone()),
+			             vertex_luminance_1: (self.luminance_last.1.clone(), self.nearest_sampler.clone()),
 			             vertex_args: self.tone_map_vertex_args.clone(),
 			             src: (raw_hdr_src, self.nearest_sampler.clone()),
 			             dst: ping_pong_large[0].2.clone(),
 		             });
 
+		// blits luminance to "history" buffer
+		self.full_screen_pass(encoder,
+		                      &self.blit_pso,
+		                      &exposure_src,
+		                      &self.luminance_last.2);
 		// Bloom
 		// 1. extract high luminance
 		self.full_screen_pass(encoder,
