@@ -253,9 +253,9 @@ impl App {
 						let fixture_trans = Matrix4::from_translation(cgmath::Vector3::new(p.x, p.y, 0.0));
 						let transform = body_transform * fixture_trans * fixture_scale;
 
-						let lightness = 0.; //1. / (density - 1.0);
+						let lightness = 1. - density * 0.5;
 
-						let color = [0., 0., lightness, 1.];
+						let color = [0., lightness, 0., 1.];
 
 						renderer.draw_quad(&transform.into(), color);
 					}

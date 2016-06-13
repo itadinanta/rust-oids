@@ -20,8 +20,7 @@ pub static LUMINANCE_VERTEX_SRC: &'static [u8] = b"
 
 #version 150 core
 
-uniform sampler2D t_VertexLuminance_0;
-uniform sampler2D t_VertexLuminance_1;
+uniform sampler2D t_VertexLuminance;
 
 layout (std140) uniform cb_VertexArgs {
     float u_White;
@@ -35,22 +34,17 @@ out float v_Exposure;
 
 void main() {
     v_TexCoord = a_TexCoord;
-    float luminance_0 = dot(vec3(0.2126, 0.7152, 0.0722), texture(t_VertexLuminance_0, vec2(0.5, 0.5)).rgb);
-    float luminance_1 = dot(vec3(0.2126, 0.7152, 0.0722), texture(t_VertexLuminance_1, vec2(0.5, 0.5)).rgb);
-	const float alpha = 1./60.;
-	
-	float luminance = luminance_0; // alpha * luminance_0 + (1.0 - alpha) * luminance_1;
-    // todo: interpolate flat
+    float luminance = dot(vec3(0.2126, 0.7152, 0.0722), texture(t_VertexLuminance, vec2(0.5, 0.5)).rgb);
+
+	// todo: interpolate flat
     v_Exposure =  1.0 / (u_Black + (u_White * luminance));
     gl_Position = vec4(a_Pos, 0.0, 1.0);
 }
-
 ";
 
+
 pub static EXPOSURE_TONE_MAP_SRC: &'static [u8] = b"
-
 #version 150 core
-
 
 uniform sampler2D t_Source;
 
@@ -62,7 +56,28 @@ void main() {
 	vec4 linear_color = v_Exposure * texture(t_Source, v_TexCoord, 0);
 	o_Color = vec4(linear_color.rgb, 1.0);
 }
+";
 
+pub static EXPONENTIAL_SMOOTH_SRC: &'static [u8] = b"
+
+#version 150 core
+
+uniform sampler2D t_Value;
+uniform sampler2D t_Acc;
+
+layout (std140) uniform cb_FragmentArgs {
+    float u_ExpAlpha;
+};
+
+in vec2 v_TexCoord;
+out vec4 o_Smooth;
+
+void main() {
+	vec4 value = texture(t_Value, v_TexCoord, 0);
+	vec4 acc = texture(t_Acc, v_TexCoord, 0);
+	
+	o_Smooth = max(u_ExpAlpha * value, vec4(0.)) + max((1. - u_ExpAlpha) * acc, vec4(0.));
+}
 ";
 
 pub static SIMPLE_BLIT_SRC: &'static [u8] = b"
@@ -90,20 +105,25 @@ uniform sampler2D t_Source;
 in vec2 v_TexCoord;
 out vec4 o_Color;
 
-const int KERNEL_RADIUS = 5;
-
-const float weight[KERNEL_RADIUS] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
+const float weight[5] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
 
 void main()
 {
+	const float weight[5] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
     vec2 tex_offset = 1.0 / textureSize(t_Source, 0); // gets size of single texel
     vec3 result = texture(t_Source, v_TexCoord).rgb * weight[0]; // current fragment's contribution
 
-    for(int i = 1; i < KERNEL_RADIUS; ++i)
-    {
-        result += texture(t_Source, v_TexCoord + vec2(tex_offset.x * i, 0.0)).rgb * weight[i];
-        result += texture(t_Source, v_TexCoord - vec2(tex_offset.x * i, 0.0)).rgb * weight[i];
-    }
+    result += texture(t_Source, v_TexCoord + vec2(tex_offset.x * 1, 0.0)).rgb * weight[1];
+	result += texture(t_Source, v_TexCoord - vec2(tex_offset.x * 1, 0.0)).rgb * weight[1];
+
+    result += texture(t_Source, v_TexCoord + vec2(tex_offset.x * 2, 0.0)).rgb * weight[2];
+	result += texture(t_Source, v_TexCoord - vec2(tex_offset.x * 2, 0.0)).rgb * weight[2];
+
+    result += texture(t_Source, v_TexCoord + vec2(tex_offset.x * 3, 0.0)).rgb * weight[3];
+	result += texture(t_Source, v_TexCoord - vec2(tex_offset.x * 3, 0.0)).rgb * weight[3];
+
+    result += texture(t_Source, v_TexCoord + vec2(tex_offset.x * 4, 0.0)).rgb * weight[4];
+	result += texture(t_Source, v_TexCoord - vec2(tex_offset.x * 4, 0.0)).rgb * weight[4];
 
     o_Color = vec4(result, 1.0);
 }
@@ -118,26 +138,28 @@ uniform sampler2D t_Source;
 in vec2 v_TexCoord;
 out vec4 o_Color;
 
-const int KERNEL_RADIUS = 5;
-
-const float weight[KERNEL_RADIUS] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
+const float weight[5] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
 
 void main()
 {
     vec2 tex_offset = 1.0 / textureSize(t_Source, 0); // gets size of single texel
     vec3 result = texture(t_Source, v_TexCoord).rgb * weight[0]; // current fragment's contribution
 
-    for(int i = 1; i < KERNEL_RADIUS; ++i)
-    {
-        result += texture(t_Source, v_TexCoord + vec2(0.0, tex_offset.y * i)).rgb * weight[i];
-        result += texture(t_Source, v_TexCoord - vec2(0.0, tex_offset.y * i)).rgb * weight[i];
-    }
+    result += texture(t_Source, v_TexCoord + vec2(0.0, tex_offset.y * 1)).rgb * weight[1];
+    result += texture(t_Source, v_TexCoord - vec2(0.0, tex_offset.y * 1)).rgb * weight[1];
+
+    result += texture(t_Source, v_TexCoord + vec2(0.0, tex_offset.y * 2)).rgb * weight[2];
+    result += texture(t_Source, v_TexCoord - vec2(0.0, tex_offset.y * 2)).rgb * weight[2];
+
+    result += texture(t_Source, v_TexCoord + vec2(0.0, tex_offset.y * 3)).rgb * weight[3];
+    result += texture(t_Source, v_TexCoord - vec2(0.0, tex_offset.y * 3)).rgb * weight[3];
+
+    result += texture(t_Source, v_TexCoord + vec2(0.0, tex_offset.y * 4)).rgb * weight[4];
+    result += texture(t_Source, v_TexCoord - vec2(0.0, tex_offset.y * 4)).rgb * weight[4];
 
     o_Color = vec4(result, 1.0);
 }
 ";
-
-
 
 pub static COMPOSE_2_SRC: &'static [u8] = b"
 
@@ -152,7 +174,6 @@ out vec4 o_Color;
 void main() {
 	o_Color = texture(t_Source1, v_TexCoord, 0) + texture(t_Source2, v_TexCoord, 0);
 }
-
 ";
 
 pub static CLIP_LUMINANCE_SRC: &'static [u8] = b"
@@ -204,11 +225,20 @@ gfx_defines!{
 		pos: [f32; 2] = "a_Pos",
 		tex_coord: [f32; 2] = "a_TexCoord",
 	}
-
 	pipeline postprocess {
 		vbuf: gfx::VertexBuffer<BlitVertex> = (),
 		src: gfx::TextureSampler<[f32; 4]> = "t_Source",
 		dst: gfx::RenderTarget<HDR> = "o_Color",
+	}
+	constant SmoothFragmentArgs {
+        exp_alpha: f32 = "u_ExpAlpha",
+    }
+	pipeline smooth {
+		vbuf: gfx::VertexBuffer<BlitVertex> = (),
+		value: gfx::TextureSampler<[f32; 4]> = "t_Value",
+		acc: gfx::TextureSampler<[f32; 4]> = "t_Acc",
+		fragment_args: gfx::ConstantBuffer<SmoothFragmentArgs> = "cb_FragmentArgs",
+		dst: gfx::RenderTarget<HDR> = "o_Smooth",
 	}
 	constant ToneMapVertexArgs {
         white: f32 = "u_White",
@@ -216,8 +246,7 @@ gfx_defines!{
     }
 	pipeline tone_map {
 		vbuf: gfx::VertexBuffer<BlitVertex> = (),
-		vertex_luminance_0: gfx::TextureSampler<[f32; 4]> = "t_VertexLuminance_0",
-		vertex_luminance_1: gfx::TextureSampler<[f32; 4]> = "t_VertexLuminance_1",
+		vertex_luminance: gfx::TextureSampler<[f32; 4]> = "t_VertexLuminance",
 		vertex_args: gfx::ConstantBuffer<ToneMapVertexArgs> = "cb_VertexArgs",
 		src: gfx::TextureSampler<[f32; 4]> = "t_Source",
 		dst: gfx::RenderTarget<HDR> = "o_Color",
@@ -246,10 +275,15 @@ pub struct PostLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 	ping_pong_large: [HDRRenderSurface<R>; 2],
 
 	mips: Vec<HDRRenderSurface<R>>,
-	luminance_last: HDRRenderSurface<R>,
-	
+	luminance_smooth: HDRRenderSurface<R>,
+	luminance_acc: HDRRenderSurface<R>,
+
 	blit_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
 	average_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
+
+	smooth_fragment_args: gfx::handle::Buffer<R, SmoothFragmentArgs>,
+	smooth_pso: gfx::pso::PipelineState<R, smooth::Meta>,
+
 	highlight_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
 	blur_h_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
 	blur_v_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
@@ -284,25 +318,32 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		let nearest_sampler = factory.create_sampler(gfx::tex::SamplerInfo::new(gfx::tex::FilterMethod::Scale,
 		                                                                        gfx::tex::WrapMode::Clamp));
 
-		let linear_sampler =
-			factory.create_sampler(gfx::tex::SamplerInfo::new(gfx::tex::FilterMethod::Bilinear,
-			                                                  gfx::tex::WrapMode::Clamp));
+		let linear_sampler = factory.create_sampler(gfx::tex::SamplerInfo::new(gfx::tex::FilterMethod::Bilinear,
+		                                                                       gfx::tex::WrapMode::Clamp));
 
 		let tone_map_vertex_args = factory.create_constant_buffer(1);
 
 		let tone_map_pso = factory.create_pipeline_simple(LUMINANCE_VERTEX_SRC, EXPOSURE_TONE_MAP_SRC, tone_map::new())
-			.unwrap();
+		                          .unwrap();
 		let highlight_pso = factory.create_pipeline_simple(VERTEX_SRC, CLIP_LUMINANCE_SRC, postprocess::new()).unwrap();
+
 		let blur_h_pso = factory.create_pipeline_simple(VERTEX_SRC, GAUSSIAN_BLUR_HORIZONTAL_SRC, postprocess::new())
-			.unwrap();
+		                        .unwrap();
 		let blur_v_pso = factory.create_pipeline_simple(VERTEX_SRC, GAUSSIAN_BLUR_VERTICAL_SRC, postprocess::new())
-			.unwrap();
-		let average_pso = factory.create_pipeline_simple(VERTEX_SRC, QUAD_SMOOTH_SRC, postprocess::new())
-			.unwrap();
+		                        .unwrap();
+
 		let blit_pso = factory.create_pipeline_simple(VERTEX_SRC, SIMPLE_BLIT_SRC, postprocess::new())
-			.unwrap();
+		                      .unwrap();
+
+		let smooth_fragment_args = factory.create_constant_buffer(1);
+
+		let smooth_pso = factory.create_pipeline_simple(VERTEX_SRC, EXPONENTIAL_SMOOTH_SRC, smooth::new())
+		                        .unwrap();
+		let average_pso = factory.create_pipeline_simple(VERTEX_SRC, QUAD_SMOOTH_SRC, postprocess::new())
+		                         .unwrap();
+
 		let compose_pso = factory.create_pipeline_simple(VERTEX_SRC, COMPOSE_2_SRC, compose::new())
-			.unwrap();
+		                         .unwrap();
 
 		let ping_pong_small = [factory.create_render_target::<HDR>(w / 4, h / 4).unwrap(),
 		                       factory.create_render_target::<HDR>(w / 4, h / 4).unwrap()];
@@ -320,8 +361,9 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 			// println!("{}x{}", w2, h2);
 			mips.push(factory.create_render_target::<HDR>(w2, h2).unwrap());
 		}
-		
-		let luminance_last = factory.create_render_target::<HDR>(1, 1).unwrap();
+
+		let luminance_smooth = factory.create_render_target::<HDR>(1, 1).unwrap();
+		let luminance_acc = factory.create_render_target::<HDR>(1, 1).unwrap();
 
 		PostLighting {
 			vertex_buffer: vertex_buffer,
@@ -331,6 +373,9 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 
 			blit_pso: blit_pso,
 			average_pso: average_pso,
+
+			smooth_fragment_args: smooth_fragment_args,
+			smooth_pso: smooth_pso,
 
 			tone_map_vertex_args: tone_map_vertex_args,
 			tone_map_pso: tone_map_pso,
@@ -342,7 +387,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 			compose_pso: compose_pso,
 
 			mips: mips,
-			luminance_last: luminance_last,
+			luminance_smooth: luminance_smooth,
+			luminance_acc: luminance_acc,
 
 			ping_pong_small: ping_pong_small,
 			ping_pong_large: ping_pong_large,
@@ -383,6 +429,20 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 			exposure_src = mip.1.clone();
 			// println!("{:?}", mip.0.clone());
 		}
+
+		// Exponential smoothing
+		encoder.update_constant_buffer(&self.smooth_fragment_args,
+		                               &SmoothFragmentArgs { exp_alpha: 0.05 });
+		encoder.draw(&self.index_buffer_slice,
+		             &self.smooth_pso,
+		             &smooth::Data {
+			             vbuf: self.vertex_buffer.clone(),
+			             fragment_args: self.smooth_fragment_args.clone(),
+			             value: (exposure_src, self.nearest_sampler.clone()),
+			             acc: (self.luminance_acc.1.clone(), self.nearest_sampler.clone()),
+			             dst: self.luminance_smooth.2.clone(),
+		             });
+
 		// Tone mapping
 		encoder.update_constant_buffer(&self.tone_map_vertex_args,
 		                               &ToneMapVertexArgs {
@@ -393,18 +453,18 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		             &self.tone_map_pso,
 		             &tone_map::Data {
 			             vbuf: self.vertex_buffer.clone(),
-			             vertex_luminance_0: (exposure_src.clone(), self.nearest_sampler.clone()),
-			             vertex_luminance_1: (self.luminance_last.1.clone(), self.nearest_sampler.clone()),
+			             vertex_luminance: (self.luminance_smooth.1.clone(),
+			                                self.nearest_sampler.clone()),
 			             vertex_args: self.tone_map_vertex_args.clone(),
 			             src: (raw_hdr_src, self.nearest_sampler.clone()),
 			             dst: ping_pong_large[0].2.clone(),
 		             });
 
-		// blits luminance to "history" buffer
+		// blits smoothed luminance to "acc" buffer. TODO: pingpong
 		self.full_screen_pass(encoder,
 		                      &self.blit_pso,
-		                      &exposure_src,
-		                      &self.luminance_last.2);
+		                      &self.luminance_smooth.1,
+		                      &self.luminance_acc.2);
 		// Bloom
 		// 1. extract high luminance
 		self.full_screen_pass(encoder,
