@@ -260,11 +260,9 @@ gfx_defines!{
 }
 
 use std::marker::PhantomData;
-type HDRRenderSurface<R: gfx::Resources> = (gfx::handle::Texture<R, gfx::format::R16_G16_B16_A16>,
-                                            gfx::handle::ShaderResourceView<R, [f32; 4]>,
-                                            gfx::handle::RenderTargetView<R,
-                                                                          (gfx::format::R16_G16_B16_A16,
-                                                                           gfx::format::Float)>);
+type HDRRenderSurface<R> = (gfx::handle::Texture<R, gfx::format::R16_G16_B16_A16>,
+                            gfx::handle::ShaderResourceView<R, [f32; 4]>,
+                            gfx::handle::RenderTargetView<R, (gfx::format::R16_G16_B16_A16, gfx::format::Float)>);
 pub struct PostLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 	vertex_buffer: gfx::handle::Buffer<R, BlitVertex>,
 	index_buffer_slice: gfx::Slice<R>,
