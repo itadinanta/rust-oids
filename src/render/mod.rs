@@ -7,7 +7,7 @@ extern crate cgmath;
 extern crate gfx_text;
 
 pub type HDRColorFormat = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
-pub type ColorFormat = gfx::format::Rgba8;
+pub type ColorFormat = gfx::format::Srgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
 
 pub type GFormat = [f32; 4];

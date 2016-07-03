@@ -104,5 +104,4 @@ fn main() {
 		window.swap_buffers().unwrap();
 		renderer.cleanup(&mut device);
 	}
-
 }
