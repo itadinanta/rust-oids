@@ -28,7 +28,7 @@ fn new_ball(world: &mut b2::World, pos: b2::Vec2) {
 	b_def.position = pos;
 	let handle = world.create_body(&b_def);
 	world.get_body_mut(handle)
-		.create_fixture(&circle_shape, &mut f_def);
+	     .create_fixture(&circle_shape, &mut f_def);
 }
 
 use wrapped2d::b2;
@@ -132,7 +132,7 @@ impl App {
 
 	fn init_lights() -> Cycle<[f32; 4]> {
 		Cycle::new(&[[0.001, 0.001, 0.001, 1.0],
-					 [0.01, 0.01, 0.01, 1.0],
+		             [0.01, 0.01, 0.01, 1.0],
 		             [0.1, 0.1, 0.1, 1.0],
 		             [0.31, 0.31, 0.31, 0.5],
 		             [1.0, 1.0, 1.0, 1.0],
@@ -144,7 +144,7 @@ impl App {
 
 	fn init_backgrounds() -> Cycle<[f32; 4]> {
 		Cycle::new(&[[0., 0., 0., 1.0],
-					 [0.01, 0.01, 0.01, 1.0],
+		             [0.01, 0.01, 0.01, 1.0],
 		             [0.1, 0.1, 0.1, 1.0],
 		             [0.5, 0.5, 0.5, 0.5],
 		             [1.0, 1.0, 1.0, 1.0],
