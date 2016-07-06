@@ -16,7 +16,7 @@ dependencies = [
  "piston 0.24.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "simplelog 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "wrapped2d 0.2.5 (git+https://github.com/itadinanta/rust_box2d.git)",
+ "wrapped2d 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -720,8 +720,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "wrapped2d"
-version = "0.2.5"
-source = "git+https://github.com/itadinanta/rust_box2d.git#830d3e108504cb87a7035d54712d202acf02ad33"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cgmath 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",

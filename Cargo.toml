@@ -20,7 +20,7 @@ mopa ="0.2"
 genmesh="0.4"
 
 piston = "*"
-wrapped2d = { git = "https://github.com/itadinanta/rust_box2d.git", branch = "master"}
+wrapped2d = "0.3.0"
 gfx = "*"
 gfx_core = "*"
 gfx_device_gl = "*"

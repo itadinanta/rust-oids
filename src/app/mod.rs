@@ -5,13 +5,14 @@ use glutin;
 use cgmath;
 use cgmath::{Matrix4, EuclideanVector};
 use render;
+use wrapped2d::user_data::NoUserData;
 
 pub struct InputState {
 	left_button_pressed: bool,
 	mouse_position: b2::Vec2,
 }
 
-fn new_ball(world: &mut b2::World, pos: b2::Vec2) {
+fn new_ball(world: &mut b2::World<NoUserData>, pos: b2::Vec2) {
 	let mut rng = rand::thread_rng();
 	let radius: f32 = (rng.gen::<f32>() * 1.0) + 1.0;
 
@@ -27,7 +28,7 @@ fn new_ball(world: &mut b2::World, pos: b2::Vec2) {
 	b_def.body_type = b2::BodyType::Dynamic;
 	b_def.position = pos;
 	let handle = world.create_body(&b_def);
-	world.get_body_mut(handle)
+	world.body_mut(handle)
 	     .create_fixture(&circle_shape, &mut f_def);
 }
 
@@ -87,7 +88,7 @@ impl<T> Cycle<T>
 pub struct App {
 	pub viewport: Viewport,
 	input_state: InputState,
-	world: b2::World,
+	world: b2::World<NoUserData>,
 	wall_clock_start: SystemTime,
 	frame_count: u32,
 	frame_start: SystemTime,
@@ -318,7 +319,7 @@ impl App {
 	}
 }
 
-fn new_world() -> b2::World {
+fn new_world() -> b2::World<NoUserData> {
 	let mut world = b2::World::new(&b2::Vec2 { x: 0.0, y: -9.8 });
 
 	let mut b_def = b2::BodyDef::new();
@@ -329,7 +330,7 @@ fn new_world() -> b2::World {
 	{
 		ground_box.set_as_box(20.0, 1.0);
 		let ground_handle = world.create_body(&b_def);
-		let ground = &mut world.get_body_mut(ground_handle);
+		let ground = &mut world.body_mut(ground_handle);
 		ground.create_fast_fixture(&ground_box, 0.);
 
 		ground_box.set_as_oriented_box(1.0,
