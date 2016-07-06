@@ -21,9 +21,9 @@ genmesh="0.4"
 
 piston = "*"
 wrapped2d = { git = "https://github.com/itadinanta/rust_box2d.git", branch = "master"}
-gfx = "0.11.0"
+gfx = "*"
 gfx_core = "*"
 gfx_device_gl = "*"
 gfx_window_glutin = "*"
-gfx_text = "0.10.0"
-glutin = "0.5"
+gfx_text = "*"
+glutin = "*"
