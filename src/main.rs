@@ -33,12 +33,15 @@ fn main() {
 	const HEIGHT: u32 = 720;
 
 	let builder = glutin::WindowBuilder::new()
-		.with_title("Box2d + GFX".to_string())
-		.with_dimensions(WIDTH, HEIGHT)
-		.with_vsync();
+		              .with_title("Box2d + GFX".to_string())
+		              .with_dimensions(WIDTH, HEIGHT)
+		              .with_vsync();
 
-	let (window, mut device, mut factory, mut frame_buffer, mut depth_buffer) =
-		gfx_window_glutin::init::<render::ColorFormat, render::DepthFormat>(builder);
+	let (window,
+	     mut device,
+	     mut factory,
+	     mut frame_buffer,
+	     mut depth_buffer) = gfx_window_glutin::init::<render::ColorFormat, render::DepthFormat>(builder);
 
 	let (w, h, _, _) = frame_buffer.get_dimensions();
 
@@ -61,9 +64,13 @@ fn main() {
 					gfx_window_glutin::update_views(&window, &mut frame_buffer, &mut depth_buffer);
 					app.on_resize(new_width, new_height);
 				}
-				glutin::Event::Closed => break 'main,
+				glutin::Event::Closed => app.quit(),
 				_ => {}
 			}
+		}
+
+		if !app.is_running() {
+			break 'main;
 		}
 
 		let camera = render::Camera::ortho(cgmath::Point2::new(0., 0.),

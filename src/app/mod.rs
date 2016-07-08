@@ -12,26 +12,6 @@ pub struct InputState {
 	mouse_position: b2::Vec2,
 }
 
-fn new_ball(world: &mut b2::World<NoUserData>, pos: b2::Vec2) {
-	let mut rng = rand::thread_rng();
-	let radius: f32 = (rng.gen::<f32>() * 1.0) + 1.0;
-
-	let mut circle_shape = b2::CircleShape::new();
-	circle_shape.set_radius(radius);
-
-	let mut f_def = b2::FixtureDef::new();
-	f_def.density = (rng.gen::<f32>() * 1.0) + 1.0;
-	f_def.restitution = 0.2;
-	f_def.friction = 0.3;
-
-	let mut b_def = b2::BodyDef::new();
-	b_def.body_type = b2::BodyType::Dynamic;
-	b_def.position = pos;
-	let handle = world.create_body(&b_def);
-	world.body_mut(handle)
-	     .create_fixture(&circle_shape, &mut f_def);
-}
-
 use wrapped2d::b2;
 use std::f64::consts;
 
@@ -85,17 +65,102 @@ impl<T> Cycle<T>
 	}
 }
 
+trait System {
+}
+
+pub struct PhysicsSystem {
+	world: b2::World<NoUserData>,
+}
+
+impl System for PhysicsSystem {}
+
+impl PhysicsSystem {
+	pub fn new() -> Self {
+		PhysicsSystem { world: new_world() }
+	}
+
+	fn new_ball(&mut self, pos: b2::Vec2) {
+		let mut world = &self.world;
+		let mut rng = rand::thread_rng();
+		let radius: f32 = (rng.gen::<f32>() * 1.0) + 1.0;
+
+		let mut circle_shape = b2::CircleShape::new();
+		circle_shape.set_radius(radius);
+
+		let mut f_def = b2::FixtureDef::new();
+		f_def.density = (rng.gen::<f32>() * 1.0) + 1.0;
+		f_def.restitution = 0.2;
+		f_def.friction = 0.3;
+
+		let mut b_def = b2::BodyDef::new();
+		b_def.body_type = b2::BodyType::Dynamic;
+		b_def.position = pos;
+		let handle = world.create_body(&b_def);
+		world.body_mut(handle)
+		     .create_fixture(&circle_shape, &mut f_def);
+	}
+}
+
+pub struct Position {
+	pub x: f32,
+	pub y: f32,
+}
+
+pub struct Size {
+	pub width: f32,
+	pub height: f32,
+}
+
+pub struct Transform {
+	pub position: Position,
+	pub angle: f32,
+	pub scale: f32,
+}
+
+pub type Rgba = [f32; 4];
+pub type Id = usize;
+pub type PhysicsHandle = Id;
+
+pub enum Shape {
+	Ball {
+		radius: f32,
+	},
+	Box {
+		size: Size,
+	},
+}
+
+pub struct GameObject {
+	pub id: Id,
+	pub transform: Transform,
+	pub shape: Shape,
+	pub physics_handle: PhysicsHandle,
+}
+
+struct GameObjectState {
+	transform: Matrix4<f32>,
+	physics_handle: Option<PhysicsHandle>,
+}
+
+trait Drawable {
+	fn transform(&self) -> Transform;
+	fn shape(&self) -> Shape;
+	fn color(&self) -> Rgba;
+}
+
 pub struct App {
 	pub viewport: Viewport,
 	input_state: InputState,
-	world: b2::World<NoUserData>,
 	wall_clock_start: SystemTime,
 	frame_count: u32,
 	frame_start: SystemTime,
 	frame_elapsed: f32,
 	frame_smooth: Smooth<f32>,
+	is_running: bool,
 	lights: Cycle<[f32; 4]>,
 	backgrounds: Cycle<[f32; 4]>,
+	//
+	physics_system: PhysicsSystem,
 }
 
 pub struct Environment {
@@ -122,12 +187,13 @@ impl App {
 			},
 			lights: Self::init_lights(),
 			backgrounds: Self::init_backgrounds(),
-			world: new_world(),
+			physics_system: PhysicsSystem::new(),
 			frame_count: 0u32,
 			frame_elapsed: 0.0f32,
 			frame_start: SystemTime::now(),
 			wall_clock_start: SystemTime::now(),
 			frame_smooth: Smooth::new(120),
+			is_running: true,
 		}
 	}
 
@@ -158,14 +224,18 @@ impl App {
 		match btn {
 			glutin::MouseButton::Left => {
 				self.input_state.left_button_pressed = true;
-				new_ball(&mut self.world, pos);
+				self.new_ball(pos);
 			}
 			_ => (),
 		}
 	}
 
+	fn new_ball(&self, pos: b2::Vec2) {
+		self.physics_system.new_ball(pos);
+	}
+
 	fn on_drag(&mut self, pos: b2::Vec2) {
-		new_ball(&mut self.world, pos);
+		self.new_ball(pos);
 	}
 
 	fn on_release(&mut self, btn: glutin::MouseButton, _: b2::Vec2) {
@@ -192,11 +262,22 @@ impl App {
 					Some(glutin::VirtualKeyCode::B) => {
 						self.backgrounds.next();
 					}
+					Some(glutin::VirtualKeyCode::Escape) => {
+						self.quit();
+					}					
 					_ => println!("Key pressed {:?}/{:?}", scancode, vk),
 				}
 			}
 			_ => (),
 		}
+	}
+
+	pub fn quit(&mut self) {
+		self.is_running = false;
+	}
+
+	pub fn is_running(&self) -> bool {
+		self.is_running
 	}
 
 	pub fn on_mouse_input(&mut self, e: glutin::Event) {
