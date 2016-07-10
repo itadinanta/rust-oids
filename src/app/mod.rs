@@ -1,19 +1,13 @@
+mod obj;
+mod systems;
+mod smooth;
+mod input;
+
 use std::time::{SystemTime, Duration};
-use rand;
-use rand::Rng;
 use glutin;
 use cgmath;
 use cgmath::{Matrix4, EuclideanVector};
 use render;
-use wrapped2d::user_data::NoUserData;
-
-pub struct InputState {
-	left_button_pressed: bool,
-	mouse_position: b2::Vec2,
-}
-
-use wrapped2d::b2;
-use std::f64::consts;
 
 pub struct Viewport {
 	width: u32,
@@ -65,102 +59,20 @@ impl<T> Cycle<T>
 	}
 }
 
-trait System {
-}
-
-pub struct PhysicsSystem {
-	world: b2::World<NoUserData>,
-}
-
-impl System for PhysicsSystem {}
-
-impl PhysicsSystem {
-	pub fn new() -> Self {
-		PhysicsSystem { world: new_world() }
-	}
-
-	fn new_ball(&mut self, pos: b2::Vec2) {
-		let mut world = &self.world;
-		let mut rng = rand::thread_rng();
-		let radius: f32 = (rng.gen::<f32>() * 1.0) + 1.0;
-
-		let mut circle_shape = b2::CircleShape::new();
-		circle_shape.set_radius(radius);
-
-		let mut f_def = b2::FixtureDef::new();
-		f_def.density = (rng.gen::<f32>() * 1.0) + 1.0;
-		f_def.restitution = 0.2;
-		f_def.friction = 0.3;
-
-		let mut b_def = b2::BodyDef::new();
-		b_def.body_type = b2::BodyType::Dynamic;
-		b_def.position = pos;
-		let handle = world.create_body(&b_def);
-		world.body_mut(handle)
-		     .create_fixture(&circle_shape, &mut f_def);
-	}
-}
-
-pub struct Position {
-	pub x: f32,
-	pub y: f32,
-}
-
-pub struct Size {
-	pub width: f32,
-	pub height: f32,
-}
-
-pub struct Transform {
-	pub position: Position,
-	pub angle: f32,
-	pub scale: f32,
-}
-
-pub type Rgba = [f32; 4];
-pub type Id = usize;
-pub type PhysicsHandle = Id;
-
-pub enum Shape {
-	Ball {
-		radius: f32,
-	},
-	Box {
-		size: Size,
-	},
-}
-
-pub struct GameObject {
-	pub id: Id,
-	pub transform: Transform,
-	pub shape: Shape,
-	pub physics_handle: PhysicsHandle,
-}
-
-struct GameObjectState {
-	transform: Matrix4<f32>,
-	physics_handle: Option<PhysicsHandle>,
-}
-
-trait Drawable {
-	fn transform(&self) -> Transform;
-	fn shape(&self) -> Shape;
-	fn color(&self) -> Rgba;
-}
 
 pub struct App {
 	pub viewport: Viewport,
-	input_state: InputState,
+	input_state: input::InputState,
 	wall_clock_start: SystemTime,
 	frame_count: u32,
 	frame_start: SystemTime,
 	frame_elapsed: f32,
-	frame_smooth: Smooth<f32>,
+	frame_smooth: smooth::Smooth<f32>,
 	is_running: bool,
 	lights: Cycle<[f32; 4]>,
 	backgrounds: Cycle<[f32; 4]>,
 	//
-	physics_system: PhysicsSystem,
+	physics_system: systems::PhysicsSystem,
 }
 
 pub struct Environment {
@@ -177,22 +89,24 @@ pub struct Update {
 	pub fps: f32,
 }
 
+use app::systems::System;
+
 impl App {
 	pub fn new(w: u32, h: u32, scale: f32) -> App {
 		App {
 			viewport: Viewport::rect(w, h, scale),
-			input_state: InputState {
+			input_state: input::InputState {
 				left_button_pressed: false,
-				mouse_position: b2::Vec2 { x: 0.0, y: 0.0 },
+				mouse_position: obj::Position { x: 0.0, y: 0.0 },
 			},
 			lights: Self::init_lights(),
 			backgrounds: Self::init_backgrounds(),
-			physics_system: PhysicsSystem::new(),
+			physics_system: systems::PhysicsSystem::new(),
 			frame_count: 0u32,
 			frame_elapsed: 0.0f32,
 			frame_start: SystemTime::now(),
 			wall_clock_start: SystemTime::now(),
-			frame_smooth: Smooth::new(120),
+			frame_smooth: smooth::Smooth::new(120),
 			is_running: true,
 		}
 	}
@@ -220,28 +134,28 @@ impl App {
 	}
 
 
-	fn on_click(&mut self, btn: glutin::MouseButton, pos: b2::Vec2) {
+	fn on_click(&mut self, btn: glutin::MouseButton, pos: obj::Position) {
 		match btn {
 			glutin::MouseButton::Left => {
-				self.input_state.left_button_pressed = true;
+				self.input_state.left_button_press();
 				self.new_ball(pos);
 			}
 			_ => (),
 		}
 	}
 
-	fn new_ball(&self, pos: b2::Vec2) {
+	fn new_ball(&self, pos: obj::Position) {
 		self.physics_system.new_ball(pos);
 	}
 
-	fn on_drag(&mut self, pos: b2::Vec2) {
+	fn on_drag(&mut self, pos: obj::Position) {
 		self.new_ball(pos);
 	}
 
-	fn on_release(&mut self, btn: glutin::MouseButton, _: b2::Vec2) {
+	fn on_release(&mut self, btn: glutin::MouseButton, _: obj::Position) {
 		match btn {
 			glutin::MouseButton::Left => {
-				self.input_state.left_button_pressed = false;
+				self.input_state.left_button_release();
 			}
 			_ => (),
 		}
@@ -283,21 +197,21 @@ impl App {
 	pub fn on_mouse_input(&mut self, e: glutin::Event) {
 		match e {
 			glutin::Event::MouseInput(glutin::ElementState::Released, b) => {
-				let pos = self.input_state.mouse_position;
+				let pos = self.input_state.mouse_position();
 				self.on_release(b, pos);
 			}
 			glutin::Event::MouseInput(glutin::ElementState::Pressed, b) => {
-				let pos = self.input_state.mouse_position;
+				let pos = self.input_state.mouse_position();
 				self.on_click(b, pos);
 			}
 			glutin::Event::MouseMoved(x, y) => {
-				fn transform_pos(viewport: &Viewport, x: u32, y: u32) -> b2::Vec2 {
+				fn transform_pos(viewport: &Viewport, x: u32, y: u32) -> obj::Position {
 					let (tx, ty) = viewport.to_world(x, y);
-					return b2::Vec2 { x: tx, y: ty };
+					return obj::Position { x: tx, y: ty };
 				}
 				let pos = transform_pos(&self.viewport, x as u32, y as u32);
-				self.input_state.mouse_position = pos;
-				if self.input_state.left_button_pressed {
+				self.input_state.mouse_position_at(pos);
+				if self.input_state.left_button_pressed() {
 					self.on_drag(pos);
 				}
 			}
@@ -357,12 +271,19 @@ impl App {
 		}
 	}
 
+	fn update_systems(&mut self, dt: f32) {
+		self.update_physics(dt);		
+	}
+
+
 	pub fn update(&mut self) -> Result<Update, ()> {
 		match self.frame_start.elapsed() {
 			Ok(dt) => {
 				let frame_time = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
 				let frame_time_smooth = self.frame_smooth.smooth(frame_time);
-				self.update_physics(frame_time_smooth);
+				
+				self.update_systems(frame_time_smooth);
+				
 				self.frame_elapsed += frame_time;
 				self.frame_start = SystemTime::now();
 				self.frame_count += 1;
@@ -382,83 +303,9 @@ impl App {
 	}
 
 	fn update_physics(&mut self, dt: f32) {
-		let world = &mut self.world;
-		world.step(dt, 8, 3);
-		const MAX_RADIUS: f32 = 5.0;
 		let (_, edge) = self.viewport.to_world(0, self.viewport.height);
-		let mut v = Vec::new();
-		for (h, b) in world.bodies() {
-			let body = b.borrow();
-			let position = (*body).position();
-			if position.y < (edge - MAX_RADIUS) {
-				v.push(h);
-			}
-		}
-		for h in v {
-			world.destroy_body(h);
-		}
+		self.physics_system.drop_below(edge);
+		self.physics_system.update(dt);
 	}
 }
 
-fn new_world() -> b2::World<NoUserData> {
-	let mut world = b2::World::new(&b2::Vec2 { x: 0.0, y: -9.8 });
-
-	let mut b_def = b2::BodyDef::new();
-	b_def.body_type = b2::BodyType::Static;
-	b_def.position = b2::Vec2 { x: 0.0, y: -8.0 };
-
-	let mut ground_box = b2::PolygonShape::new();
-	{
-		ground_box.set_as_box(20.0, 1.0);
-		let ground_handle = world.create_body(&b_def);
-		let ground = &mut world.body_mut(ground_handle);
-		ground.create_fast_fixture(&ground_box, 0.);
-
-		ground_box.set_as_oriented_box(1.0,
-		                               5.0,
-		                               &b2::Vec2 { x: 21.0, y: 5.0 },
-		                               (-consts::FRAC_PI_8) as f32);
-		ground.create_fast_fixture(&ground_box, 0.);
-
-		ground_box.set_as_oriented_box(1.0,
-		                               5.0,
-		                               &b2::Vec2 { x: -21.0, y: 5.0 },
-		                               (consts::FRAC_PI_8) as f32);
-		ground.create_fast_fixture(&ground_box, 0.);
-	}
-	world
-}
-
-pub struct Smooth<S: ::num::Num> {
-	ptr: usize,
-	count: usize,
-	acc: S,
-	last: S,
-	values: Vec<S>,
-}
-
-impl<S: ::num::Num + ::num::NumCast + ::std::marker::Copy> Smooth<S> {
-	pub fn new(window_size: usize) -> Smooth<S> {
-		Smooth {
-			ptr: 0,
-			count: 0,
-			last: S::zero(),
-			acc: S::zero(),
-			values: vec![S::zero(); window_size],
-		}
-	}
-
-	pub fn smooth(&mut self, value: S) -> S {
-		let len = self.values.len();
-		if self.count < len {
-			self.count = self.count + 1;
-		} else {
-			self.acc = self.acc - self.values[self.ptr];
-		}
-		self.acc = self.acc + value;
-		self.values[self.ptr] = value;
-		self.ptr = ((self.ptr + 1) % len) as usize;
-		self.last = self.acc / ::num::cast(self.count).unwrap();
-		self.last
-	}
-}
