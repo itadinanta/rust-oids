@@ -72,6 +72,7 @@ pub struct App {
 	lights: Cycle<[f32; 4]>,
 	backgrounds: Cycle<[f32; 4]>,
 	//
+	game_system: systems::GameSystem,
 	physics_system: systems::PhysicsSystem,
 }
 
@@ -101,6 +102,7 @@ impl App {
 			},
 			lights: Self::init_lights(),
 			backgrounds: Self::init_backgrounds(),
+			game_system: systems::GameSystem::new(),
 			physics_system: systems::PhysicsSystem::new(),
 			frame_count: 0u32,
 			frame_elapsed: 0.0f32,
@@ -272,7 +274,7 @@ impl App {
 	}
 
 	fn update_systems(&mut self, dt: f32) {
-		self.update_physics(dt);		
+		self.update_physics(dt);
 	}
 
 
@@ -281,9 +283,9 @@ impl App {
 			Ok(dt) => {
 				let frame_time = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
 				let frame_time_smooth = self.frame_smooth.smooth(frame_time);
-				
+
 				self.update_systems(frame_time_smooth);
-				
+
 				self.frame_elapsed += frame_time;
 				self.frame_start = SystemTime::now();
 				self.frame_count += 1;
@@ -308,4 +310,3 @@ impl App {
 		self.physics_system.update(dt);
 	}
 }
-

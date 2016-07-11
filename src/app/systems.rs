@@ -1,5 +1,5 @@
 use wrapped2d::b2;
-use wrapped2d::user_data::NoUserData;
+use wrapped2d::user_data::*;
 use rand;
 use rand::Rng;
 use app::obj;
@@ -10,13 +10,38 @@ pub trait System {
 	fn update(&mut self, dt: f32);
 }
 
+pub struct CreatureData;
+
+#[repr(packed)]
+pub struct CreatureRefs {
+	creature_id: obj::Id,
+	limb_index: obj::LimbIndex,
+	bone_index: obj::BoneIndex,
+}
+
+impl Default for CreatureRefs {
+	fn default() -> CreatureRefs {
+		CreatureRefs {
+			creature_id: 0xdeadbeef,
+			limb_index: 0xff,
+			bone_index: 0xff,
+		}
+	}
+}
+
+impl UserDataTypes for CreatureData {
+	type BodyData = CreatureRefs;
+    type JointData = ();
+    type FixtureData = CreatureRefs;
+}
+
 pub struct PhysicsSystem {
 	edge: f32,
-	world: b2::World<NoUserData>,
+	world: b2::World<CreatureData>,
 }
 
 impl System for PhysicsSystem {
-	pub fn update(&mut self, dt: f32) {
+	fn update(&mut self, dt: f32) {
 		let world = &mut self.world;
 		world.step(dt, 8, 3);
 		const MAX_RADIUS: f32 = 5.0;
@@ -36,7 +61,10 @@ impl System for PhysicsSystem {
 
 impl PhysicsSystem {
 	pub fn new() -> Self {
-		PhysicsSystem { world: Self::new_world(), edge: 0. }
+		PhysicsSystem {
+			world: Self::new_world(),
+			edge: 0.,
+		}
 	}
 
 	pub fn drop_below(&mut self, edge: f32) {
@@ -64,10 +92,10 @@ impl PhysicsSystem {
 		};
 		let handle = world.create_body(&b_def);
 		world.body_mut(handle)
-			.create_fixture(&circle_shape, &mut f_def);
+		     .create_fixture(&circle_shape, &mut f_def);
 	}
 
-	fn new_world() -> b2::World<NoUserData> {
+	fn new_world() -> b2::World<CreatureData> {
 		let mut world = b2::World::new(&b2::Vec2 { x: 0.0, y: -9.8 });
 
 		let mut b_def = b2::BodyDef::new();
@@ -94,5 +122,23 @@ impl PhysicsSystem {
 			ground.create_fast_fixture(&ground_box, 0.);
 		}
 		world
+	}
+}
+
+pub struct GameSystem {
+	players: obj::Flock,
+	friends: obj::Flock,
+	enemies: obj::Flock,
+	crowds: obj::Flock,
+}
+
+impl GameSystem {
+	pub fn new() -> GameSystem {
+		GameSystem {
+			players: obj::Flock::new(),
+			friends: obj::Flock::new(),
+			enemies: obj::Flock::new(),
+			crowds: obj::Flock::new(),
+		}
 	}
 }
