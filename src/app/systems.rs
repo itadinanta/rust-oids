@@ -29,6 +29,26 @@ impl Default for CreatureRefs {
 	}
 }
 
+impl CreatureRefs {
+	fn with_id(id: obj::Id) -> CreatureRefs {
+		CreatureRefs { creature_id: id, ..Default::default() }
+	}
+	fn with_limb(id: obj::Id, limb_index: obj::LimbIndex) -> CreatureRefs {
+		CreatureRefs {
+			creature_id: id,
+			limb_index: limb_index,
+			..Default::default()
+		}
+	}
+	fn with_bone(id: obj::Id, limb_index: obj::LimbIndex, bone_index: obj::BoneIndex) -> CreatureRefs {
+		CreatureRefs {
+			creature_id: id,
+			limb_index: limb_index,
+			bone_index: bone_index,
+		}
+	}
+}
+
 impl UserDataTypes for CreatureData {
 	type BodyData = CreatureRefs;
     type JointData = ();
@@ -71,29 +91,6 @@ impl PhysicsSystem {
 		self.edge = edge;
 	}
 
-	pub fn new_ball(&mut self, pos: obj::Position) {
-		let mut world = &self.world;
-		let mut rng = rand::thread_rng();
-		let radius: f32 = (rng.gen::<f32>() * 1.0) + 1.0;
-
-		let mut circle_shape = b2::CircleShape::new();
-		circle_shape.set_radius(radius);
-
-		let mut f_def = b2::FixtureDef::new();
-		f_def.density = (rng.gen::<f32>() * 1.0) + 1.0;
-		f_def.restitution = 0.2;
-		f_def.friction = 0.3;
-
-		let mut b_def = b2::BodyDef::new();
-		b_def.body_type = b2::BodyType::Dynamic;
-		b_def.position = b2::Vec2 {
-			x: pos.x,
-			y: pos.y,
-		};
-		let handle = world.create_body(&b_def);
-		world.body_mut(handle)
-		     .create_fixture(&circle_shape, &mut f_def);
-	}
 
 	fn new_world() -> b2::World<CreatureData> {
 		let mut world = b2::World::new(&b2::Vec2 { x: 0.0, y: -9.8 });
@@ -123,13 +120,44 @@ impl PhysicsSystem {
 		}
 		world
 	}
+
+	pub fn register_object(&mut self, creature: &mut obj::Creature) {
+		let world = &mut self.world;
+		let object_id = creature.id();
+		for (limb_index, limb) in creature.limbs().enumerate() {
+			let shape = match limb.mesh.shape {
+				obj::Shape::Ball {radius: radius} => {
+					let mut circle_shape = b2::CircleShape::new();
+					circle_shape.set_radius(radius);
+					Some(circle_shape)
+				}
+				_ => None,
+			};
+			let mut f_def = b2::FixtureDef::new();
+			f_def.density = limb.material.density;
+			f_def.restitution = limb.material.restitution;
+			f_def.friction = limb.material.friction;
+
+			let mut b_def = b2::BodyDef::new();
+			b_def.body_type = b2::BodyType::Dynamic;
+			b_def.position = b2::Vec2 {
+				x: limb.transform.position.x,
+				y: limb.transform.position.y,
+			};
+			let handle = world.create_body_with(&b_def, CreatureRefs::with_limb(object_id, limb_index as u8));
+			world.body_mut(handle)
+			     .create_fixture_with(&shape.unwrap(),
+			                          &mut f_def,
+			                          CreatureRefs::with_limb(object_id, limb_index as u8));
+		}
+	}
 }
 
 pub struct GameSystem {
-	players: obj::Flock,
-	friends: obj::Flock,
-	enemies: obj::Flock,
-	crowds: obj::Flock,
+	pub players: obj::Flock,
+	pub friends: obj::Flock,
+	pub enemies: obj::Flock,
+	pub crowds: obj::Flock,
 }
 
 impl GameSystem {
@@ -140,5 +168,17 @@ impl GameSystem {
 			enemies: obj::Flock::new(),
 			crowds: obj::Flock::new(),
 		}
+	}
+
+	pub fn new_ball(&mut self, pos: obj::Position) -> obj::Id {
+		self.friends.new_ball(pos)
+	}
+
+	pub fn friend(&self, id: obj::Id) -> Option<&obj::Creature> {
+		self.friends.get(id)
+	}
+
+	pub fn friend_mut(&mut self, id: obj::Id) -> Option<&mut obj::Creature> {
+		self.friends.get_mut(id)
 	}
 }

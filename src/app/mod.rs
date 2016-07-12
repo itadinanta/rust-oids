@@ -96,10 +96,7 @@ impl App {
 	pub fn new(w: u32, h: u32, scale: f32) -> App {
 		App {
 			viewport: Viewport::rect(w, h, scale),
-			input_state: input::InputState {
-				left_button_pressed: false,
-				mouse_position: obj::Position { x: 0.0, y: 0.0 },
-			},
+			input_state: input::InputState::default(),
 			lights: Self::init_lights(),
 			backgrounds: Self::init_backgrounds(),
 			game_system: systems::GameSystem::new(),
@@ -146,8 +143,10 @@ impl App {
 		}
 	}
 
-	fn new_ball(&self, pos: obj::Position) {
-		self.physics_system.new_ball(pos);
+	fn new_ball(&mut self, pos: obj::Position) {
+		let id = self.game_system.new_ball(pos);
+		let found = self.game_system.friend_mut(id);
+		self.physics_system.register_object(found.unwrap());
 	}
 
 	fn on_drag(&mut self, pos: obj::Position) {
@@ -226,29 +225,24 @@ impl App {
 	}
 
 	pub fn render(&self, renderer: &mut render::Draw) {
-		for (_, b) in self.world.bodies() {
-			let body = b.borrow();
-			let position = (*body).position();
-			let angle = (*body).angle() as f32;
-			use cgmath::Rotation3;
-			let body_rot = Matrix4::from(cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(),
-			                                                                 cgmath::rad(angle)));
-			let body_trans = Matrix4::from_translation(cgmath::Vector3::new(position.x, position.y, 0.0));
+		for (_, b) in self.game_system.friends.creatures() {
+			for limb in b.limbs() {
+				let position = limb.transform.position;
+				let angle = limb.transform.angle;
 
-			let body_transform = body_trans * body_rot;
+				use cgmath::Rotation3;
+				let body_rot = Matrix4::from(cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(),
+				                                                                 cgmath::rad(angle)));
+				let body_trans = Matrix4::from_translation(cgmath::Vector3::new(position.x, position.y, 0.0));
 
-			for (_, f) in body.fixtures() {
-				let fixture = f.borrow();
-				let shape = (*fixture).shape();
-				let density = (*fixture).density();
+				let body_transform = body_trans * body_rot;
 
-				match *shape {
-					b2::UnknownShape::Circle(ref s) => {
-						let p = s.position();
-						let r = s.radius() as f32;
+				let density = limb.material.density;
 
+				match limb.mesh.shape {
+					obj::Shape::Ball { radius: r } => {
 						let fixture_scale = Matrix4::from_scale(r);
-						let fixture_trans = Matrix4::from_translation(cgmath::Vector3::new(p.x, p.y, 0.0));
+						let fixture_trans = Matrix4::from_translation(cgmath::Vector3::new(0.0, 0.0, 0.0));
 						let transform = body_transform * fixture_trans * fixture_scale;
 
 						let lightness = 1. - density * 0.5;
@@ -256,9 +250,6 @@ impl App {
 						let color = [0., 10. * lightness, 0., 1.];
 
 						renderer.draw_quad(&transform.into(), color);
-					}
-					b2::UnknownShape::Polygon(_) => {
-						// TODO: need to draw fill poly
 					}
 					_ => (),
 				}

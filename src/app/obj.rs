@@ -3,11 +3,13 @@ use std::f32::consts::*;
 use std::f32::*;
 use std::ops::Range;
 use std::collections::HashMap;
+use rand;
+use rand::Rng;
 
 pub type Position = Vector2<f32>;
 pub type Translation = Vector2<f32>;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Size {
 	pub width: f32,
 	pub height: f32,
@@ -19,7 +21,15 @@ pub struct Transform {
 	pub angle: f32,
 	pub scale: f32,
 }
-
+impl Default for Transform {
+	fn default() -> Transform {
+		Transform {
+			position: Position { x: 0., y: 0. },
+			angle: 0.,
+			scale: 1.,
+		}
+	}
+}
 pub type Rgba = [f32; 4];
 pub type Id = usize;
 pub type LimbIndex = u8;
@@ -71,7 +81,7 @@ impl Shape {
 		}
 	}
 
-	pub fn vertices(&self) -> &[Position] {
+	pub fn vertices(&self) -> Vec<Position> {
 		match *self {
 			Shape::Ball { radius: r } => vec![Position { x: 0., y: r }],
 			Shape::Box { width: w, height: h } => {
@@ -105,16 +115,15 @@ impl Shape {
 					.collect()
 			}
 		}
-		.as_slice()
 	}
 }
 
 pub struct Mesh {
-	shape: Shape,
-	vertices: Vec<Position>,
+	pub shape: Shape,
+	pub vertices: Vec<Position>,
 }
 
-struct GameObjectState {
+pub struct GameObjectState {
 	transform: Matrix4<f32>,
 	physics_handle: Option<PhysicsHandle>,
 }
@@ -124,33 +133,120 @@ pub struct GameObject {
 	pub state: GameObjectState,
 }
 
+pub struct Material {
+	pub density: f32,
+	pub restitution: f32,
+	pub friction: f32,
+}
+
+impl Default for Material {
+	fn default() -> Self {
+		Material {
+			density: 1.0,
+			restitution: 0.2,
+			friction: 0.3,
+		}
+	}
+}
+
 pub struct Limb {
-	mesh: Mesh,
-	transform: Transform,
-	state: GameObjectState,
+	pub transform: Transform,
+	pub mesh: Mesh,
+	pub material: Material, // state: GameObjectState,
 }
 
 pub struct Creature {
+	transform: Transform,
 	id: Id,
 	limbs: Vec<Limb>,
 }
 
+use std::slice;
+
+impl Creature {
+	pub fn id(&self) -> Id {
+		self.id
+	}
+	pub fn limbs(&self) -> slice::Iter<Limb> {
+		self.limbs.iter()
+	}
+}
+
 pub struct Flock {
-	id_gen: Id,
+	last_id: Id,
 	creatures: HashMap<Id, Creature>,
 }
 
 impl Flock {
 	pub fn new() -> Flock {
 		Flock {
-			id_gen: 0,
+			last_id: 0,
 			creatures: HashMap::new(),
 		}
 	}
+
+	pub fn get(&self, id: Id) -> Option<&Creature> {
+		self.creatures.get(&id)
+	}
+
+	pub fn get_mut(&mut self, id: Id) -> Option<&mut Creature> {
+		self.creatures.get_mut(&id)
+	}
+
+	pub fn next_id(&mut self) -> Id {
+		self.last_id = self.last_id + 1;
+		self.last_id
+	}
+
+	pub fn new_ball(&mut self, pos: Position) -> Id {
+		let mut rng = rand::thread_rng();
+		let radius: f32 = (rng.gen::<f32>() * 1.0) + 1.0;
+
+		let shape = Shape::new_ball(radius);
+
+		self.new_creature(shape)
+	}
+
+	pub fn new_creature(&mut self, shape: Shape) -> Id {
+		let mut rng = rand::thread_rng();
+
+		let vertices = shape.vertices();
+		let id = self.next_id();
+
+		let limb = Limb {
+			transform: Transform::default(),
+			mesh: Mesh {
+				shape: shape,
+				vertices: vertices,
+			},
+			material: Material { density: (rng.gen::<f32>() * 1.0) + 1.0, ..Default::default() },
+		};
+
+		let creature = Creature {
+			transform: Transform::default(),
+			id: id,
+			limbs: vec![limb],
+		};
+
+		self.creatures.insert(id, creature);
+
+		id
+	}
+
+	pub fn creatures(&self) -> &HashMap<Id, Creature> {
+		&self.creatures
+	}
 }
 
-trait Drawable {
+trait Geometry {
 	fn transform(&self) -> Transform;
 	fn mesh(&self) -> Mesh;
+}
+
+trait Solid {
+	fn material(&self) -> Material;
+}
+
+trait Drawable: Geometry {
 	fn color(&self) -> Rgba;
 }
