@@ -21,11 +21,6 @@ extern crate glutin;
 extern crate genmesh;
 extern crate piston;
 
-use piston::event_loop::*;
-use piston::input::*;
-
-use gfx::Device;
-
 use render::Renderer;
 
 fn main() {

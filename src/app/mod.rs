@@ -6,7 +6,7 @@ mod input;
 use std::time::{SystemTime, Duration};
 use glutin;
 use cgmath;
-use cgmath::{Matrix4, EuclideanVector};
+use cgmath::Matrix4;
 use render;
 
 pub struct Viewport {

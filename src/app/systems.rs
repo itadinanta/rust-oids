@@ -1,7 +1,5 @@
 use wrapped2d::b2;
 use wrapped2d::user_data::*;
-use rand;
-use rand::Rng;
 use app::obj;
 
 use std::f64::consts;
@@ -126,7 +124,7 @@ impl PhysicsSystem {
 		let object_id = creature.id();
 		for (limb_index, limb) in creature.limbs().enumerate() {
 			let shape = match limb.mesh.shape {
-				obj::Shape::Ball {radius: radius} => {
+				obj::Shape::Ball { radius } => {
 					let mut circle_shape = b2::CircleShape::new();
 					circle_shape.set_radius(radius);
 					Some(circle_shape)

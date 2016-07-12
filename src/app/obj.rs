@@ -1,7 +1,5 @@
-use cgmath::{Matrix4, EuclideanVector, Vector2};
+use cgmath::{Matrix4, Vector2};
 use std::f32::consts::*;
-use std::f32::*;
-use std::ops::Range;
 use std::collections::HashMap;
 use rand;
 use rand::Rng;
@@ -83,10 +81,10 @@ impl Shape {
 
 	pub fn vertices(&self) -> Vec<Position> {
 		match *self {
-			Shape::Ball { radius: r } => vec![Position { x: 0., y: r }],
-			Shape::Box { width: w, height: h } => {
-				let w2 = w / 2.;
-				let h2 = h / 2.;
+			Shape::Ball { radius } => vec![Position { x: 0., y: radius }],
+			Shape::Box { width, height } => {
+				let w2 = width / 2.;
+				let h2 = height / 2.;
 				vec![Position { x: 0., y: h2 },
 					     Position { x: w2, y: h2 },
 					     Position { x: w2, y: -h2 },
@@ -94,10 +92,10 @@ impl Shape {
 					     Position { x: -w2, y: h2 },
 					     ]
 			}
-			Shape::Star { radius: r, n: n, a: a, b: b, c: c, ratio: ratio } => {
+			Shape::Star { radius, n, a, b, c, ratio } => {
 				let xmax = f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - 1.) / (b * b));
 				let r0 = ratio * xmax;
-				let rmax = r0 + (1. / c) * f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - 1.)); // we want r in 0 to be 1.0
+				let rmax = r0 + (1. / c) * f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - 1.)) / radius; // we want r in 0 to be radius
 
 				(0..(2 * n))
 					.map(|i| {
@@ -210,8 +208,8 @@ impl Flock {
 	pub fn new_creature(&mut self, shape: Shape) -> Id {
 		let mut rng = rand::thread_rng();
 
-		let vertices = shape.vertices();
 		let id = self.next_id();
+		let vertices = shape.vertices();
 
 		let limb = Limb {
 			transform: Transform::default(),
