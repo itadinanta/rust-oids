@@ -6,6 +6,10 @@ use std::f64::consts;
 
 pub trait System {
 	fn update(&mut self, dt: f32);
+	fn register(&mut self, creature: &obj::Creature);
+	fn after_update(&self, creature: &mut obj::Transform);
+	
+	
 }
 
 pub struct CreatureData;
@@ -85,6 +89,38 @@ impl System for PhysicsSystem {
 			self.handles.remove(&h);
 		}
 	}
+
+	fn register(&mut self, creature: &obj::Creature) {
+		let world = &mut self.world;
+		let object_id = creature.id();
+		for (limb_index, limb) in creature.limbs().enumerate() {
+			let shape = match limb.mesh.shape {
+				obj::Shape::Ball { radius } => {
+					let mut circle_shape = b2::CircleShape::new();
+					circle_shape.set_radius(radius);
+					Some(circle_shape)
+				}
+				_ => None,
+			};
+			let mut f_def = b2::FixtureDef::new();
+			f_def.density = limb.material.density;
+			f_def.restitution = limb.material.restitution;
+			f_def.friction = limb.material.friction;
+
+			let mut b_def = b2::BodyDef::new();
+			b_def.body_type = b2::BodyType::Dynamic;
+			b_def.position = b2::Vec2 {
+				x: limb.transform.position.x,
+				y: limb.transform.position.y,
+			};
+			let refs = CreatureRefs::with_limb(object_id, limb_index as u8);
+			let handle = world.create_body_with(&b_def, refs);
+			world.body_mut(handle).create_fixture_with(&shape.unwrap(), &mut f_def, refs);
+			self.handles.insert(refs, handle);
+		}
+	}
+
+	fn after_update(&self, transform: &mut obj::Transform) {}
 }
 
 impl PhysicsSystem {
@@ -128,36 +164,6 @@ impl PhysicsSystem {
 			ground.create_fast_fixture(&ground_box, 0.);
 		}
 		world
-	}
-
-	pub fn register_object(&mut self, creature: &mut obj::Creature) {
-		let world = &mut self.world;
-		let object_id = creature.id();
-		for (limb_index, limb) in creature.limbs().enumerate() {
-			let shape = match limb.mesh.shape {
-				obj::Shape::Ball { radius } => {
-					let mut circle_shape = b2::CircleShape::new();
-					circle_shape.set_radius(radius);
-					Some(circle_shape)
-				}
-				_ => None,
-			};
-			let mut f_def = b2::FixtureDef::new();
-			f_def.density = limb.material.density;
-			f_def.restitution = limb.material.restitution;
-			f_def.friction = limb.material.friction;
-
-			let mut b_def = b2::BodyDef::new();
-			b_def.body_type = b2::BodyType::Dynamic;
-			b_def.position = b2::Vec2 {
-				x: limb.transform.position.x,
-				y: limb.transform.position.y,
-			};
-			let refs = CreatureRefs::with_limb(object_id, limb_index as u8);
-			let handle = world.create_body_with(&b_def, refs);
-			world.body_mut(handle).create_fixture_with(&shape.unwrap(), &mut f_def, refs);
-			self.handles.insert(refs, handle);
-		}
 	}
 
 	pub fn associated_body(&self, refs: &CreatureRefs) -> Option<&b2::BodyHandle> {

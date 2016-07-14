@@ -160,6 +160,8 @@ pub struct Creature {
 	limbs: Vec<Limb>,
 }
 
+use std::iter;
+
 impl Creature {
 	pub fn id(&self) -> Id {
 		self.id

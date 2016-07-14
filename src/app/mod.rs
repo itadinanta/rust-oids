@@ -146,7 +146,7 @@ impl App {
 	fn new_ball(&mut self, pos: obj::Position) {
 		let id = self.game_system.new_ball(pos);
 		let found = self.game_system.friend_mut(id);
-		self.physics_system.register_object(found.unwrap());
+		self.physics_system.register(found.unwrap());
 	}
 
 	fn on_drag(&mut self, pos: obj::Position) {
