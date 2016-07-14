@@ -1,7 +1,7 @@
 use wrapped2d::b2;
 use wrapped2d::user_data::*;
 use app::obj;
-
+use std::collections::HashMap;
 use std::f64::consts;
 
 pub trait System {
@@ -11,6 +11,7 @@ pub trait System {
 pub struct CreatureData;
 
 #[repr(packed)]
+#[derive(Eq, Hash, PartialEq, Clone, Copy)]
 pub struct CreatureRefs {
 	creature_id: obj::Id,
 	limb_index: obj::LimbIndex,
@@ -56,6 +57,7 @@ impl UserDataTypes for CreatureData {
 pub struct PhysicsSystem {
 	edge: f32,
 	world: b2::World<CreatureData>,
+	handles: HashMap<CreatureRefs, b2::BodyHandle>,
 }
 
 impl System for PhysicsSystem {
@@ -64,15 +66,23 @@ impl System for PhysicsSystem {
 		world.step(dt, 8, 3);
 		const MAX_RADIUS: f32 = 5.0;
 		let mut v = Vec::new();
+		let mut k = Vec::new();
+		// TODO: is this the best way to iterate?
 		for (h, b) in world.bodies() {
 			let body = b.borrow();
 			let position = (*body).position();
+			let angle = (*body).angle();
+			let key = (*body).user_data().clone();
 			if position.y < (self.edge - MAX_RADIUS) {
 				v.push(h);
+				k.push(key);
 			}
 		}
 		for h in v {
 			world.destroy_body(h);
+		}
+		for h in k {
+			self.handles.remove(&h);
 		}
 	}
 }
@@ -82,6 +92,7 @@ impl PhysicsSystem {
 		PhysicsSystem {
 			world: Self::new_world(),
 			edge: 0.,
+			handles: HashMap::new(),
 		}
 	}
 
@@ -142,14 +153,18 @@ impl PhysicsSystem {
 				x: limb.transform.position.x,
 				y: limb.transform.position.y,
 			};
-			let handle = world.create_body_with(&b_def, CreatureRefs::with_limb(object_id, limb_index as u8));
-			world.body_mut(handle)
-			     .create_fixture_with(&shape.unwrap(),
-			                          &mut f_def,
-			                          CreatureRefs::with_limb(object_id, limb_index as u8));
+			let refs = CreatureRefs::with_limb(object_id, limb_index as u8);
+			let handle = world.create_body_with(&b_def, refs);
+			world.body_mut(handle).create_fixture_with(&shape.unwrap(), &mut f_def, refs);
+			self.handles.insert(refs, handle);
 		}
 	}
+
+	pub fn associated_body(&self, refs: &CreatureRefs) -> Option<&b2::BodyHandle> {
+		self.handles.get(refs)
+	}
 }
+
 
 pub struct GameSystem {
 	pub players: obj::Flock,

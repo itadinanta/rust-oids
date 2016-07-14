@@ -3,6 +3,7 @@ use std::f32::consts::*;
 use std::collections::HashMap;
 use rand;
 use rand::Rng;
+use std::slice;
 
 pub type Position = Vector2<f32>;
 pub type Translation = Vector2<f32>;
@@ -87,8 +88,8 @@ impl Shape {
 				let h2 = height / 2.;
 				vec![Position { x: 0., y: h2 },
 					     Position { x: w2, y: h2 },
-					     Position { x: w2, y: -h2 },
 					     Position { x: -w2, y: -h2 },
+					     Position { x: w2, y: -h2 },
 					     Position { x: -w2, y: h2 },
 					     ]
 			}
@@ -158,8 +159,6 @@ pub struct Creature {
 	id: Id,
 	limbs: Vec<Limb>,
 }
-
-use std::slice;
 
 impl Creature {
 	pub fn id(&self) -> Id {
