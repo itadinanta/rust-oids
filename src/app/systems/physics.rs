@@ -2,17 +2,12 @@ use wrapped2d::b2;
 use wrapped2d::user_data::*;
 use app::obj;
 use app::obj::Transformable;
+use super::*;
 use app::world;
 use std::collections::HashMap;
 use std::f64::consts;
 
-pub trait System {
-	fn update(&mut self, dt: f32);
-	fn register(&mut self, creature: &world::Creature);
-	fn to_world(&self, world: &mut world::World);
-}
-
-pub struct CreatureData;
+struct CreatureData;
 
 impl UserDataTypes for CreatureData {
 	type BodyData = world::CreatureRefs;
