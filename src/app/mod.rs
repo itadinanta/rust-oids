@@ -4,7 +4,7 @@ mod systems;
 mod smooth;
 mod input;
 
-use std::time::{SystemTime, Duration};
+use std::time::{SystemTime, Duration, SystemTimeError};
 use glutin;
 use cgmath;
 use cgmath::Matrix4;
@@ -269,30 +269,26 @@ impl App {
 		self.update_physics(dt);
 	}
 
-	pub fn update(&mut self) -> Result<Update, ()> {
-		match self.frame_start.elapsed() {
-			Ok(dt) => {
-				let frame_time = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
-				let frame_time_smooth = self.frame_smooth.smooth(frame_time);
+	pub fn update(&mut self) -> Result<Update, SystemTimeError> {
+		self.frame_start.elapsed().map(|dt| {
+			let frame_time = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
+			let frame_time_smooth = self.frame_smooth.smooth(frame_time);
 
-				self.update_systems(frame_time_smooth);
+			self.update_systems(frame_time_smooth);
 
-				self.frame_elapsed += frame_time;
-				self.frame_start = SystemTime::now();
-				self.frame_count += 1;
+			self.frame_elapsed += frame_time;
+			self.frame_start = SystemTime::now();
+			self.frame_count += 1;
 
-				Ok(Update {
-					wall_clock_elapsed: self.wall_clock_start.elapsed().unwrap_or_else(|_| Duration::new(0, 0)),
-					frame_count: self.frame_count,
-					frame_elapsed: self.frame_elapsed,
-					frame_time: frame_time,
-					frame_time_smooth: frame_time_smooth,
-					fps: 1.0 / frame_time_smooth,
-				})
+			Update {
+				wall_clock_elapsed: self.wall_clock_start.elapsed().unwrap_or_else(|_| Duration::new(0, 0)),
+				frame_count: self.frame_count,
+				frame_elapsed: self.frame_elapsed,
+				frame_time: frame_time,
+				frame_time_smooth: frame_time_smooth,
+				fps: 1.0 / frame_time_smooth,
 			}
-
-			Err(_) => Err(()),
-		}
+		})
 	}
 
 	fn update_physics(&mut self, dt: f32) {

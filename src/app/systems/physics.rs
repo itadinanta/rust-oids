@@ -119,7 +119,6 @@ impl PhysicsSystem {
 		self.edge = edge;
 	}
 
-
 	fn new_world() -> b2::World<CreatureData> {
 		let mut world = b2::World::new(&b2::Vec2 { x: 0.0, y: -9.8 });
 
