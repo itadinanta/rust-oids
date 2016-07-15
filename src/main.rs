@@ -82,7 +82,7 @@ fn main() {
 		// draw a frame
 		renderer.begin_frame();
 
-		// draw the box2d bodies
+		// draw the scene
 		app.render(renderer);
 
 		renderer.resolve_frame_buffer();

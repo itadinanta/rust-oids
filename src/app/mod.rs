@@ -1,4 +1,5 @@
 mod obj;
+mod world;
 mod systems;
 mod smooth;
 mod input;
@@ -72,7 +73,7 @@ pub struct App {
 	lights: Cycle<[f32; 4]>,
 	backgrounds: Cycle<[f32; 4]>,
 	//
-	game_system: systems::GameSystem,
+	world: world::World,
 	physics_system: systems::PhysicsSystem,
 }
 
@@ -99,7 +100,7 @@ impl App {
 			input_state: input::InputState::default(),
 			lights: Self::init_lights(),
 			backgrounds: Self::init_backgrounds(),
-			game_system: systems::GameSystem::new(),
+			world: world::World::new(),
 			physics_system: systems::PhysicsSystem::new(),
 			frame_count: 0u32,
 			frame_elapsed: 0.0f32,
@@ -144,8 +145,8 @@ impl App {
 	}
 
 	fn new_ball(&mut self, pos: obj::Position) {
-		let id = self.game_system.new_ball(pos);
-		let found = self.game_system.friend_mut(id);
+		let id = self.world.new_ball(pos);
+		let found = self.world.friend_mut(id);
 		self.physics_system.register(found.unwrap());
 	}
 
@@ -225,7 +226,7 @@ impl App {
 	}
 
 	pub fn render(&self, renderer: &mut render::Draw) {
-		for (_, b) in self.game_system.friends.creatures() {
+		for (_, b) in self.world.friends.creatures() {
 			for limb in b.limbs() {
 				let position = limb.transform.position;
 				let angle = limb.transform.angle;
@@ -268,7 +269,6 @@ impl App {
 		self.update_physics(dt);
 	}
 
-
 	pub fn update(&mut self) -> Result<Update, ()> {
 		match self.frame_start.elapsed() {
 			Ok(dt) => {
@@ -299,5 +299,6 @@ impl App {
 		let (_, edge) = self.viewport.to_world(0, self.viewport.height);
 		self.physics_system.drop_below(edge);
 		self.physics_system.update(dt);
+		self.physics_system.update_world(&mut self.world);
 	}
 }

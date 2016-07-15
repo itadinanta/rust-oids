@@ -1,9 +1,5 @@
-use cgmath::{Matrix4, Vector2};
+use cgmath::Vector2;
 use std::f32::consts::*;
-use std::collections::HashMap;
-use rand;
-use rand::Rng;
-use std::slice;
 
 pub type Position = Vector2<f32>;
 pub type Translation = Vector2<f32>;
@@ -14,7 +10,7 @@ pub struct Size {
 	pub height: f32,
 }
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct Transform {
 	pub position: Position,
 	pub angle: f32,
@@ -27,6 +23,11 @@ impl Default for Transform {
 			angle: 0.,
 			scale: 1.,
 		}
+	}
+}
+impl Transform {
+	pub fn with_position(position: Position) -> Self {
+		Transform { position: position, ..Transform::default() }
 	}
 }
 pub type Rgba = [f32; 4];
@@ -122,14 +123,13 @@ pub struct Mesh {
 	pub vertices: Vec<Position>,
 }
 
-pub struct GameObjectState {
-	transform: Matrix4<f32>,
-	physics_handle: Option<PhysicsHandle>,
+pub trait Transformable {
+	fn transform(&self) -> Transform;
+	fn transform_to(&mut self, t: Transform);
 }
 
-pub struct GameObject {
-	pub id: Id,
-	pub state: GameObjectState,
+pub trait GameObject: Transformable {
+	fn id(&self) -> Id;
 }
 
 pub struct Material {
@@ -148,94 +148,6 @@ impl Default for Material {
 	}
 }
 
-pub struct Limb {
-	pub transform: Transform,
-	pub mesh: Mesh,
-	pub material: Material, // state: GameObjectState,
-}
-
-pub struct Creature {
-	transform: Transform,
-	id: Id,
-	limbs: Vec<Limb>,
-}
-
-use std::iter;
-
-impl Creature {
-	pub fn id(&self) -> Id {
-		self.id
-	}
-	pub fn limbs(&self) -> slice::Iter<Limb> {
-		self.limbs.iter()
-	}
-}
-
-pub struct Flock {
-	last_id: Id,
-	creatures: HashMap<Id, Creature>,
-}
-
-impl Flock {
-	pub fn new() -> Flock {
-		Flock {
-			last_id: 0,
-			creatures: HashMap::new(),
-		}
-	}
-
-	pub fn get(&self, id: Id) -> Option<&Creature> {
-		self.creatures.get(&id)
-	}
-
-	pub fn get_mut(&mut self, id: Id) -> Option<&mut Creature> {
-		self.creatures.get_mut(&id)
-	}
-
-	pub fn next_id(&mut self) -> Id {
-		self.last_id = self.last_id + 1;
-		self.last_id
-	}
-
-	pub fn new_ball(&mut self, pos: Position) -> Id {
-		let mut rng = rand::thread_rng();
-		let radius: f32 = (rng.gen::<f32>() * 1.0) + 1.0;
-
-		let shape = Shape::new_ball(radius);
-
-		self.new_creature(shape)
-	}
-
-	pub fn new_creature(&mut self, shape: Shape) -> Id {
-		let mut rng = rand::thread_rng();
-
-		let id = self.next_id();
-		let vertices = shape.vertices();
-
-		let limb = Limb {
-			transform: Transform::default(),
-			mesh: Mesh {
-				shape: shape,
-				vertices: vertices,
-			},
-			material: Material { density: (rng.gen::<f32>() * 1.0) + 1.0, ..Default::default() },
-		};
-
-		let creature = Creature {
-			transform: Transform::default(),
-			id: id,
-			limbs: vec![limb],
-		};
-
-		self.creatures.insert(id, creature);
-
-		id
-	}
-
-	pub fn creatures(&self) -> &HashMap<Id, Creature> {
-		&self.creatures
-	}
-}
 
 trait Geometry {
 	fn transform(&self) -> Transform;
