@@ -11,7 +11,7 @@ impl Default for InputState {
 	fn default() -> Self {
 		InputState {
 			left_button_pressed: false,
-			mouse_position: obj::Position { x: 0.0, y: 0.0 },
+			mouse_position: obj::Position::new(0., 0.),
 		}
 	}
 }

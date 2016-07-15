@@ -16,10 +16,11 @@ pub struct Transform {
 	pub angle: f32,
 	pub scale: f32,
 }
+
 impl Default for Transform {
 	fn default() -> Transform {
 		Transform {
-			position: Position { x: 0., y: 0. },
+			position: Position::new(0., 0.),
 			angle: 0.,
 			scale: 1.,
 		}
@@ -83,16 +84,15 @@ impl Shape {
 
 	pub fn vertices(&self) -> Vec<Position> {
 		match *self {
-			Shape::Ball { radius } => vec![Position { x: 0., y: radius }],
+			Shape::Ball { radius } => vec![Position::new(0., radius)],
 			Shape::Box { width, height } => {
 				let w2 = width / 2.;
 				let h2 = height / 2.;
-				vec![Position { x: 0., y: h2 },
-					     Position { x: w2, y: h2 },
-					     Position { x: -w2, y: -h2 },
-					     Position { x: w2, y: -h2 },
-					     Position { x: -w2, y: h2 },
-					     ]
+				vec![Position::new(0., h2),
+				     Position::new(w2, h2),
+				     Position::new(-w2, -h2),
+				     Position::new(w2, -h2),
+				     Position::new(-w2, h2)]
 			}
 			Shape::Star { radius, n, a, b, c, ratio } => {
 				let xmax = f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - 1.) / (b * b));
@@ -107,10 +107,8 @@ impl Shape {
 						         (1. / c) *
 						         f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - f32::exp(-b * b * xmax * xmax * s * s)))) /
 						        rmax;
-						Position {
-							x: r * f32::sin(p), // start from (1,0), clockwise
-							y: r * f32::cos(p),
-						}
+						Position::new(r * f32::sin(p), // start from (1,0), clockwise
+						              r * f32::cos(p))
 					})
 					.collect()
 			}
@@ -147,7 +145,6 @@ impl Default for Material {
 		}
 	}
 }
-
 
 trait Geometry {
 	fn transform(&self) -> Transform;
