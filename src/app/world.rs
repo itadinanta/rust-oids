@@ -118,6 +118,10 @@ impl Flock {
 		id
 	}
 
+	pub fn kill(&mut self, id: &Id) {
+		self.creatures.remove(id);
+	}
+
 	pub fn creatures(&self) -> &HashMap<Id, Creature> {
 		&self.creatures
 	}

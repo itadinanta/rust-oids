@@ -9,7 +9,7 @@ use std::f64::consts;
 pub trait System {
 	fn update(&mut self, dt: f32);
 	fn register(&mut self, creature: &world::Creature);
-	fn update_world(&self, world: &mut world::World);
+	fn to_world(&self, world: &mut world::World);
 }
 
 pub struct CreatureData;
@@ -24,6 +24,7 @@ pub struct PhysicsSystem {
 	edge: f32,
 	world: b2::World<CreatureData>,
 	handles: HashMap<world::CreatureRefs, b2::BodyHandle>,
+	dropped: Vec<world::CreatureRefs>,
 }
 
 impl System for PhysicsSystem {
@@ -32,7 +33,7 @@ impl System for PhysicsSystem {
 		world.step(dt, 8, 3);
 		const MAX_RADIUS: f32 = 5.0;
 		let mut v = Vec::new();
-		let mut keys = Vec::new();
+		self.dropped.clear();
 		// TODO: is this the best way to iterate?
 		for (h, b) in world.bodies() {
 			let body = b.borrow();
@@ -40,13 +41,13 @@ impl System for PhysicsSystem {
 			let key = (*body).user_data().clone();
 			if position.y < (self.edge - MAX_RADIUS) {
 				v.push(h);
-				keys.push(key);
+				self.dropped.push(key);
 			}
 		}
 		for h in v {
 			world.destroy_body(h);
 		}
-		for key in keys {
+		for key in &self.dropped {
 			self.handles.remove(&key);
 		}
 	}
@@ -81,7 +82,11 @@ impl System for PhysicsSystem {
 		}
 	}
 
-	fn update_world(&self, world: &mut world::World) {
+	fn to_world(&self, world: &mut world::World) {
+		for key in &self.dropped {
+			world.friends.kill(&key.creature_id);
+			// println!("Killed object: {}", key.creature_id);
+		}
 		for (_, b) in self.world.bodies() {
 			let body = b.borrow();
 			let position = (*body).position();
@@ -111,6 +116,7 @@ impl PhysicsSystem {
 			world: Self::new_world(),
 			edge: 0.,
 			handles: HashMap::new(),
+			dropped: Vec::new(),
 		}
 	}
 

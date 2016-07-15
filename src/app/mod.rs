@@ -299,6 +299,6 @@ impl App {
 		let (_, edge) = self.viewport.to_world(0, self.viewport.height);
 		self.physics_system.drop_below(edge);
 		self.physics_system.update(dt);
-		self.physics_system.update_world(&mut self.world);
+		self.physics_system.to_world(&mut self.world);
 	}
 }
