@@ -1,39 +1,15 @@
-use std::time::{SystemTime, Duration};
-use rand;
-use rand::Rng;
+mod obj;
+mod world;
+mod systems;
+mod smooth;
+mod input;
+
+use std::time::{SystemTime, Duration, SystemTimeError};
 use glutin;
 use cgmath;
-use cgmath::{Matrix4, EuclideanVector};
+use cgmath::Matrix4;
 use render;
-use wrapped2d::user_data::NoUserData;
-
-pub struct InputState {
-	left_button_pressed: bool,
-	mouse_position: b2::Vec2,
-}
-
-fn new_ball(world: &mut b2::World<NoUserData>, pos: b2::Vec2) {
-	let mut rng = rand::thread_rng();
-	let radius: f32 = (rng.gen::<f32>() * 1.0) + 1.0;
-
-	let mut circle_shape = b2::CircleShape::new();
-	circle_shape.set_radius(radius);
-
-	let mut f_def = b2::FixtureDef::new();
-	f_def.density = (rng.gen::<f32>() * 1.0) + 1.0;
-	f_def.restitution = 0.2;
-	f_def.friction = 0.3;
-
-	let mut b_def = b2::BodyDef::new();
-	b_def.body_type = b2::BodyType::Dynamic;
-	b_def.position = pos;
-	let handle = world.create_body(&b_def);
-	world.body_mut(handle)
-	     .create_fixture(&circle_shape, &mut f_def);
-}
-
-use wrapped2d::b2;
-use std::f64::consts;
+use self::obj::{Solid, Geometry, Drawable, Transformable};
 
 pub struct Viewport {
 	width: u32,
@@ -85,17 +61,22 @@ impl<T> Cycle<T>
 	}
 }
 
+
 pub struct App {
 	pub viewport: Viewport,
-	input_state: InputState,
-	world: b2::World<NoUserData>,
+	input_state: input::InputState,
 	wall_clock_start: SystemTime,
 	frame_count: u32,
 	frame_start: SystemTime,
 	frame_elapsed: f32,
-	frame_smooth: Smooth<f32>,
+	frame_smooth: smooth::Smooth<f32>,
+	is_running: bool,
 	lights: Cycle<[f32; 4]>,
 	backgrounds: Cycle<[f32; 4]>,
+	//
+	world: world::World,
+	physics_system: systems::PhysicsSystem,
+	animation_system: systems::AnimationSystem,
 }
 
 pub struct Environment {
@@ -112,22 +93,30 @@ pub struct Update {
 	pub fps: f32,
 }
 
+use app::systems::System;
+
 impl App {
 	pub fn new(w: u32, h: u32, scale: f32) -> App {
 		App {
 			viewport: Viewport::rect(w, h, scale),
-			input_state: InputState {
-				left_button_pressed: false,
-				mouse_position: b2::Vec2 { x: 0.0, y: 0.0 },
-			},
+			input_state: input::InputState::default(),
+
+			// testbed, will need a display/render subsystem
 			lights: Self::init_lights(),
 			backgrounds: Self::init_backgrounds(),
-			world: new_world(),
+
+			world: world::World::new(),
+			// subsystem, need to update each
+			physics_system: systems::PhysicsSystem::new(),
+			animation_system: systems::AnimationSystem::new(),
+
+			// runtime and timing
 			frame_count: 0u32,
 			frame_elapsed: 0.0f32,
 			frame_start: SystemTime::now(),
 			wall_clock_start: SystemTime::now(),
-			frame_smooth: Smooth::new(120),
+			frame_smooth: smooth::Smooth::new(120),
+			is_running: true,
 		}
 	}
 
@@ -154,24 +143,30 @@ impl App {
 	}
 
 
-	fn on_click(&mut self, btn: glutin::MouseButton, pos: b2::Vec2) {
+	fn on_click(&mut self, btn: glutin::MouseButton, pos: obj::Position) {
 		match btn {
 			glutin::MouseButton::Left => {
-				self.input_state.left_button_pressed = true;
-				new_ball(&mut self.world, pos);
+				self.input_state.left_button_press();
+				self.new_ball(pos);
 			}
 			_ => (),
 		}
 	}
 
-	fn on_drag(&mut self, pos: b2::Vec2) {
-		new_ball(&mut self.world, pos);
+	fn new_ball(&mut self, pos: obj::Position) {
+		let id = self.world.new_ball(pos);
+		let found = self.world.friend_mut(id);
+		self.physics_system.register(found.unwrap());
 	}
 
-	fn on_release(&mut self, btn: glutin::MouseButton, _: b2::Vec2) {
+	fn on_drag(&mut self, pos: obj::Position) {
+		self.new_ball(pos);
+	}
+
+	fn on_release(&mut self, btn: glutin::MouseButton, _: obj::Position) {
 		match btn {
 			glutin::MouseButton::Left => {
-				self.input_state.left_button_pressed = false;
+				self.input_state.left_button_release();
 			}
 			_ => (),
 		}
@@ -192,6 +187,9 @@ impl App {
 					Some(glutin::VirtualKeyCode::B) => {
 						self.backgrounds.next();
 					}
+					Some(glutin::VirtualKeyCode::Escape) => {
+						self.quit();
+					}					
 					_ => println!("Key pressed {:?}/{:?}", scancode, vk),
 				}
 			}
@@ -199,24 +197,32 @@ impl App {
 		}
 	}
 
+	pub fn quit(&mut self) {
+		self.is_running = false;
+	}
+
+	pub fn is_running(&self) -> bool {
+		self.is_running
+	}
+
 	pub fn on_mouse_input(&mut self, e: glutin::Event) {
 		match e {
 			glutin::Event::MouseInput(glutin::ElementState::Released, b) => {
-				let pos = self.input_state.mouse_position;
+				let pos = self.input_state.mouse_position();
 				self.on_release(b, pos);
 			}
 			glutin::Event::MouseInput(glutin::ElementState::Pressed, b) => {
-				let pos = self.input_state.mouse_position;
+				let pos = self.input_state.mouse_position();
 				self.on_click(b, pos);
 			}
 			glutin::Event::MouseMoved(x, y) => {
-				fn transform_pos(viewport: &Viewport, x: u32, y: u32) -> b2::Vec2 {
+				fn transform_pos(viewport: &Viewport, x: u32, y: u32) -> obj::Position {
 					let (tx, ty) = viewport.to_world(x, y);
-					return b2::Vec2 { x: tx, y: ty };
+					return obj::Position { x: tx, y: ty };
 				}
 				let pos = transform_pos(&self.viewport, x as u32, y as u32);
-				self.input_state.mouse_position = pos;
-				if self.input_state.left_button_pressed {
+				self.input_state.mouse_position_at(pos);
+				if self.input_state.left_button_pressed() {
 					self.on_drag(pos);
 				}
 			}
@@ -229,39 +235,26 @@ impl App {
 	}
 
 	pub fn render(&self, renderer: &mut render::Draw) {
-		for (_, b) in self.world.bodies() {
-			let body = b.borrow();
-			let position = (*body).position();
-			let angle = (*body).angle() as f32;
-			use cgmath::Rotation3;
-			let body_rot = Matrix4::from(cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(),
-			                                                                 cgmath::rad(angle)));
-			let body_trans = Matrix4::from_translation(cgmath::Vector3::new(position.x, position.y, 0.0));
+		for (_, b) in self.world.friends.creatures() {
+			for limb in b.limbs() {
+				let transform = limb.transform();
+				let position = transform.position;
+				let angle = transform.angle;
 
-			let body_transform = body_trans * body_rot;
+				use cgmath::Rotation3;
+				let body_rot = Matrix4::from(cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(),
+				                                                                 cgmath::rad(angle)));
+				let body_trans = Matrix4::from_translation(cgmath::Vector3::new(position.x, position.y, 0.0));
 
-			for (_, f) in body.fixtures() {
-				let fixture = f.borrow();
-				let shape = (*fixture).shape();
-				let density = (*fixture).density();
+				let body_transform = body_trans * body_rot;
 
-				match *shape {
-					b2::UnknownShape::Circle(ref s) => {
-						let p = s.position();
-						let r = s.radius() as f32;
-
-						let fixture_scale = Matrix4::from_scale(r);
-						let fixture_trans = Matrix4::from_translation(cgmath::Vector3::new(p.x, p.y, 0.0));
+				match limb.mesh().shape {
+					obj::Shape::Ball { radius } => {
+						let fixture_scale = Matrix4::from_scale(radius);
+						let fixture_trans = Matrix4::from_translation(cgmath::Vector3::new(0.0, 0.0, 0.0));
 						let transform = body_transform * fixture_trans * fixture_scale;
 
-						let lightness = 1. - density * 0.5;
-
-						let color = [0., 10. * lightness, 0., 1.];
-
-						renderer.draw_quad(&transform.into(), color);
-					}
-					b2::UnknownShape::Polygon(_) => {
-						// TODO: need to draw fill poly
+						renderer.draw_ball(&transform.into(), limb.color());
 					}
 					_ => (),
 				}
@@ -276,108 +269,40 @@ impl App {
 		}
 	}
 
-	pub fn update(&mut self) -> Result<Update, ()> {
-		match self.frame_start.elapsed() {
-			Ok(dt) => {
-				let frame_time = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
-				let frame_time_smooth = self.frame_smooth.smooth(frame_time);
-				self.update_physics(frame_time_smooth);
-				self.frame_elapsed += frame_time;
-				self.frame_start = SystemTime::now();
-				self.frame_count += 1;
+	fn update_systems(&mut self, dt: f32) {
+		self.update_physics(dt);
+		self.update_animation(dt);
+	}
 
-				Ok(Update {
-					wall_clock_elapsed: self.wall_clock_start.elapsed().unwrap_or_else(|_| Duration::new(0, 0)),
-					frame_count: self.frame_count,
-					frame_elapsed: self.frame_elapsed,
-					frame_time: frame_time,
-					frame_time_smooth: frame_time_smooth,
-					fps: 1.0 / frame_time_smooth,
-				})
+	pub fn update(&mut self) -> Result<Update, SystemTimeError> {
+		self.frame_start.elapsed().map(|dt| {
+			let frame_time = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
+			let frame_time_smooth = self.frame_smooth.smooth(frame_time);
+
+			self.update_systems(frame_time_smooth);
+
+			self.frame_elapsed += frame_time;
+			self.frame_start = SystemTime::now();
+			self.frame_count += 1;
+
+			Update {
+				wall_clock_elapsed: self.wall_clock_start.elapsed().unwrap_or_else(|_| Duration::new(0, 0)),
+				frame_count: self.frame_count,
+				frame_elapsed: self.frame_elapsed,
+				frame_time: frame_time,
+				frame_time_smooth: frame_time_smooth,
+				fps: 1.0 / frame_time_smooth,
 			}
-
-			Err(_) => Err(()),
-		}
+		})
 	}
 
 	fn update_physics(&mut self, dt: f32) {
-		let world = &mut self.world;
-		world.step(dt, 8, 3);
-		const MAX_RADIUS: f32 = 5.0;
 		let (_, edge) = self.viewport.to_world(0, self.viewport.height);
-		let mut v = Vec::new();
-		for (h, b) in world.bodies() {
-			let body = b.borrow();
-			let position = (*body).position();
-			if position.y < (edge - MAX_RADIUS) {
-				v.push(h);
-			}
-		}
-		for h in v {
-			world.destroy_body(h);
-		}
-	}
-}
-
-fn new_world() -> b2::World<NoUserData> {
-	let mut world = b2::World::new(&b2::Vec2 { x: 0.0, y: -9.8 });
-
-	let mut b_def = b2::BodyDef::new();
-	b_def.body_type = b2::BodyType::Static;
-	b_def.position = b2::Vec2 { x: 0.0, y: -8.0 };
-
-	let mut ground_box = b2::PolygonShape::new();
-	{
-		ground_box.set_as_box(20.0, 1.0);
-		let ground_handle = world.create_body(&b_def);
-		let ground = &mut world.body_mut(ground_handle);
-		ground.create_fast_fixture(&ground_box, 0.);
-
-		ground_box.set_as_oriented_box(1.0,
-		                               5.0,
-		                               &b2::Vec2 { x: 21.0, y: 5.0 },
-		                               (-consts::FRAC_PI_8) as f32);
-		ground.create_fast_fixture(&ground_box, 0.);
-
-		ground_box.set_as_oriented_box(1.0,
-		                               5.0,
-		                               &b2::Vec2 { x: -21.0, y: 5.0 },
-		                               (consts::FRAC_PI_8) as f32);
-		ground.create_fast_fixture(&ground_box, 0.);
-	}
-	world
-}
-
-pub struct Smooth<S: ::num::Num> {
-	ptr: usize,
-	count: usize,
-	acc: S,
-	last: S,
-	values: Vec<S>,
-}
-
-impl<S: ::num::Num + ::num::NumCast + ::std::marker::Copy> Smooth<S> {
-	pub fn new(window_size: usize) -> Smooth<S> {
-		Smooth {
-			ptr: 0,
-			count: 0,
-			last: S::zero(),
-			acc: S::zero(),
-			values: vec![S::zero(); window_size],
-		}
+		self.physics_system.drop_below(edge);
+		self.physics_system.update_world(dt, &mut self.world);
 	}
 
-	pub fn smooth(&mut self, value: S) -> S {
-		let len = self.values.len();
-		if self.count < len {
-			self.count = self.count + 1;
-		} else {
-			self.acc = self.acc - self.values[self.ptr];
-		}
-		self.acc = self.acc + value;
-		self.values[self.ptr] = value;
-		self.ptr = ((self.ptr + 1) % len) as usize;
-		self.last = self.acc / ::num::cast(self.count).unwrap();
-		self.last
+	fn update_animation(&mut self, dt: f32) {
+		self.animation_system.update_world(dt, &mut self.world);
 	}
 }

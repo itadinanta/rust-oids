@@ -20,7 +20,7 @@ mopa ="0.2"
 genmesh="0.4"
 
 piston = "*"
-wrapped2d = "0.3.0"
+wrapped2d = "0.3.1"
 gfx = "*"
 gfx_core = "*"
 gfx_device_gl = "*"
