@@ -1,8 +1,8 @@
 use wrapped2d::b2;
 use wrapped2d::user_data::*;
 use app::obj;
-use app::obj::Transformable;
 use super::*;
+use app::obj::{Solid, Geometry, Transformable};
 use app::world;
 use std::collections::HashMap;
 use std::f64::consts;
@@ -51,7 +51,7 @@ impl System for PhysicsSystem {
 		let world = &mut self.world;
 		let object_id = creature.id();
 		for (limb_index, limb) in creature.limbs().enumerate() {
-			let shape = match limb.mesh.shape {
+			let shape = match limb.mesh().shape {
 				obj::Shape::Ball { radius } => {
 					let mut circle_shape = b2::CircleShape::new();
 					circle_shape.set_radius(radius);
@@ -59,16 +59,18 @@ impl System for PhysicsSystem {
 				}
 				_ => None,
 			};
+			let material = limb.material();
 			let mut f_def = b2::FixtureDef::new();
-			f_def.density = limb.material.density;
-			f_def.restitution = limb.material.restitution;
-			f_def.friction = limb.material.friction;
+			f_def.density = material.density;
+			f_def.restitution = material.restitution;
+			f_def.friction = material.friction;
 
+			let transform = limb.transform();
 			let mut b_def = b2::BodyDef::new();
 			b_def.body_type = b2::BodyType::Dynamic;
 			b_def.position = b2::Vec2 {
-				x: limb.transform.position.x,
-				y: limb.transform.position.y,
+				x: transform.position.x,
+				y: transform.position.y,
 			};
 			let refs = world::CreatureRefs::with_limb(object_id, limb_index as u8);
 			let handle = world.create_body_with(&b_def, refs);

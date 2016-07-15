@@ -17,7 +17,6 @@ pub type M44 = cgmath::Matrix4<f32>;
 pub const BACKGROUND: [f32; 4] = [0.01, 0.01, 0.01, 1.0];
 pub const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
-
 use self::forward::Vertex;
 
 const QUAD: [Vertex; 6] = [Vertex {
@@ -66,23 +65,23 @@ impl Camera {
 	pub fn ortho(center: cgmath::Point2<f32>, scale: f32, ratio: f32) -> Camera {
 		Camera {
 			projection: {
-					let hw = 0.5 * scale;
-					let hh = hw / ratio;
-					let near = 10.0;
-					let far = -near;
-					cgmath::ortho(-hw, hw, -hh, hh, near, far)
-				}
-				.into(),
+				            let hw = 0.5 * scale;
+				            let hh = hw / ratio;
+				            let near = 10.0;
+				            let far = -near;
+				            cgmath::ortho(-hw, hw, -hh, hh, near, far)
+				           }
+			            .into(),
 			view: cgmath::Matrix4::look_at(cgmath::Point3::new(center.x, center.y, 1.0),
 			                               cgmath::Point3::new(center.x, center.y, 0.0),
 			                               cgmath::Vector3::unit_y())
-				.into(),
+				      .into(),
 		}
 	}
 }
 
 pub trait Draw {
-	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>, color: [f32; 4]);
+	fn draw_ball(&mut self, transform: &cgmath::Matrix4<f32>, color: [f32; 4]);
 	fn draw_text(&mut self, text: &str, screen_position: [i32; 2], text_color: [f32; 4]);
 }
 
@@ -149,7 +148,7 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 }
 
 impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for ForwardRenderer<'e, R, C, F> {
-	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>, color: [f32; 4]) {
+	fn draw_ball(&mut self, transform: &cgmath::Matrix4<f32>, color: [f32; 4]) {
 		self.pass_forward_lighting.draw_triangles(&mut self.encoder,
 		                                          &self.vertex_buffer,
 		                                          &self.index_buffer_slice,

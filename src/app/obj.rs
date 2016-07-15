@@ -130,6 +130,7 @@ pub trait GameObject: Transformable {
 	fn id(&self) -> Id;
 }
 
+#[derive(Copy, Clone)]
 pub struct Material {
 	pub density: f32,
 	pub restitution: f32,
@@ -146,15 +147,14 @@ impl Default for Material {
 	}
 }
 
-trait Geometry {
-	fn transform(&self) -> Transform;
-	fn mesh(&self) -> Mesh;
-}
-
-trait Solid {
+pub trait Solid {
 	fn material(&self) -> Material;
 }
 
-trait Drawable: Geometry {
+pub trait Geometry {
+	fn mesh(&self) -> &Mesh;
+}
+
+pub trait Drawable: Geometry {
 	fn color(&self) -> Rgba;
 }

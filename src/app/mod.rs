@@ -9,6 +9,7 @@ use glutin;
 use cgmath;
 use cgmath::Matrix4;
 use render;
+use self::obj::{Solid, Geometry, Drawable, Transformable};
 
 pub struct Viewport {
 	width: u32,
@@ -228,8 +229,9 @@ impl App {
 	pub fn render(&self, renderer: &mut render::Draw) {
 		for (_, b) in self.world.friends.creatures() {
 			for limb in b.limbs() {
-				let position = limb.transform.position;
-				let angle = limb.transform.angle;
+				let transform = limb.transform();
+				let position = transform.position;
+				let angle = transform.angle;
 
 				use cgmath::Rotation3;
 				let body_rot = Matrix4::from(cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(),
@@ -238,19 +240,13 @@ impl App {
 
 				let body_transform = body_trans * body_rot;
 
-				let density = limb.material.density;
-
-				match limb.mesh.shape {
-					obj::Shape::Ball { radius: r } => {
-						let fixture_scale = Matrix4::from_scale(r);
+				match limb.mesh().shape {
+					obj::Shape::Ball { radius } => {
+						let fixture_scale = Matrix4::from_scale(radius);
 						let fixture_trans = Matrix4::from_translation(cgmath::Vector3::new(0.0, 0.0, 0.0));
 						let transform = body_transform * fixture_trans * fixture_scale;
 
-						let lightness = 1. - density * 0.5;
-
-						let color = [0., 10. * lightness, 0., 1.];
-
-						renderer.draw_quad(&transform.into(), color);
+						renderer.draw_ball(&transform.into(), limb.color());
 					}
 					_ => (),
 				}

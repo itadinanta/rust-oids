@@ -6,9 +6,9 @@ use std::collections::HashMap;
 use std::slice;
 
 pub struct Limb {
-	pub transform: Transform,
-	pub mesh: Mesh,
-	pub material: Material, // state: GameObjectState,
+	transform: Transform,
+	mesh: Mesh,
+	material: Material, // state: GameObjectState,
 }
 
 pub struct Creature {
@@ -37,6 +37,25 @@ impl Transformable for Limb {
 	}
 	fn transform_to(&mut self, t: Transform) {
 		self.transform = t;
+	}
+}
+
+impl obj::Geometry for Limb {
+	fn mesh(&self) -> &Mesh {
+		&self.mesh
+	}
+}
+
+impl obj::Solid for Limb {
+	fn material(&self) -> Material {
+		self.material
+	}
+}
+
+impl obj::Drawable for Limb {
+	fn color(&self) -> Rgba {
+		let lightness = 1. - self.material.density * 0.5;
+		[0., 10. * lightness, 0., 1.]
 	}
 }
 
