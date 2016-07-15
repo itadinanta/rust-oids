@@ -1,6 +1,7 @@
 use wrapped2d::b2;
 use wrapped2d::user_data::*;
 use app::obj;
+use app::obj::Updateable;
 use super::*;
 use app::obj::{Solid, Geometry, Transformable};
 use app::world;
@@ -22,7 +23,7 @@ pub struct PhysicsSystem {
 	dropped: Vec<world::CreatureRefs>,
 }
 
-impl System for PhysicsSystem {
+impl Updateable for PhysicsSystem {
 	fn update(&mut self, dt: f32) {
 		let world = &mut self.world;
 		world.step(dt, 8, 3);
@@ -46,7 +47,9 @@ impl System for PhysicsSystem {
 			self.handles.remove(&key);
 		}
 	}
+}
 
+impl System for PhysicsSystem {
 	fn register(&mut self, creature: &world::Creature) {
 		let world = &mut self.world;
 		let object_id = creature.id();

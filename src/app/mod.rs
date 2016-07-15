@@ -76,6 +76,7 @@ pub struct App {
 	//
 	world: world::World,
 	physics_system: systems::PhysicsSystem,
+	animation_system: systems::AnimationSystem,
 }
 
 pub struct Environment {
@@ -99,10 +100,17 @@ impl App {
 		App {
 			viewport: Viewport::rect(w, h, scale),
 			input_state: input::InputState::default(),
+
+			// testbed, will need a display/render subsystem
 			lights: Self::init_lights(),
 			backgrounds: Self::init_backgrounds(),
+
 			world: world::World::new(),
+			// subsystem, need to update each
 			physics_system: systems::PhysicsSystem::new(),
+			animation_system: systems::AnimationSystem::new(),
+
+			// runtime and timing
 			frame_count: 0u32,
 			frame_elapsed: 0.0f32,
 			frame_start: SystemTime::now(),
@@ -263,6 +271,7 @@ impl App {
 
 	fn update_systems(&mut self, dt: f32) {
 		self.update_physics(dt);
+		self.update_animation(dt);
 	}
 
 	pub fn update(&mut self) -> Result<Update, SystemTimeError> {
@@ -290,7 +299,10 @@ impl App {
 	fn update_physics(&mut self, dt: f32) {
 		let (_, edge) = self.viewport.to_world(0, self.viewport.height);
 		self.physics_system.drop_below(edge);
-		self.physics_system.update(dt);
-		self.physics_system.to_world(&mut self.world);
+		self.physics_system.update_world(dt, &mut self.world);
+	}
+
+	fn update_animation(&mut self, dt: f32) {
+		self.animation_system.update_world(dt, &mut self.world);
 	}
 }

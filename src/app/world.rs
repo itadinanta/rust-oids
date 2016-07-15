@@ -5,10 +5,52 @@ use rand::Rng;
 use std::collections::HashMap;
 use std::slice;
 
+pub struct State {
+	age_seconds: f32,
+	age_frames: usize,
+	charge: f32,
+	target_charge: f32,
+	tau: f32,
+}
+
+impl Default for State {
+	fn default() -> Self {
+		State {
+			age_seconds: 0.,
+			age_frames: 0,
+			charge: 1.,
+			target_charge: 0.,
+			tau: 2.0,
+		}
+	}
+}
+
+impl State {
+	pub fn update(&mut self, dt: f32) {
+		self.age_seconds += dt;
+		self.age_frames += 1;
+		let alpha = 1. - f32::exp(-dt / self.tau);
+		self.charge = self.target_charge * alpha + self.charge * (1. - alpha);
+	}
+
+	pub fn with_charge(initial: f32, target: f32) -> Self {
+		State {
+			charge: initial,
+			target_charge: target,
+			..Self::default()
+		}
+	}
+
+	pub fn charge(&self) -> f32 {
+		self.charge
+	}
+}
+
 pub struct Limb {
 	transform: Transform,
 	mesh: Mesh,
-	material: Material, // state: GameObjectState,
+	material: Material,
+	pub state: State,
 }
 
 pub struct Creature {
@@ -54,8 +96,9 @@ impl obj::Solid for Limb {
 
 impl obj::Drawable for Limb {
 	fn color(&self) -> Rgba {
-		let lightness = 1. - self.material.density * 0.5;
-		[0., 10. * lightness, 0., 1.]
+		// let lightness = 1. - self.material.density * 0.5;
+		// [0., 10. * lightness, 0., 1.]
+		[0., 10. * self.state.charge, 0., 1.]
 	}
 }
 
@@ -66,6 +109,9 @@ impl Creature {
 	pub fn limbs(&self) -> slice::Iter<Limb> {
 		self.limbs.iter()
 	}
+	pub fn limbs_mut(&mut self) -> slice::IterMut<Limb> {
+		self.limbs.iter_mut()
+	}	
 	pub fn limb_mut(&mut self, index: LimbIndex) -> Option<&mut Limb> {
 		self.limbs.get_mut(index as usize)
 	}
@@ -125,6 +171,7 @@ impl Flock {
 				vertices: vertices,
 			},
 			material: Material { density: (rng.gen::<f32>() * 1.0) + 1.0, ..Default::default() },
+			state: State::with_charge(rng.gen::<f32>(), 0.),
 		};
 
 		let creature = Creature {
