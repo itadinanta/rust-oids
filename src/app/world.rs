@@ -106,12 +106,15 @@ impl Creature {
 	pub fn id(&self) -> Id {
 		self.id
 	}
+
 	pub fn limbs(&self) -> slice::Iter<Limb> {
 		self.limbs.iter()
 	}
+
 	pub fn limbs_mut(&mut self) -> slice::IterMut<Limb> {
 		self.limbs.iter_mut()
 	}
+
 	pub fn limb_mut(&mut self, index: LimbIndex) -> Option<&mut Limb> {
 		self.limbs.get_mut(index as usize)
 	}
@@ -215,6 +218,7 @@ impl CreatureRefs {
 	pub fn with_id(id: obj::Id) -> CreatureRefs {
 		CreatureRefs { creature_id: id, ..Default::default() }
 	}
+
 	pub fn with_limb(id: obj::Id, limb_index: obj::LimbIndex) -> CreatureRefs {
 		CreatureRefs {
 			creature_id: id,
@@ -222,6 +226,7 @@ impl CreatureRefs {
 			..Default::default()
 		}
 	}
+
 	pub fn with_bone(id: obj::Id, limb_index: obj::LimbIndex, bone_index: obj::BoneIndex) -> CreatureRefs {
 		CreatureRefs {
 			creature_id: id,
