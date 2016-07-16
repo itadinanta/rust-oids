@@ -149,8 +149,7 @@ impl Flock {
 	pub fn new_ball(&mut self, pos: Position) -> Id {
 		let mut rng = rand::thread_rng();
 		let radius: f32 = (rng.gen::<f32>() * 1.0) + 1.0;
-
-		self.new_creature(Shape::new_ball(radius), pos)
+		self.new_creature(Shape::new_ball(radius), pos, 0.)
 	}
 
 	pub fn new_star(&mut self, pos: Position) -> Id {
@@ -158,10 +157,10 @@ impl Flock {
 		let radius = (rng.gen::<f32>() * 1.0) + 1.0;
 		let n = rng.gen::<u8>() % 3 + 5;
 		let ratio = (rng.gen::<f32>() * 0.2) + 0.1;
-		self.new_creature(Shape::new_star(radius, ratio, n), pos)
+		self.new_creature(Shape::new_star(radius, ratio, n), pos, 0.3)
 	}
 
-	pub fn new_creature(&mut self, shape: Shape, initial_pos: Position) -> Id {
+	pub fn new_creature(&mut self, shape: Shape, initial_pos: Position, final_charge: f32) -> Id {
 		let mut rng = rand::thread_rng();
 
 		let id = self.next_id();
@@ -174,7 +173,7 @@ impl Flock {
 				vertices: vertices,
 			},
 			material: Material { density: (rng.gen::<f32>() * 1.0) + 1.0, ..Default::default() },
-			state: State::with_charge(rng.gen::<f32>(), 0.),
+			state: State::with_charge(rng.gen::<f32>(), final_charge),
 		};
 
 		let creature = Creature {
