@@ -123,9 +123,6 @@ void main() {
             vec3 viewDir = vec3(0.0, 0.0, 1.0); // ortho, normalize(-v_In.Position.xyz); perspective
             vec3 halfDir = normalize(lightDir + viewDir); // can be done in vertex shader
 			float specAngle = max(dot(halfDir, normal), 0.0);
-//			Phong:
-//	        vec3 reflectDir = reflect(-lightDir, v_In.Normal.xyz);
-//	        float specAngle = max(dot(reflectDir, viewDir), 0.0);
 			specular = pow(vec4(specAngle), kp);
 		}
 		else {
@@ -215,9 +212,6 @@ void main() {
             vec3 viewDir = vec3(0.0, 0.0, 1.0); // ortho, normalize(-v_In.Position.xyz); perspective
             vec3 halfDir = normalize(lightDir + viewDir); // can be done in vertex shader
 			float specAngle = max(dot(halfDir, normal), 0.0);
-//			Phong:
-//	        vec3 reflectDir = reflect(-lightDir, v_In.Normal.xyz);
-//	        float specAngle = max(dot(reflectDir, viewDir), 0.0);
 			specular = pow(vec4(specAngle), kp);
 		}
 		else {
