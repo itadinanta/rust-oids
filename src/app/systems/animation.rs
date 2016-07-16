@@ -1,7 +1,6 @@
 use super::*;
 use app::world;
-use app::obj::{Id, Updateable};
-use app::world::State;
+use app::obj::Updateable;
 use std::time::*;
 
 pub struct AnimationSystem {
@@ -32,7 +31,7 @@ impl System for AnimationSystem {
 		for k in keys {
 			if let Some(b) = world.friends.get_mut(k) {
 				for limb in b.limbs_mut() {
-					limb.state.update(self.dt);
+					limb.state.update(self.dt * self.speed);
 				}
 			}
 		}

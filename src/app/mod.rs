@@ -9,6 +9,7 @@ use glutin;
 use cgmath;
 use cgmath::Matrix4;
 use render;
+use self::input::Button::*;
 use self::obj::{Solid, Geometry, Drawable, Transformable};
 
 pub struct Viewport {
@@ -146,9 +147,13 @@ impl App {
 	fn on_click(&mut self, btn: glutin::MouseButton, pos: obj::Position) {
 		match btn {
 			glutin::MouseButton::Left => {
-				self.input_state.left_button_press();
+				self.input_state.button_press(Left);
 				self.new_ball(pos);
 			}
+			glutin::MouseButton::Right => {
+				self.input_state.button_press(Right);
+				self.new_ball(pos);
+			}			
 			_ => (),
 		}
 	}
@@ -166,8 +171,13 @@ impl App {
 	fn on_release(&mut self, btn: glutin::MouseButton, _: obj::Position) {
 		match btn {
 			glutin::MouseButton::Left => {
-				self.input_state.left_button_release();
+				self.input_state.button_release(Left);
 			}
+
+			glutin::MouseButton::Right => {
+				self.input_state.button_release(Right);
+			}
+
 			_ => (),
 		}
 	}
