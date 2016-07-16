@@ -78,7 +78,7 @@ impl Shape {
 			a: 0.83255,
 			b: 0.14,
 			c: 1.,
-			ratio: 0.5,
+			ratio: 0.1,
 		}
 	}
 
@@ -97,7 +97,7 @@ impl Shape {
 			Shape::Star { radius, n, a, b, c, ratio } => {
 				let xmax = f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - 1.) / (b * b));
 				let r0 = ratio * xmax;
-				let rmax = r0 + (1. / c) * f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - 1.)) / radius; // we want r in 0 to be radius
+				let rmax = r0 + (1. / c) * f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - 1.)); // we want r in 0 to be 1
 
 				(0..(2 * n))
 					.map(|i| {

@@ -178,6 +178,10 @@ impl App {
 		self.new_ball(pos);
 	}
 
+	fn on_right_drag(&mut self, pos: obj::Position) {
+		self.new_star(pos);
+	}
+
 	fn on_release(&mut self, btn: glutin::MouseButton, _: obj::Position) {
 		match btn {
 			glutin::MouseButton::Left => {
@@ -242,8 +246,10 @@ impl App {
 				}
 				let pos = transform_pos(&self.viewport, x as u32, y as u32);
 				self.input_state.mouse_position_at(pos);
-				if self.input_state.left_button_pressed() {
+				if self.input_state.button_pressed(Left) {
 					self.on_drag(pos);
+				} else if self.input_state.button_pressed(Right) {
+					self.on_right_drag(pos);
 				}
 			}
 			_ => (),
