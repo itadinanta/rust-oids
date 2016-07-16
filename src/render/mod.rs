@@ -19,42 +19,32 @@ pub const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 use self::forward::Vertex;
 
-const QUAD: [Vertex; 6] = [Vertex {
-	                           pos: [-1.0, -1.0, 0.0],
-	                           normal: [0.0, 0.0, 1.0],
-	                           tangent: [1.0, 0.0, 0.0],
-	                           tex_coord: [0.0, 0.0],
-                           },
-                           Vertex {
-	                           pos: [1.0, -1.0, 0.0],
-	                           normal: [0.0, 0.0, 1.0],
-	                           tangent: [1.0, 0.0, 0.0],
-	                           tex_coord: [1.0, 0.0],
-                           },
-                           Vertex {
-	                           pos: [1.0, 1.0, 0.0],
-	                           normal: [0.0, 0.0, 1.0],
-	                           tangent: [1.0, 0.0, 0.0],
-	                           tex_coord: [1.0, 1.0],
-                           },
-                           Vertex {
-	                           pos: [-1.0, -1.0, 0.0],
-	                           normal: [0.0, 0.0, 1.0],
-	                           tangent: [1.0, 0.0, 0.0],
-	                           tex_coord: [0.0, 0.0],
-                           },
-                           Vertex {
-	                           pos: [-1.0, 1.0, 0.0],
-	                           normal: [0.0, 0.0, 1.0],
-	                           tangent: [1.0, 0.0, 0.0],
-	                           tex_coord: [0.0, 1.0],
-                           },
-                           Vertex {
-	                           pos: [1.0, 1.0, 0.0],
-	                           normal: [0.0, 0.0, 1.0],
-	                           tangent: [1.0, 0.0, 0.0],
-	                           tex_coord: [1.0, 1.0],
-                           }];
+const QUAD_VERTICES: [Vertex; 4] = [Vertex {
+	                                    pos: [-1.0, -1.0, 0.0],
+	                                    normal: [0.0, 0.0, 1.0],
+	                                    tangent: [1.0, 0.0, 0.0],
+	                                    tex_coord: [0.0, 0.0],
+                                    },
+                                    Vertex {
+	                                    pos: [1.0, -1.0, 0.0],
+	                                    normal: [0.0, 0.0, 1.0],
+	                                    tangent: [1.0, 0.0, 0.0],
+	                                    tex_coord: [1.0, 0.0],
+                                    },
+                                    Vertex {
+	                                    pos: [1.0, 1.0, 0.0],
+	                                    normal: [0.0, 0.0, 1.0],
+	                                    tangent: [1.0, 0.0, 0.0],
+	                                    tex_coord: [1.0, 1.0],
+                                    },
+                                    Vertex {
+	                                    pos: [-1.0, 1.0, 0.0],
+	                                    normal: [0.0, 0.0, 1.0],
+	                                    tangent: [1.0, 0.0, 0.0],
+	                                    tex_coord: [0.0, 1.0],
+                                    }];
+
+const QUAD_INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
 
 pub struct Camera {
 	pub projection: M44,
@@ -127,8 +117,7 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 	           -> ForwardRenderer<'e, R, C, F>
 		where F: Factory<R> {
 		let my_factory = factory.clone();
-
-		let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&QUAD, ());
+		let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&QUAD_VERTICES, &QUAD_INDICES[..]);
 
 		let (w, h, _, _) = frame_buffer.get_dimensions();
 
@@ -154,15 +143,13 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 
 impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for ForwardRenderer<'e, R, C, F> {
 	fn draw_star(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[cgmath::Vector2<f32>], color: [f32; 4]) {
-
-
 		let mut v: Vec<_> = vertices.iter()
 		                            .map(|v| {
 			                            Vertex {
 				                            pos: [v.x, v.y, 0.0],
 				                            normal: [0.0, 0.0, 1.0],
 				                            tangent: [1.0, 0.0, 0.0],
-				                            tex_coord: [0.5 + v.x * 0.5, 0.5 * v.y * 0.5],
+				                            tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
 			                            }
 			                           })
 		                            .collect();

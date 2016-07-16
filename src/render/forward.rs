@@ -178,7 +178,23 @@ void main() {
     vec4 ka = vec4(0.0, 0.0, 0.01, 0.0);
 
     vec4 color = (ka + u_Emissive);	
-	vec3 normal = v_In.Normal;
+    
+    float dx = v_In.TexCoord.x - 0.5;
+    float dy = v_In.TexCoord.y - 0.5;
+	float r = dx * dx + dy * dy;
+	vec3 normal_map = vec3(0., 0., 1.);
+
+    vec3 normal;
+    if (r <= 0.25) {
+	    dx *= 2;
+	    dy *= 2;
+
+		float bump = sqrt(1. - dx * dx - dy * dy);
+		normal_map = vec3(dx, dy, bump);
+	    normal = v_In.TBN * normal_map;
+	} else {
+		normal = v_In.Normal;
+	}
 
 	for (int i = 0; i < u_LightCount; i++) {
 		vec4 delta = light[i].center - v_In.Position;
