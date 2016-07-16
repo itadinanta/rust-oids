@@ -54,14 +54,6 @@ impl System for PhysicsSystem {
 		let world = &mut self.world;
 		let object_id = creature.id();
 		for (limb_index, limb) in creature.limbs().enumerate() {
-			let shape = match limb.mesh().shape {
-				obj::Shape::Ball { radius } => {
-					let mut circle_shape = b2::CircleShape::new();
-					circle_shape.set_radius(radius);
-					Some(circle_shape)
-				}
-				_ => None,
-			};
 			let material = limb.material();
 			let mut f_def = b2::FixtureDef::new();
 			f_def.density = material.density;
@@ -77,7 +69,36 @@ impl System for PhysicsSystem {
 			};
 			let refs = world::CreatureRefs::with_limb(object_id, limb_index as u8);
 			let handle = world.create_body_with(&b_def, refs);
-			world.body_mut(handle).create_fixture_with(&shape.unwrap(), &mut f_def, refs);
+
+			let mesh = limb.mesh();
+			match mesh.shape {
+				obj::Shape::Ball { radius } => {
+					let mut circle_shape = b2::CircleShape::new();
+					circle_shape.set_radius(radius);
+					world.body_mut(handle).create_fixture_with(&circle_shape, &mut f_def, refs);
+				}
+				obj::Shape::Box { width, height } => {
+					let mut rect_shape = b2::PolygonShape::new();
+					rect_shape.set_as_box(width, height);
+					world.body_mut(handle).create_fixture_with(&rect_shape, &mut f_def, refs);
+				}
+				obj::Shape::Star { radius, a, b, c, n, ratio } => {
+					let p = &mesh.vertices;
+					for i in 0..n {
+						let mut quad = b2::PolygonShape::new();
+						let p1 = p[(i * 2 + 1) as usize];
+						let p2 = p[(i * 2) as usize];
+						let p3 = p[((i * 2 + (n * 2) - 1) % (n * 2)) as usize];
+						quad.set(&[b2::Vec2 { x: 0., y: 0. },
+						           b2::Vec2 { x: p1.x, y: p1.y },
+						           b2::Vec2 { x: p2.x, y: p2.y },
+						           b2::Vec2 { x: p3.x, y: p3.y }]);
+						let refs = world::CreatureRefs::with_bone(object_id, limb_index as u8, i as u8);
+						world.body_mut(handle).create_fixture_with(&quad, &mut f_def, refs);
+					}
+				}
+			};
+
 			self.handles.insert(refs, handle);
 		}
 	}

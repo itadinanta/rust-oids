@@ -182,7 +182,7 @@ impl Flock {
 		};
 
 		self.creatures.insert(id, creature);
-	
+
 		id
 	}
 
