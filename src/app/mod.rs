@@ -8,6 +8,7 @@ use std::time::{SystemTime, Duration, SystemTimeError};
 use glutin;
 use cgmath;
 use cgmath::Matrix4;
+use cgmath::Point3;
 use render;
 use self::input::Button::*;
 use self::obj::{Solid, Geometry, Drawable, Transformable};
@@ -267,7 +268,8 @@ impl App {
 
 				let body_transform = body_trans * body_rot;
 
-				match limb.mesh().shape {
+				let mesh = &limb.mesh();
+				match mesh.shape {
 					obj::Shape::Ball { radius } => {
 						let fixture_scale = Matrix4::from_scale(radius);
 						let fixture_trans = Matrix4::from_translation(cgmath::Vector3::new(0.0, 0.0, 0.0));
@@ -275,6 +277,14 @@ impl App {
 
 						renderer.draw_ball(&transform.into(), limb.color());
 					}
+					obj::Shape::Star { radius, .. } => {
+						let fixture_scale = Matrix4::from_scale(radius);
+						let fixture_trans = Matrix4::from_translation(cgmath::Vector3::new(0.0, 0.0, 0.0));
+						let transform = body_transform * fixture_trans * fixture_scale;
+
+						renderer.draw_star(&transform.into(), mesh.vertices.as_slice(), limb.color());
+					}
+
 					_ => (),
 				}
 			}

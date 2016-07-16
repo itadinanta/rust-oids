@@ -81,6 +81,7 @@ impl Camera {
 }
 
 pub trait Draw {
+	fn draw_star(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[cgmath::Vector2<f32>], color: [f32; 4]);
 	fn draw_ball(&mut self, transform: &cgmath::Matrix4<f32>, color: [f32; 4]);
 	fn draw_text(&mut self, text: &str, screen_position: [i32; 2], text_color: [f32; 4]);
 }
@@ -94,6 +95,7 @@ pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>>: Draw {
 }
 
 pub struct ForwardRenderer<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: gfx::Factory<R>> {
+	factory: F,
 	encoder: &'e mut gfx::Encoder<R, C>,
 
 	frame_buffer: gfx::handle::RenderTargetView<R, ColorFormat>,
@@ -102,8 +104,8 @@ pub struct ForwardRenderer<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>,
 	hdr_srv: gfx::handle::ShaderResourceView<R, [f32; 4]>,
 	hdr_color: gfx::handle::RenderTargetView<R, HDRColorFormat>,
 
-	vertex_buffer: gfx::handle::Buffer<R, Vertex>,
-	index_buffer_slice: gfx::Slice<R>,
+	quad_vertices: gfx::handle::Buffer<R, Vertex>,
+	quad_indices: gfx::Slice<R>,
 
 	text_renderer: gfx_text::Renderer<R, F>,
 	pass_forward_lighting: forward::ForwardLighting<R, C>,
@@ -124,6 +126,8 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 	           depth: &gfx::handle::DepthStencilView<R, DepthFormat>)
 	           -> ForwardRenderer<'e, R, C, F>
 		where F: Factory<R> {
+		let my_factory = factory.clone();
+
 		let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&QUAD, ());
 
 		let (w, h, _, _) = frame_buffer.get_dimensions();
@@ -131,14 +135,15 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 		let (_, hdr_srv, hdr_color_buffer) = factory.create_render_target(w, h).unwrap();
 
 		ForwardRenderer {
+			factory: my_factory,
 			encoder: encoder,
 			hdr_srv: hdr_srv,
 			hdr_color: hdr_color_buffer,
 			depth: depth.clone(),
 			frame_buffer: frame_buffer.clone(),
 			text_renderer: gfx_text::new(factory.clone()).build().unwrap(),
-			vertex_buffer: vertex_buffer,
-			index_buffer_slice: slice,
+			quad_vertices: vertex_buffer,
+			quad_indices: slice,
 			pass_forward_lighting: forward::ForwardLighting::new(factory),
 			pass_effects: effects::PostLighting::new(factory, w, h),
 			background_color: BACKGROUND,
@@ -148,10 +153,52 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 }
 
 impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for ForwardRenderer<'e, R, C, F> {
+	fn draw_star(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[cgmath::Vector2<f32>], color: [f32; 4]) {
+
+
+		let mut v: Vec<_> = vertices.iter()
+		                            .map(|v| {
+			                            Vertex {
+				                            pos: [v.x, v.y, 0.0],
+				                            normal: [0.0, 0.0, 1.0],
+				                            tangent: [1.0, 0.0, 0.0],
+				                            tex_coord: [0.5 + v.x * 0.5, 0.5 * v.y * 0.5],
+			                            }
+			                           })
+		                            .collect();
+		let n = v.len();
+		v.push(Vertex {
+			pos: [0.0, 0.0, 0.0],
+			normal: [0.0, 0.0, 1.0],
+			tangent: [1.0, 0.0, 0.0],
+			tex_coord: [0.5, 0.5],
+		});
+
+		// TODO: these can be cached
+		let mut i: Vec<u16> = Vec::new();
+		for k in 0..n {
+			i.push(n as u16);
+			i.push(((k + 1) % n) as u16);
+			i.push(k as u16);
+		}
+
+		let (vertex_buffer, index_buffer) = self.factory.create_vertex_buffer_with_slice(v.as_slice(), i.as_slice());
+
+		self.pass_forward_lighting.draw_triangles(forward::Shader::Flat,
+		                                          &mut self.encoder,
+		                                          &vertex_buffer,
+		                                          &index_buffer,
+		                                          transform.into(),
+		                                          color,
+		                                          &mut self.hdr_color,
+		                                          &mut self.depth);
+	}
+
 	fn draw_ball(&mut self, transform: &cgmath::Matrix4<f32>, color: [f32; 4]) {
-		self.pass_forward_lighting.draw_triangles(&mut self.encoder,
-		                                          &self.vertex_buffer,
-		                                          &self.index_buffer_slice,
+		self.pass_forward_lighting.draw_triangles(forward::Shader::Ball,
+		                                          &mut self.encoder,
+		                                          &self.quad_vertices,
+		                                          &self.quad_indices,
 		                                          transform.into(),
 		                                          color,
 		                                          &mut self.hdr_color,

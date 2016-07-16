@@ -177,24 +177,8 @@ void main() {
     vec4 kp = vec4(64.0, 32.0, 64.0, 64.0);
     vec4 ka = vec4(0.0, 0.0, 0.01, 0.0);
 
-    vec4 color = (ka + u_Emissive);
-
-    float dx = v_In.TexCoord.x - 0.5;
-    float dy = v_In.TexCoord.y - 0.5;
-	float r = dx * dx + dy * dy;
-	vec3 normal_map = vec3(0., 0., 1.);
-    if (r > 0.25) {
-        discard;
-    } 
-    else {
-	    dx *= 2;
-	    dy *= 2;
-
-		float bump = sqrt(1. - dx * dx - dy * dy);
-		normal_map = vec3(dx, dy, bump);
-	};
-	
-	vec3 normal = v_In.TBN * normal_map;
+    vec4 color = (ka + u_Emissive);	
+	vec3 normal = v_In.Normal;
 
 	for (int i = 0; i < u_LightCount; i++) {
 		vec4 delta = light[i].center - v_In.Position;
@@ -279,14 +263,19 @@ gfx_defines!(
 );
 
 use std::marker::PhantomData;
+
+pub enum Shader {
+	Ball = 0,
+	Flat = 1,
+}
+
 pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 	camera: gfx::handle::Buffer<R, CameraArgs>,
 	model: gfx::handle::Buffer<R, ModelArgs>,
 	fragment: gfx::handle::Buffer<R, FragmentArgs>,
 	material: gfx::handle::Buffer<R, MaterialArgs>,
 	lights: gfx::handle::Buffer<R, PointLight>,
-	ball_pso: gfx::pso::PipelineState<R, shaded::Meta>,
-	poly_pso: gfx::pso::PipelineState<R, shaded::Meta>,
+	pso: [gfx::pso::PipelineState<R, shaded::Meta>; 2],
 	_buffer: PhantomData<C>,
 }
 
@@ -306,16 +295,13 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 		                                              LIGHTING_POLY_FRAGMENT_SRC,
 		                                              shaded::new())
 		                      .unwrap();
-
-
 		ForwardLighting {
 			camera: camera,
 			model: model,
 			fragment: fragment,
 			material: material,
 			lights: lights,
-			ball_pso: ball_pso,
-			poly_pso: poly_pso,
+			pso: [ball_pso, poly_pso],
 			_buffer: PhantomData,
 		}
 	}
@@ -338,17 +324,16 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 		}
 
 		encoder.update_buffer(&self.lights, &lights_buf[..], 0).unwrap();
-
 		encoder.update_constant_buffer(&self.camera,
 		                               &CameraArgs {
 			                               proj: camera_projection.into(),
 			                               view: camera_view.into(),
 		                               });
-
 		encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32 });
 	}
 
 	pub fn draw_triangles(&self,
+	                      shader: Shader,
 	                      encoder: &mut gfx::Encoder<R, C>,
 	                      vertices: &gfx::handle::Buffer<R, VertexPosNormal>,
 	                      indices: &gfx::Slice<R>,
@@ -356,32 +341,10 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 	                      color: [f32; 4],
 	                      color_buffer: &gfx::handle::RenderTargetView<R, HDRColorFormat>,
 	                      depth_buffer: &gfx::handle::DepthStencilView<R, DepthFormat>) {
-		self.draw_triangles_pso(encoder,
-		                        &self.ball_pso,
-		                        vertices,
-		                        indices,
-		                        transform,
-		                        color,
-		                        color_buffer,
-		                        depth_buffer);
-	}
-
-	fn draw_triangles_pso(&self,
-	                      encoder: &mut gfx::Encoder<R, C>,
-	                      pso: &gfx::PipelineState<R, shaded::Meta>,
-	                      vertices: &gfx::handle::Buffer<R, VertexPosNormal>,
-	                      indices: &gfx::Slice<R>,
-	                      transform: &M44,
-	                      color: [f32; 4],
-	                      color_buffer: &gfx::handle::RenderTargetView<R, HDRColorFormat>,
-	                      depth_buffer: &gfx::handle::DepthStencilView<R, DepthFormat>) {
-
 		encoder.update_constant_buffer(&self.model, &ModelArgs { model: transform.clone().into() });
-
 		encoder.update_constant_buffer(&self.material, &MaterialArgs { emissive: color });
-
 		encoder.draw(&indices,
-		             &pso,
+		             &self.pso[shader as usize],
 		             &shaded::Data {
 			             vbuf: vertices.clone(),
 			             fragment_args: self.fragment.clone(),

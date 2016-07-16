@@ -82,7 +82,7 @@ impl System for PhysicsSystem {
 					rect_shape.set_as_box(width, height);
 					world.body_mut(handle).create_fixture_with(&rect_shape, &mut f_def, refs);
 				}
-				obj::Shape::Star { radius, a, b, c, n, ratio } => {
+				obj::Shape::Star { radius, n, .. } => {
 					let p = &mesh.vertices;
 					for i in 0..n {
 						let mut quad = b2::PolygonShape::new();
@@ -90,9 +90,18 @@ impl System for PhysicsSystem {
 						let p2 = p[(i * 2) as usize];
 						let p3 = p[((i * 2 + (n * 2) - 1) % (n * 2)) as usize];
 						quad.set(&[b2::Vec2 { x: 0., y: 0. },
-						           b2::Vec2 { x: p1.x, y: p1.y },
-						           b2::Vec2 { x: p2.x, y: p2.y },
-						           b2::Vec2 { x: p3.x, y: p3.y }]);
+						           b2::Vec2 {
+							           x: p1.x * radius,
+							           y: p1.y * radius,
+						           },
+						           b2::Vec2 {
+							           x: p2.x * radius,
+							           y: p2.y * radius,
+						           },
+						           b2::Vec2 {
+							           x: p3.x * radius,
+							           y: p3.y * radius,
+						           }]);
 						let refs = world::CreatureRefs::with_bone(object_id, limb_index as u8, i as u8);
 						world.body_mut(handle).create_fixture_with(&quad, &mut f_def, refs);
 					}
