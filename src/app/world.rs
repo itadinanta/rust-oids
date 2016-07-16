@@ -98,7 +98,7 @@ impl obj::Drawable for Limb {
 	fn color(&self) -> Rgba {
 		// let lightness = 1. - self.material.density * 0.5;
 		// [0., 10. * lightness, 0., 1.]
-		[0., 10. * self.state.charge, 0., 1.]
+		[9. * self.state.charge + 0.1, 4. * self.state.charge, 0., 1.]
 	}
 }
 
@@ -111,7 +111,7 @@ impl Creature {
 	}
 	pub fn limbs_mut(&mut self) -> slice::IterMut<Limb> {
 		self.limbs.iter_mut()
-	}	
+	}
 	pub fn limb_mut(&mut self, index: LimbIndex) -> Option<&mut Limb> {
 		self.limbs.get_mut(index as usize)
 	}
