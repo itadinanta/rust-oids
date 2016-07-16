@@ -69,7 +69,7 @@ impl Shape {
 		}
 	}
 
-	pub fn new_star(radius: f32, n: u8) -> Shape {
+	pub fn new_star(radius: f32, ratio: f32, n: u8) -> Shape {
 		assert!(radius > 0.);
 		assert!(n > 1);
 		Shape::Star {
@@ -78,7 +78,7 @@ impl Shape {
 			a: 0.83255,
 			b: 0.14,
 			c: 1.,
-			ratio: 0.1,
+			ratio: ratio,
 		}
 	}
 
