@@ -122,25 +122,25 @@ impl App {
 	}
 
 	fn init_lights() -> Cycle<[f32; 4]> {
-		Cycle::new(&[[0.001, 0.001, 0.001, 1.0],
-		             [0.01, 0.01, 0.01, 1.0],
-		             [0.1, 0.1, 0.1, 1.0],
-		             [0.31, 0.31, 0.31, 0.5],
-		             [1.0, 1.0, 1.0, 1.0],
+		Cycle::new(&[[1.0, 1.0, 1.0, 1.0],
 		             [3.1, 3.1, 3.1, 1.0],
 		             [10.0, 10.0, 10.0, 1.0],
 		             [31.0, 31.0, 31.0, 1.0],
-		             [100.0, 100.0, 100.0, 1.0]])
+		             [100.0, 100.0, 100.0, 1.0],
+		             [0.001, 0.001, 0.001, 1.0],
+		             [0.01, 0.01, 0.01, 1.0],
+		             [0.1, 0.1, 0.1, 1.0],
+		             [0.31, 0.31, 0.31, 0.5]])
 	}
 
 	fn init_backgrounds() -> Cycle<[f32; 4]> {
-		Cycle::new(&[[0., 0., 0., 1.0],
-		             [0.01, 0.01, 0.01, 1.0],
-		             [0.1, 0.1, 0.1, 1.0],
+		Cycle::new(&[[0.05, 0.07, 0.1, 1.0],
 		             [0.5, 0.5, 0.5, 0.5],
 		             [1.0, 1.0, 1.0, 1.0],
 		             [3.1, 3.1, 3.1, 1.0],
-		             [10.0, 10.0, 10.0, 1.0]])
+		             [10.0, 10.0, 10.0, 1.0],
+		             [0., 0., 0., 1.0],
+		             [0.01, 0.01, 0.01, 1.0]])
 	}
 
 
@@ -152,7 +152,7 @@ impl App {
 			}
 			glutin::MouseButton::Right => {
 				self.input_state.button_press(Right);
-				self.new_ball(pos);
+				self.new_star(pos);
 			}			
 			_ => (),
 		}
@@ -160,6 +160,15 @@ impl App {
 
 	fn new_ball(&mut self, pos: obj::Position) {
 		let id = self.world.new_ball(pos);
+		self.register(id);
+	}
+
+	fn new_star(&mut self, pos: obj::Position) {
+		let id = self.world.new_star(pos);
+		self.register(id);
+	}
+
+	fn register(&mut self, id: obj::Id) {
 		let found = self.world.friend_mut(id);
 		self.physics_system.register(found.unwrap());
 	}

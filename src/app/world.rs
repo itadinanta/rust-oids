@@ -150,25 +150,24 @@ impl Flock {
 		let mut rng = rand::thread_rng();
 		let radius: f32 = (rng.gen::<f32>() * 1.0) + 1.0;
 
-		let shape = Shape::new_ball(radius);
-
-		let id = self.new_creature(shape);
-
-		if let Some(item) = self.get_mut(id) {
-			item.transform_to(obj::Transform::with_position(pos));
-		}
-
-		id
+		self.new_creature(Shape::new_ball(radius), pos)
 	}
 
-	pub fn new_creature(&mut self, shape: Shape) -> Id {
+	pub fn new_star(&mut self, pos: Position) -> Id {
+		let mut rng = rand::thread_rng();
+		let radius: f32 = (rng.gen::<f32>() * 1.0) + 1.0;
+
+		self.new_creature(Shape::new_star(radius, 5), pos)
+	}
+
+	pub fn new_creature(&mut self, shape: Shape, initial_pos: Position) -> Id {
 		let mut rng = rand::thread_rng();
 
 		let id = self.next_id();
 		let vertices = shape.vertices();
 
 		let limb = Limb {
-			transform: Transform::default(),
+			transform: obj::Transform::with_position(initial_pos),
 			mesh: Mesh {
 				shape: shape,
 				vertices: vertices,
@@ -183,7 +182,7 @@ impl Flock {
 		};
 
 		self.creatures.insert(id, creature);
-
+	
 		id
 	}
 
@@ -247,6 +246,10 @@ impl World {
 
 	pub fn new_ball(&mut self, pos: obj::Position) -> obj::Id {
 		self.friends.new_ball(pos)
+	}
+
+	pub fn new_star(&mut self, pos: obj::Position) -> obj::Id {
+		self.friends.new_star(pos)
 	}
 
 	pub fn friend(&self, id: obj::Id) -> Option<&Creature> {
