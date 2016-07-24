@@ -53,6 +53,7 @@ impl System for PhysicsSystem {
 	fn register(&mut self, creature: &world::Creature) {
 		let world = &mut self.world;
 		let object_id = creature.id();
+		
 		for (limb_index, limb) in creature.limbs().enumerate() {
 			let material = limb.material();
 			let mut f_def = b2::FixtureDef::new();
@@ -105,6 +106,26 @@ impl System for PhysicsSystem {
 						let refs = world::CreatureRefs::with_bone(object_id, limb_index as u8, i as u8);
 						world.body_mut(handle).create_fixture_with(&quad, &mut f_def, refs);
 					}
+				}
+				obj::Shape::Triangle { radius, .. } => {
+					let p = &mesh.vertices;
+					let mut quad = b2::PolygonShape::new();
+					let p1 = p[0];
+					let p2 = p[2]; // not a typo, we want cw, physics wants ccw
+					let p3 = p[1];
+					quad.set(&[b2::Vec2 {
+						           x: p1.x * radius,
+						           y: p1.y * radius,
+					           },
+					           b2::Vec2 {
+						           x: p2.x * radius,
+						           y: p2.y * radius,
+					           },
+					           b2::Vec2 {
+						           x: p3.x * radius,
+						           y: p3.y * radius,
+					           }]);
+					world.body_mut(handle).create_fixture_with(&quad, &mut f_def, refs);
 				}
 			};
 

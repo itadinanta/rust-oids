@@ -55,6 +55,11 @@ pub enum Shape {
 		c: f32,
 		ratio: f32,
 	},
+	Triangle {
+		radius: f32,
+		alpha1: f32,
+		alpha2: f32,
+	},
 }
 
 impl Shape {
@@ -84,20 +89,25 @@ impl Shape {
 
 	pub fn vertices(&self) -> Vec<Position> {
 		match *self {
-			Shape::Ball { radius } => vec![Position::new(0., radius)],
-			Shape::Box { width, height } => {
-				let w2 = width / 2.;
-				let h2 = height / 2.;
-				vec![Position::new(0., h2),
-				     Position::new(w2, h2),
-				     Position::new(-w2, -h2),
-				     Position::new(w2, -h2),
-				     Position::new(-w2, h2)]
+			// quarters
+			Shape::Ball { .. } => {
+				// first point is always unit y
+				vec![Position::new(0., 1.), Position::new(1., 0.), Position::new(0., -1.), Position::new(-1., -1.)]
 			}
-			Shape::Star { radius, n, a, b, c, ratio } => {
+			Shape::Box { width, height } => {
+				let w2 = width / height;
+				// we want the first point to be unit y
+				vec![Position::new(0., 1.),
+				     Position::new(w2, 1.),
+				     Position::new(-w2, -1.),
+				     Position::new(w2, -1.),
+				     Position::new(-w2, 1.)]
+			}
+			Shape::Star { n, a, b, c, ratio, .. } => {
 				let xmax = f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - 1.) / (b * b));
 				let r0 = ratio * xmax;
-				let rmax = r0 + (1. / c) * f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - 1.)); // we want r in 0 to be 1
+				// we want r in 0 to be 1, so first point is unit y
+				let rmax = r0 + (1. / c) * f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - 1.));
 
 				(0..(2 * n))
 					.map(|i| {
@@ -111,6 +121,11 @@ impl Shape {
 						              r * f32::cos(p))
 					})
 					.collect()
+			}
+			Shape::Triangle { alpha1, alpha2, .. } => {
+				vec![Position::new(0., 1.),
+				     Position::new(f32::cos(alpha1 * PI), f32::sin(alpha1 * PI)),
+				     Position::new(f32::cos(alpha2 * PI), f32::sin(alpha2 * PI))]
 			}
 		}
 	}
