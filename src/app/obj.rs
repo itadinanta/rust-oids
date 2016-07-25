@@ -63,18 +63,18 @@ pub enum Shape {
 }
 
 impl Shape {
-	pub fn new_ball(r: f32) -> Shape {
+	pub fn new_ball(r: f32) -> Self {
 		Shape::Ball { radius: r }
 	}
 
-	pub fn new_box(width: f32, height: f32) -> Shape {
+	pub fn new_box(width: f32, height: f32) -> Self {
 		Shape::Box {
 			width: width,
 			height: height,
 		}
 	}
 
-	pub fn new_star(radius: f32, ratio: f32, n: u8) -> Shape {
+	pub fn new_star(radius: f32, ratio: f32, n: u8) -> Self {
 		assert!(radius > 0.);
 		assert!(n > 1);
 		Shape::Star {
@@ -84,6 +84,14 @@ impl Shape {
 			b: 0.14,
 			c: 1.,
 			ratio: ratio,
+		}
+	}
+
+	pub fn new_triangle(radius: f32, alpha1: f32, alpha2: f32) -> Self {
+		Shape::Triangle {
+			radius: radius,
+			alpha1: alpha1,
+			alpha2: alpha2,
 		}
 	}
 
@@ -124,8 +132,8 @@ impl Shape {
 			}
 			Shape::Triangle { alpha1, alpha2, .. } => {
 				vec![Position::new(0., 1.),
-				     Position::new(f32::cos(alpha1 * PI), f32::sin(alpha1 * PI)),
-				     Position::new(f32::cos(alpha2 * PI), f32::sin(alpha2 * PI))]
+				     Position::new(f32::sin(alpha1 * PI), f32::cos(alpha1 * PI)),
+				     Position::new(f32::sin(alpha2 * PI), f32::cos(alpha2 * PI))]
 			}
 		}
 	}
@@ -134,6 +142,16 @@ impl Shape {
 pub struct Mesh {
 	pub shape: Shape,
 	pub vertices: Vec<Position>,
+}
+
+impl Mesh {
+	pub fn from_shape(shape: Shape) -> Self {
+		let vertices = shape.vertices();
+		Mesh {
+			shape: shape,
+			vertices: vertices,
+		}
+	}
 }
 
 pub trait Transformable {

@@ -53,7 +53,10 @@ impl System for PhysicsSystem {
 	fn register(&mut self, creature: &world::Creature) {
 		let world = &mut self.world;
 		let object_id = creature.id();
-		
+
+		let mut joint_body: Option<b2::BodyHandle> = None;
+		let mut joint_limb: Option<b2::BodyHandle> = None;
+
 		for (limb_index, limb) in creature.limbs().enumerate() {
 			let material = limb.material();
 			let mut f_def = b2::FixtureDef::new();
@@ -72,6 +75,7 @@ impl System for PhysicsSystem {
 			let handle = world.create_body_with(&b_def, refs);
 
 			let mesh = limb.mesh();
+
 			match mesh.shape {
 				obj::Shape::Ball { radius } => {
 					let mut circle_shape = b2::CircleShape::new();
@@ -128,7 +132,16 @@ impl System for PhysicsSystem {
 					world.body_mut(handle).create_fixture_with(&quad, &mut f_def, refs);
 				}
 			};
-
+			if joint_body == None {
+				joint_body = Some(handle);
+			} else {
+				joint_limb = Some(handle);
+			}
+			if let (Some(b), Some(l)) = (joint_body, joint_limb) {
+				let mut joint = b2::RevoluteJointDef::new(b, l);
+				joint.local_anchor_b = b2::Vec2 { x: 0., y: 1. };
+				world.create_joint_with(&joint, ());
+			}
 			self.handles.insert(refs, handle);
 		}
 	}

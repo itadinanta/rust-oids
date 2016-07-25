@@ -5,6 +5,7 @@ use rand::Rng;
 use std::collections::HashMap;
 use std::slice;
 
+#[derive(Clone)]
 pub struct State {
 	age_seconds: f32,
 	age_frames: usize,
@@ -164,21 +165,34 @@ impl Flock {
 		let mut rng = rand::thread_rng();
 
 		let id = self.next_id();
-		let vertices = shape.vertices();
 
-		let limb = Limb {
+		let material = Material { density: (rng.gen::<f32>() * 1.0) + 1.0, ..Default::default() };
+		let state = State::with_charge(rng.gen::<f32>(), final_charge);
+
+		let arm1 = Limb {
+			transform: obj::Transform::with_position(initial_pos + Position::new(1., 0.)),
+			mesh: Mesh::from_shape(shape.clone()),
+			material: material.clone(),
+			state: state.clone(),
+		};
+
+		let arm2 = Limb {
+			transform: obj::Transform::with_position(initial_pos - Position::new(1., 0.)),
+			mesh: Mesh::from_shape(shape.clone()),
+			material: material.clone(),
+			state: state.clone(),
+		};
+
+		let body = Limb {
 			transform: obj::Transform::with_position(initial_pos),
-			mesh: Mesh {
-				shape: shape,
-				vertices: vertices,
-			},
-			material: Material { density: (rng.gen::<f32>() * 1.0) + 1.0, ..Default::default() },
-			state: State::with_charge(rng.gen::<f32>(), final_charge),
+			mesh: Mesh::from_shape(shape),
+			material: material,
+			state: state,
 		};
 
 		let creature = Creature {
 			id: id,
-			limbs: vec![limb],
+			limbs: vec![body, arm1, arm2],
 		};
 
 		self.creatures.insert(id, creature);
