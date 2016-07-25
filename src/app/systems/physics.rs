@@ -139,7 +139,8 @@ impl System for PhysicsSystem {
 			}
 			if let (Some(b), Some(l)) = (joint_body, joint_limb) {
 				let mut joint = b2::RevoluteJointDef::new(b, l);
-				joint.local_anchor_b = b2::Vec2 { x: 0., y: 1. };
+				joint.reference_angle = 1.0;
+				joint.local_anchor_b = b2::Vec2 { x: 0., y: 2. };
 				world.create_joint_with(&joint, ());
 			}
 			self.handles.insert(refs, handle);
