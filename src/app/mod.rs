@@ -1,3 +1,5 @@
+mod mainloop;
+
 use backend::obj;
 use backend::world;
 use backend::systems;
@@ -14,6 +16,10 @@ use cgmath;
 use cgmath::Matrix4;
 use frontend::input::Button::*;
 use backend::obj::{Geometry, Drawable, Transformable};
+
+pub fn run() {
+	mainloop::main_loop();
+}
 
 pub struct Viewport {
 	width: u32,
