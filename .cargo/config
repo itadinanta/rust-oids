@@ -1,0 +1,7 @@
+paths = [
+	"../3rdParty/gfx/src/render/",
+	"../3rdParty/gfx/src/core/",
+	"../3rdParty/gfx/src/backend/gl/",
+	"../3rdParty/gfx/src/window/glutin/",
+	"../3rdParty/gfx_text/"
+	]

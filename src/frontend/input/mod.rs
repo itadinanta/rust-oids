@@ -1,6 +1,6 @@
 //! Input state, including current mouse position and button click
 //! TODO: add keyboard presses
-use app::obj;
+use cgmath::Vector2;
 
 pub enum Button {
 	Left = 0,
@@ -9,14 +9,14 @@ pub enum Button {
 
 pub struct InputState {
 	button_pressed: [bool; 2],
-	mouse_position: obj::Position,
+	mouse_position: Vector2<f32>,
 }
 
 impl Default for InputState {
 	fn default() -> Self {
 		InputState {
 			button_pressed: [false; 2],
-			mouse_position: obj::Position::new(0., 0.),
+			mouse_position: Vector2::new(0., 0.),
 		}
 	}
 }
@@ -46,11 +46,11 @@ impl InputState {
 		self.button_pressed(Button::Left)
 	}
 
-	pub fn mouse_position_at(&mut self, pos: obj::Position) {
+	pub fn mouse_position_at(&mut self, pos: Vector2<f32>) {
 		self.mouse_position = pos;
 	}
 
-	pub fn mouse_position(&self) -> obj::Position {
+	pub fn mouse_position(&self) -> Vector2<f32> {
 		self.mouse_position
 	}
 }

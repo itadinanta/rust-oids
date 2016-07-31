@@ -1,6 +1,6 @@
 use super::*;
-use app::world;
-use app::obj::Updateable;
+use backend::world;
+use	backend::obj::Updateable;
 use std::time::*;
 
 pub struct AnimationSystem {

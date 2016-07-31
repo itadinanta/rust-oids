@@ -1,17 +1,19 @@
-mod obj;
-mod world;
-mod systems;
-mod smooth;
-mod input;
+use backend::obj;
+use backend::world;
+use backend::systems;
+
+use backend::systems::System;
+use backend::smooth;
+
+use frontend::input;
+use frontend::render;
 
 use std::time::{SystemTime, Duration, SystemTimeError};
 use glutin;
 use cgmath;
 use cgmath::Matrix4;
-use cgmath::Point3;
-use render;
-use self::input::Button::*;
-use self::obj::{Solid, Geometry, Drawable, Transformable};
+use frontend::input::Button::*;
+use backend::obj::{Geometry, Drawable, Transformable};
 
 pub struct Viewport {
 	width: u32,
@@ -95,8 +97,6 @@ pub struct Update {
 	pub fps: f32,
 }
 
-use app::systems::System;
-
 impl App {
 	pub fn new(w: u32, h: u32, scale: f32) -> App {
 		App {
@@ -154,7 +154,7 @@ impl App {
 			glutin::MouseButton::Right => {
 				self.input_state.button_press(Right);
 				self.new_star(pos);
-			}			
+			}
 			_ => (),
 		}
 	}
@@ -213,7 +213,7 @@ impl App {
 					}
 					Some(glutin::VirtualKeyCode::Escape) => {
 						self.quit();
-					}					
+					}
 					_ => println!("Key pressed {:?}/{:?}", scancode, vk),
 				}
 			}

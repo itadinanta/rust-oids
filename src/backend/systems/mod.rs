@@ -4,8 +4,8 @@ pub mod animation;
 pub use self::physics::PhysicsSystem;
 pub use self::animation::AnimationSystem;
 
-use app::world;
-use app::obj;
+use backend::world;
+use backend::obj;
 
 pub trait System: obj::Updateable {
 	fn register(&mut self, creature: &world::Creature);

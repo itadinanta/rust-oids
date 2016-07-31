@@ -1,5 +1,10 @@
-mod render;
+mod frontend;
+mod backend;
 mod app;
+
+use	frontend::render;
+use frontend::render::Draw;
+use	frontend::render::Renderer;
 
 extern crate rand;
 extern crate num;
@@ -21,7 +26,6 @@ extern crate glutin;
 extern crate genmesh;
 extern crate piston;
 
-use render::Renderer;
 
 fn main() {
 	const WIDTH: u32 = 1280;
@@ -88,7 +92,6 @@ fn main() {
 		renderer.resolve_frame_buffer();
 
 		if let Ok(r) = update_result {
-			use render::Draw;
 			// draw some debug text on screen
 			renderer.draw_text(&format!("F: {} E: {:.3} FT: {:.2} SFT: {:.2} FPS: {:.1}",
 			                            r.frame_count,
