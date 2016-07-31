@@ -55,17 +55,17 @@ impl Camera {
 	pub fn ortho(center: cgmath::Point2<f32>, scale: f32, ratio: f32) -> Camera {
 		Camera {
 			projection: {
-				            let hw = 0.5 * scale;
-				            let hh = hw / ratio;
-				            let near = 10.0;
-				            let far = -near;
-				            cgmath::ortho(-hw, hw, -hh, hh, near, far)
-				           }
-			            .into(),
+					let hw = 0.5 * scale;
+					let hh = hw / ratio;
+					let near = 10.0;
+					let far = -near;
+					cgmath::ortho(-hw, hw, -hh, hh, near, far)
+				}
+				.into(),
 			view: cgmath::Matrix4::look_at(cgmath::Point3::new(center.x, center.y, 1.0),
 			                               cgmath::Point3::new(center.x, center.y, 0.0),
 			                               cgmath::Vector3::unit_y())
-				      .into(),
+				.into(),
 		}
 	}
 }
@@ -139,20 +139,37 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 			light_color: BLACK,
 		}
 	}
+
+	pub fn resize_to(&mut self,
+	                 frame_buffer: &gfx::handle::RenderTargetView<R, ColorFormat>,
+	                 depth: &gfx::handle::DepthStencilView<R, DepthFormat>) {
+		// TODO: this thing leaks?
+
+		let factory = &mut self.factory;
+
+		let (w, h, _, _) = frame_buffer.get_dimensions();
+		let (_, hdr_srv, hdr_color_buffer) = factory.create_render_target(w, h).unwrap();
+
+		self.hdr_srv = hdr_srv;
+		self.hdr_color = hdr_color_buffer;
+		self.depth = depth.clone();
+		self.frame_buffer = frame_buffer.clone();
+		self.pass_effects = effects::PostLighting::new(factory, w, h);
+	}
 }
 
 impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for ForwardRenderer<'e, R, C, F> {
 	fn draw_star(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[cgmath::Vector2<f32>], color: [f32; 4]) {
 		let mut v: Vec<_> = vertices.iter()
-		                            .map(|v| {
-			                            Vertex {
-				                            pos: [v.x, v.y, 0.0],
-				                            normal: [0.0, 0.0, 1.0],
-				                            tangent: [1.0, 0.0, 0.0],
-				                            tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
-			                            }
-			                           })
-		                            .collect();
+			.map(|v| {
+				Vertex {
+					pos: [v.x, v.y, 0.0],
+					normal: [0.0, 0.0, 1.0],
+					tangent: [1.0, 0.0, 0.0],
+					tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
+				}
+			})
+			.collect();
 		let n = v.len();
 		v.push(Vertex {
 			pos: [0.0, 0.0, 0.0],

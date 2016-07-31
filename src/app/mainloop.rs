@@ -37,6 +37,7 @@ pub fn main_loop() {
 
 				glutin::Event::Resized(new_width, new_height) => {
 					gfx_window_glutin::update_views(&window, &mut frame_buffer, &mut depth_buffer);
+					renderer.resize_to(&frame_buffer, &depth_buffer);
 					app.on_resize(new_width, new_height);
 				}
 				glutin::Event::Closed => app.quit(),
