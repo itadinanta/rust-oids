@@ -66,6 +66,7 @@ pub fn main_loop() {
 		// draw the scene
 		app.render(renderer);
 
+		// post-render effects and tone mapping
 		renderer.resolve_frame_buffer();
 
 		if let Ok(r) = update_result {

@@ -1,10 +1,16 @@
 mod effects;
 mod forward;
 
-use gfx;
+use std::clone::Clone;
 
-extern crate cgmath;
-extern crate gfx_text;
+use cgmath;
+use frontend::render::forward::Vertex;
+
+use gfx;
+use gfx::Factory;
+use gfx::traits::FactoryExt;
+
+use gfx_text;
 
 pub type HDRColorFormat = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
 pub type ColorFormat = gfx::format::Srgba8;
@@ -16,8 +22,6 @@ pub type M44 = cgmath::Matrix4<f32>;
 
 pub const BACKGROUND: [f32; 4] = [0.01, 0.01, 0.01, 1.0];
 pub const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
-
-use self::forward::Vertex;
 
 const QUAD_VERTICES: [Vertex; 4] = [Vertex {
 	                                    pos: [-1.0, -1.0, 0.0],
@@ -105,10 +109,6 @@ pub struct ForwardRenderer<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>,
 	light_color: [f32; 4],
 }
 
-use gfx::Factory;
-use gfx::traits::FactoryExt;
-
-use std::clone::Clone;
 impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> ForwardRenderer<'e, R, C, F> {
 	pub fn new(factory: &mut F,
 	           encoder: &'e mut gfx::Encoder<R, C>,
