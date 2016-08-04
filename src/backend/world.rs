@@ -47,11 +47,27 @@ impl State {
 	}
 }
 
+pub struct Joint {
+	index: LimbIndex,
+	attachment_point: usize,
+}
+
 pub struct Limb {
 	transform: Transform,
+	index: LimbIndex,
 	mesh: Mesh,
 	material: Material,
+	attached_to: Option<Joint>,
 	pub state: State,
+}
+
+impl Limb {
+	pub fn new_joint(&self, attachment_point: usize) -> Joint {
+		Joint {
+			index: self.index,
+			attachment_point: attachment_point,
+		}
+	}
 }
 
 pub struct Creature {
@@ -169,26 +185,33 @@ impl Flock {
 		let material = Material { density: (rng.gen::<f32>() * 1.0) + 1.0, ..Default::default() };
 		let state = State::with_charge(rng.gen::<f32>(), final_charge);
 
-		let arm1 = Limb {
-			transform: obj::Transform::with_position(initial_pos + Position::new(1., 0.)),
-			mesh: Mesh::from_shape(shape.clone()),
+		let body = Limb {
+			index: 0,
+			transform: obj::Transform::with_position(initial_pos),
+			mesh: Mesh::from_shape(shape.clone(), Winding::CW),
 			material: material.clone(),
 			state: state.clone(),
+			attached_to: None,
+		};
+
+		let arm1 = Limb {
+			index: 1,
+			transform: obj::Transform::with_position(initial_pos + Position::new(1., 0.)),
+			mesh: Mesh::from_shape(shape.clone(), Winding::CW),
+			material: material.clone(),
+			state: state.clone(),
+			attached_to: Some(body.new_joint(0)),
 		};
 
 		let arm2 = Limb {
+			index: 2,
 			transform: obj::Transform::with_position(initial_pos - Position::new(1., 0.)),
-			mesh: Mesh::from_shape(shape.clone()),
+			mesh: Mesh::from_shape(shape.clone(), Winding::CCW),
 			material: material.clone(),
 			state: state.clone(),
+			attached_to: Some(body.new_joint(0)),
 		};
 
-		let body = Limb {
-			transform: obj::Transform::with_position(initial_pos),
-			mesh: Mesh::from_shape(shape),
-			material: material,
-			state: state,
-		};
 
 		let creature = Creature {
 			id: id,

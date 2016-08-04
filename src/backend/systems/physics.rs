@@ -12,8 +12,8 @@ struct CreatureData;
 
 impl UserDataTypes for CreatureData {
 	type BodyData = world::CreatureRefs;
-    type JointData = ();
-    type FixtureData = world::CreatureRefs;
+	type JointData = ();
+	type FixtureData = world::CreatureRefs;
 }
 
 pub struct PhysicsSystem {
@@ -91,9 +91,13 @@ impl System for PhysicsSystem {
 					let p = &mesh.vertices;
 					for i in 0..n {
 						let mut quad = b2::PolygonShape::new();
-						let p1 = p[(i * 2 + 1) as usize];
-						let p2 = p[(i * 2) as usize];
-						let p3 = p[((i * 2 + (n * 2) - 1) % (n * 2)) as usize];
+						let i1 = (i * 2 + 1) as usize;
+						let i2 = (i * 2) as usize;
+						let i3 = ((i * 2 + (n * 2) - 1) % (n * 2)) as usize;
+						let (p1, p2, p3) = match mesh.winding {
+							obj::Winding::CW => (p[i1], p[i2], p[i3]),
+							obj::Winding::CCW => (p[i1], p[i3], p[i2]),
+						};
 						quad.set(&[b2::Vec2 { x: 0., y: 0. },
 						           b2::Vec2 {
 							           x: p1.x * radius,
@@ -139,7 +143,6 @@ impl System for PhysicsSystem {
 			}
 			if let (Some(b), Some(l)) = (joint_body, joint_limb) {
 				let mut joint = b2::RevoluteJointDef::new(b, l);
-				joint.reference_angle = 1.0;
 				joint.local_anchor_b = b2::Vec2 { x: 0., y: 2. };
 				world.create_joint_with(&joint, ());
 			}

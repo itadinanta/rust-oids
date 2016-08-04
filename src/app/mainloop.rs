@@ -55,7 +55,10 @@ pub fn main_loop() {
 
 		let environment = app.environment();
 
-		renderer.setup(&camera, environment.background, environment.light);
+		renderer.setup(&camera,
+		               environment.background,
+		               environment.light,
+		               environment.light_position);
 
 		// update and measure
 		let update_result = app.update();

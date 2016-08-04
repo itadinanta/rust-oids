@@ -71,7 +71,6 @@ impl<T> Cycle<T>
 	}
 }
 
-
 pub struct App {
 	pub viewport: Viewport,
 	input_state: input::InputState,
@@ -81,6 +80,8 @@ pub struct App {
 	frame_elapsed: f32,
 	frame_smooth: smooth::Smooth<f32>,
 	is_running: bool,
+	//
+	light_position: obj::Position,
 	lights: Cycle<[f32; 4]>,
 	backgrounds: Cycle<[f32; 4]>,
 	//
@@ -91,6 +92,7 @@ pub struct App {
 
 pub struct Environment {
 	pub light: [f32; 4],
+	pub light_position: obj::Position,
 	pub background: [f32; 4],
 }
 
@@ -110,6 +112,7 @@ impl App {
 			input_state: input::InputState::default(),
 
 			// testbed, will need a display/render subsystem
+			light_position: obj::Position::new(10.0, 10.0),
 			lights: Self::init_lights(),
 			backgrounds: Self::init_backgrounds(),
 
@@ -184,6 +187,10 @@ impl App {
 		self.new_ball(pos);
 	}
 
+	fn on_mouse_move(&mut self, pos: obj::Position) {
+		self.light_position = pos;
+	}
+
 	fn on_right_drag(&mut self, pos: obj::Position) {
 		self.new_star(pos);
 	}
@@ -256,6 +263,8 @@ impl App {
 					self.on_drag(pos);
 				} else if self.input_state.button_pressed(Right) {
 					self.on_right_drag(pos);
+				} else {
+					self.on_mouse_move(pos);
 				}
 			}
 			_ => (),
@@ -306,6 +315,7 @@ impl App {
 	pub fn environment(&self) -> Environment {
 		Environment {
 			light: self.lights.get(),
+			light_position: self.light_position,
 			background: self.backgrounds.get(),
 		}
 	}

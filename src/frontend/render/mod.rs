@@ -81,7 +81,11 @@ pub trait Draw {
 }
 
 pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>>: Draw {
-	fn setup(&mut self, camera: &Camera, background_color: [f32; 4], light_color: [f32; 4]);
+	fn setup(&mut self,
+	         camera: &Camera,
+	         background_color: [f32; 4],
+	         light_color: [f32; 4],
+	         light_position: cgmath::Vector2<f32>);
 	fn begin_frame(&mut self);
 	fn resolve_frame_buffer(&mut self);
 	fn end_frame<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D);
@@ -107,6 +111,7 @@ pub struct ForwardRenderer<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>,
 
 	background_color: [f32; 4],
 	light_color: [f32; 4],
+	light_position: cgmath::Vector2<f32>,
 }
 
 impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> ForwardRenderer<'e, R, C, F> {
@@ -137,6 +142,7 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 			pass_effects: effects::PostLighting::new(factory, w, h),
 			background_color: BACKGROUND,
 			light_color: BLACK,
+			light_position: cgmath::Vector2::new(0.0, 0.0),
 		}
 	}
 
@@ -219,19 +225,25 @@ impl<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>> Render
                                                                                                              R,
                                                                                                              C,
                                                                                                              F> {
-	fn setup(&mut self, camera: &Camera, background_color: [f32; 4], light_color: [f32; 4]) {
+	fn setup(&mut self,
+	         camera: &Camera,
+	         background_color: [f32; 4],
+	         light_color: [f32; 4],
+	         light_position: cgmath::Vector2<f32>) {
 		self.background_color = background_color;
 		self.light_color = light_color;
-		let lights: Vec<forward::PointLight> = vec![forward::PointLight {
-			                                            propagation: [0.3, 0.5, 0.4, 0.0],
-			                                            center: [-15.0, -5.0, 1.0, 1.0],
-			                                            color: [0.3, 0.0, 0.0, 1.0],
-		                                            },
-		                                            forward::PointLight {
-			                                            propagation: [0.2, 0.8, 0.1, 0.1],
-			                                            center: [10.0, 10.0, 2.0, 1.0],
-			                                            color: self.light_color,
-		                                            }];
+		self.light_position = light_position;
+		let lights: Vec<forward::PointLight> =
+			vec![forward::PointLight {
+				     propagation: [0.3, 0.5, 0.4, 0.0],
+				     center: [-15.0, -5.0, 1.0, 1.0],
+				     color: [0.3, 0.0, 0.0, 1.0],
+			     },
+			     forward::PointLight {
+				     propagation: [0.2, 0.8, 0.1, 0.1],
+				     center: [self.light_position.x, self.light_position.y, 2.0, 1.0],
+				     color: self.light_color,
+			     }];
 
 		self.pass_forward_lighting.setup(&mut self.encoder, camera.projection, camera.view, &lights);
 	}

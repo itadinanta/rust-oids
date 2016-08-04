@@ -62,6 +62,12 @@ pub enum Shape {
 	},
 }
 
+#[derive(Clone, Copy)]
+pub enum Winding {
+	CW,
+	CCW,
+}
+
 impl Shape {
 	pub fn new_ball(r: f32) -> Self {
 		Shape::Ball { radius: r }
@@ -95,15 +101,22 @@ impl Shape {
 		}
 	}
 
-	pub fn vertices(&self) -> Vec<Position> {
-		match *self {
+	pub fn vertices(&self, winding: Winding) -> Vec<Position> {
+		let xunit = match winding {
+			Winding::CW => 1.,
+			Winding::CCW => -1.,
+		};
+		match self {
 			// quarters
-			Shape::Ball { .. } => {
+			&Shape::Ball { .. } => {
 				// first point is always unit y
-				vec![Position::new(0., 1.), Position::new(1., 0.), Position::new(0., -1.), Position::new(-1., -1.)]
+				vec![Position::new(0., 1.),
+				     Position::new(xunit, 0.),
+				     Position::new(0., -1.),
+				     Position::new(-xunit, -1.)]
 			}
-			Shape::Box { width, height } => {
-				let w2 = width / height;
+			&Shape::Box { width, height } => {
+				let w2 = xunit * width / height;
 				// we want the first point to be unit y
 				vec![Position::new(0., 1.),
 				     Position::new(w2, 1.),
@@ -111,7 +124,8 @@ impl Shape {
 				     Position::new(w2, -1.),
 				     Position::new(-w2, 1.)]
 			}
-			Shape::Star { n, a, b, c, ratio, .. } => {
+			&Shape::Star { n, a, b, c, ratio, .. } => {
+				let mut damp = 1.0;
 				let xmax = f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - 1.) / (b * b));
 				let r0 = ratio * xmax;
 				// we want r in 0 to be 1, so first point is unit y
@@ -125,15 +139,16 @@ impl Shape {
 						         (1. / c) *
 						         f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - f32::exp(-b * b * xmax * xmax * s * s)))) /
 						        rmax;
-						Position::new(r * f32::sin(p), // start from (1,0), clockwise
-						              r * f32::cos(p))
+						damp *= 0.9;
+						Position::new(xunit * damp * r * f32::sin(p), // start from (1,0), clockwise
+						              damp * r * f32::cos(p))
 					})
 					.collect()
 			}
-			Shape::Triangle { alpha1, alpha2, .. } => {
+			&Shape::Triangle { alpha1, alpha2, .. } => {
 				vec![Position::new(0., 1.),
-				     Position::new(f32::sin(alpha1 * PI), f32::cos(alpha1 * PI)),
-				     Position::new(f32::sin(alpha2 * PI), f32::cos(alpha2 * PI))]
+				     Position::new(xunit * f32::sin(alpha1 * PI), f32::cos(alpha1 * PI)),
+				     Position::new(xunit * f32::sin(alpha2 * PI), f32::cos(alpha2 * PI))]
 			}
 		}
 	}
@@ -141,14 +156,16 @@ impl Shape {
 
 pub struct Mesh {
 	pub shape: Shape,
+	pub winding: Winding,
 	pub vertices: Vec<Position>,
 }
 
 impl Mesh {
-	pub fn from_shape(shape: Shape) -> Self {
-		let vertices = shape.vertices();
+	pub fn from_shape(shape: Shape, winding: Winding) -> Self {
+		let vertices = shape.vertices(winding);
 		Mesh {
 			shape: shape,
+			winding: winding,
 			vertices: vertices,
 		}
 	}
