@@ -193,31 +193,8 @@ impl PhysicsSystem {
 	}
 
 	fn new_world() -> b2::World<CreatureData> {
-		let mut world = b2::World::new(&b2::Vec2 { x: 0.0, y: -9.8 });
+		let mut world = b2::World::new(&b2::Vec2 { x: 0.0, y: 0.0 });
 
-		let mut b_def = b2::BodyDef::new();
-		b_def.body_type = b2::BodyType::Static;
-		b_def.position = b2::Vec2 { x: 0.0, y: -8.0 };
-
-		let mut ground_box = b2::PolygonShape::new();
-		{
-			ground_box.set_as_box(20.0, 1.0);
-			let ground_handle = world.create_body(&b_def);
-			let ground = &mut world.body_mut(ground_handle);
-			ground.create_fast_fixture(&ground_box, 0.);
-
-			ground_box.set_as_oriented_box(1.0,
-			                               5.0,
-			                               &b2::Vec2 { x: 21.0, y: 5.0 },
-			                               (-consts::FRAC_PI_8) as f32);
-			ground.create_fast_fixture(&ground_box, 0.);
-
-			ground_box.set_as_oriented_box(1.0,
-			                               5.0,
-			                               &b2::Vec2 { x: -21.0, y: 5.0 },
-			                               (consts::FRAC_PI_8) as f32);
-			ground.create_fast_fixture(&ground_box, 0.);
-		}
 		world
 	}
 }
