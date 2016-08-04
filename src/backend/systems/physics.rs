@@ -18,31 +18,42 @@ impl UserDataTypes for CreatureData {
 
 pub struct PhysicsSystem {
 	edge: f32,
+	remote: obj::Position,
 	world: b2::World<CreatureData>,
 	handles: HashMap<world::CreatureRefs, b2::BodyHandle>,
 	dropped: Vec<world::CreatureRefs>,
 }
 
+use cgmath::Vector;
+use cgmath::Vector2;
+use cgmath::EuclideanVector;
+
 impl Updateable for PhysicsSystem {
 	fn update(&mut self, dt: f32) {
 		let world = &mut self.world;
 		world.step(dt, 8, 3);
-		const MAX_RADIUS: f32 = 5.0;
+		const MAGNITUDE: f32 = 5.0;
 		let mut v = Vec::new();
 		self.dropped.clear();
 		// TODO: is this the best way to iterate?
 		for (h, b) in world.bodies() {
-			let body = b.borrow();
-			let position = (*body).position();
-			let key = (*body).user_data().clone();
-			if position.y < (self.edge - MAX_RADIUS) {
-				v.push(h);
-				self.dropped.push(key);
+			let center = b.borrow().world_center().clone();
+			v.push((h, center));
+		}
+		for (h, center) in v {
+			let v = self.remote -
+			        obj::Position {
+				x: center.x,
+				y: center.y,
+			};
+			if v != Vector2::zero() {
+				let f = v.normalize_to(MAGNITUDE);
+				world.body_mut(h).apply_force(&b2::Vec2 { x: f.x, y: f.y }, &center, true);
 			}
 		}
-		for h in v {
-			world.destroy_body(h);
-		}
+		// 		for (h, _) in v {
+		// 			world.destroy_body(h);
+		// 		}
 		for key in &self.dropped {
 			self.handles.remove(&key);
 		}
@@ -118,9 +129,10 @@ impl System for PhysicsSystem {
 				obj::Shape::Triangle { radius, .. } => {
 					let p = &mesh.vertices;
 					let mut quad = b2::PolygonShape::new();
-					let p1 = p[0];
-					let p2 = p[2]; // not a typo, we want cw, physics wants ccw
-					let p3 = p[1];
+					let (p1, p2, p3) = match mesh.winding {
+						obj::Winding::CW => (p[0], p[2], p[1]),
+						obj::Winding::CCW => (p[0], p[1], p[2]),
+					};
 					quad.set(&[b2::Vec2 {
 						           x: p1.x * radius,
 						           y: p1.y * radius,
@@ -183,6 +195,7 @@ impl PhysicsSystem {
 		PhysicsSystem {
 			world: Self::new_world(),
 			edge: 0.,
+			remote: obj::Position::new(0., 0.),
 			handles: HashMap::new(),
 			dropped: Vec::new(),
 		}
@@ -190,6 +203,10 @@ impl PhysicsSystem {
 
 	pub fn drop_below(&mut self, edge: f32) {
 		self.edge = edge;
+	}
+
+	pub fn follow_me(&mut self, pos: obj::Position) {
+		self.remote = pos;
 	}
 
 	fn new_world() -> b2::World<CreatureData> {

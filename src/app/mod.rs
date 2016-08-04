@@ -350,6 +350,7 @@ impl App {
 	fn update_physics(&mut self, dt: f32) {
 		let (_, edge) = self.viewport.to_world(0, self.viewport.height);
 		self.physics_system.drop_below(edge);
+		self.physics_system.follow_me(self.light_position);
 		self.physics_system.update_world(dt, &mut self.world);
 	}
 
