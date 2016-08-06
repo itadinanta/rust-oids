@@ -35,6 +35,7 @@ pub type Rgba = [f32; 4];
 pub type Id = usize;
 pub type LimbIndex = u8;
 pub type BoneIndex = u8;
+pub type AttachmentIndex = u8;
 pub type PhysicsHandle = Id;
 
 #[derive(Clone)]
@@ -62,10 +63,27 @@ pub enum Shape {
 	},
 }
 
+impl Shape {
+	pub fn radius(&self) -> f32 {
+		match self {
+			&Shape::Ball { radius } => radius,
+			&Shape::Box { height, .. } => height / 2.,
+			&Shape::Star { radius, .. } => radius,
+			&Shape::Triangle { radius, .. } => radius,
+		}
+	}
+}
+
 #[derive(Clone, Copy)]
 pub enum Winding {
-	CW,
-	CCW,
+	CW = 1,
+	CCW = -1,
+}
+
+impl Winding {
+	pub fn xunit(&self) -> f32 {
+		*self as i16 as f32
+	}
 }
 
 impl Shape {
@@ -102,22 +120,20 @@ impl Shape {
 	}
 
 	pub fn vertices(&self, winding: Winding) -> Vec<Position> {
-		let xunit = match winding {
-			Winding::CW => 1.,
-			Winding::CCW => -1.,
-		};
+		let xunit = winding.xunit();
 		match self {
-			// quarters
+			// first point is always unit y
 			&Shape::Ball { .. } => {
-				// first point is always unit y
-				vec![Position::new(0., 1.),
-				     Position::new(xunit, 0.),
-				     Position::new(0., -1.),
-				     Position::new(-xunit, -1.)]
+				let n = 12usize;
+				(0..n)
+					.map(|i| {
+						let p = (i as f32) / (n as f32) * 2. * PI;
+						Position::new(xunit * f32::sin(p), f32::cos(p))
+					})
+					.collect()
 			}
 			&Shape::Box { width, height } => {
 				let w2 = xunit * width / height;
-				// we want the first point to be unit y
 				vec![Position::new(0., 1.),
 				     Position::new(w2, 1.),
 				     Position::new(-w2, -1.),
@@ -128,7 +144,7 @@ impl Shape {
 				let mut damp = 1.0;
 				let xmax = f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - 1.) / (b * b));
 				let r0 = ratio * xmax;
-				// we want r in 0 to be 1, so first point is unit y
+				// we want r in 0 to be 1
 				let rmax = r0 + (1. / c) * f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - 1.));
 
 				(0..(2 * n))
@@ -140,8 +156,7 @@ impl Shape {
 						         f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - f32::exp(-b * b * xmax * xmax * s * s)))) /
 						        rmax;
 						damp *= 0.9;
-						Position::new(xunit * damp * r * f32::sin(p), // start from (1,0), clockwise
-						              damp * r * f32::cos(p))
+						Position::new(xunit * damp * r * f32::sin(p), damp * r * f32::cos(p))
 					})
 					.collect()
 			}

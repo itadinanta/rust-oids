@@ -47,9 +47,10 @@ impl State {
 	}
 }
 
-pub struct Joint {
-	index: LimbIndex,
-	attachment_point: usize,
+#[derive(Copy, Clone)]
+pub struct Attachment {
+	pub index: LimbIndex,
+	pub attachment_point: AttachmentIndex,
 }
 
 pub struct Limb {
@@ -57,16 +58,16 @@ pub struct Limb {
 	index: LimbIndex,
 	mesh: Mesh,
 	material: Material,
-	attached_to: Option<Joint>,
+	pub attached_to: Option<Attachment>,
 	pub state: State,
 }
 
 impl Limb {
-	pub fn new_joint(&self, attachment_point: usize) -> Joint {
-		Joint {
+	pub fn new_attachment(&self, attachment_point: AttachmentIndex) -> Option<Attachment> {
+		Some(Attachment {
 			index: self.index,
-			attachment_point: attachment_point,
-		}
+			attachment_point: attachment_point % (self.mesh.vertices.len() as AttachmentIndex),
+		})
 	}
 }
 
@@ -185,37 +186,55 @@ impl Flock {
 		let material = Material { density: (rng.gen::<f32>() * 1.0) + 1.0, ..Default::default() };
 		let state = State::with_charge(rng.gen::<f32>(), final_charge);
 
-		let body = Limb {
+		let torso_shape = Shape::new_ball(shape.radius());
+		let torso = Limb {
 			index: 0,
 			transform: obj::Transform::with_position(initial_pos),
-			mesh: Mesh::from_shape(shape.clone(), Winding::CW),
+			mesh: Mesh::from_shape(torso_shape, Winding::CW),
 			material: material.clone(),
 			state: state.clone(),
 			attached_to: None,
 		};
 
-		let arm1 = Limb {
+		let right_arm = Limb {
 			index: 1,
-			transform: obj::Transform::with_position(initial_pos + Position::new(1., 0.)),
+			transform: obj::Transform::with_position(torso.transform.position + Position::new(1., 0.)),
 			mesh: Mesh::from_shape(shape.clone(), Winding::CW),
 			material: material.clone(),
 			state: state.clone(),
-			attached_to: Some(body.new_joint(0)),
+			attached_to: torso.new_attachment(2),
 		};
 
-		let arm2 = Limb {
+		let left_arm = Limb {
 			index: 2,
-			transform: obj::Transform::with_position(initial_pos - Position::new(1., 0.)),
+			transform: obj::Transform::with_position(torso.transform.position - Position::new(1., 0.)),
 			mesh: Mesh::from_shape(shape.clone(), Winding::CCW),
 			material: material.clone(),
 			state: state.clone(),
-			attached_to: Some(body.new_joint(0)),
+			attached_to: torso.new_attachment(8),
 		};
 
+		let right_leg = Limb {
+			index: 1,
+			transform: obj::Transform::with_position(torso.transform.position + Position::new(1., 0.)),
+			mesh: Mesh::from_shape(shape.clone(), Winding::CW),
+			material: material.clone(),
+			state: state.clone(),
+			attached_to: torso.new_attachment(4),
+		};
+
+		let left_leg = Limb {
+			index: 2,
+			transform: obj::Transform::with_position(torso.transform.position - Position::new(1., 0.)),
+			mesh: Mesh::from_shape(shape.clone(), Winding::CCW),
+			material: material.clone(),
+			state: state.clone(),
+			attached_to: torso.new_attachment(6),
+		};
 
 		let creature = Creature {
 			id: id,
-			limbs: vec![body, arm1, arm2],
+			limbs: vec![torso, right_arm, left_arm, right_leg, left_leg],
 		};
 
 		self.creatures.insert(id, creature);
