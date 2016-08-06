@@ -206,8 +206,8 @@ impl Default for Material {
 	fn default() -> Self {
 		Material {
 			density: 1.0,
-			restitution: 0.2,
-			friction: 0.3,
+			restitution: 0.6,
+			friction: 0.7,
 		}
 	}
 }
