@@ -44,17 +44,15 @@ pub enum Shape {
 		radius: f32,
 	},
 	Box {
-		width: f32,
-		height: f32,
+		radius: f32,
+		ratio: f32,
 	},
 	Star {
 		// http://www.geocities.jp/nyjp07/index_asteroid_E.html
 		radius: f32,
 		n: u8,
-		a: f32,
-		b: f32,
-		c: f32,
-		ratio: f32,
+		ratio1: f32,
+		ratio2: f32,
 	},
 	Triangle {
 		radius: f32,
@@ -67,7 +65,7 @@ impl Shape {
 	pub fn radius(&self) -> f32 {
 		match self {
 			&Shape::Ball { radius } => radius,
-			&Shape::Box { height, .. } => height / 2.,
+			&Shape::Box { radius, .. } => radius,
 			&Shape::Star { radius, .. } => radius,
 			&Shape::Triangle { radius, .. } => radius,
 		}
@@ -93,21 +91,21 @@ impl Shape {
 
 	pub fn new_box(width: f32, height: f32) -> Self {
 		Shape::Box {
-			width: width,
-			height: height,
+			radius: height,
+			ratio: width / height,
 		}
 	}
 
-	pub fn new_star(radius: f32, ratio: f32, n: u8) -> Self {
-		assert!(radius > 0.);
+	pub fn new_star(n: u8, radius: f32, ratio1: f32, ratio2: f32) -> Self {
 		assert!(n > 1);
+		assert!(radius > 0.);
+		assert!(ratio1 > 0. && ratio1 <= 1.);
+		assert!(ratio2 > 0.);
 		Shape::Star {
 			radius: radius,
 			n: n,
-			a: 0.83255,
-			b: 0.14,
-			c: 1.,
-			ratio: ratio,
+			ratio1: ratio1,
+			ratio2: f32::min(1. / ratio1, ratio2),
 		}
 	}
 
@@ -132,31 +130,23 @@ impl Shape {
 					})
 					.collect()
 			}
-			&Shape::Box { width, height } => {
-				let w2 = xunit * width / height;
+			&Shape::Box { ratio, .. } => {
+				let w2 = xunit * ratio;
 				vec![Position::new(0., 1.),
 				     Position::new(w2, 1.),
 				     Position::new(-w2, -1.),
 				     Position::new(w2, -1.),
 				     Position::new(-w2, 1.)]
 			}
-			&Shape::Star { n, a, b, c, ratio, .. } => {
-				let mut damp = 1.0;
-				let xmax = f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - 1.) / (b * b));
-				let r0 = ratio * xmax;
-				// we want r in 0 to be 1
-				let rmax = r0 + (1. / c) * f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - 1.));
-
+			&Shape::Star { n, ratio1, ratio2, .. } => {
+				let mut damp = 1.;
+				let ratio = &[ratio1, ratio2];
 				(0..(2 * n))
 					.map(|i| {
 						let p = i as f32 * (PI / n as f32);
-						let s = f32::sin(p * (n as f32 / 2.));
-						let r = (r0 +
-						         (1. / c) *
-						         f32::sqrt(-f32::ln(2. * f32::exp(-a * a) - f32::exp(-b * b * xmax * xmax * s * s)))) /
-						        rmax;
-						damp *= 0.9;
-						Position::new(xunit * damp * r * f32::sin(p), damp * r * f32::cos(p))
+						let r = f32::max(damp, 0.2);
+						damp *= ratio[i as usize % 2];
+						Position::new(xunit * r * f32::sin(p), r * f32::cos(p))
 					})
 					.collect()
 			}

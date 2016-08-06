@@ -148,9 +148,9 @@ impl PhysicsSystem {
 						circle_shape.set_radius(radius);
 						world.body_mut(handle).create_fixture_with(&circle_shape, &mut f_def, refs);
 					}
-					obj::Shape::Box { width, height } => {
+					obj::Shape::Box { radius, ratio } => {
 						let mut rect_shape = b2::PolygonShape::new();
-						rect_shape.set_as_box(width, height);
+						rect_shape.set_as_box(radius * 2. * ratio, radius * 2.);
 						world.body_mut(handle).create_fixture_with(&rect_shape, &mut f_def, refs);
 					}
 					obj::Shape::Star { radius, n, .. } => {

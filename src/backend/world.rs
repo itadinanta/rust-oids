@@ -174,8 +174,9 @@ impl Flock {
 		let mut rng = rand::thread_rng();
 		let radius = (rng.gen::<f32>() * 1.0) + 1.0;
 		let n = rng.gen::<u8>() % 3 + 5;
-		let ratio = (rng.gen::<f32>() * 0.2) + 0.1;
-		self.new_creature(Shape::new_star(radius, ratio, n), pos, 0.3)
+		let ratio1 = 0.7 + (rng.gen::<f32>() * 0.3);
+		let ratio2 = (0.2 + (rng.gen::<f32>() * 0.8)) * (1. / ratio1);
+		self.new_creature(Shape::new_star(n, radius, ratio1, ratio2), pos, 0.3)
 	}
 
 	pub fn new_creature(&mut self, shape: Shape, initial_pos: Position, final_charge: f32) -> Id {
