@@ -1,6 +1,6 @@
 use super::*;
 use backend::world;
-use	backend::obj::Updateable;
+use backend::world::WorldState;
 use std::time::*;
 
 pub struct AnimationSystem {
@@ -13,7 +13,7 @@ pub struct AnimationSystem {
 }
 
 impl Updateable for AnimationSystem {
-	fn update(&mut self, dt: f32) {
+	fn update(&mut self, state: &WorldState, dt: f32) {
 		self.now = SystemTime::now();
 		self.dt = dt;
 		self.frames += dt;
@@ -25,6 +25,8 @@ impl Updateable for AnimationSystem {
 
 impl System for AnimationSystem {
 	fn register(&mut self, _: &world::Creature) {}
+
+	fn from_world(&self, world: &world::World) {}
 
 	fn to_world(&self, world: &mut world::World) {
 		let keys: Vec<_> = world.friends.creatures().keys().cloned().collect();

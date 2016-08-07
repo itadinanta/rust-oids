@@ -6,17 +6,16 @@ use std::collections::HashMap;
 use std::slice;
 use std::f32::consts;
 use cgmath;
-use cgmath::Rotation;
 use cgmath::EuclideanVector;
 use num;
 
 #[derive(Clone)]
 pub struct State {
-	age_seconds: f32,
-	age_frames: usize,
-	charge: f32,
-	target_charge: f32,
-	tau: f32,
+	pub age_seconds: f32,
+	pub age_frames: usize,
+	pub charge: f32,
+	pub target_charge: f32,
+	pub tau: f32,
 }
 
 impl Default for State {
@@ -60,10 +59,10 @@ pub struct Attachment {
 
 #[derive(Clone)]
 pub struct Limb {
-	transform: Transform,
-	index: LimbIndex,
-	mesh: Mesh,
-	material: Material,
+	pub transform: Transform,
+	pub index: LimbIndex,
+	pub mesh: Mesh,
+	pub material: Material,
 	pub attached_to: Option<Attachment>,
 	pub state: State,
 }
@@ -84,7 +83,7 @@ impl Limb {
 
 pub struct Creature {
 	id: Id,
-	limbs: Vec<Limb>,
+	limbs: Box<[Limb]>,
 }
 
 impl GameObject for Creature {
@@ -144,6 +143,10 @@ impl Creature {
 		self.limbs.iter_mut()
 	}
 
+	pub fn limb(&self, index: LimbIndex) -> Option<&Limb> {
+		self.limbs.get(index as usize)
+	}
+
 	pub fn limb_mut(&mut self, index: LimbIndex) -> Option<&mut Limb> {
 		self.limbs.get_mut(index as usize)
 	}
@@ -155,8 +158,6 @@ struct CreatureBuilder {
 	state: State,
 	limbs: Vec<Limb>,
 }
-
-use std::ops::{Add, Mul, Sub};
 
 impl CreatureBuilder {
 	fn new(material: Material, state: State) -> Self {
@@ -298,7 +299,7 @@ impl CreatureBuilder {
 	pub fn build(&self, id: obj::Id) -> Creature {
 		Creature {
 			id: id,
-			limbs: self.limbs.clone(),
+			limbs: self.limbs.clone().into_boxed_slice(),
 		}
 	}
 }
@@ -416,6 +417,16 @@ pub struct World {
 	pub friends: Flock,
 }
 
+pub trait WorldState {
+	fn friend(&self, id: obj::Id) -> Option<&Creature>;
+}
+
+impl WorldState for World {
+	fn friend(&self, id: obj::Id) -> Option<&Creature> {
+		self.friends.get(id)
+	}
+}
+
 impl World {
 	pub fn new() -> Self {
 		World { friends: Flock::new() }
@@ -427,10 +438,6 @@ impl World {
 
 	pub fn new_star(&mut self, pos: obj::Position) -> obj::Id {
 		self.friends.new_creature(pos, 0.3)
-	}
-
-	pub fn friend(&self, id: obj::Id) -> Option<&Creature> {
-		self.friends.get(id)
 	}
 
 	pub fn friend_mut(&mut self, id: obj::Id) -> Option<&mut Creature> {

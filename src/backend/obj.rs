@@ -236,9 +236,6 @@ impl Default for Material {
 	}
 }
 
-pub trait Updateable {
-	fn update(&mut self, dt: f32);
-}
 
 pub trait Solid {
 	fn material(&self) -> Material;

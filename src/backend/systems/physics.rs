@@ -1,11 +1,9 @@
 use wrapped2d::b2;
 use wrapped2d::user_data::*;
 use backend::obj;
-use backend::obj::Updateable;
 use super::*;
 use backend::obj::{Solid, Geometry, Transformable};
 use backend::world;
-use std::f32::consts;
 use std::collections::HashMap;
 
 struct CreatureData;
@@ -25,14 +23,13 @@ pub struct PhysicsSystem {
 }
 
 use cgmath::Vector;
-use cgmath::Vector2;
 use cgmath::EuclideanVector;
 
 impl Updateable for PhysicsSystem {
-	fn update(&mut self, dt: f32) {
+	fn update(&mut self, state: &world::WorldState, dt: f32) {
 		enum BodyForce {
-			Parallel(b2::BodyHandle, b2::Vec2, b2::Vec2),
-			Perpendicular(b2::BodyHandle, b2::Vec2, b2::Vec2),
+			Parallel(b2::BodyHandle, f32, b2::Vec2, b2::Vec2),
+			Perpendicular(b2::BodyHandle, f32, b2::Vec2, b2::Vec2),
 		}
 		let mut v = Vec::new();
 
@@ -41,38 +38,40 @@ impl Updateable for PhysicsSystem {
 			let center = (*body).world_center().clone();
 			let facing = (*body).world_point(&b2::Vec2 { x: 0., y: 1. }).clone();
 			let key = (*body).user_data();
-			match key.limb_index {
-				// TODO: retrieve properties from userdata
-				1 | 2 => v.push(BodyForce::Perpendicular(h, center, facing)),
-				3 | 4 => v.push(BodyForce::Parallel(h, center, facing)),
-				_ => {}
+			if let Some(limb) = state.friend(key.creature_id).and_then(|c| c.limb(key.limb_index)) {
+				match limb.index {
+					// TODO: retrieve properties from userdata
+					1 | 2 => v.push(BodyForce::Perpendicular(h, limb.state.charge, center, facing)),
+					3 | 4 => v.push(BodyForce::Parallel(h, limb.state.charge, center, facing)),
+					_ => {}
+				}
 			}
 		}
 		for force in v {
 			match force {
-				BodyForce::Perpendicular(h, center, facing) => {
+				BodyForce::Perpendicular(h, charge, center, facing) => {
 					let t = self.remote - obj::Position::new(center.x, center.y);
 					let f = obj::Position::new(center.x - facing.x, center.y - facing.y);
 					let d = f.dot(t);
 
 					if d > 0. {
 						let b = &mut self.world.body_mut(h);
-						let power = 50.;//b.fixtures().reduce(|f| f.mass);
+						let power = charge * 50.;//b.fixtures().reduce(|f| f.mass);
 						let f = f.normalize_to(power);
 						b.apply_force(&b2::Vec2 { x: f.x, y: f.y }, &center, true);
 					}
 				}
-				BodyForce::Parallel(h, center, facing) => {
+				BodyForce::Parallel(h, charge, center, facing) => {
 					let t = self.remote - obj::Position::new(center.x, center.y);
 					let f = obj::Position::new(facing.x - center.x, facing.y - center.y);
 					let d = f.dot(t);
 
 					if d > 0. {
-						let power = 10.;
+						let power = charge * 10.;
 						let f = f.normalize_to(power);
 						self.world.body_mut(h).apply_force(&b2::Vec2 { x: f.x, y: f.y }, &center, true);
 					} else {
-						let power = 50.;
+						let power = charge * 50.;
 						let f = f.normalize_to(power);
 						self.world.body_mut(h).apply_force(&b2::Vec2 { x: -f.x, y: -f.y }, &center, true);
 					}
@@ -102,6 +101,8 @@ impl System for PhysicsSystem {
 			self.handles.insert(refs, handle);
 		}
 	}
+
+	fn from_world(&self, world: &world::World) {}
 
 	fn to_world(&self, world: &mut world::World) {
 		for key in &self.dropped {
