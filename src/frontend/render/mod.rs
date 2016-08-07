@@ -9,7 +9,6 @@ use frontend::render::forward::Vertex;
 use gfx;
 use gfx::Factory;
 use gfx::traits::FactoryExt;
-
 use gfx_text;
 
 pub type HDRColorFormat = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
@@ -75,6 +74,8 @@ impl Camera {
 }
 
 pub trait Draw {
+	fn draw_triangle(&mut self, transform: &cgmath::Matrix4<f32>, p: &[cgmath::Vector2<f32>; 3], color: [f32; 4]);
+	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>, ratio: f32, color: [f32; 4]);
 	fn draw_star(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[cgmath::Vector2<f32>], color: [f32; 4]);
 	fn draw_ball(&mut self, transform: &cgmath::Matrix4<f32>, color: [f32; 4]);
 	fn draw_text(&mut self, text: &str, screen_position: [i32; 2], text_color: [f32; 4]);
@@ -122,7 +123,7 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 	           -> ForwardRenderer<'e, R, C, F>
 		where F: Factory<R> {
 		let my_factory = factory.clone();
-		let (vertex_buffer, slice) = factory.create_vertex_buffer_with_slice(&QUAD_VERTICES, &QUAD_INDICES[..]);
+		let (vertex_buffer, quad_slice) = factory.create_vertex_buffer_with_slice(&QUAD_VERTICES, &QUAD_INDICES[..]);
 
 		let (w, h, _, _) = frame_buffer.get_dimensions();
 
@@ -137,7 +138,7 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 			frame_buffer: frame_buffer.clone(),
 			text_renderer: gfx_text::new(factory.clone()).build().unwrap(),
 			quad_vertices: vertex_buffer,
-			quad_indices: slice,
+			quad_indices: quad_slice,
 			pass_forward_lighting: forward::ForwardLighting::new(factory),
 			pass_effects: effects::PostLighting::new(factory, w, h),
 			background_color: BACKGROUND,
@@ -177,12 +178,7 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 			})
 			.collect();
 		let n = v.len();
-		v.push(Vertex {
-			pos: [0.0, 0.0, 0.0],
-			normal: [0.0, 0.0, 1.0],
-			tangent: [1.0, 0.0, 0.0],
-			tex_coord: [0.5, 0.5],
-		});
+		v.push(Vertex::default());
 
 		// TODO: these can be cached
 		let mut i: Vec<u16> = Vec::new();
@@ -209,6 +205,74 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 		                                          &mut self.encoder,
 		                                          &self.quad_vertices,
 		                                          &self.quad_indices,
+		                                          transform.into(),
+		                                          color,
+		                                          &mut self.hdr_color,
+		                                          &mut self.depth);
+	}
+
+	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>, ratio: f32, color: [f32; 4]) {
+
+		let v = &[Vertex {
+			          pos: [-ratio, -1.0, 0.0],
+			          normal: [0.0, 0.0, 1.0],
+			          tangent: [1.0, 0.0, 0.0],
+			          tex_coord: [0.5 - ratio * 0.5, 0.0],
+		          },
+		          Vertex {
+			          pos: [ratio, -1.0, 0.0],
+			          normal: [0.0, 0.0, 1.0],
+			          tangent: [1.0, 0.0, 0.0],
+			          tex_coord: [0.5 + ratio * 0.5, 0.0],
+		          },
+		          Vertex {
+			          pos: [ratio, 1.0, 0.0],
+			          normal: [0.0, 0.0, 1.0],
+			          tangent: [1.0, 0.0, 0.0],
+			          tex_coord: [0.5 + ratio * 0.5, 1.0],
+		          },
+		          Vertex {
+			          pos: [-ratio, 1.0, 0.0],
+			          normal: [0.0, 0.0, 1.0],
+			          tangent: [1.0, 0.0, 0.0],
+			          tex_coord: [0.5 - ratio * 0.5, 1.0],
+		          }];
+
+		let vertex_buffer = self.factory.create_vertex_buffer(v);
+
+		self.pass_forward_lighting.draw_triangles(forward::Shader::Flat,
+		                                          &mut self.encoder,
+		                                          &vertex_buffer,
+		                                          &self.quad_indices,
+		                                          transform.into(),
+		                                          color,
+		                                          &mut self.hdr_color,
+		                                          &mut self.depth);
+	}
+
+	fn draw_triangle(&mut self, transform: &cgmath::Matrix4<f32>, p: &[cgmath::Vector2<f32>; 3], color: [f32; 4]) {
+		let v = &[Vertex {
+			          pos: [p[0].x, p[0].y, 0.0],
+			          tex_coord: [0.5 + p[0].x * 0.5, 0.5 + p[0].y * 0.5],
+			          ..Vertex::default()
+		          },
+		          Vertex {
+			          pos: [p[1].x, p[1].y, 0.0],
+			          tex_coord: [0.5 + p[1].x * 0.5, 0.5 + p[1].y * 0.5],
+			          ..Vertex::default()
+		          },
+		          Vertex {
+			          pos: [p[2].x, p[2].y, 0.0],
+			          tex_coord: [0.5 + p[2].x * 0.5, 0.5 + p[2].y * 0.5],
+			          ..Vertex::default()
+		          }];
+
+		let (vertices, indices) = self.factory.create_vertex_buffer_with_slice(v, ());
+
+		self.pass_forward_lighting.draw_triangles(forward::Shader::Flat,
+		                                          &mut self.encoder,
+		                                          &vertices,
+		                                          &indices,
 		                                          transform.into(),
 		                                          color,
 		                                          &mut self.hdr_color,

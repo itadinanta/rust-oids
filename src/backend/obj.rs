@@ -27,6 +27,14 @@ impl Default for Transform {
 	}
 }
 impl Transform {
+	pub fn new(position: Position, angle: f32) -> Self {
+		Transform {
+			position: position,
+			angle: angle,
+			..Transform::default()
+		}
+	}
+
 	pub fn with_position(position: Position) -> Self {
 		Transform { position: position, ..Transform::default() }
 	}
@@ -48,7 +56,6 @@ pub enum Shape {
 		ratio: f32,
 	},
 	Star {
-		// http://www.geocities.jp/nyjp07/index_asteroid_E.html
 		radius: f32,
 		n: u8,
 		ratio1: f32,
@@ -85,11 +92,19 @@ impl Winding {
 }
 
 impl Shape {
-	pub fn new_ball(r: f32) -> Self {
-		Shape::Ball { radius: r }
+	pub fn new_ball(radius: f32) -> Self {
+		Shape::Ball { radius: radius }
 	}
 
-	pub fn new_box(width: f32, height: f32) -> Self {
+
+	pub fn new_box(radius: f32, ratio: f32) -> Self {
+		Shape::Box {
+			radius: radius,
+			ratio: ratio,
+		}
+	}
+
+	pub fn new_box_with_dimensions(width: f32, height: f32) -> Self {
 		Shape::Box {
 			radius: height,
 			ratio: width / height,
@@ -117,52 +132,57 @@ impl Shape {
 		}
 	}
 
-	pub fn vertices(&self, winding: Winding) -> Vec<Position> {
+	pub fn vertices(&self, winding: Winding) -> Box<[Position]> {
 		let xunit = winding.xunit();
 		match self {
-			// first point is always unit y
-			&Shape::Ball { .. } => {
-				let n = 12usize;
-				(0..n)
-					.map(|i| {
-						let p = (i as f32) / (n as f32) * 2. * PI;
-						Position::new(xunit * f32::sin(p), f32::cos(p))
-					})
-					.collect()
+				// first point is always unit y
+				&Shape::Ball { .. } => {
+					let n = 12usize;
+					(0..n)
+						.map(|i| {
+							let p = (i as f32) / (n as f32) * 2. * PI;
+							Position::new(xunit * f32::sin(p), f32::cos(p))
+						})
+						.collect()
+				}
+				&Shape::Box { ratio, .. } => {
+					let w2 = xunit * ratio;
+					vec![Position::new(0., 1.),
+					     Position::new(w2, 1.),
+					     Position::new(w2, 0.),
+					     Position::new(w2, -1.),
+					     Position::new(0., -1.),
+					     Position::new(-w2, -1.),
+					     Position::new(-w2, 0.),
+					     Position::new(-w2, 1.)]
+				}
+				&Shape::Star { n, ratio1, ratio2, .. } => {
+					let mut damp = 1.;
+					let ratio = &[ratio1, ratio2];
+					(0..(2 * n))
+						.map(|i| {
+							let p = i as f32 * (PI / n as f32);
+							let r = f32::max(damp, 0.2);
+							damp *= ratio[i as usize % 2];
+							Position::new(xunit * r * f32::sin(p), r * f32::cos(p))
+						})
+						.collect()
+				}
+				&Shape::Triangle { alpha1, alpha2, .. } => {
+					vec![Position::new(0., 1.),
+					     Position::new(xunit * f32::sin(alpha1), f32::cos(alpha1)),
+					     Position::new(xunit * f32::sin(alpha2), f32::cos(alpha2))]
+				}
 			}
-			&Shape::Box { ratio, .. } => {
-				let w2 = xunit * ratio;
-				vec![Position::new(0., 1.),
-				     Position::new(w2, 1.),
-				     Position::new(-w2, -1.),
-				     Position::new(w2, -1.),
-				     Position::new(-w2, 1.)]
-			}
-			&Shape::Star { n, ratio1, ratio2, .. } => {
-				let mut damp = 1.;
-				let ratio = &[ratio1, ratio2];
-				(0..(2 * n))
-					.map(|i| {
-						let p = i as f32 * (PI / n as f32);
-						let r = f32::max(damp, 0.2);
-						damp *= ratio[i as usize % 2];
-						Position::new(xunit * r * f32::sin(p), r * f32::cos(p))
-					})
-					.collect()
-			}
-			&Shape::Triangle { alpha1, alpha2, .. } => {
-				vec![Position::new(0., 1.),
-				     Position::new(xunit * f32::sin(alpha1 * PI), f32::cos(alpha1 * PI)),
-				     Position::new(xunit * f32::sin(alpha2 * PI), f32::cos(alpha2 * PI))]
-			}
-		}
+			.into_boxed_slice()
 	}
 }
 
+#[derive(Clone)]
 pub struct Mesh {
 	pub shape: Shape,
 	pub winding: Winding,
-	pub vertices: Vec<Position>,
+	pub vertices: Box<[Position]>,
 }
 
 impl Mesh {

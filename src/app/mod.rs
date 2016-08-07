@@ -290,23 +290,22 @@ impl App {
 				let body_transform = body_trans * body_rot;
 
 				let mesh = &limb.mesh();
-				match mesh.shape {
-					obj::Shape::Ball { radius } => {
-						let fixture_scale = Matrix4::from_scale(radius);
-						let fixture_trans = Matrix4::from_translation(cgmath::Vector3::new(0.0, 0.0, 0.0));
-						let transform = body_transform * fixture_trans * fixture_scale;
+				let fixture_scale = Matrix4::from_scale(mesh.shape.radius());
+				let transform = body_transform * fixture_scale;
 
+				match mesh.shape {
+					obj::Shape::Ball { .. } => {
 						renderer.draw_ball(&transform.into(), limb.color());
 					}
-					obj::Shape::Star { radius, .. } => {
-						let fixture_scale = Matrix4::from_scale(radius);
-						let fixture_trans = Matrix4::from_translation(cgmath::Vector3::new(0.0, 0.0, 0.0));
-						let transform = body_transform * fixture_trans * fixture_scale;
-
-						renderer.draw_star(&transform.into(), mesh.vertices.as_slice(), limb.color());
+					obj::Shape::Star { .. } => {
+						renderer.draw_star(&transform.into(), &mesh.vertices[..], limb.color());
 					}
-
-					_ => (),
+					obj::Shape::Box { ratio, .. } => {
+						renderer.draw_quad(&transform.into(), ratio, limb.color());
+					}
+					obj::Shape::Triangle { .. } => {
+						renderer.draw_star(&transform.into(), &mesh.vertices[0..3], limb.color());
+					}
 				}
 			}
 		}

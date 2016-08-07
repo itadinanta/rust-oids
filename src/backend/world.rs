@@ -4,6 +4,11 @@ use rand;
 use rand::Rng;
 use std::collections::HashMap;
 use std::slice;
+use std::f32::consts;
+use cgmath;
+use cgmath::Rotation;
+use cgmath::EuclideanVector;
+use num;
 
 #[derive(Clone)]
 pub struct State {
@@ -53,6 +58,7 @@ pub struct Attachment {
 	pub attachment_point: AttachmentIndex,
 }
 
+#[derive(Clone)]
 pub struct Limb {
 	transform: Transform,
 	index: LimbIndex,
@@ -64,9 +70,14 @@ pub struct Limb {
 
 impl Limb {
 	pub fn new_attachment(&self, attachment_point: AttachmentIndex) -> Option<Attachment> {
+		let max = self.mesh.vertices.len() as AttachmentIndex;
 		Some(Attachment {
 			index: self.index,
-			attachment_point: attachment_point % (self.mesh.vertices.len() as AttachmentIndex),
+			attachment_point: if attachment_point < max {
+				attachment_point
+			} else {
+				max - 1
+			},
 		})
 	}
 }
@@ -138,6 +149,143 @@ impl Creature {
 	}
 }
 
+struct CreatureBuilder {
+	rng: rand::ThreadRng,
+	material: Material,
+	state: State,
+	limbs: Vec<Limb>,
+}
+
+use std::ops::{Add, Mul, Sub};
+
+impl CreatureBuilder {
+	fn new(material: Material, state: State) -> Self {
+		CreatureBuilder {
+			rng: rand::thread_rng(),
+			material: material,
+			state: state,
+			limbs: Vec::new(),
+		}
+	}
+
+	fn frand<T>(&mut self, min: T, max: T) -> T
+		where T: rand::Rand + num::Float {
+		self.rng.gen::<T>() * (max - min) + min
+	}
+
+	fn irand<T>(&mut self, min: T, max: T) -> T
+		where T: rand::Rand + num::Integer + Copy {
+		self.rng.gen::<T>() % (max - min + T::one()) + min
+	}
+
+	fn random_ball(&mut self) -> Shape {
+		let radius: f32 = self.frand(1.0, 2.0);
+		Shape::new_ball(radius)
+	}
+
+	fn random_box(&mut self) -> Shape {
+		let radius: f32 = self.frand(1.0, 2.0);
+		let ratio: f32 = self.frand(1.0, 2.0);
+		Shape::new_box(radius, ratio)
+	}
+
+	fn random_vbar(&mut self) -> Shape {
+		let radius: f32 = self.frand(1.0, 2.0);
+		let ratio: f32 = self.frand(0.1, 0.2);
+		Shape::new_box(radius, ratio)
+	}
+
+	fn random_triangle(&mut self) -> Shape {
+		let radius = self.frand(0.5, 1.0);
+		let alpha1 = self.frand(consts::PI * 0.5, consts::PI * 0.9);
+		let alpha2 = consts::PI * 1.5 - self.frand(0., consts::PI);
+		Shape::new_triangle(radius, alpha1, alpha2)
+	}
+
+	fn random_iso_triangle(&mut self) -> Shape {
+		let radius = self.frand(0.5, 1.0);
+		let alpha1 = self.frand(consts::PI * 0.5, consts::PI * 0.9);
+		let alpha2 = consts::PI * 2. - alpha1;
+		Shape::new_triangle(radius, alpha1, alpha2)
+	}
+
+	fn random_eq_triangle(&mut self) -> Shape {
+		let radius = self.frand(0.5, 1.0);
+		let alpha1 = consts::PI * 2. / 3.;
+		let alpha2 = consts::PI * 2. - alpha1;
+		Shape::new_triangle(radius, alpha1, alpha2)
+	}
+
+	fn random_star(&mut self) -> Shape {
+		let radius: f32 = self.frand(1.0, 2.0);
+		let n = self.irand(3, 8);
+		let ratio1 = self.frand(0.5, 1.0);
+		let ratio2 = self.frand(0.8, 1.0) * (1. / ratio1);
+		Shape::new_star(n, radius, ratio1, ratio2)
+	}
+
+	pub fn start(&mut self, position: obj::Position, angle: f32, shape: &Shape, winding: Winding) -> &mut Self {
+		let limb = self.new_limb(shape, winding, position, angle, None);
+		self.limbs.clear();
+		self.limbs.push(limb);
+		self
+	}
+
+	pub fn add(&mut self,
+	           parent_index: LimbIndex,
+	           attachment_index: AttachmentIndex,
+	           shape: &Shape,
+	           winding: Winding)
+	           -> &mut Self {
+		let parent = self.limbs[parent_index as usize].clone();//urgh!;
+		let parent_pos = parent.transform.position;
+		let parent_angle = parent.transform.angle;
+		let p0 = cgmath::Matrix2::from_angle(cgmath::rad(parent_angle)) *
+		         parent.mesh.vertices[attachment_index as usize];
+		let angle = f32::atan2(p0.y, p0.x);
+		let r0 = p0.length() * parent.mesh.shape.radius();
+		let r1 = shape.radius();
+		let limb = self.new_limb(shape,
+		                         winding,
+		                         parent_pos + (p0 * (r0 + r1)),
+		                         consts::PI / 2. + angle,
+		                         parent.new_attachment(attachment_index));
+		self.limbs.push(limb);
+		self
+	}
+
+	pub fn index(&self) -> LimbIndex {
+		match self.limbs.len() {
+			0 => 0,
+			n => (n - 1) as LimbIndex,
+		}
+	}
+
+	fn new_limb(&mut self,
+	            shape: &Shape,
+	            winding: Winding,
+	            position: obj::Position,
+	            angle: f32,
+	            attachment: Option<Attachment>)
+	            -> Limb {
+		Limb {
+			index: self.limbs.len() as LimbIndex,
+			transform: obj::Transform::new(position, angle),
+			mesh: Mesh::from_shape(shape.clone(), winding),
+			material: self.material.clone(),
+			state: self.state.clone(),
+			attached_to: attachment,
+		}
+	}
+
+	pub fn build(&self, id: obj::Id) -> Creature {
+		Creature {
+			id: id,
+			limbs: self.limbs.clone(),
+		}
+	}
+}
+
 pub struct Flock {
 	last_id: Id,
 	creatures: HashMap<Id, Creature>,
@@ -164,82 +312,37 @@ impl Flock {
 		self.last_id
 	}
 
-	pub fn new_ball(&mut self, pos: Position) -> Id {
+	pub fn new_creature(&mut self, initial_pos: Position, charge: f32) -> Id {
 		let mut rng = rand::thread_rng();
-		let radius: f32 = (rng.gen::<f32>() * 1.0) + 1.0;
-		self.new_creature(Shape::new_ball(radius), pos, 0.)
-	}
 
-	pub fn new_star(&mut self, pos: Position) -> Id {
-		let mut rng = rand::thread_rng();
-		let radius = (rng.gen::<f32>() * 1.0) + 1.0;
-		let n = rng.gen::<u8>() % 3 + 5;
-		let ratio1 = 0.7 + (rng.gen::<f32>() * 0.3);
-		let ratio2 = (0.2 + (rng.gen::<f32>() * 0.8)) * (1. / ratio1);
-		self.new_creature(Shape::new_star(n, radius, ratio1, ratio2), pos, 0.3)
-	}
-
-	pub fn new_creature(&mut self, shape: Shape, initial_pos: Position, final_charge: f32) -> Id {
-		let mut rng = rand::thread_rng();
+		let mut builder =
+			CreatureBuilder::new(Material { density: (rng.gen::<f32>() * 1.0) + 1.0, ..Default::default() },
+			                     State::with_charge(rng.gen::<f32>(), charge));
 
 		let id = self.next_id();
+		let arm_shape = builder.random_star();
+		let leg_shape = builder.random_star();
+		let torso_shape = builder.random_ball();
+		let head_shape = builder.random_iso_triangle();
+		let tail_shape = builder.random_vbar();
+		let initial_angle = consts::PI / 2. + f32::atan2(initial_pos.y, initial_pos.x);
 
-		let material = Material { density: (rng.gen::<f32>() * 1.0) + 1.0, ..Default::default() };
-		let state = State::with_charge(rng.gen::<f32>(), final_charge);
+		let torso = builder.start(initial_pos, initial_angle, &torso_shape, Winding::CW)
+			.index();
 
-		let torso_shape = Shape::new_ball(shape.radius());
-		let torso = Limb {
-			index: 0,
-			transform: obj::Transform::with_position(initial_pos),
-			mesh: Mesh::from_shape(torso_shape, Winding::CW),
-			material: material.clone(),
-			state: state.clone(),
-			attached_to: None,
-		};
+		builder.add(torso, 3, &arm_shape, Winding::CW)
+			.add(torso, 9, &arm_shape, Winding::CCW)
+			.add(torso, 5, &leg_shape, Winding::CW)
+			.add(torso, 7, &leg_shape, Winding::CCW);
 
-		let right_arm = Limb {
-			index: 1,
-			transform: obj::Transform::with_position(torso.transform.position + Position::new(1., 0.)),
-			mesh: Mesh::from_shape(shape.clone(), Winding::CW),
-			material: material.clone(),
-			state: state.clone(),
-			attached_to: torso.new_attachment(2),
-		};
+		let head = builder.add(torso, 0, &head_shape, Winding::CW).index();
+		let tail = builder.add(torso, 6, &tail_shape, Winding::CW)
+			.index();
+		builder.add(head, 1, &head_shape, Winding::CW)
+			.add(head, 2, &head_shape, Winding::CCW);
 
-		let left_arm = Limb {
-			index: 2,
-			transform: obj::Transform::with_position(torso.transform.position - Position::new(1., 0.)),
-			mesh: Mesh::from_shape(shape.clone(), Winding::CCW),
-			material: material.clone(),
-			state: state.clone(),
-			attached_to: torso.new_attachment(8),
-		};
-
-		let right_leg = Limb {
-			index: 1,
-			transform: obj::Transform::with_position(torso.transform.position + Position::new(1., 0.)),
-			mesh: Mesh::from_shape(shape.clone(), Winding::CW),
-			material: material.clone(),
-			state: state.clone(),
-			attached_to: torso.new_attachment(4),
-		};
-
-		let left_leg = Limb {
-			index: 2,
-			transform: obj::Transform::with_position(torso.transform.position - Position::new(1., 0.)),
-			mesh: Mesh::from_shape(shape.clone(), Winding::CCW),
-			material: material.clone(),
-			state: state.clone(),
-			attached_to: torso.new_attachment(6),
-		};
-
-		let creature = Creature {
-			id: id,
-			limbs: vec![torso, right_arm, left_arm, right_leg, left_leg],
-		};
-
+		let creature = builder.build(id);
 		self.creatures.insert(id, creature);
-
 		id
 	}
 
@@ -302,11 +405,11 @@ impl World {
 	}
 
 	pub fn new_ball(&mut self, pos: obj::Position) -> obj::Id {
-		self.friends.new_ball(pos)
+		self.friends.new_creature(pos, 0.3)
 	}
 
 	pub fn new_star(&mut self, pos: obj::Position) -> obj::Id {
-		self.friends.new_star(pos)
+		self.friends.new_creature(pos, 0.3)
 	}
 
 	pub fn friend(&self, id: obj::Id) -> Option<&Creature> {

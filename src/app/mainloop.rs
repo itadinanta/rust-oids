@@ -25,7 +25,7 @@ pub fn main_loop() {
 	let renderer = &mut render::ForwardRenderer::new(&mut factory, &mut encoder, &frame_buffer, &depth_buffer);
 
 	// Create a new game and run it.
-	let mut app = app::App::new(w as u32, h as u32, 50.0);
+	let mut app = app::App::new(w as u32, h as u32, 100.0);
 
 	'main: loop {
 

@@ -96,7 +96,7 @@ void main() {
 	vec3 normal_map = vec3(0., 0., 1.);
     if (r > 0.25) {
         discard;
-    } 
+    }
     else {
 	    dx *= 2;
 	    dy *= 2;
@@ -104,7 +104,7 @@ void main() {
 		float bump = sqrt(1. - dx * dx - dy * dy);
 		normal_map = vec3(dx, dy, bump);
 	};
-	
+
 	vec3 normal = v_In.TBN * normal_map;
 
 	for (int i = 0; i < u_LightCount; i++) {
@@ -177,8 +177,8 @@ void main() {
     vec4 kp = vec4(64.0, 32.0, 64.0, 64.0);
     vec4 ka = vec4(0.0, 0.0, 0.01, 0.0);
 
-    vec4 color = (ka + u_Emissive);	
-    
+    vec4 color = (ka + u_Emissive);
+
     float dx = v_In.TexCoord.x - 0.5;
     float dy = v_In.TexCoord.y - 0.5;
 	float r = dx * dx + dy * dy;
@@ -232,6 +232,17 @@ gfx_vertex_struct!(VertexPosNormal {
 	tangent: [f32; 3] = "a_Tangent",
 	tex_coord: [f32; 2] = "a_TexCoord",
 });
+
+impl Default for VertexPosNormal {
+	fn default() -> Self {
+		VertexPosNormal {
+			pos: [0.; 3],
+			normal: [0., 0., 1.],
+			tangent: [1., 0., 0.],
+			tex_coord: [0.5, 0.5],
+		}
+	}
+}
 
 pub type Vertex = VertexPosNormal;
 pub type HDRColorFormat = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
@@ -304,13 +315,13 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 		let fragment = factory.create_constant_buffer(1);
 		let material = factory.create_constant_buffer(1);
 		let ball_pso = factory.create_pipeline_simple(LIGHTING_VERTEX_SRC,
-		                                              LIGHTING_BALL_FRAGMENT_SRC,
-		                                              shaded::new())
-		                      .unwrap();
+			                        LIGHTING_BALL_FRAGMENT_SRC,
+			                        shaded::new())
+			.unwrap();
 		let poly_pso = factory.create_pipeline_simple(LIGHTING_VERTEX_SRC,
-		                                              LIGHTING_POLY_FRAGMENT_SRC,
-		                                              shaded::new())
-		                      .unwrap();
+			                        LIGHTING_POLY_FRAGMENT_SRC,
+			                        shaded::new())
+			.unwrap();
 		ForwardLighting {
 			camera: camera,
 			model: model,

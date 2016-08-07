@@ -6,7 +6,6 @@ use super::*;
 use backend::obj::{Solid, Geometry, Transformable};
 use backend::world;
 use std::collections::HashMap;
-use std::f64::consts;
 
 struct CreatureData;
 
@@ -30,32 +29,40 @@ use cgmath::EuclideanVector;
 
 impl Updateable for PhysicsSystem {
 	fn update(&mut self, dt: f32) {
-		let world = &mut self.world;
+		enum BodyForce {
+			Parallel(b2::BodyHandle, b2::Vec2, b2::Vec2),
+			Perpendicular(b2::BodyHandle, b2::Vec2),
+		}
 		let mut v = Vec::new();
 
-		for (h, b) in world.bodies() {
+		for (h, b) in self.world.bodies() {
 			let body = b.borrow();
 			let center = (*body).world_center().clone();
+			let facing = (*body).world_point(&b2::Vec2 { x: 0., y: 1. }).clone();
 			let key = (*body).user_data();
 			match key.limb_index {
-				1 | 2 => v.push((h, center)),
+				// TODO: retrieve properties from userdata
+				1 | 2 => v.push(BodyForce::Perpendicular(h, center)),
+				3 | 4 => v.push(BodyForce::Parallel(h, center, facing)),
 				_ => {}
 			}
 		}
-		for (h, center) in v {
-			const MAGNITUDE: f32 = 5.0;
-			let v = self.remote -
-			        obj::Position {
-				x: center.x,
-				y: center.y,
-			};
-			if v != Vector2::zero() {
-				let f = v.normalize_to(MAGNITUDE);
-				world.body_mut(h).apply_force(&b2::Vec2 { x: f.x, y: f.y }, &center, true);
+		for force in v {
+			match force {
+				BodyForce::Perpendicular(h, center) => {
+					let v = self.remote - obj::Position::new(center.x, center.y);
+					if v != Vector2::zero() {
+						let f = v.normalize_to(10.0);
+						self.world.body_mut(h).apply_force(&b2::Vec2 { x: f.x, y: f.y }, &center, true);
+					}
+				}
+				BodyForce::Parallel(h, center, facing) => {
+					self.world.body_mut(h).apply_force(&((facing - center) * 3.0), &center, true);
+				}
 			}
 		}
 
-		world.step(dt, 8, 3);
+		self.world.step(dt, 8, 3);
 	}
 }
 
@@ -118,7 +125,6 @@ impl PhysicsSystem {
 	}
 
 	fn build_fixtures<'a>(world: &mut b2::World<CreatureData>, creature: &'a world::Creature) -> Vec<JointRef<'a>> {
-
 		let object_id = creature.id();
 		let limbs = creature.limbs();
 		limbs.enumerate()
@@ -150,7 +156,7 @@ impl PhysicsSystem {
 					}
 					obj::Shape::Box { radius, ratio } => {
 						let mut rect_shape = b2::PolygonShape::new();
-						rect_shape.set_as_box(radius * 2. * ratio, radius * 2.);
+						rect_shape.set_as_box(radius * ratio, radius);
 						world.body_mut(handle).create_fixture_with(&rect_shape, &mut f_def, refs);
 					}
 					obj::Shape::Star { radius, n, .. } => {
@@ -161,8 +167,8 @@ impl PhysicsSystem {
 							let i2 = (i * 2) as usize;
 							let i3 = ((i * 2 + (n * 2) - 1) % (n * 2)) as usize;
 							let (p1, p2, p3) = match mesh.winding {
-								obj::Winding::CW => (p[i1], p[i2], p[i3]),
-								obj::Winding::CCW => (p[i1], p[i3], p[i2]),
+								obj::Winding::CW => (&p[i1], &p[i2], &p[i3]),
+								obj::Winding::CCW => (&p[i1], &p[i3], &p[i2]),
 							};
 							quad.set(&[b2::Vec2 { x: 0., y: 0. },
 							           b2::Vec2 {
@@ -183,24 +189,24 @@ impl PhysicsSystem {
 					}
 					obj::Shape::Triangle { radius, .. } => {
 						let p = &mesh.vertices;
-						let mut quad = b2::PolygonShape::new();
+						let mut tri = b2::PolygonShape::new();
 						let (p1, p2, p3) = match mesh.winding {
-							obj::Winding::CW => (p[0], p[2], p[1]),
-							obj::Winding::CCW => (p[0], p[1], p[2]),
+							obj::Winding::CW => (&p[0], &p[2], &p[1]),
+							obj::Winding::CCW => (&p[0], &p[1], &p[2]),
 						};
-						quad.set(&[b2::Vec2 {
-							           x: p1.x * radius,
-							           y: p1.y * radius,
-						           },
-						           b2::Vec2 {
-							           x: p2.x * radius,
-							           y: p2.y * radius,
-						           },
-						           b2::Vec2 {
-							           x: p3.x * radius,
-							           y: p3.y * radius,
-						           }]);
-						world.body_mut(handle).create_fixture_with(&quad, &mut f_def, refs);
+						tri.set(&[b2::Vec2 {
+							          x: p1.x * radius,
+							          y: p1.y * radius,
+						          },
+						          b2::Vec2 {
+							          x: p2.x * radius,
+							          y: p2.y * radius,
+						          },
+						          b2::Vec2 {
+							          x: p3.x * radius,
+							          y: p3.y * radius,
+						          }]);
+						world.body_mut(handle).create_fixture_with(&tri, &mut f_def, refs);
 					}
 				};
 				JointRef {
@@ -214,13 +220,12 @@ impl PhysicsSystem {
 	}
 
 	fn build_joints(world: &mut b2::World<CreatureData>, joint_refs: &Vec<JointRef>) {
-
-		for &JointRef { handle: downlink, mesh, attachment, .. } in joint_refs {
+		for &JointRef { handle: distal, mesh, attachment, .. } in joint_refs {
 			if let Some(attachment) = attachment {
 				let upstream = &joint_refs[attachment.index as usize];
-				let uplink = upstream.handle;
+				let medial = upstream.handle;
 
-				let mut joint = b2::RevoluteJointDef::new(uplink, downlink);
+				let mut joint = b2::RevoluteJointDef::new(medial, distal);
 				joint.collide_connected = true;
 
 				let v0 = upstream.mesh.vertices[attachment.attachment_point as usize] * upstream.mesh.shape.radius();
@@ -231,28 +236,6 @@ impl PhysicsSystem {
 				world.create_joint_with(&joint, ());
 			}
 		}
-
-
-		// if joint_body == None {
-		// joint_body = Some(handle);
-		// } else {
-		// joint_limb = Some(handle);
-		// }
-		// if let (Some(b), Some(l)) = (joint_body, joint_limb) {
-		// let mut joint = b2::RevoluteJointDef::new(b, l);
-		// joint.collide_connected = true;
-		// joint.local_anchor_a = b2::Vec2 { x: 0., y: 1. };
-		// joint.local_anchor_b = b2::Vec2 {
-		// x: 0.,
-		// y: mesh.shape.radius(),
-		// };
-		// world.create_joint_with(&joint, ());
-		// }
-		// handle
-		//
-
-
-
 	}
 
 	pub fn drop_below(&mut self, edge: f32) {
