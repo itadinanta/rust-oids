@@ -5,6 +5,7 @@ use backend::obj::Updateable;
 use super::*;
 use backend::obj::{Solid, Geometry, Transformable};
 use backend::world;
+use std::f32::consts;
 use std::collections::HashMap;
 
 struct CreatureData;
@@ -31,7 +32,7 @@ impl Updateable for PhysicsSystem {
 	fn update(&mut self, dt: f32) {
 		enum BodyForce {
 			Parallel(b2::BodyHandle, b2::Vec2, b2::Vec2),
-			Perpendicular(b2::BodyHandle, b2::Vec2),
+			Perpendicular(b2::BodyHandle, b2::Vec2, b2::Vec2),
 		}
 		let mut v = Vec::new();
 
@@ -42,22 +43,39 @@ impl Updateable for PhysicsSystem {
 			let key = (*body).user_data();
 			match key.limb_index {
 				// TODO: retrieve properties from userdata
-				1 | 2 => v.push(BodyForce::Perpendicular(h, center)),
+				1 | 2 => v.push(BodyForce::Perpendicular(h, center, facing)),
 				3 | 4 => v.push(BodyForce::Parallel(h, center, facing)),
 				_ => {}
 			}
 		}
 		for force in v {
 			match force {
-				BodyForce::Perpendicular(h, center) => {
-					let v = self.remote - obj::Position::new(center.x, center.y);
-					if v != Vector2::zero() {
-						let f = v.normalize_to(10.0);
-						self.world.body_mut(h).apply_force(&b2::Vec2 { x: f.x, y: f.y }, &center, true);
+				BodyForce::Perpendicular(h, center, facing) => {
+					let t = self.remote - obj::Position::new(center.x, center.y);
+					let f = obj::Position::new(center.x - facing.x, center.y - facing.y);
+					let d = f.dot(t);
+
+					if d > 0. {
+						let b = &mut self.world.body_mut(h);
+						let power = 50.;//b.fixtures().reduce(|f| f.mass);
+						let f = f.normalize_to(power);
+						b.apply_force(&b2::Vec2 { x: f.x, y: f.y }, &center, true);
 					}
 				}
 				BodyForce::Parallel(h, center, facing) => {
-					self.world.body_mut(h).apply_force(&((facing - center) * 3.0), &center, true);
+					let t = self.remote - obj::Position::new(center.x, center.y);
+					let f = obj::Position::new(facing.x - center.x, facing.y - center.y);
+					let d = f.dot(t);
+
+					if d > 0. {
+						let power = 10.;
+						let f = f.normalize_to(power);
+						self.world.body_mut(h).apply_force(&b2::Vec2 { x: f.x, y: f.y }, &center, true);
+					} else {
+						let power = 50.;
+						let f = f.normalize_to(power);
+						self.world.body_mut(h).apply_force(&b2::Vec2 { x: -f.x, y: -f.y }, &center, true);
+					}
 				}
 			}
 		}
@@ -224,15 +242,24 @@ impl PhysicsSystem {
 			if let Some(attachment) = attachment {
 				let upstream = &joint_refs[attachment.index as usize];
 				let medial = upstream.handle;
+				let angle_delta = world.body(distal).angle() - world.body(medial).angle();
 
-				let mut joint = b2::RevoluteJointDef::new(medial, distal);
-				joint.collide_connected = true;
+				let mut joint = b2::WeldJointDef::new(medial, distal);
+				joint.collide_connected = false;
+
+				joint.reference_angle = angle_delta;
+				joint.frequency = 5.0;
+				joint.damping_ratio = 0.9;
+				// joint.enable_limit = true;
+				// joint.upper_angle = consts::PI / 6.;
+				// joint.lower_angle = -consts::PI / 6.;
 
 				let v0 = upstream.mesh.vertices[attachment.attachment_point as usize] * upstream.mesh.shape.radius();
 				joint.local_anchor_a = b2::Vec2 { x: v0.x, y: v0.y };
 
 				let v1 = mesh.vertices[0] * mesh.shape.radius();
 				joint.local_anchor_b = b2::Vec2 { x: v1.x, y: v1.y };
+
 				world.create_joint_with(&joint, ());
 			}
 		}

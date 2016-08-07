@@ -334,7 +334,7 @@ impl Flock {
 
 		let mut builder =
 			CreatureBuilder::new(Material { density: (rng.gen::<f32>() * 1.0) + 1.0, ..Default::default() },
-			                     State::with_charge(rng.gen::<f32>(), charge));
+			                     State::with_charge(charge, 0.));
 
 		let id = self.next_id();
 		let arm_shape = builder.random_star();

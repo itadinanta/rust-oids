@@ -162,7 +162,8 @@ impl App {
 			}
 			glutin::MouseButton::Right => {
 				self.input_state.button_press(Right);
-				self.new_star(pos);
+				self.light_position = pos;
+				//self.new_star(pos);
 			}
 			_ => (),
 		}
@@ -188,11 +189,11 @@ impl App {
 	}
 
 	fn on_mouse_move(&mut self, pos: obj::Position) {
-		self.light_position = pos;
+		//self.light_position = pos;
 	}
 
 	fn on_right_drag(&mut self, pos: obj::Position) {
-		self.new_star(pos);
+		self.light_position = pos;
 	}
 
 	fn on_release(&mut self, btn: glutin::MouseButton, _: obj::Position) {
