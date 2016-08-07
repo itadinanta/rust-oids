@@ -77,6 +77,18 @@ impl Shape {
 			&Shape::Triangle { radius, .. } => radius,
 		}
 	}
+
+	pub fn length(&self) -> usize {
+		match self {
+			&Shape::Ball { .. } => 12,
+			&Shape::Box { .. } => 8,
+			&Shape::Star { n, .. } => n as usize * 2,
+			&Shape::Triangle { .. } => 3,
+		}
+	}
+	pub fn mid(&self) -> usize {
+		self.length() / 2
+	}
 }
 
 #[derive(Clone, Copy)]
@@ -114,13 +126,15 @@ impl Shape {
 	pub fn new_star(n: u8, radius: f32, ratio1: f32, ratio2: f32) -> Self {
 		assert!(n > 1);
 		assert!(radius > 0.);
-		assert!(ratio1 > 0. && ratio1 <= 1.);
+		assert!(ratio1 > 0.);
 		assert!(ratio2 > 0.);
+		assert!(ratio1 * ratio2 <= 1.);
+
 		Shape::Star {
 			radius: radius,
 			n: n,
 			ratio1: ratio1,
-			ratio2: f32::min(1. / ratio1, ratio2),
+			ratio2: ratio2,
 		}
 	}
 
@@ -162,7 +176,7 @@ impl Shape {
 					(0..(2 * n))
 						.map(|i| {
 							let p = i as f32 * (PI / n as f32);
-							let r = f32::max(damp, 0.2);
+							let r = f32::max(damp, 0.01); // zero is bad!
 							damp *= ratio[i as usize % 2];
 							Position::new(xunit * r * f32::sin(p), r * f32::cos(p))
 						})

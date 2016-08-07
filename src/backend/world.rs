@@ -220,8 +220,24 @@ impl CreatureBuilder {
 		let radius: f32 = self.frand(1.0, 2.0);
 		let n = self.irand(3, 8);
 		let ratio1 = self.frand(0.5, 1.0);
-		let ratio2 = self.frand(0.8, 1.0) * (1. / ratio1);
+		let ratio2 = self.frand(0.7, 0.9) * (1. / ratio1);
 		Shape::new_star(n, radius, ratio1, ratio2)
+	}
+
+	fn random_poly(&mut self, upside_down: bool) -> Shape {
+		let n = self.irand(3, 8);
+		self.random_npoly(n, upside_down)
+	}
+
+	fn random_npoly(&mut self, n: AttachmentIndex, upside_down: bool) -> Shape {
+		let radius: f32 = self.frand(1.0, 2.0);
+		let ratio1 = f32::cos(consts::PI / n as f32);
+		let ratio2 = 1. / ratio1;
+		if upside_down {
+			Shape::new_star(n, radius * ratio1, ratio2, ratio1)
+		} else {
+			Shape::new_star(n, radius, ratio1, ratio2)
+		}
 	}
 
 	pub fn start(&mut self, position: obj::Position, angle: f32, shape: &Shape, winding: Winding) -> &mut Self {
@@ -233,15 +249,16 @@ impl CreatureBuilder {
 
 	pub fn add(&mut self,
 	           parent_index: LimbIndex,
-	           attachment_index: AttachmentIndex,
+	           attachment_index_offset: isize,
 	           shape: &Shape,
 	           winding: Winding)
 	           -> &mut Self {
 		let parent = self.limbs[parent_index as usize].clone();//urgh!;
 		let parent_pos = parent.transform.position;
 		let parent_angle = parent.transform.angle;
-		let p0 = cgmath::Matrix2::from_angle(cgmath::rad(parent_angle)) *
-		         parent.mesh.vertices[attachment_index as usize];
+		let parent_length = parent.mesh.shape.length() as isize;
+		let attachment_index = ((attachment_index_offset + parent_length) % parent_length) as usize;
+		let p0 = cgmath::Matrix2::from_angle(cgmath::rad(parent_angle)) * parent.mesh.vertices[attachment_index];
 		let angle = f32::atan2(p0.y, p0.x);
 		let r0 = p0.length() * parent.mesh.shape.radius();
 		let r1 = shape.radius();
@@ -249,7 +266,7 @@ impl CreatureBuilder {
 		                         winding,
 		                         parent_pos + (p0 * (r0 + r1)),
 		                         consts::PI / 2. + angle,
-		                         parent.new_attachment(attachment_index));
+		                         parent.new_attachment(attachment_index as AttachmentIndex));
 		self.limbs.push(limb);
 		self
 	}
@@ -322,7 +339,7 @@ impl Flock {
 		let id = self.next_id();
 		let arm_shape = builder.random_star();
 		let leg_shape = builder.random_star();
-		let torso_shape = builder.random_ball();
+		let torso_shape = builder.random_npoly(5, true);
 		let head_shape = builder.random_iso_triangle();
 		let tail_shape = builder.random_vbar();
 		let initial_angle = consts::PI / 2. + f32::atan2(initial_pos.y, initial_pos.x);
@@ -330,13 +347,13 @@ impl Flock {
 		let torso = builder.start(initial_pos, initial_angle, &torso_shape, Winding::CW)
 			.index();
 
-		builder.add(torso, 3, &arm_shape, Winding::CW)
-			.add(torso, 9, &arm_shape, Winding::CCW)
-			.add(torso, 5, &leg_shape, Winding::CW)
-			.add(torso, 7, &leg_shape, Winding::CCW);
+		builder.add(torso, 2, &arm_shape, Winding::CW)
+			.add(torso, -2, &arm_shape, Winding::CCW)
+			.add(torso, 4, &leg_shape, Winding::CW)
+			.add(torso, -4, &leg_shape, Winding::CCW);
 
 		let head = builder.add(torso, 0, &head_shape, Winding::CW).index();
-		let tail = builder.add(torso, 6, &tail_shape, Winding::CW)
+		let tail = builder.add(torso, torso_shape.mid() as isize, &tail_shape, Winding::CW)
 			.index();
 		builder.add(head, 1, &head_shape, Winding::CW)
 			.add(head, 2, &head_shape, Winding::CCW);
