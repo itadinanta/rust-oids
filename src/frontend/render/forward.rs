@@ -294,6 +294,9 @@ use std::marker::PhantomData;
 pub enum Shader {
 	Ball = 0,
 	Flat = 1,
+	Wireframe = 2,
+	Lines = 3,
+	Count = 4,
 }
 
 pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
@@ -302,9 +305,10 @@ pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 	fragment: gfx::handle::Buffer<R, FragmentArgs>,
 	material: gfx::handle::Buffer<R, MaterialArgs>,
 	lights: gfx::handle::Buffer<R, PointLight>,
-	pso: [gfx::pso::PipelineState<R, shaded::Meta>; 2],
+	pso: [gfx::pso::PipelineState<R, shaded::Meta>; Shader::Count as usize],
 	_buffer: PhantomData<C>,
 }
+
 
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 	pub fn new<F>(factory: &mut F) -> ForwardLighting<R, C>
@@ -314,23 +318,53 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 		let model = factory.create_constant_buffer(1);
 		let fragment = factory.create_constant_buffer(1);
 		let material = factory.create_constant_buffer(1);
-		let ball_pso = factory.create_pipeline_simple(LIGHTING_VERTEX_SRC,
-			                        LIGHTING_BALL_FRAGMENT_SRC,
-			                        shaded::new())
+
+		let solid_shaders = factory.create_shader_set(LIGHTING_VERTEX_SRC, LIGHTING_POLY_FRAGMENT_SRC)
 			.unwrap();
-		let poly_pso = factory.create_pipeline_simple(LIGHTING_VERTEX_SRC,
-			                        LIGHTING_POLY_FRAGMENT_SRC,
-			                        shaded::new())
+		let ball_shaders = factory.create_shader_set(LIGHTING_VERTEX_SRC, LIGHTING_BALL_FRAGMENT_SRC)
 			.unwrap();
+
+		let solid_rasterizer =
+			gfx::state::Rasterizer { samples: Some(gfx::state::MultiSample), ..gfx::state::Rasterizer::new_fill() };
+
+		let line_rasterizer = gfx::state::Rasterizer { method: gfx::state::RasterMethod::Line(2), ..solid_rasterizer };
+
+		let ball_pso = Self::new_pso(factory,
+		                             &ball_shaders,
+		                             gfx::Primitive::TriangleList,
+		                             solid_rasterizer);
+		let poly_pso = Self::new_pso(factory,
+		                             &solid_shaders,
+		                             gfx::Primitive::TriangleList,
+		                             solid_rasterizer);
+		let wireframe_pso = Self::new_pso(factory,
+		                                  &solid_shaders,
+		                                  gfx::Primitive::TriangleList,
+		                                  line_rasterizer);
+
+		let lines_pso = Self::new_pso(factory,
+		                              &solid_shaders,
+		                              gfx::Primitive::LineStrip,
+		                              line_rasterizer);
 		ForwardLighting {
 			camera: camera,
 			model: model,
 			fragment: fragment,
 			material: material,
 			lights: lights,
-			pso: [ball_pso, poly_pso],
+			pso: [ball_pso, poly_pso, wireframe_pso, lines_pso],
 			_buffer: PhantomData,
 		}
+	}
+
+	fn new_pso<F>(factory: &mut F,
+	              shaders: &gfx::ShaderSet<R>,
+	              primitive: gfx::Primitive,
+	              rasterizer: gfx::state::Rasterizer)
+	              -> gfx::pso::PipelineState<R, shaded::Meta>
+		where F: gfx::Factory<R> {
+		factory.create_pipeline_state(&shaders, primitive, rasterizer, shaded::new())
+			.unwrap()
 	}
 
 	pub fn setup(&self,
@@ -362,18 +396,18 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 	pub fn draw_triangles(&self,
 	                      shader: Shader,
 	                      encoder: &mut gfx::Encoder<R, C>,
-	                      vertices: &gfx::handle::Buffer<R, VertexPosNormal>,
+	                      vertices: gfx::handle::Buffer<R, VertexPosNormal>,
 	                      indices: &gfx::Slice<R>,
 	                      transform: &M44,
 	                      color: [f32; 4],
 	                      color_buffer: &gfx::handle::RenderTargetView<R, HDRColorFormat>,
 	                      depth_buffer: &gfx::handle::DepthStencilView<R, DepthFormat>) {
-		encoder.update_constant_buffer(&self.model, &ModelArgs { model: transform.clone().into() });
+		encoder.update_constant_buffer(&self.model, &ModelArgs { model: (*transform).into() });
 		encoder.update_constant_buffer(&self.material, &MaterialArgs { emissive: color });
-		encoder.draw(&indices,
+		encoder.draw(indices,
 		             &self.pso[shader as usize],
 		             &shaded::Data {
-			             vbuf: vertices.clone(),
+			             vbuf: vertices,
 			             fragment_args: self.fragment.clone(),
 			             material_args: self.material.clone(),
 			             camera_args: self.camera.clone(),

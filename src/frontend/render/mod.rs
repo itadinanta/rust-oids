@@ -192,9 +192,9 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 
 		self.pass_forward_lighting.draw_triangles(forward::Shader::Flat,
 		                                          &mut self.encoder,
-		                                          &vertex_buffer,
+		                                          vertex_buffer,
 		                                          &index_buffer,
-		                                          transform.into(),
+		                                          &transform,
 		                                          color,
 		                                          &mut self.hdr_color,
 		                                          &mut self.depth);
@@ -203,9 +203,9 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 	fn draw_ball(&mut self, transform: &cgmath::Matrix4<f32>, color: [f32; 4]) {
 		self.pass_forward_lighting.draw_triangles(forward::Shader::Ball,
 		                                          &mut self.encoder,
-		                                          &self.quad_vertices,
+		                                          self.quad_vertices.clone(),
 		                                          &self.quad_indices,
-		                                          transform.into(),
+		                                          &transform,
 		                                          color,
 		                                          &mut self.hdr_color,
 		                                          &mut self.depth);
@@ -242,9 +242,9 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 
 		self.pass_forward_lighting.draw_triangles(forward::Shader::Flat,
 		                                          &mut self.encoder,
-		                                          &vertex_buffer,
+		                                          vertex_buffer,
 		                                          &self.quad_indices,
-		                                          transform.into(),
+		                                          &transform,
 		                                          color,
 		                                          &mut self.hdr_color,
 		                                          &mut self.depth);
@@ -271,9 +271,9 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 
 		self.pass_forward_lighting.draw_triangles(forward::Shader::Flat,
 		                                          &mut self.encoder,
-		                                          &vertices,
+		                                          vertices,
 		                                          &indices,
-		                                          transform.into(),
+		                                          transform,
 		                                          color,
 		                                          &mut self.hdr_color,
 		                                          &mut self.depth);
