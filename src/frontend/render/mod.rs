@@ -190,7 +190,7 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 
 		let (vertex_buffer, index_buffer) = self.factory.create_vertex_buffer_with_slice(v.as_slice(), i.as_slice());
 
-		self.pass_forward_lighting.draw_triangles(forward::Shader::Flat,
+		self.pass_forward_lighting.draw_triangles(forward::Shader::Wireframe,
 		                                          &mut self.encoder,
 		                                          vertex_buffer,
 		                                          &index_buffer,

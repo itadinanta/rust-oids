@@ -158,24 +158,24 @@ impl App {
 		match btn {
 			glutin::MouseButton::Left => {
 				self.input_state.button_press(Left);
-				self.new_ball(pos);
+				self.new_minion(pos);
 			}
 			glutin::MouseButton::Right => {
 				self.input_state.button_press(Right);
 				self.light_position = pos;
-				//self.new_star(pos);
+				// self.new_star(pos);
 			}
 			_ => (),
 		}
 	}
 
-	fn new_ball(&mut self, pos: obj::Position) {
-		let id = self.world.new_ball(pos);
+	fn new_resource(&mut self, pos: obj::Position) {
+		let id = self.world.new_resource(pos);
 		self.register(id);
 	}
 
-	fn new_star(&mut self, pos: obj::Position) {
-		let id = self.world.new_star(pos);
+	fn new_minion(&mut self, pos: obj::Position) {
+		let id = self.world.new_minion(pos);
 		self.register(id);
 	}
 
@@ -184,12 +184,12 @@ impl App {
 		self.physics_system.register(found.unwrap());
 	}
 
-	fn on_drag(&mut self, pos: obj::Position) {
-		self.new_ball(pos);
+	fn on_left_drag(&mut self, pos: obj::Position) {
+		self.new_resource(pos);
 	}
 
 	fn on_mouse_move(&mut self, pos: obj::Position) {
-		//self.light_position = pos;
+		// self.light_position = pos;
 	}
 
 	fn on_right_drag(&mut self, pos: obj::Position) {
@@ -261,7 +261,7 @@ impl App {
 				let pos = transform_pos(&self.viewport, x as u32, y as u32);
 				self.input_state.mouse_position_at(pos);
 				if self.input_state.button_pressed(Left) {
-					self.on_drag(pos);
+					self.on_left_drag(pos);
 				} else if self.input_state.button_pressed(Right) {
 					self.on_right_drag(pos);
 				} else {
@@ -277,7 +277,7 @@ impl App {
 	}
 
 	pub fn render(&self, renderer: &mut render::Draw) {
-		for (_, b) in self.world.friends.creatures() {
+		for (_, b) in self.world.minions.creatures() {
 			for limb in b.limbs() {
 				let transform = limb.transform();
 				let position = transform.position;

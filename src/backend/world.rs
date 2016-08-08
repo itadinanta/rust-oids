@@ -152,21 +152,13 @@ impl Creature {
 	}
 }
 
-struct CreatureBuilder {
+struct Randomizer {
 	rng: rand::ThreadRng,
-	material: Material,
-	state: State,
-	limbs: Vec<Limb>,
 }
 
-impl CreatureBuilder {
-	fn new(material: Material, state: State) -> Self {
-		CreatureBuilder {
-			rng: rand::thread_rng(),
-			material: material,
-			state: state,
-			limbs: Vec::new(),
-		}
+impl Randomizer {
+	fn new() -> Self {
+		Randomizer { rng: rand::thread_rng() }
 	}
 
 	fn frand<T>(&mut self, min: T, max: T) -> T
@@ -195,6 +187,7 @@ impl CreatureBuilder {
 		let ratio: f32 = self.frand(0.1, 0.2);
 		Shape::new_box(radius, ratio)
 	}
+
 
 	fn random_triangle(&mut self) -> Shape {
 		let radius = self.frand(0.5, 1.0);
@@ -240,20 +233,56 @@ impl CreatureBuilder {
 			Shape::new_star(n, radius, ratio1, ratio2)
 		}
 	}
+}
 
-	pub fn start(&mut self, position: obj::Position, angle: f32, shape: &Shape, winding: Winding) -> &mut Self {
-		let limb = self.new_limb(shape, winding, position, angle, None);
+struct CreatureBuilder {
+	id: Id,
+	material: Material,
+	state: State,
+	limbs: Vec<Limb>,
+}
+
+impl CreatureBuilder {
+	fn new(id: Id, material: Material, state: State) -> Self {
+		CreatureBuilder {
+			id: id,
+			material: material,
+			state: state,
+			limbs: Vec::new(),
+		}
+	}
+
+	pub fn start(&mut self, position: obj::Position, angle: f32, shape: &Shape) -> &mut Self {
+		let limb = self.new_limb(shape, Winding::CW, position, angle, None);
 		self.limbs.clear();
 		self.limbs.push(limb);
 		self
 	}
 
-	pub fn add(&mut self,
-	           parent_index: LimbIndex,
-	           attachment_index_offset: isize,
-	           shape: &Shape,
-	           winding: Winding)
-	           -> &mut Self {
+	fn id(&mut self, id: Id) -> &mut Self {
+		self.id = id;
+		self
+	}
+
+	#[inline]
+	pub fn add(&mut self, parent_index: LimbIndex, attachment_index_offset: isize, shape: &Shape) -> &mut Self {
+		self.addw(parent_index, attachment_index_offset, shape, Winding::CW)
+	}
+	#[inline]
+	pub fn addl(&mut self, parent_index: LimbIndex, attachment_index_offset: isize, shape: &Shape) -> &mut Self {
+		self.addw(parent_index, attachment_index_offset, shape, Winding::CCW)
+	}
+	#[inline]
+	pub fn addr(&mut self, parent_index: LimbIndex, attachment_index_offset: isize, shape: &Shape) -> &mut Self {
+		self.addw(parent_index, attachment_index_offset, shape, Winding::CW)
+	}
+
+	pub fn addw(&mut self,
+	            parent_index: LimbIndex,
+	            attachment_index_offset: isize,
+	            shape: &Shape,
+	            winding: Winding)
+	            -> &mut Self {
 		let parent = self.limbs[parent_index as usize].clone();//urgh!;
 		let parent_pos = parent.transform.position;
 		let parent_angle = parent.transform.angle;
@@ -296,9 +325,9 @@ impl CreatureBuilder {
 		}
 	}
 
-	pub fn build(&self, id: obj::Id) -> Creature {
+	pub fn build(&self) -> Creature {
 		Creature {
-			id: id,
+			id: self.id,
 			limbs: self.limbs.clone().into_boxed_slice(),
 		}
 	}
@@ -306,6 +335,7 @@ impl CreatureBuilder {
 
 pub struct Flock {
 	last_id: Id,
+	rnd: Randomizer,
 	creatures: HashMap<Id, Creature>,
 }
 
@@ -313,6 +343,7 @@ impl Flock {
 	pub fn new() -> Flock {
 		Flock {
 			last_id: 0,
+			rnd: Randomizer::new(),
 			creatures: HashMap::new(),
 		}
 	}
@@ -330,36 +361,44 @@ impl Flock {
 		self.last_id
 	}
 
-	pub fn new_creature(&mut self, initial_pos: Position, charge: f32) -> Id {
-		let mut rng = rand::thread_rng();
+	pub fn new_resource(&mut self, initial_pos: Position, charge: f32) -> Id {
+		let ball = self.rnd.random_ball();
+		let mut builder = CreatureBuilder::new(self.next_id(),
+		                                       Material { density: 1.0, ..Default::default() },
+		                                       State::with_charge(charge, 0.));
+		self.insert(builder.start(initial_pos, 0., &ball).build())
+	}
 
-		let mut builder =
-			CreatureBuilder::new(Material { density: (rng.gen::<f32>() * 1.0) + 1.0, ..Default::default() },
-			                     State::with_charge(charge, 0.));
+	pub fn new_minion(&mut self, initial_pos: Position, charge: f32) -> Id {
+		let mut builder = CreatureBuilder::new(self.next_id(),
+		                                       Material { density: 0.5, ..Default::default() },
+		                                       State::with_charge(0., charge));
 
-		let id = self.next_id();
-		let arm_shape = builder.random_star();
-		let leg_shape = builder.random_star();
-		let torso_shape = builder.random_npoly(5, true);
-		let head_shape = builder.random_iso_triangle();
-		let tail_shape = builder.random_vbar();
+		let arm_shape = self.rnd.random_star();
+		let leg_shape = self.rnd.random_star();
+		let torso_shape = self.rnd.random_npoly(5, true);
+		let head_shape = self.rnd.random_iso_triangle();
+		let tail_shape = self.rnd.random_vbar();
 		let initial_angle = consts::PI / 2. + f32::atan2(initial_pos.y, initial_pos.x);
 
-		let torso = builder.start(initial_pos, initial_angle, &torso_shape, Winding::CW)
+		let torso = builder.start(initial_pos, initial_angle, &torso_shape)
 			.index();
 
-		builder.add(torso, 2, &arm_shape, Winding::CW)
-			.add(torso, -2, &arm_shape, Winding::CCW)
-			.add(torso, 4, &leg_shape, Winding::CW)
-			.add(torso, -4, &leg_shape, Winding::CCW);
+		builder.addr(torso, 2, &arm_shape)
+			.addl(torso, -2, &arm_shape)
+			.addr(torso, 4, &leg_shape)
+			.addl(torso, -4, &leg_shape)
+			.add(torso, torso_shape.mid(), &tail_shape);
 
-		let head = builder.add(torso, 0, &head_shape, Winding::CW).index();
-		let tail = builder.add(torso, torso_shape.mid() as isize, &tail_shape, Winding::CW)
-			.index();
-		builder.add(head, 1, &head_shape, Winding::CW)
-			.add(head, 2, &head_shape, Winding::CCW);
+		let head = builder.add(torso, 0, &head_shape).index();
+		builder.addr(head, 1, &head_shape)
+			.addl(head, 2, &head_shape);
 
-		let creature = builder.build(id);
+		self.insert(builder.build())
+	}
+
+	fn insert(&mut self, creature: Creature) -> Id {
+		let id = creature.id;
 		self.creatures.insert(id, creature);
 		id
 	}
@@ -414,33 +453,47 @@ impl CreatureRefs {
 }
 
 pub struct World {
-	pub friends: Flock,
+	pub players: Flock,
+	pub minions: Flock,
+	pub friendly_fire: Flock,
+	pub enemies: Flock,
+	pub enemy_fire: Flock,
+	pub resources: Flock,
+	pub props: Flock,
 }
 
 pub trait WorldState {
-	fn friend(&self, id: obj::Id) -> Option<&Creature>;
+	fn minion(&self, id: obj::Id) -> Option<&Creature>;
 }
 
 impl WorldState for World {
-	fn friend(&self, id: obj::Id) -> Option<&Creature> {
-		self.friends.get(id)
+	fn minion(&self, id: obj::Id) -> Option<&Creature> {
+		self.minions.get(id)
 	}
 }
 
 impl World {
 	pub fn new() -> Self {
-		World { friends: Flock::new() }
+		World {
+			players: Flock::new(),
+			minions: Flock::new(),
+			friendly_fire: Flock::new(),
+			enemies: Flock::new(),
+			enemy_fire: Flock::new(),
+			resources: Flock::new(),
+			props: Flock::new(),
+		}
 	}
 
-	pub fn new_ball(&mut self, pos: obj::Position) -> obj::Id {
-		self.friends.new_creature(pos, 0.3)
+	pub fn new_resource(&mut self, pos: obj::Position) -> obj::Id {
+		self.minions.new_resource(pos, 0.3)
 	}
 
-	pub fn new_star(&mut self, pos: obj::Position) -> obj::Id {
-		self.friends.new_creature(pos, 0.3)
+	pub fn new_minion(&mut self, pos: obj::Position) -> obj::Id {
+		self.minions.new_minion(pos, 0.3)
 	}
 
 	pub fn friend_mut(&mut self, id: obj::Id) -> Option<&mut Creature> {
-		self.friends.get_mut(id)
+		self.minions.get_mut(id)
 	}
 }

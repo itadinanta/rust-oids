@@ -29,9 +29,9 @@ impl System for AnimationSystem {
 	fn from_world(&self, world: &world::World) {}
 
 	fn to_world(&self, world: &mut world::World) {
-		let keys: Vec<_> = world.friends.creatures().keys().cloned().collect();
+		let keys: Vec<_> = world.minions.creatures().keys().cloned().collect();
 		for k in keys {
-			if let Some(b) = world.friends.get_mut(k) {
+			if let Some(b) = world.minions.get_mut(k) {
 				for limb in b.limbs_mut() {
 					limb.state.update(self.dt * self.speed);
 				}

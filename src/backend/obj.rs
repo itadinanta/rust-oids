@@ -86,8 +86,9 @@ impl Shape {
 			&Shape::Triangle { .. } => 3,
 		}
 	}
-	pub fn mid(&self) -> usize {
-		self.length() / 2
+
+	pub fn mid(&self) -> isize {
+		self.length() as isize / 2
 	}
 }
 

@@ -38,7 +38,7 @@ impl Updateable for PhysicsSystem {
 			let center = (*body).world_center().clone();
 			let facing = (*body).world_point(&b2::Vec2 { x: 0., y: 1. }).clone();
 			let key = (*body).user_data();
-			if let Some(limb) = state.friend(key.creature_id).and_then(|c| c.limb(key.limb_index)) {
+			if let Some(limb) = state.minion(key.creature_id).and_then(|c| c.limb(key.limb_index)) {
 				match limb.index {
 					// TODO: retrieve properties from userdata
 					1 | 2 => v.push(BodyForce::Perpendicular(h, limb.state.charge, center, facing)),
@@ -106,7 +106,7 @@ impl System for PhysicsSystem {
 
 	fn to_world(&self, world: &mut world::World) {
 		for key in &self.dropped {
-			world.friends.kill(&key.creature_id);
+			world.minions.kill(&key.creature_id);
 			// println!("Killed object: {}", key.creature_id);
 		}
 		for (_, b) in self.world.bodies() {
@@ -115,7 +115,7 @@ impl System for PhysicsSystem {
 			let angle = (*body).angle();
 			let key = (*body).user_data();
 
-			if let Some(creature) = world.friends.get_mut(key.creature_id) {
+			if let Some(creature) = world.minions.get_mut(key.creature_id) {
 				if let Some(object) = creature.limb_mut(key.limb_index) {
 					let scale = object.transform().scale;
 					object.transform_to(obj::Transform {
