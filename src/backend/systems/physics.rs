@@ -157,6 +157,8 @@ impl PhysicsSystem {
 				let transform = limb.transform();
 				let mut b_def = b2::BodyDef::new();
 				b_def.body_type = b2::BodyType::Dynamic;
+				b_def.linear_damping = 0.5;
+				b_def.angular_damping = 0.8;
 				b_def.angle = transform.angle;
 				b_def.position = b2::Vec2 {
 					x: transform.position.x,

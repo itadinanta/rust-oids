@@ -373,7 +373,6 @@ impl Flock {
 		let mut builder = CreatureBuilder::new(self.next_id(),
 		                                       Material { density: 0.5, ..Default::default() },
 		                                       State::with_charge(0., charge));
-
 		let arm_shape = self.rnd.random_star();
 		let leg_shape = self.rnd.random_star();
 		let torso_shape = self.rnd.random_npoly(5, true);
@@ -382,13 +381,13 @@ impl Flock {
 		let initial_angle = consts::PI / 2. + f32::atan2(initial_pos.y, initial_pos.x);
 
 		let torso = builder.start(initial_pos, initial_angle, &torso_shape)
-		                   .index();
+			.index();
 		builder.addr(torso, 2, &arm_shape)
-		       .addl(torso, -2, &arm_shape);
+			.addl(torso, -2, &arm_shape);
 		let head = builder.add(torso, 0, &head_shape).index();
 
 		builder.addr(head, 1, &head_shape)
-		       .addl(head, 2, &head_shape);
+			.addl(head, 2, &head_shape);
 
 		let mut belly = torso;
 		let mut belly_mid = torso_shape.mid();
@@ -397,14 +396,15 @@ impl Flock {
 
 			belly = builder.add(belly, belly_mid, &belly_shape).index();
 			belly_mid = belly_shape.mid();
-
-			builder.addr(belly, 2, &arm_shape)
-			       .addl(belly, -2, &arm_shape);
+			if self.rnd.irand(0, 4) == 0 {
+				builder.addr(belly, 2, &arm_shape)
+					.addl(belly, -2, &arm_shape);
+			}
 		}
 
 		builder.addr(belly, belly_mid - 1, &leg_shape)
-		       .addl(belly, -(belly_mid - 1), &leg_shape)
-		       .add(belly, belly_mid, &tail_shape);
+			.addl(belly, -(belly_mid - 1), &leg_shape)
+			.add(belly, belly_mid, &tail_shape);
 
 		self.insert(builder.build())
 	}
