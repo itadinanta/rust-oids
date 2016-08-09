@@ -382,17 +382,29 @@ impl Flock {
 		let initial_angle = consts::PI / 2. + f32::atan2(initial_pos.y, initial_pos.x);
 
 		let torso = builder.start(initial_pos, initial_angle, &torso_shape)
-			.index();
-
+		                   .index();
 		builder.addr(torso, 2, &arm_shape)
-			.addl(torso, -2, &arm_shape)
-			.addr(torso, 4, &leg_shape)
-			.addl(torso, -4, &leg_shape)
-			.add(torso, torso_shape.mid(), &tail_shape);
-
+		       .addl(torso, -2, &arm_shape);
 		let head = builder.add(torso, 0, &head_shape).index();
+
 		builder.addr(head, 1, &head_shape)
-			.addl(head, 2, &head_shape);
+		       .addl(head, 2, &head_shape);
+
+		let mut belly = torso;
+		let mut belly_mid = torso_shape.mid();
+		for _ in 0..self.rnd.irand(0, 4) {
+			let belly_shape = self.rnd.random_poly(true);
+
+			belly = builder.add(belly, belly_mid, &belly_shape).index();
+			belly_mid = belly_shape.mid();
+
+			builder.addr(belly, 2, &arm_shape)
+			       .addl(belly, -2, &arm_shape);
+		}
+
+		builder.addr(belly, belly_mid - 1, &leg_shape)
+		       .addl(belly, -(belly_mid - 1), &leg_shape)
+		       .add(belly, belly_mid, &tail_shape);
 
 		self.insert(builder.build())
 	}
