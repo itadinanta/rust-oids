@@ -58,6 +58,25 @@ pub struct Attachment {
 	pub attachment_point: AttachmentIndex,
 }
 
+bitflags! {
+	pub flags LimbFlags: u32 {
+		const SENSOR       = 0x1,
+		const ACTUATOR     = 0x2,
+		const JOINT        = 0x4,
+		const MIDDLE       = 0x8,
+		const HEAD		   = 0x10,
+		const LEG          = 0x20,
+		const ARM          = 0x40,
+		const TORSO        = 0x100,
+		const BELLY        = 0x200,
+		const TAIL         = 0x400,
+		const LEFT         = 0x1000,
+		const RIGHT        = 0x2000,
+		const THRUSTER     = 0x4000,
+		const RUDDER       = 0x8000,
+	}
+}
+
 #[derive(Clone)]
 pub struct Limb {
 	pub transform: Transform,
@@ -67,6 +86,7 @@ pub struct Limb {
 	pub livery: Livery,
 	pub attached_to: Option<Attachment>,
 	pub state: State,
+	pub flags: LimbFlags,
 }
 
 impl Limb {
@@ -263,7 +283,7 @@ impl CreatureBuilder {
 	}
 
 	pub fn start(&mut self, position: obj::Position, angle: f32, shape: &Shape) -> &mut Self {
-		let limb = self.new_limb(shape, Winding::CW, position, angle, None);
+		let limb = self.new_limb(shape, Winding::CW, position, angle, None, TORSO | MIDDLE);
 		self.limbs.clear();
 		self.limbs.push(limb);
 		self
@@ -275,23 +295,51 @@ impl CreatureBuilder {
 	}
 
 	#[inline]
-	pub fn add(&mut self, parent_index: LimbIndex, attachment_index_offset: isize, shape: &Shape) -> &mut Self {
-		self.addw(parent_index, attachment_index_offset, shape, Winding::CW)
+	pub fn add(&mut self,
+	           parent_index: LimbIndex,
+	           attachment_index_offset: isize,
+	           shape: &Shape,
+	           flags: LimbFlags)
+	           -> &mut Self {
+		self.addw(parent_index,
+		          attachment_index_offset,
+		          shape,
+		          Winding::CW,
+		          flags | MIDDLE)
 	}
 	#[inline]
-	pub fn addl(&mut self, parent_index: LimbIndex, attachment_index_offset: isize, shape: &Shape) -> &mut Self {
-		self.addw(parent_index, attachment_index_offset, shape, Winding::CCW)
+	pub fn addl(&mut self,
+	            parent_index: LimbIndex,
+	            attachment_index_offset: isize,
+	            shape: &Shape,
+	            flags: LimbFlags)
+	            -> &mut Self {
+		self.addw(parent_index,
+		          attachment_index_offset,
+		          shape,
+		          Winding::CCW,
+		          flags | LEFT)
 	}
 	#[inline]
-	pub fn addr(&mut self, parent_index: LimbIndex, attachment_index_offset: isize, shape: &Shape) -> &mut Self {
-		self.addw(parent_index, attachment_index_offset, shape, Winding::CW)
+	pub fn addr(&mut self,
+	            parent_index: LimbIndex,
+	            attachment_index_offset: isize,
+	            shape: &Shape,
+	            flags: LimbFlags)
+	            -> &mut Self {
+		self.addw(parent_index,
+		          attachment_index_offset,
+		          shape,
+		          Winding::CW,
+		          flags | RIGHT)
 	}
 
 	pub fn addw(&mut self,
 	            parent_index: LimbIndex,
 	            attachment_index_offset: isize,
 	            shape: &Shape,
-	            winding: Winding)
+	            winding: Winding,
+	            flags: LimbFlags)
 	            -> &mut Self {
 		let parent = self.limbs[parent_index as usize].clone();//urgh!;
 		let parent_pos = parent.transform.position;
@@ -306,7 +354,8 @@ impl CreatureBuilder {
 		                         winding,
 		                         parent_pos + (p0 * (r0 + r1)),
 		                         consts::PI / 2. + angle,
-		                         parent.new_attachment(attachment_index as AttachmentIndex));
+		                         parent.new_attachment(attachment_index as AttachmentIndex),
+		                         flags);
 		self.limbs.push(limb);
 		self
 	}
@@ -323,7 +372,8 @@ impl CreatureBuilder {
 	            winding: Winding,
 	            position: obj::Position,
 	            angle: f32,
-	            attachment: Option<Attachment>)
+	            attachment: Option<Attachment>,
+	            flags: LimbFlags)
 	            -> Limb {
 		Limb {
 			index: self.limbs.len() as LimbIndex,
@@ -333,6 +383,7 @@ impl CreatureBuilder {
 			livery: self.livery.clone(),
 			state: self.state.clone(),
 			attached_to: attachment,
+			flags: flags,
 		}
 	}
 
@@ -399,30 +450,33 @@ impl Flock {
 		let initial_angle = consts::PI / 2. + f32::atan2(initial_pos.y, initial_pos.x);
 
 		let torso = builder.start(initial_pos, initial_angle, &torso_shape)
-		                   .index();
-		builder.addr(torso, 2, &arm_shape)
-		       .addl(torso, -2, &arm_shape);
-		let head = builder.add(torso, 0, &head_shape).index();
+			.index();
+		builder.addr(torso, 2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER)
+			.addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
+		let head = builder.add(torso, 0, &head_shape, HEAD | JOINT).index();
 
-		builder.addr(head, 1, &head_shape)
-		       .addl(head, 2, &head_shape);
+		builder.addr(head, 1, &head_shape, HEAD | SENSOR)
+			.addl(head, 2, &head_shape, HEAD | SENSOR);
 
 		let mut belly = torso;
 		let mut belly_mid = torso_shape.mid();
 		for _ in 0..self.rnd.irand(0, 4) {
 			let belly_shape = self.rnd.random_poly(true);
 
-			belly = builder.add(belly, belly_mid, &belly_shape).index();
+			belly = builder.add(belly, belly_mid, &belly_shape, BELLY | JOINT).index();
 			belly_mid = belly_shape.mid();
 			if self.rnd.irand(0, 4) == 0 {
-				builder.addr(belly, 2, &arm_shape)
-				       .addl(belly, -2, &arm_shape);
+				builder.addr(belly, 2, &arm_shape, ARM | ACTUATOR | RUDDER)
+					.addl(belly, -2, &arm_shape, ARM | ACTUATOR | RUDDER);
 			}
 		}
 
-		builder.addr(belly, belly_mid - 1, &leg_shape)
-		       .addl(belly, -(belly_mid - 1), &leg_shape)
-		       .add(belly, belly_mid, &tail_shape);
+		builder.addr(belly, belly_mid - 1, &leg_shape, LEG | ACTUATOR | THRUSTER)
+			.addl(belly,
+			      -(belly_mid - 1),
+			      &leg_shape,
+			      LEG | ACTUATOR | THRUSTER)
+			.add(belly, belly_mid, &tail_shape, TAIL);
 
 		self.insert(builder.build())
 	}

@@ -6,6 +6,8 @@ mod backend;
 extern crate log;
 extern crate simplelog;
 
+#[macro_use]
+extern crate bitflags;
 extern crate cgmath;
 
 extern crate wrapped2d;

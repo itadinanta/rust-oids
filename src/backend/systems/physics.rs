@@ -5,6 +5,7 @@ use super::*;
 use backend::obj::{Solid, Geometry, Transformable};
 use backend::world;
 use std::collections::HashMap;
+use std::f32::consts;
 
 struct CreatureData;
 
@@ -39,42 +40,43 @@ impl Updateable for PhysicsSystem {
 			let facing = (*body).world_point(&b2::Vec2 { x: 0., y: 1. }).clone();
 			let key = (*body).user_data();
 			if let Some(limb) = state.minion(key.creature_id).and_then(|c| c.limb(key.limb_index)) {
-				match limb.index {
-					// TODO: retrieve properties from userdata
-					1 | 2 => v.push(BodyForce::Perpendicular(h, limb.state.charge, center, facing)),
-					3 | 4 => v.push(BodyForce::Parallel(h, limb.state.charge, center, facing)),
-					_ => {}
+				let power = limb.state.charge * limb.mesh.shape.radius().powi(2);
+				if limb.flags.contains(world::RUDDER) {
+					v.push(BodyForce::Perpendicular(h, power, center, facing));
+				}
+				if limb.flags.contains(world::THRUSTER) {
+					v.push(BodyForce::Parallel(h, power, center, facing));
 				}
 			}
 		}
 		for force in v {
 			match force {
-				BodyForce::Perpendicular(h, charge, center, facing) => {
+				BodyForce::Perpendicular(h, power, center, facing) => {
 					let t = self.remote - obj::Position::new(center.x, center.y);
 					let f = obj::Position::new(center.x - facing.x, center.y - facing.y);
 					let d = f.dot(t);
 
 					if d > 0. {
 						let b = &mut self.world.body_mut(h);
-						let power = charge * 50.;//b.fixtures().reduce(|f| f.mass);
+						let power = power * 10.;
 						let f = f.normalize_to(power);
 						b.apply_force(&b2::Vec2 { x: f.x, y: f.y }, &center, true);
 					}
 				}
-				BodyForce::Parallel(h, charge, center, facing) => {
+				BodyForce::Parallel(h, power, center, facing) => {
 					let t = self.remote - obj::Position::new(center.x, center.y);
 					let f = obj::Position::new(facing.x - center.x, facing.y - center.y);
 					let d = f.dot(t);
 
-					if d > 0. {
-						let power = charge * 10.;
+					//if d > 0. {
+						let power = power * 50.;
 						let f = f.normalize_to(power);
 						self.world.body_mut(h).apply_force(&b2::Vec2 { x: f.x, y: f.y }, &center, true);
-					} else {
-						let power = charge * 50.;
-						let f = f.normalize_to(power);
-						self.world.body_mut(h).apply_force(&b2::Vec2 { x: -f.x, y: -f.y }, &center, true);
-					}
+					//} else {
+					//	let power = power * 10.;
+					//	let f = f.normalize_to(power);
+					//	self.world.body_mut(h).apply_force(&b2::Vec2 { x: -f.x, y: -f.y }, &center, true);
+					//}
 				}
 			}
 		}
@@ -87,6 +89,7 @@ struct JointRef<'a> {
 	refs: world::CreatureRefs,
 	handle: b2::BodyHandle,
 	mesh: &'a obj::Mesh,
+	flags: world::LimbFlags,
 	attachment: Option<world::Attachment>,
 }
 
@@ -168,6 +171,7 @@ impl PhysicsSystem {
 				let handle = world.create_body_with(&b_def, refs);
 
 				let mesh = limb.mesh();
+				let flags = limb.flags;
 				let attached_to = limb.attached_to;
 				match mesh.shape {
 					obj::Shape::Ball { radius } => {
@@ -234,6 +238,7 @@ impl PhysicsSystem {
 					refs: refs,
 					handle: handle,
 					mesh: mesh,
+					flags: flags,
 					attachment: attached_to,
 				}
 			})
@@ -241,29 +246,37 @@ impl PhysicsSystem {
 	}
 
 	fn build_joints(world: &mut b2::World<CreatureData>, joint_refs: &Vec<JointRef>) {
-		for &JointRef { handle: distal, mesh, attachment, .. } in joint_refs {
+		for &JointRef { handle: distal, mesh, attachment, flags, .. } in joint_refs {
 			if let Some(attachment) = attachment {
 				let upstream = &joint_refs[attachment.index as usize];
 				let medial = upstream.handle;
 				let angle_delta = world.body(distal).angle() - world.body(medial).angle();
 
-				let mut joint = b2::WeldJointDef::new(medial, distal);
-				joint.collide_connected = false;
-
-				joint.reference_angle = angle_delta;
-				joint.frequency = 5.0;
-				joint.damping_ratio = 0.9;
-				// joint.enable_limit = true;
-				// joint.upper_angle = consts::PI / 6.;
-				// joint.lower_angle = -consts::PI / 6.;
-
 				let v0 = upstream.mesh.vertices[attachment.attachment_point as usize] * upstream.mesh.shape.radius();
-				joint.local_anchor_a = b2::Vec2 { x: v0.x, y: v0.y };
-
 				let v1 = mesh.vertices[0] * mesh.shape.radius();
-				joint.local_anchor_b = b2::Vec2 { x: v1.x, y: v1.y };
-
-				world.create_joint_with(&joint, ());
+				let a = b2::Vec2 { x: v0.x, y: v0.y };
+				let b = b2::Vec2 { x: v1.x, y: v1.y };
+				if flags.contains(world::JOINT) {
+					let mut joint = b2::RevoluteJointDef::new(medial, distal);
+					joint.collide_connected = false;
+					joint.reference_angle = angle_delta;
+					joint.enable_limit = true;
+					joint.upper_angle = consts::PI / 6.;
+					joint.lower_angle = -consts::PI / 6.;
+					joint.local_anchor_a = a;
+					joint.local_anchor_b = b;
+					world.create_joint_with(&joint, ());
+				} else {
+					// TODO: how do we reduce the clutter?
+					let mut joint = b2::WeldJointDef::new(medial, distal);
+					joint.collide_connected = false;
+					joint.reference_angle = angle_delta;
+					joint.frequency = 5.0;
+					joint.damping_ratio = 0.9;
+					joint.local_anchor_a = a;
+					joint.local_anchor_b = b;
+					world.create_joint_with(&joint, ());
+				}
 			}
 		}
 	}
