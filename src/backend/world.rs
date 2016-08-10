@@ -134,7 +134,7 @@ impl obj::Drawable for Limb {
 		// [9. * self.state.charge + 0.1, 4. * self.state.charge, 0., 1.]
 		let rgba = self.livery.albedo;
 		let c = 10. * ((self.state.charge * 0.99) + 0.01);
-		[rgba[0] * c, rgba[1] * c, rgba[2] * c, rgba[3]]
+		[rgba[0] * c, rgba[1] * c, rgba[2] * c, rgba[3] * self.material.density]
 	}
 }
 
