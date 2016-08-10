@@ -8,6 +8,8 @@ Some procedurally generated bioids:
 
 ![screenshot](img/screenshot_004.png)
 
-Left mouse click: create bioid.
-Left mouse drag: drop some balls.
-Right mouse click, drag: move light.
+- Left mouse click: create bioid.
+- Left mouse drag: drop some balls.
+- Right mouse click, drag: move light.
+- B: set background tone
+- L: change light intensity
