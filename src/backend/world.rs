@@ -374,26 +374,23 @@ impl Flock {
 
 	pub fn new_resource(&mut self, initial_pos: Position, charge: f32) -> Id {
 		let ball = self.rnd.random_ball();
-		let mut builder =
-			CreatureBuilder::new(self.next_id(),
-			                     Material { density: 1.0, ..Default::default() },
-			                     Livery {
-				                     albedo: color::Hsl::new(self.rnd.frand(0., 2. * consts::PI), 1., 0.5).to_rgba(),
-				                     ..Default::default()
-			                     },
-			                     State::with_charge(charge, 0.));
+		let mut builder = CreatureBuilder::new(self.next_id(),
+		                                       Material { density: 1.0, ..Default::default() },
+		                                       Livery {
+			                                       albedo: color::Hsl::new(self.rnd.frand(0., 1.), 1., 0.5).to_rgba(),
+			                                       ..Default::default()
+		                                       },
+		                                       State::with_charge(charge, 0.));
 		self.insert(builder.start(initial_pos, 0., &ball).build())
 	}
 
 	pub fn new_minion(&mut self, initial_pos: Position, charge: f32) -> Id {
-		let mut builder =
-			CreatureBuilder::new(self.next_id(),
-			                     Material { density: 0.5, ..Default::default() },
-			                     Livery {
-				                     albedo: color::Hsl::new(self.rnd.frand(0., 2. * consts::PI), 1., 0.5).to_rgba(),
-				                     ..Default::default()
-			                     },
-			                     State::with_charge(0., charge));
+		let albedo = color::Hsl::new(self.rnd.frand(0., 1.), 0.5, 0.5);
+		println!("{:?} = {:?}", albedo, albedo.to_rgba());
+		let mut builder = CreatureBuilder::new(self.next_id(),
+		                                       Material { density: 0.5, ..Default::default() },
+		                                       Livery { albedo: albedo.to_rgba(), ..Default::default() },
+		                                       State::with_charge(0., charge));
 		let arm_shape = self.rnd.random_star();
 		let leg_shape = self.rnd.random_star();
 		let torso_shape = self.rnd.random_npoly(5, true);
@@ -402,13 +399,13 @@ impl Flock {
 		let initial_angle = consts::PI / 2. + f32::atan2(initial_pos.y, initial_pos.x);
 
 		let torso = builder.start(initial_pos, initial_angle, &torso_shape)
-			.index();
+		                   .index();
 		builder.addr(torso, 2, &arm_shape)
-			.addl(torso, -2, &arm_shape);
+		       .addl(torso, -2, &arm_shape);
 		let head = builder.add(torso, 0, &head_shape).index();
 
 		builder.addr(head, 1, &head_shape)
-			.addl(head, 2, &head_shape);
+		       .addl(head, 2, &head_shape);
 
 		let mut belly = torso;
 		let mut belly_mid = torso_shape.mid();
@@ -419,13 +416,13 @@ impl Flock {
 			belly_mid = belly_shape.mid();
 			if self.rnd.irand(0, 4) == 0 {
 				builder.addr(belly, 2, &arm_shape)
-					.addl(belly, -2, &arm_shape);
+				       .addl(belly, -2, &arm_shape);
 			}
 		}
 
 		builder.addr(belly, belly_mid - 1, &leg_shape)
-			.addl(belly, -(belly_mid - 1), &leg_shape)
-			.add(belly, belly_mid, &tail_shape);
+		       .addl(belly, -(belly_mid - 1), &leg_shape)
+		       .add(belly, belly_mid, &tail_shape);
 
 		self.insert(builder.build())
 	}

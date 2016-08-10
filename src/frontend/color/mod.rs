@@ -2,6 +2,7 @@ use num;
 use std::f32::consts;
 
 
+#[derive(Debug)]
 pub struct Hsl<T: num::Float> {
 	h: T,
 	s: T,
@@ -61,7 +62,7 @@ impl Hsl<f32> {
 				(r - g) / d + 4.
 			};
 			Hsl {
-				h: (h / 6.) * 2. * consts::PI,
+				h: (h / 6.),
 				s: s0,
 				l: l0,
 			}
@@ -101,7 +102,6 @@ impl Hsl<f32> {
 		match self {
 			&Hsl { h: 0., l, .. } => [l, l, l],
 			&Hsl { h, s, l } => {
-				let h = h / (2. * consts::PI);
 				let q = if l < 0.5 {
 					l * (1. + s)
 				} else {
