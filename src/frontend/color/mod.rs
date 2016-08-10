@@ -2,7 +2,7 @@ use num;
 use std::f32::consts;
 
 
-struct Hsl<T: num::Float> {
+pub struct Hsl<T: num::Float> {
 	h: T,
 	s: T,
 	l: T,
@@ -11,7 +11,7 @@ struct Hsl<T: num::Float> {
 impl<T> Hsl<T>
     where T: num::Float
 {
-	fn new(h: T, s: T, l: T) -> Self {
+	pub fn new(h: T, s: T, l: T) -> Self {
 		Hsl { h: h, s: s, l: l }
 	}
 }
@@ -29,7 +29,7 @@ impl Hsl<f32> {
 	/// @param   Number  b       The blue color value
 	/// @return  Array           The HSL representation
 	///
-	fn from_rgb(r: f32, g: f32, b: f32) -> Self {
+	pub fn from_rgb(r: f32, g: f32, b: f32) -> Self {
 		let max = f32::max(r, f32::max(g, b));
 		let min = f32::min(r, f32::min(g, b));
 		let b = (max + min) / 2.;
@@ -79,7 +79,6 @@ impl Hsl<f32> {
 	/// @return  Array           The RGB representation
 	///
 	pub fn to_rgb(&self) -> [f32; 3] {
-
 		fn hue2rgb(p: f32, q: f32, t0: f32) -> f32 {
 			let t = if t0 < 0. {
 				t0 + 1.
@@ -102,6 +101,7 @@ impl Hsl<f32> {
 		match self {
 			&Hsl { h: 0., l, .. } => [l, l, l],
 			&Hsl { h, s, l } => {
+				let h = h / (2. * consts::PI);
 				let q = if l < 0.5 {
 					l * (1. + s)
 				} else {
@@ -115,5 +115,10 @@ impl Hsl<f32> {
 				[r, g, b]
 			}
 		}
+	}
+
+	pub fn to_rgba(&self) -> [f32; 4] {
+		let rgb = self.to_rgb();
+		[rgb[0], rgb[1], rgb[2], 1.]
 	}
 }

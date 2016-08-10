@@ -227,6 +227,15 @@ pub struct Material {
 	pub friction: f32,
 }
 
+#[derive(Copy, Clone)]
+pub struct Livery {
+	pub albedo: Rgba,
+	pub frequency: f32,
+	pub phase: f32,
+	pub amplitude: f32,
+	pub seed: f32,
+}
+
 impl Default for Material {
 	fn default() -> Self {
 		Material {
@@ -237,9 +246,21 @@ impl Default for Material {
 	}
 }
 
+impl Default for Livery {
+	fn default() -> Self {
+		Livery {
+			albedo: [1., 1., 1., 1.],
+			frequency: 0.5,
+			phase: 0.,
+			amplitude: 0.5,
+			seed: 0.,
+		}
+	}
+}
 
 pub trait Solid {
 	fn material(&self) -> Material;
+	fn livery(&self) -> Livery;
 }
 
 pub trait Geometry {

@@ -8,6 +8,7 @@ use std::f32::consts;
 use cgmath;
 use cgmath::EuclideanVector;
 use num;
+use frontend::color;
 
 #[derive(Clone)]
 pub struct State {
@@ -63,6 +64,7 @@ pub struct Limb {
 	pub index: LimbIndex,
 	pub mesh: Mesh,
 	pub material: Material,
+	pub livery: Livery,
 	pub attached_to: Option<Attachment>,
 	pub state: State,
 }
@@ -120,13 +122,19 @@ impl obj::Solid for Limb {
 	fn material(&self) -> Material {
 		self.material
 	}
+	fn livery(&self) -> Livery {
+		self.livery
+	}
 }
 
 impl obj::Drawable for Limb {
 	fn color(&self) -> Rgba {
 		// let lightness = 1. - self.material.density * 0.5;
 		// [0., 10. * lightness, 0., 1.]
-		[9. * self.state.charge + 0.1, 4. * self.state.charge, 0., 1.]
+		// [9. * self.state.charge + 0.1, 4. * self.state.charge, 0., 1.]
+		let rgba = self.livery.albedo;
+		let c = 10. * ((self.state.charge * 0.99) + 0.01);
+		[rgba[0] * c, rgba[1] * c, rgba[2] * c, rgba[3]]
 	}
 }
 
@@ -238,15 +246,17 @@ impl Randomizer {
 struct CreatureBuilder {
 	id: Id,
 	material: Material,
+	livery: Livery,
 	state: State,
 	limbs: Vec<Limb>,
 }
 
 impl CreatureBuilder {
-	fn new(id: Id, material: Material, state: State) -> Self {
+	fn new(id: Id, material: Material, livery: Livery, state: State) -> Self {
 		CreatureBuilder {
 			id: id,
 			material: material,
+			livery: livery,
 			state: state,
 			limbs: Vec::new(),
 		}
@@ -320,6 +330,7 @@ impl CreatureBuilder {
 			transform: obj::Transform::new(position, angle),
 			mesh: Mesh::from_shape(shape.clone(), winding),
 			material: self.material.clone(),
+			livery: self.livery.clone(),
 			state: self.state.clone(),
 			attached_to: attachment,
 		}
@@ -363,16 +374,26 @@ impl Flock {
 
 	pub fn new_resource(&mut self, initial_pos: Position, charge: f32) -> Id {
 		let ball = self.rnd.random_ball();
-		let mut builder = CreatureBuilder::new(self.next_id(),
-		                                       Material { density: 1.0, ..Default::default() },
-		                                       State::with_charge(charge, 0.));
+		let mut builder =
+			CreatureBuilder::new(self.next_id(),
+			                     Material { density: 1.0, ..Default::default() },
+			                     Livery {
+				                     albedo: color::Hsl::new(self.rnd.frand(0., 2. * consts::PI), 1., 0.5).to_rgba(),
+				                     ..Default::default()
+			                     },
+			                     State::with_charge(charge, 0.));
 		self.insert(builder.start(initial_pos, 0., &ball).build())
 	}
 
 	pub fn new_minion(&mut self, initial_pos: Position, charge: f32) -> Id {
-		let mut builder = CreatureBuilder::new(self.next_id(),
-		                                       Material { density: 0.5, ..Default::default() },
-		                                       State::with_charge(0., charge));
+		let mut builder =
+			CreatureBuilder::new(self.next_id(),
+			                     Material { density: 0.5, ..Default::default() },
+			                     Livery {
+				                     albedo: color::Hsl::new(self.rnd.frand(0., 2. * consts::PI), 1., 0.5).to_rgba(),
+				                     ..Default::default()
+			                     },
+			                     State::with_charge(0., charge));
 		let arm_shape = self.rnd.random_star();
 		let leg_shape = self.rnd.random_star();
 		let torso_shape = self.rnd.random_npoly(5, true);
