@@ -189,7 +189,7 @@ void main() {
 	vec4 src = texture(t_Source, v_TexCoord, 0);
 	float l = max((dot(vec3(0.2126, 0.7152, 0.0722), src.rgb) - 1.), 0.);
 
-	o_Color = src * l;
+	o_Color = vec4(src.rgb * l, src.a);
 }
 
 ";
