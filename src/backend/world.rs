@@ -9,6 +9,7 @@ use cgmath;
 use cgmath::EuclideanVector;
 use num;
 use frontend::color;
+use frontend::color::ToRgb;
 
 #[derive(Clone)]
 pub struct State {
@@ -424,13 +425,12 @@ impl Flock {
 	}
 
 	pub fn new_resource(&mut self, initial_pos: Position, charge: f32) -> Id {
+		let albedo = color::YPbPr::new(0.5, self.rnd.frand(-0.5, 0.5), self.rnd.frand(-0.5, 0.5));
+		println!("{:?} = {:?}", albedo, albedo.to_rgba());
 		let ball = self.rnd.random_ball();
 		let mut builder = CreatureBuilder::new(self.next_id(),
 		                                       Material { density: 1.0, ..Default::default() },
-		                                       Livery {
-			                                       albedo: color::Hsl::new(self.rnd.frand(0., 1.), 1., 0.5).to_rgba(),
-			                                       ..Default::default()
-		                                       },
+		                                       Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                       State::with_charge(charge, 0.));
 		self.insert(builder.start(initial_pos, 0., &ball).build())
 	}
