@@ -109,7 +109,7 @@ pub struct Agent {
 	segments: Box<[Segment]>,
 }
 
-impl GameObject for Agent {
+impl Identified for Agent {
 	fn id(&self) -> Id {
 		self.id
 	}
