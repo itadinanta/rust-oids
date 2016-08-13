@@ -8,8 +8,8 @@ use std::f32::consts;
 use cgmath;
 use cgmath::EuclideanVector;
 use num;
-use frontend::color;
-use frontend::color::ToRgb;
+use core::color;
+use core::color::ToRgb;
 
 #[derive(Clone)]
 pub struct State {

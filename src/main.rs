@@ -1,4 +1,5 @@
 mod app;
+mod core;
 mod frontend;
 mod backend;
 

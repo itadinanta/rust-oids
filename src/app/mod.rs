@@ -1,11 +1,12 @@
 mod mainloop;
 
+use core::math;
+
 use backend::obj;
 use backend::world;
 use backend::systems;
 
 use backend::systems::System;
-use backend::smooth;
 
 use frontend::input;
 use frontend::render;
@@ -78,7 +79,7 @@ pub struct App {
 	frame_count: u32,
 	frame_start: SystemTime,
 	frame_elapsed: f32,
-	frame_smooth: smooth::Smooth<f32>,
+	frame_smooth: math::Smooth<f32>,
 	is_running: bool,
 	//
 	light_position: obj::Position,
@@ -126,7 +127,7 @@ impl App {
 			frame_elapsed: 0.0f32,
 			frame_start: SystemTime::now(),
 			wall_clock_start: SystemTime::now(),
-			frame_smooth: smooth::Smooth::new(120),
+			frame_smooth: math::Smooth::new(120),
 			is_running: true,
 		}
 	}
