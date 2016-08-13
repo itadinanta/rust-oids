@@ -1,8 +1,8 @@
 
 use std::io;
 
-pub trait ResourceLoader<I, T> {
-	fn load_resource(&self, key: I) -> io::Result<Box<[T]>>;
+pub trait ResourceLoader<T> {
+	fn load_resource(&self, key: &str) -> io::Result<Box<[T]>>;
 }
 
 mod filesystem {
@@ -35,19 +35,20 @@ mod filesystem {
 		}
 	}
 
-	impl<'a> super::ResourceLoader<&'a str, u8> for ResourceLoader {
-		fn load_resource(&self, key: &'a str) -> io::Result<Box<[u8]>> {
+	impl super::ResourceLoader<u8> for ResourceLoader {
+		fn load_resource(&self, key: &str) -> io::Result<Box<[u8]>> {
 
-			// 		Rust idiom
-			// 		let mut f = try!(fs::File::open(path.as_path()));
-			// 		let mut buf = Vec::new();
-			// 		try!(f.read_to_end(&mut buf));
-			// 		Ok(buf.into_boxed_slice())
+			// swallow the file whole into a buffer
 			fn load_from_path(path: &path::Path) -> io::Result<Box<[u8]>> {
 				fs::File::open(path).and_then(|mut f| {
 					let mut buf = Vec::new();
 					f.read_to_end(&mut buf).map(|_| buf.into_boxed_slice())
 				})
+				// 		Rust idiom
+				// 		let mut f = try!(fs::File::open(path.as_path()));
+				// 		let mut buf = Vec::new();
+				// 		try!(f.read_to_end(&mut buf));
+				// 		Ok(buf.into_boxed_slice())
 			}
 
 			// look for the first file which exists
@@ -56,12 +57,11 @@ mod filesystem {
 				path.push(key);
 				path.exists() && path.is_file()
 			}) {
-				&None => Err(io::Error::new(io::ErrorKind::Other, "Resource not found in path")),
+				// and then either read it
 				&Some(path) => load_from_path(path),
+				// or give up
+				&None => Err(io::Error::new(io::ErrorKind::Other, "Resource not found in path")),
 			}
-
-
-
 		}
 	}
 }
