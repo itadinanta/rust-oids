@@ -66,7 +66,7 @@ impl Updateable for PhysicsSystem {
 				BodyForce::Parallel(h, power, center, facing) => {
 					let t = self.remote - obj::Position::new(center.x, center.y);
 					let f = obj::Position::new(facing.x - center.x, facing.y - center.y);
-					let d = f.dot(t);
+					// let d = f.dot(t);
 
 					//if d > 0. {
 						let power = power * 50.;
@@ -105,7 +105,7 @@ impl System for PhysicsSystem {
 		}
 	}
 
-	fn from_world(&self, world: &world::World) {}
+	fn from_world(&self, _: &world::World) {}
 
 	fn to_world(&self, world: &mut world::World) {
 		for key in &self.dropped {

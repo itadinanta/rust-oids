@@ -76,7 +76,7 @@ impl Camera {
 }
 
 pub trait Draw {
-	fn draw_triangle(&mut self, transform: &cgmath::Matrix4<f32>, p: &[cgmath::Vector2<f32>; 3], color: [f32; 4]);
+	fn draw_triangle(&mut self, transform: &cgmath::Matrix4<f32>, p: &[cgmath::Vector2<f32>], color: [f32; 4]);
 	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>, ratio: f32, color: [f32; 4]);
 	fn draw_star(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[cgmath::Vector2<f32>], color: [f32; 4]);
 	fn draw_ball(&mut self, transform: &cgmath::Matrix4<f32>, color: [f32; 4]);
@@ -272,33 +272,35 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 		                                          &mut self.depth);
 	}
 
-	fn draw_triangle(&mut self, transform: &cgmath::Matrix4<f32>, p: &[cgmath::Vector2<f32>; 3], color: [f32; 4]) {
-		let v = &[Vertex {
-			          pos: [p[0].x, p[0].y, 0.0],
-			          tex_coord: [0.5 + p[0].x * 0.5, 0.5 + p[0].y * 0.5],
-			          ..Vertex::default()
-		          },
-		          Vertex {
-			          pos: [p[1].x, p[1].y, 0.0],
-			          tex_coord: [0.5 + p[1].x * 0.5, 0.5 + p[1].y * 0.5],
-			          ..Vertex::default()
-		          },
-		          Vertex {
-			          pos: [p[2].x, p[2].y, 0.0],
-			          tex_coord: [0.5 + p[2].x * 0.5, 0.5 + p[2].y * 0.5],
-			          ..Vertex::default()
-		          }];
+	fn draw_triangle(&mut self, transform: &cgmath::Matrix4<f32>, p: &[cgmath::Vector2<f32>], color: [f32; 4]) {
+		if p.len() >= 3 {
+			let v = &[Vertex {
+				          pos: [p[0].x, p[0].y, 0.0],
+				          tex_coord: [0.5 + p[0].x * 0.5, 0.5 + p[0].y * 0.5],
+				          ..Vertex::default()
+			          },
+			          Vertex {
+				          pos: [p[1].x, p[1].y, 0.0],
+				          tex_coord: [0.5 + p[1].x * 0.5, 0.5 + p[1].y * 0.5],
+				          ..Vertex::default()
+			          },
+			          Vertex {
+				          pos: [p[2].x, p[2].y, 0.0],
+				          tex_coord: [0.5 + p[2].x * 0.5, 0.5 + p[2].y * 0.5],
+				          ..Vertex::default()
+			          }];
 
-		let (vertices, indices) = self.factory.create_vertex_buffer_with_slice(v, ());
+			let (vertices, indices) = self.factory.create_vertex_buffer_with_slice(v, ());
 
-		self.pass_forward_lighting.draw_triangles(forward::Shader::Flat,
-		                                          &mut self.encoder,
-		                                          vertices,
-		                                          &indices,
-		                                          transform,
-		                                          color,
-		                                          &mut self.hdr_color,
-		                                          &mut self.depth);
+			self.pass_forward_lighting.draw_triangles(forward::Shader::Flat,
+			                                          &mut self.encoder,
+			                                          vertices,
+			                                          &indices,
+			                                          transform,
+			                                          color,
+			                                          &mut self.hdr_color,
+			                                          &mut self.depth);
+		}
 	}
 
 	fn draw_text(&mut self, text: &str, screen_position: [i32; 2], text_color: [f32; 4]) {

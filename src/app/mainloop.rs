@@ -5,8 +5,6 @@ use app;
 use cgmath;
 use glutin;
 use gfx_window_glutin;
-use core::resource;
-use std::path;
 
 pub fn main_loop() {
 	const WIDTH: u32 = 1280;

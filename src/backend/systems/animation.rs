@@ -13,7 +13,7 @@ pub struct AnimationSystem {
 }
 
 impl Updateable for AnimationSystem {
-	fn update(&mut self, state: &WorldState, dt: f32) {
+	fn update(&mut self, _: &WorldState, dt: f32) {
 		self.now = SystemTime::now();
 		self.dt = dt;
 		self.frames += dt;
