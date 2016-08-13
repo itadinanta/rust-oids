@@ -23,28 +23,36 @@ impl System for AiSystem {
 
 	fn to_world(&self, world: &mut world::World) {
 		for (_, agent) in world.minions.agents_mut() {
-			let segments = agent.segments_mut();
 			// let torso = segments[0].unwrap();
-			for segment in segments {
-				if segment.flags.intersects(world::RUDDER | world::THRUSTER) {
-					let center: Position = segment.transform.position;
-					let power = segment.state.charge * segment.mesh.shape.radius().powi(2);
-					let facing: Position = Matrix2::from_angle(rad(segment.transform.angle)) * Position::unit_y();
-					let intent = if segment.flags.contains(world::RUDDER) {
-						let t = self.remote - center;
-						let f = -facing;
-
-						if f.dot(facing) > 0. {
-							Some(facing.normalize_to(-power * 10.))
+			// 			let sensor = {
+			// 				agent.segments_mut().find(|segment| segment.flags.contains(world::SENSOR))
+			// 			};
+			let segments = &mut agent.segments_mut();
+			let order = segments.len() as f32;
+			if let Some(sensor) = segments.iter()
+				.find(|segment| segment.flags.contains(world::HEAD))
+				.map(|sensor| sensor.clone()) {
+				for segment in segments.iter_mut() {
+					if segment.flags.intersects(world::ACTUATOR) {
+						let power = segment.state.charge * segment.mesh.shape.radius().powi(2);
+						let f: Position = Matrix2::from_angle(rad(segment.transform.angle)) * Position::unit_y();
+						let t = self.remote - sensor.transform.position;
+						let d = t.length();
+						let intent = if segment.flags.contains(world::RUDDER) && t.dot(f) > 0. && t.length() > 10 {
+							Some(f.normalize_to(power * 4. * order))
+						} else if segment.flags.contains(world::THRUSTER) && t.dot(f) > 0. && d > 10.5 {
+							Some(f.normalize_to(power * 2. * order))
+						} else if segment.flags.contains(world::BRAKE) && (t.dot(f) < 0. || d < 9.5) {
+							Some(f.normalize_to(-power * 3. * order))
 						} else {
 							None
+						};
+						match intent {
+							None => segment.state.target_charge = 0.1,
+							Some(_) => segment.state.target_charge = 0.5,
 						}
-					} else if segment.flags.contains(world::THRUSTER) {
-						Some(facing.normalize_to(power * 50.))
-					} else {
-						None
-					};
-					segment.state.intent = intent;
+						segment.state.intent = intent;
+					}
 				}
 			}
 		}

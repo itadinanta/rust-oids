@@ -65,9 +65,7 @@ pub struct Attachment {
 bitflags! {
 	pub flags SegmentFlags: u32 {
 		const SENSOR       = 0x1,
-		const ACTUATOR     = 0x2,
 		const JOINT        = 0x4,
-		const MIDDLE       = 0x8,
 		const HEAD		   = 0x10,
 		const LEG          = 0x20,
 		const ARM          = 0x40,
@@ -76,8 +74,11 @@ bitflags! {
 		const TAIL         = 0x400,
 		const LEFT         = 0x1000,
 		const RIGHT        = 0x2000,
-		const THRUSTER     = 0x4000,
-		const RUDDER       = 0x8000,
+		const MIDDLE       = 0x4000,
+		const THRUSTER     = 0x10000,
+		const RUDDER       = 0x20000,
+		const BRAKE        = 0x40000,
+		const ACTUATOR     = THRUSTER.bits | RUDDER.bits | BRAKE.bits,
 	}
 }
 
@@ -164,12 +165,12 @@ impl Agent {
 		self.id
 	}
 
-	pub fn segments(&self) -> slice::Iter<Segment> {
-		self.segments.iter()
+	pub fn segments(&self) -> &[Segment] {
+		&self.segments
 	}
 
-	pub fn segments_mut(&mut self) -> slice::IterMut<Segment> {
-		self.segments.iter_mut()
+	pub fn segments_mut(&mut self) -> &mut [Segment] {
+		&mut self.segments
 	}
 
 	pub fn segment(&self, index: SegmentIndex) -> Option<&Segment> {
@@ -397,7 +398,7 @@ impl AgentBuilder {
 }
 
 pub struct Flock {
-	last_id: Id,
+	seq: Id,
 	rnd: Randomizer,
 	agents: HashMap<Id, Agent>,
 }
@@ -405,7 +406,7 @@ pub struct Flock {
 impl Flock {
 	pub fn new() -> Flock {
 		Flock {
-			last_id: 0,
+			seq: 0,
 			rnd: Randomizer::new(),
 			agents: HashMap::new(),
 		}
@@ -420,8 +421,8 @@ impl Flock {
 	}
 
 	pub fn next_id(&mut self) -> Id {
-		self.last_id = self.last_id + 1;
-		self.last_id
+		self.seq = self.seq + 1;
+		self.seq
 	}
 
 	pub fn new_resource(&mut self, initial_pos: Position, charge: f32) -> Id {
@@ -437,7 +438,7 @@ impl Flock {
 	pub fn new_minion(&mut self, initial_pos: Position, charge: f32) -> Id {
 		let albedo = color::Hsl::new(self.rnd.frand(0., 1.), 0.5, 0.5);
 		let mut builder = AgentBuilder::new(self.next_id(),
-		                                    Material { density: 0.5, ..Default::default() },
+		                                    Material { density: 0.2, ..Default::default() },
 		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                    State::with_charge(0., charge));
 		let arm_shape = self.rnd.random_star();
@@ -451,10 +452,10 @@ impl Flock {
 			.index();
 		builder.addr(torso, 2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER)
 			.addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
-		let head = builder.add(torso, 0, &head_shape, HEAD | JOINT).index();
 
-		builder.addr(head, 1, &head_shape, HEAD | SENSOR)
-			.addl(head, 2, &head_shape, HEAD | SENSOR);
+		let head = builder.add(torso, 0, &head_shape, HEAD | SENSOR | JOINT).index();
+		builder.addr(head, 1, &head_shape, HEAD | ACTUATOR | RUDDER)
+			.addl(head, 2, &head_shape, HEAD | ACTUATOR | RUDDER);
 
 		let mut belly = torso;
 		let mut belly_mid = torso_shape.mid();
@@ -474,7 +475,7 @@ impl Flock {
 			      -(belly_mid - 1),
 			      &leg_shape,
 			      LEG | ACTUATOR | THRUSTER)
-			.add(belly, belly_mid, &tail_shape, TAIL);
+			.add(belly, belly_mid, &tail_shape, TAIL | ACTUATOR | BRAKE);
 
 		self.insert(builder.build())
 	}
@@ -492,10 +493,10 @@ impl Flock {
 	pub fn agents(&self) -> &HashMap<Id, Agent> {
 		&self.agents
 	}
-	
+
 	pub fn agents_mut(&mut self) -> &mut HashMap<Id, Agent> {
 		&mut self.agents
-	}	
+	}
 }
 
 #[repr(packed)]

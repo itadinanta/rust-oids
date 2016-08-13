@@ -111,7 +111,8 @@ impl PhysicsSystem {
 	fn build_fixtures<'a>(world: &mut b2::World<AgentData>, agent: &'a world::Agent) -> Vec<JointRef<'a>> {
 		let object_id = agent.id();
 		let segments = agent.segments();
-		segments.enumerate()
+		segments.into_iter()
+			.enumerate()
 			.map(|(segment_index, segment)| {
 				let material = segment.material();
 				let mut f_def = b2::FixtureDef::new();
