@@ -41,7 +41,7 @@ impl Transform {
 }
 pub type Rgba = [f32; 4];
 pub type Id = usize;
-pub type LimbIndex = u8;
+pub type SegmentIndex = u8;
 pub type BoneIndex = u8;
 pub type AttachmentIndex = u8;
 pub type PhysicsHandle = Id;
@@ -150,46 +150,46 @@ impl Shape {
 	pub fn vertices(&self, winding: Winding) -> Box<[Position]> {
 		let xunit = winding.xunit();
 		match self {
-				// first point is always unit y
-				&Shape::Ball { .. } => {
-					let n = 12usize;
-					(0..n)
-						.map(|i| {
-							let p = (i as f32) / (n as f32) * 2. * PI;
-							Position::new(xunit * f32::sin(p), f32::cos(p))
-						})
-						.collect()
-				}
-				&Shape::Box { ratio, .. } => {
-					let w2 = xunit * ratio;
-					vec![Position::new(0., 1.),
-					     Position::new(w2, 1.),
-					     Position::new(w2, 0.),
-					     Position::new(w2, -1.),
-					     Position::new(0., -1.),
-					     Position::new(-w2, -1.),
-					     Position::new(-w2, 0.),
-					     Position::new(-w2, 1.)]
-				}
-				&Shape::Star { n, ratio1, ratio2, .. } => {
-					let mut damp = 1.;
-					let ratio = &[ratio1, ratio2];
-					(0..(2 * n))
-						.map(|i| {
-							let p = i as f32 * (PI / n as f32);
-							let r = f32::max(damp, 0.01); // zero is bad!
-							damp *= ratio[i as usize % 2];
-							Position::new(xunit * r * f32::sin(p), r * f32::cos(p))
-						})
-						.collect()
-				}
-				&Shape::Triangle { alpha1, alpha2, .. } => {
-					vec![Position::new(0., 1.),
-					     Position::new(xunit * f32::sin(alpha1), f32::cos(alpha1)),
-					     Position::new(xunit * f32::sin(alpha2), f32::cos(alpha2))]
-				}
+			// first point is always unit y
+			&Shape::Ball { .. } => {
+				let n = 12usize;
+				(0..n)
+					.map(|i| {
+						let p = (i as f32) / (n as f32) * 2. * PI;
+						Position::new(xunit * f32::sin(p), f32::cos(p))
+					})
+					.collect()
 			}
-			.into_boxed_slice()
+			&Shape::Box { ratio, .. } => {
+				let w2 = xunit * ratio;
+				vec![Position::new(0., 1.),
+				     Position::new(w2, 1.),
+				     Position::new(w2, 0.),
+				     Position::new(w2, -1.),
+				     Position::new(0., -1.),
+				     Position::new(-w2, -1.),
+				     Position::new(-w2, 0.),
+				     Position::new(-w2, 1.)]
+			}
+			&Shape::Star { n, ratio1, ratio2, .. } => {
+				let mut damp = 1.;
+				let ratio = &[ratio1, ratio2];
+				(0..(2 * n))
+					.map(|i| {
+						let p = i as f32 * (PI / n as f32);
+						let r = f32::max(damp, 0.01); // zero is bad!
+						damp *= ratio[i as usize % 2];
+						Position::new(xunit * r * f32::sin(p), r * f32::cos(p))
+					})
+					.collect()
+			}
+			&Shape::Triangle { alpha1, alpha2, .. } => {
+				vec![Position::new(0., 1.),
+				     Position::new(xunit * f32::sin(alpha1), f32::cos(alpha1)),
+				     Position::new(xunit * f32::sin(alpha2), f32::cos(alpha2))]
+			}
+		}
+		.into_boxed_slice()
 	}
 }
 

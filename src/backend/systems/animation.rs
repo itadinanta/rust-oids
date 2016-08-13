@@ -24,16 +24,16 @@ impl Updateable for AnimationSystem {
 }
 
 impl System for AnimationSystem {
-	fn register(&mut self, _: &world::Creature) {}
+	fn register(&mut self, _: &world::Agent) {}
 
 	fn from_world(&self, world: &world::World) {}
 
 	fn to_world(&self, world: &mut world::World) {
-		let keys: Vec<_> = world.minions.creatures().keys().cloned().collect();
+		let keys: Vec<_> = world.minions.agents().keys().cloned().collect();
 		for k in keys {
 			if let Some(b) = world.minions.get_mut(k) {
-				for limb in b.limbs_mut() {
-					limb.state.update(self.dt * self.speed);
+				for segment in b.segments_mut() {
+					segment.state.update(self.dt * self.speed);
 				}
 			}
 		}

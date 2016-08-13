@@ -7,20 +7,20 @@ use backend::world;
 use std::collections::HashMap;
 use std::f32::consts;
 
-struct CreatureData;
+struct AgentData;
 
-impl UserDataTypes for CreatureData {
-	type BodyData = world::CreatureRefs;
+impl UserDataTypes for AgentData {
+	type BodyData = world::AgentRefs;
 	type JointData = ();
-	type FixtureData = world::CreatureRefs;
+	type FixtureData = world::AgentRefs;
 }
 
 pub struct PhysicsSystem {
 	edge: f32,
 	remote: obj::Position,
-	world: b2::World<CreatureData>,
-	handles: HashMap<world::CreatureRefs, b2::BodyHandle>,
-	dropped: Vec<world::CreatureRefs>,
+	world: b2::World<AgentData>,
+	handles: HashMap<world::AgentRefs, b2::BodyHandle>,
+	dropped: Vec<world::AgentRefs>,
 }
 
 use cgmath::Vector;
@@ -39,12 +39,12 @@ impl Updateable for PhysicsSystem {
 			let center = (*body).world_center().clone();
 			let facing = (*body).world_point(&b2::Vec2 { x: 0., y: 1. }).clone();
 			let key = (*body).user_data();
-			if let Some(limb) = state.minion(key.creature_id).and_then(|c| c.limb(key.limb_index)) {
-				let power = limb.state.charge * limb.mesh.shape.radius().powi(2);
-				if limb.flags.contains(world::RUDDER) {
+			if let Some(segment) = state.minion(key.agent_id).and_then(|c| c.segment(key.segment_index)) {
+				let power = segment.state.charge * segment.mesh.shape.radius().powi(2);
+				if segment.flags.contains(world::RUDDER) {
 					v.push(BodyForce::Perpendicular(h, power, center, facing));
 				}
-				if limb.flags.contains(world::THRUSTER) {
+				if segment.flags.contains(world::THRUSTER) {
 					v.push(BodyForce::Parallel(h, power, center, facing));
 				}
 			}
@@ -86,17 +86,17 @@ impl Updateable for PhysicsSystem {
 }
 
 struct JointRef<'a> {
-	refs: world::CreatureRefs,
+	refs: world::AgentRefs,
 	handle: b2::BodyHandle,
 	mesh: &'a obj::Mesh,
-	flags: world::LimbFlags,
+	flags: world::SegmentFlags,
 	attachment: Option<world::Attachment>,
 }
 
 impl System for PhysicsSystem {
-	fn register(&mut self, creature: &world::Creature) {
+	fn register(&mut self, agent: &world::Agent) {
 		// build fixtures
-		let joint_refs = PhysicsSystem::build_fixtures(&mut self.world, &creature);
+		let joint_refs = PhysicsSystem::build_fixtures(&mut self.world, &agent);
 		// and then assemble them with joints
 		PhysicsSystem::build_joints(&mut self.world, &joint_refs);
 		// record them
@@ -109,8 +109,8 @@ impl System for PhysicsSystem {
 
 	fn to_world(&self, world: &mut world::World) {
 		for key in &self.dropped {
-			world.minions.kill(&key.creature_id);
-			// println!("Killed object: {}", key.creature_id);
+			world.minions.kill(&key.agent_id);
+			// println!("Killed object: {}", key.agent_id);
 		}
 		for (_, b) in self.world.bodies() {
 			let body = b.borrow();
@@ -118,8 +118,8 @@ impl System for PhysicsSystem {
 			let angle = (*body).angle();
 			let key = (*body).user_data();
 
-			if let Some(creature) = world.minions.get_mut(key.creature_id) {
-				if let Some(object) = creature.limb_mut(key.limb_index) {
+			if let Some(agent) = world.minions.get_mut(key.agent_id) {
+				if let Some(object) = agent.segment_mut(key.segment_index) {
 					let scale = object.transform().scale;
 					object.transform_to(obj::Transform {
 						position: obj::Position {
@@ -146,18 +146,18 @@ impl PhysicsSystem {
 		}
 	}
 
-	fn build_fixtures<'a>(world: &mut b2::World<CreatureData>, creature: &'a world::Creature) -> Vec<JointRef<'a>> {
-		let object_id = creature.id();
-		let limbs = creature.limbs();
-		limbs.enumerate()
-			.map(|(limb_index, limb)| {
-				let material = limb.material();
+	fn build_fixtures<'a>(world: &mut b2::World<AgentData>, agent: &'a world::Agent) -> Vec<JointRef<'a>> {
+		let object_id = agent.id();
+		let segments = agent.segments();
+		segments.enumerate()
+			.map(|(segment_index, segment)| {
+				let material = segment.material();
 				let mut f_def = b2::FixtureDef::new();
 				f_def.density = material.density;
 				f_def.restitution = material.restitution;
 				f_def.friction = material.friction;
 
-				let transform = limb.transform();
+				let transform = segment.transform();
 				let mut b_def = b2::BodyDef::new();
 				b_def.body_type = b2::BodyType::Dynamic;
 				b_def.linear_damping = 0.5;
@@ -167,12 +167,12 @@ impl PhysicsSystem {
 					x: transform.position.x,
 					y: transform.position.y,
 				};
-				let refs = world::CreatureRefs::with_limb(object_id, limb_index as u8);
+				let refs = world::AgentRefs::with_segment(object_id, segment_index as u8);
 				let handle = world.create_body_with(&b_def, refs);
 
-				let mesh = limb.mesh();
-				let flags = limb.flags;
-				let attached_to = limb.attached_to;
+				let mesh = segment.mesh();
+				let flags = segment.flags;
+				let attached_to = segment.attached_to;
 				match mesh.shape {
 					obj::Shape::Ball { radius } => {
 						let mut circle_shape = b2::CircleShape::new();
@@ -208,7 +208,7 @@ impl PhysicsSystem {
 								           x: p3.x * radius,
 								           y: p3.y * radius,
 							           }]);
-							let refs = world::CreatureRefs::with_bone(object_id, limb_index as u8, i as u8);
+							let refs = world::AgentRefs::with_bone(object_id, segment_index as u8, i as u8);
 							world.body_mut(handle).create_fixture_with(&quad, &mut f_def, refs);
 						}
 					}
@@ -245,7 +245,7 @@ impl PhysicsSystem {
 			.collect::<Vec<_>>()
 	}
 
-	fn build_joints(world: &mut b2::World<CreatureData>, joint_refs: &Vec<JointRef>) {
+	fn build_joints(world: &mut b2::World<AgentData>, joint_refs: &Vec<JointRef>) {
 		for &JointRef { handle: distal, mesh, attachment, flags, .. } in joint_refs {
 			if let Some(attachment) = attachment {
 				let upstream = &joint_refs[attachment.index as usize];
@@ -289,7 +289,7 @@ impl PhysicsSystem {
 		self.remote = pos;
 	}
 
-	fn new_world() -> b2::World<CreatureData> {
+	fn new_world() -> b2::World<AgentData> {
 		let world = b2::World::new(&b2::Vec2 { x: 0.0, y: 0.0 });
 
 		world

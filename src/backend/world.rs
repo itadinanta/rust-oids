@@ -55,12 +55,12 @@ impl State {
 
 #[derive(Copy, Clone)]
 pub struct Attachment {
-	pub index: LimbIndex,
+	pub index: SegmentIndex,
 	pub attachment_point: AttachmentIndex,
 }
 
 bitflags! {
-	pub flags LimbFlags: u32 {
+	pub flags SegmentFlags: u32 {
 		const SENSOR       = 0x1,
 		const ACTUATOR     = 0x2,
 		const JOINT        = 0x4,
@@ -79,18 +79,18 @@ bitflags! {
 }
 
 #[derive(Clone)]
-pub struct Limb {
+pub struct Segment {
 	pub transform: Transform,
-	pub index: LimbIndex,
+	pub index: SegmentIndex,
 	pub mesh: Mesh,
 	pub material: Material,
 	pub livery: Livery,
 	pub attached_to: Option<Attachment>,
 	pub state: State,
-	pub flags: LimbFlags,
+	pub flags: SegmentFlags,
 }
 
-impl Limb {
+impl Segment {
 	pub fn new_attachment(&self, attachment_point: AttachmentIndex) -> Option<Attachment> {
 		let max = self.mesh.vertices.len() as AttachmentIndex;
 		Some(Attachment {
@@ -104,27 +104,27 @@ impl Limb {
 	}
 }
 
-pub struct Creature {
+pub struct Agent {
 	id: Id,
-	limbs: Box<[Limb]>,
+	segments: Box<[Segment]>,
 }
 
-impl GameObject for Creature {
+impl GameObject for Agent {
 	fn id(&self) -> Id {
 		self.id
 	}
 }
 
-impl Transformable for Creature {
+impl Transformable for Agent {
 	fn transform(&self) -> Transform {
-		self.limbs.first().unwrap().transform()
+		self.segments.first().unwrap().transform()
 	}
 	fn transform_to(&mut self, t: Transform) {
-		self.limbs.first_mut().unwrap().transform_to(t);
+		self.segments.first_mut().unwrap().transform_to(t);
 	}
 }
 
-impl Transformable for Limb {
+impl Transformable for Segment {
 	fn transform(&self) -> Transform {
 		self.transform
 	}
@@ -133,13 +133,13 @@ impl Transformable for Limb {
 	}
 }
 
-impl obj::Geometry for Limb {
+impl obj::Geometry for Segment {
 	fn mesh(&self) -> &Mesh {
 		&self.mesh
 	}
 }
 
-impl obj::Solid for Limb {
+impl obj::Solid for Segment {
 	fn material(&self) -> Material {
 		self.material
 	}
@@ -148,36 +148,33 @@ impl obj::Solid for Limb {
 	}
 }
 
-impl obj::Drawable for Limb {
+impl obj::Drawable for Segment {
 	fn color(&self) -> Rgba {
-		// let lightness = 1. - self.material.density * 0.5;
-		// [0., 10. * lightness, 0., 1.]
-		// [9. * self.state.charge + 0.1, 4. * self.state.charge, 0., 1.]
 		let rgba = self.livery.albedo;
 		let c = 10. * ((self.state.charge * 0.99) + 0.01);
 		[rgba[0] * c, rgba[1] * c, rgba[2] * c, rgba[3] * self.material.density]
 	}
 }
 
-impl Creature {
+impl Agent {
 	pub fn id(&self) -> Id {
 		self.id
 	}
 
-	pub fn limbs(&self) -> slice::Iter<Limb> {
-		self.limbs.iter()
+	pub fn segments(&self) -> slice::Iter<Segment> {
+		self.segments.iter()
 	}
 
-	pub fn limbs_mut(&mut self) -> slice::IterMut<Limb> {
-		self.limbs.iter_mut()
+	pub fn segments_mut(&mut self) -> slice::IterMut<Segment> {
+		self.segments.iter_mut()
 	}
 
-	pub fn limb(&self, index: LimbIndex) -> Option<&Limb> {
-		self.limbs.get(index as usize)
+	pub fn segment(&self, index: SegmentIndex) -> Option<&Segment> {
+		self.segments.get(index as usize)
 	}
 
-	pub fn limb_mut(&mut self, index: LimbIndex) -> Option<&mut Limb> {
-		self.limbs.get_mut(index as usize)
+	pub fn segment_mut(&mut self, index: SegmentIndex) -> Option<&mut Segment> {
+		self.segments.get_mut(index as usize)
 	}
 }
 
@@ -264,29 +261,29 @@ impl Randomizer {
 	}
 }
 
-struct CreatureBuilder {
+struct AgentBuilder {
 	id: Id,
 	material: Material,
 	livery: Livery,
 	state: State,
-	limbs: Vec<Limb>,
+	segments: Vec<Segment>,
 }
 
-impl CreatureBuilder {
+impl AgentBuilder {
 	fn new(id: Id, material: Material, livery: Livery, state: State) -> Self {
-		CreatureBuilder {
+		AgentBuilder {
 			id: id,
 			material: material,
 			livery: livery,
 			state: state,
-			limbs: Vec::new(),
+			segments: Vec::new(),
 		}
 	}
 
 	pub fn start(&mut self, position: obj::Position, angle: f32, shape: &Shape) -> &mut Self {
-		let limb = self.new_limb(shape, Winding::CW, position, angle, None, TORSO | MIDDLE);
-		self.limbs.clear();
-		self.limbs.push(limb);
+		let segment = self.new_segment(shape, Winding::CW, position, angle, None, TORSO | MIDDLE);
+		self.segments.clear();
+		self.segments.push(segment);
 		self
 	}
 
@@ -297,10 +294,10 @@ impl CreatureBuilder {
 
 	#[inline]
 	pub fn add(&mut self,
-	           parent_index: LimbIndex,
+	           parent_index: SegmentIndex,
 	           attachment_index_offset: isize,
 	           shape: &Shape,
-	           flags: LimbFlags)
+	           flags: SegmentFlags)
 	           -> &mut Self {
 		self.addw(parent_index,
 		          attachment_index_offset,
@@ -310,10 +307,10 @@ impl CreatureBuilder {
 	}
 	#[inline]
 	pub fn addl(&mut self,
-	            parent_index: LimbIndex,
+	            parent_index: SegmentIndex,
 	            attachment_index_offset: isize,
 	            shape: &Shape,
-	            flags: LimbFlags)
+	            flags: SegmentFlags)
 	            -> &mut Self {
 		self.addw(parent_index,
 		          attachment_index_offset,
@@ -323,10 +320,10 @@ impl CreatureBuilder {
 	}
 	#[inline]
 	pub fn addr(&mut self,
-	            parent_index: LimbIndex,
+	            parent_index: SegmentIndex,
 	            attachment_index_offset: isize,
 	            shape: &Shape,
-	            flags: LimbFlags)
+	            flags: SegmentFlags)
 	            -> &mut Self {
 		self.addw(parent_index,
 		          attachment_index_offset,
@@ -336,13 +333,13 @@ impl CreatureBuilder {
 	}
 
 	pub fn addw(&mut self,
-	            parent_index: LimbIndex,
+	            parent_index: SegmentIndex,
 	            attachment_index_offset: isize,
 	            shape: &Shape,
 	            winding: Winding,
-	            flags: LimbFlags)
+	            flags: SegmentFlags)
 	            -> &mut Self {
-		let parent = self.limbs[parent_index as usize].clone();//urgh!;
+		let parent = self.segments[parent_index as usize].clone();//urgh!;
 		let parent_pos = parent.transform.position;
 		let parent_angle = parent.transform.angle;
 		let parent_length = parent.mesh.shape.length() as isize;
@@ -351,33 +348,33 @@ impl CreatureBuilder {
 		let angle = f32::atan2(p0.y, p0.x);
 		let r0 = p0.length() * parent.mesh.shape.radius();
 		let r1 = shape.radius();
-		let limb = self.new_limb(shape,
+		let segment = self.new_segment(shape,
 		                         winding,
 		                         parent_pos + (p0 * (r0 + r1)),
 		                         consts::PI / 2. + angle,
 		                         parent.new_attachment(attachment_index as AttachmentIndex),
 		                         flags);
-		self.limbs.push(limb);
+		self.segments.push(segment);
 		self
 	}
 
-	pub fn index(&self) -> LimbIndex {
-		match self.limbs.len() {
+	pub fn index(&self) -> SegmentIndex {
+		match self.segments.len() {
 			0 => 0,
-			n => (n - 1) as LimbIndex,
+			n => (n - 1) as SegmentIndex,
 		}
 	}
 
-	fn new_limb(&mut self,
+	fn new_segment(&mut self,
 	            shape: &Shape,
 	            winding: Winding,
 	            position: obj::Position,
 	            angle: f32,
 	            attachment: Option<Attachment>,
-	            flags: LimbFlags)
-	            -> Limb {
-		Limb {
-			index: self.limbs.len() as LimbIndex,
+	            flags: SegmentFlags)
+	            -> Segment {
+		Segment {
+			index: self.segments.len() as SegmentIndex,
 			transform: obj::Transform::new(position, angle),
 			mesh: Mesh::from_shape(shape.clone(), winding),
 			material: self.material.clone(),
@@ -388,10 +385,10 @@ impl CreatureBuilder {
 		}
 	}
 
-	pub fn build(&self) -> Creature {
-		Creature {
+	pub fn build(&self) -> Agent {
+		Agent {
 			id: self.id,
-			limbs: self.limbs.clone().into_boxed_slice(),
+			segments: self.segments.clone().into_boxed_slice(),
 		}
 	}
 }
@@ -399,7 +396,7 @@ impl CreatureBuilder {
 pub struct Flock {
 	last_id: Id,
 	rnd: Randomizer,
-	creatures: HashMap<Id, Creature>,
+	agents: HashMap<Id, Agent>,
 }
 
 impl Flock {
@@ -407,16 +404,16 @@ impl Flock {
 		Flock {
 			last_id: 0,
 			rnd: Randomizer::new(),
-			creatures: HashMap::new(),
+			agents: HashMap::new(),
 		}
 	}
 
-	pub fn get(&self, id: Id) -> Option<&Creature> {
-		self.creatures.get(&id)
+	pub fn get(&self, id: Id) -> Option<&Agent> {
+		self.agents.get(&id)
 	}
 
-	pub fn get_mut(&mut self, id: Id) -> Option<&mut Creature> {
-		self.creatures.get_mut(&id)
+	pub fn get_mut(&mut self, id: Id) -> Option<&mut Agent> {
+		self.agents.get_mut(&id)
 	}
 
 	pub fn next_id(&mut self) -> Id {
@@ -426,9 +423,8 @@ impl Flock {
 
 	pub fn new_resource(&mut self, initial_pos: Position, charge: f32) -> Id {
 		let albedo = color::YPbPr::new(0.5, self.rnd.frand(-0.5, 0.5), self.rnd.frand(-0.5, 0.5));
-		println!("{:?} = {:?}", albedo, albedo.to_rgba());
 		let ball = self.rnd.random_ball();
-		let mut builder = CreatureBuilder::new(self.next_id(),
+		let mut builder = AgentBuilder::new(self.next_id(),
 		                                       Material { density: 1.0, ..Default::default() },
 		                                       Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                       State::with_charge(charge, 0.));
@@ -437,8 +433,7 @@ impl Flock {
 
 	pub fn new_minion(&mut self, initial_pos: Position, charge: f32) -> Id {
 		let albedo = color::Hsl::new(self.rnd.frand(0., 1.), 0.5, 0.5);
-		println!("{:?} = {:?}", albedo, albedo.to_rgba());
-		let mut builder = CreatureBuilder::new(self.next_id(),
+		let mut builder = AgentBuilder::new(self.next_id(),
 		                                       Material { density: 0.5, ..Default::default() },
 		                                       Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                       State::with_charge(0., charge));
@@ -450,13 +445,13 @@ impl Flock {
 		let initial_angle = consts::PI / 2. + f32::atan2(initial_pos.y, initial_pos.x);
 
 		let torso = builder.start(initial_pos, initial_angle, &torso_shape)
-			.index();
+		                   .index();
 		builder.addr(torso, 2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER)
-			.addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
+		       .addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
 		let head = builder.add(torso, 0, &head_shape, HEAD | JOINT).index();
 
 		builder.addr(head, 1, &head_shape, HEAD | SENSOR)
-			.addl(head, 2, &head_shape, HEAD | SENSOR);
+		       .addl(head, 2, &head_shape, HEAD | SENSOR);
 
 		let mut belly = torso;
 		let mut belly_mid = torso_shape.mid();
@@ -467,76 +462,78 @@ impl Flock {
 			belly_mid = belly_shape.mid();
 			if self.rnd.irand(0, 4) == 0 {
 				builder.addr(belly, 2, &arm_shape, ARM | ACTUATOR | RUDDER)
-					.addl(belly, -2, &arm_shape, ARM | ACTUATOR | RUDDER);
+				       .addl(belly, -2, &arm_shape, ARM | ACTUATOR | RUDDER);
 			}
 		}
 
 		builder.addr(belly, belly_mid - 1, &leg_shape, LEG | ACTUATOR | THRUSTER)
-			.addl(belly,
-			      -(belly_mid - 1),
-			      &leg_shape,
-			      LEG | ACTUATOR | THRUSTER)
-			.add(belly, belly_mid, &tail_shape, TAIL);
+		       .addl(belly,
+		             -(belly_mid - 1),
+		             &leg_shape,
+		             LEG | ACTUATOR | THRUSTER)
+		       .add(belly, belly_mid, &tail_shape, TAIL);
 
 		self.insert(builder.build())
 	}
 
-	fn insert(&mut self, creature: Creature) -> Id {
-		let id = creature.id;
-		self.creatures.insert(id, creature);
+	fn insert(&mut self, agent: Agent) -> Id {
+		let id = agent.id;
+		self.agents.insert(id, agent);
 		id
 	}
 
 	pub fn kill(&mut self, id: &Id) {
-		self.creatures.remove(id);
+		self.agents.remove(id);
 	}
 
-	pub fn creatures(&self) -> &HashMap<Id, Creature> {
-		&self.creatures
+	pub fn agents(&self) -> &HashMap<Id, Agent> {
+		&self.agents
 	}
 }
 
 #[repr(packed)]
 #[derive(Eq, Hash, PartialEq, Clone, Copy)]
-pub struct CreatureRefs {
-	pub creature_id: obj::Id,
-	pub limb_index: obj::LimbIndex,
+pub struct AgentRefs {
+	pub agent_id: obj::Id,
+	pub segment_index: obj::SegmentIndex,
 	pub bone_index: obj::BoneIndex,
 }
 
-impl Default for CreatureRefs {
-	fn default() -> CreatureRefs {
-		CreatureRefs {
-			creature_id: 0xdeadbeef,
-			limb_index: 0xff,
+impl Default for AgentRefs {
+	fn default() -> AgentRefs {
+		AgentRefs {
+			agent_id: 0xdeadbeef,
+			segment_index: 0xff,
 			bone_index: 0xff,
 		}
 	}
 }
 
-impl CreatureRefs {
-	pub fn with_id(id: obj::Id) -> CreatureRefs {
-		CreatureRefs { creature_id: id, ..Default::default() }
+impl AgentRefs {
+	pub fn with_id(id: obj::Id) -> AgentRefs {
+		AgentRefs { agent_id: id, ..Default::default() }
 	}
 
-	pub fn with_limb(id: obj::Id, limb_index: obj::LimbIndex) -> CreatureRefs {
-		CreatureRefs {
-			creature_id: id,
-			limb_index: limb_index,
+	pub fn with_segment(id: obj::Id, segment_index: obj::SegmentIndex) -> AgentRefs {
+		AgentRefs {
+			agent_id: id,
+			segment_index: segment_index,
 			..Default::default()
 		}
 	}
 
-	pub fn with_bone(id: obj::Id, limb_index: obj::LimbIndex, bone_index: obj::BoneIndex) -> CreatureRefs {
-		CreatureRefs {
-			creature_id: id,
-			limb_index: limb_index,
+	pub fn with_bone(id: obj::Id, segment_index: obj::SegmentIndex, bone_index: obj::BoneIndex) -> AgentRefs {
+		AgentRefs {
+			agent_id: id,
+			segment_index: segment_index,
 			bone_index: bone_index,
 		}
 	}
 }
 
 pub struct World {
+	pub extent: obj::Size,
+	pub fence: obj::Mesh,
 	pub players: Flock,
 	pub minions: Flock,
 	pub friendly_fire: Flock,
@@ -547,11 +544,11 @@ pub struct World {
 }
 
 pub trait WorldState {
-	fn minion(&self, id: obj::Id) -> Option<&Creature>;
+	fn minion(&self, id: obj::Id) -> Option<&Agent>;
 }
 
 impl WorldState for World {
-	fn minion(&self, id: obj::Id) -> Option<&Creature> {
+	fn minion(&self, id: obj::Id) -> Option<&Agent> {
 		self.minions.get(id)
 	}
 }
@@ -559,6 +556,11 @@ impl WorldState for World {
 impl World {
 	pub fn new() -> Self {
 		World {
+			extent: Size {
+				width: 1000.,
+				height: 1000.,
+			},
+			fence: Mesh::from_shape(Shape::new_ball(500.), Winding::CW),
 			players: Flock::new(),
 			minions: Flock::new(),
 			friendly_fire: Flock::new(),
@@ -577,7 +579,7 @@ impl World {
 		self.minions.new_minion(pos, 0.3)
 	}
 
-	pub fn friend_mut(&mut self, id: obj::Id) -> Option<&mut Creature> {
+	pub fn friend_mut(&mut self, id: obj::Id) -> Option<&mut Agent> {
 		self.minions.get_mut(id)
 	}
 }

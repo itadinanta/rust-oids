@@ -278,9 +278,9 @@ impl App {
 	}
 
 	pub fn render(&self, renderer: &mut render::Draw) {
-		for (_, b) in self.world.minions.creatures() {
-			for limb in b.limbs() {
-				let transform = limb.transform();
+		for (_, b) in self.world.minions.agents() {
+			for segment in b.segments() {
+				let transform = segment.transform();
 				let position = transform.position;
 				let angle = transform.angle;
 
@@ -291,22 +291,22 @@ impl App {
 
 				let body_transform = body_trans * body_rot;
 
-				let mesh = &limb.mesh();
+				let mesh = &segment.mesh();
 				let fixture_scale = Matrix4::from_scale(mesh.shape.radius());
 				let transform = body_transform * fixture_scale;
 
 				match mesh.shape {
 					obj::Shape::Ball { .. } => {
-						renderer.draw_ball(&transform.into(), limb.color());
+						renderer.draw_ball(&transform.into(), segment.color());
 					}
 					obj::Shape::Star { .. } => {
-						renderer.draw_star(&transform.into(), &mesh.vertices[..], limb.color());
+						renderer.draw_star(&transform.into(), &mesh.vertices[..], segment.color());
 					}
 					obj::Shape::Box { ratio, .. } => {
-						renderer.draw_quad(&transform.into(), ratio, limb.color());
+						renderer.draw_quad(&transform.into(), ratio, segment.color());
 					}
 					obj::Shape::Triangle { .. } => {
-						renderer.draw_star(&transform.into(), &mesh.vertices[0..3], limb.color());
+						renderer.draw_star(&transform.into(), &mesh.vertices[0..3], segment.color());
 					}
 				}
 			}

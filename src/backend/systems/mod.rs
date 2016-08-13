@@ -11,7 +11,7 @@ pub trait Updateable {
 }
 
 pub trait System: Updateable {
-	fn register(&mut self, creature: &world::Creature);
+	fn register(&mut self, creature: &world::Agent);
 	fn from_world(&self, world: &world::World);
 	fn to_world(&self, world: &mut world::World);
 	fn update_world(&mut self, dt: f32, world: &mut world::World) {
