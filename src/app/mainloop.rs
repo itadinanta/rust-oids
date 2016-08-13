@@ -38,6 +38,7 @@ pub fn main_loop() {
 			match event {
 				e @ glutin::Event::MouseMoved(_, _) |
 				e @ glutin::Event::MouseInput(_, _) => app.on_mouse_input(e),
+				glutin::Event::KeyboardInput(_, _, Some(glutin::VirtualKeyCode::F5)) => renderer.rebuild(),
 				e @ glutin::Event::KeyboardInput(_, _, _) => app.on_keyboard_input(e),
 
 				glutin::Event::Resized(new_width, new_height) => {

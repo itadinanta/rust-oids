@@ -161,6 +161,14 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 		}
 	}
 
+	pub fn rebuild(&mut self) {
+		let factory = &mut self.factory;
+
+		let (w, h, _, _) = self.frame_buffer.get_dimensions();
+		self.pass_forward_lighting = forward::ForwardLighting::new(factory, &self.res);
+		self.pass_effects = effects::PostLighting::new(factory, &self.res, w, h);
+	}
+
 	pub fn resize_to(&mut self,
 	                 frame_buffer: &gfx::handle::RenderTargetView<R, ColorFormat>,
 	                 depth: &gfx::handle::DepthStencilView<R, DepthFormat>) {
