@@ -10,6 +10,7 @@ use cgmath::EuclideanVector;
 use num;
 use core::color;
 use core::color::ToRgb;
+use core::geometry::*;
 
 #[derive(Clone)]
 pub struct State {
@@ -280,7 +281,7 @@ impl AgentBuilder {
 		}
 	}
 
-	pub fn start(&mut self, position: obj::Position, angle: f32, shape: &Shape) -> &mut Self {
+	pub fn start(&mut self, position: Position, angle: f32, shape: &Shape) -> &mut Self {
 		let segment = self.new_segment(shape, Winding::CW, position, angle, None, TORSO | MIDDLE);
 		self.segments.clear();
 		self.segments.push(segment);
@@ -349,11 +350,11 @@ impl AgentBuilder {
 		let r0 = p0.length() * parent.mesh.shape.radius();
 		let r1 = shape.radius();
 		let segment = self.new_segment(shape,
-		                         winding,
-		                         parent_pos + (p0 * (r0 + r1)),
-		                         consts::PI / 2. + angle,
-		                         parent.new_attachment(attachment_index as AttachmentIndex),
-		                         flags);
+		                               winding,
+		                               parent_pos + (p0 * (r0 + r1)),
+		                               consts::PI / 2. + angle,
+		                               parent.new_attachment(attachment_index as AttachmentIndex),
+		                               flags);
 		self.segments.push(segment);
 		self
 	}
@@ -366,16 +367,16 @@ impl AgentBuilder {
 	}
 
 	fn new_segment(&mut self,
-	            shape: &Shape,
-	            winding: Winding,
-	            position: obj::Position,
-	            angle: f32,
-	            attachment: Option<Attachment>,
-	            flags: SegmentFlags)
-	            -> Segment {
+	               shape: &Shape,
+	               winding: Winding,
+	               position: Position,
+	               angle: f32,
+	               attachment: Option<Attachment>,
+	               flags: SegmentFlags)
+	               -> Segment {
 		Segment {
 			index: self.segments.len() as SegmentIndex,
-			transform: obj::Transform::new(position, angle),
+			transform: Transform::new(position, angle),
 			mesh: Mesh::from_shape(shape.clone(), winding),
 			material: self.material.clone(),
 			livery: self.livery.clone(),
@@ -425,18 +426,18 @@ impl Flock {
 		let albedo = color::YPbPr::new(0.5, self.rnd.frand(-0.5, 0.5), self.rnd.frand(-0.5, 0.5));
 		let ball = self.rnd.random_ball();
 		let mut builder = AgentBuilder::new(self.next_id(),
-		                                       Material { density: 1.0, ..Default::default() },
-		                                       Livery { albedo: albedo.to_rgba(), ..Default::default() },
-		                                       State::with_charge(charge, 0.));
+		                                    Material { density: 1.0, ..Default::default() },
+		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
+		                                    State::with_charge(charge, 0.));
 		self.insert(builder.start(initial_pos, 0., &ball).build())
 	}
 
 	pub fn new_minion(&mut self, initial_pos: Position, charge: f32) -> Id {
 		let albedo = color::Hsl::new(self.rnd.frand(0., 1.), 0.5, 0.5);
 		let mut builder = AgentBuilder::new(self.next_id(),
-		                                       Material { density: 0.5, ..Default::default() },
-		                                       Livery { albedo: albedo.to_rgba(), ..Default::default() },
-		                                       State::with_charge(0., charge));
+		                                    Material { density: 0.5, ..Default::default() },
+		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
+		                                    State::with_charge(0., charge));
 		let arm_shape = self.rnd.random_star();
 		let leg_shape = self.rnd.random_star();
 		let torso_shape = self.rnd.random_npoly(5, true);
@@ -445,13 +446,13 @@ impl Flock {
 		let initial_angle = consts::PI / 2. + f32::atan2(initial_pos.y, initial_pos.x);
 
 		let torso = builder.start(initial_pos, initial_angle, &torso_shape)
-		                   .index();
+			.index();
 		builder.addr(torso, 2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER)
-		       .addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
+			.addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
 		let head = builder.add(torso, 0, &head_shape, HEAD | JOINT).index();
 
 		builder.addr(head, 1, &head_shape, HEAD | SENSOR)
-		       .addl(head, 2, &head_shape, HEAD | SENSOR);
+			.addl(head, 2, &head_shape, HEAD | SENSOR);
 
 		let mut belly = torso;
 		let mut belly_mid = torso_shape.mid();
@@ -462,16 +463,16 @@ impl Flock {
 			belly_mid = belly_shape.mid();
 			if self.rnd.irand(0, 4) == 0 {
 				builder.addr(belly, 2, &arm_shape, ARM | ACTUATOR | RUDDER)
-				       .addl(belly, -2, &arm_shape, ARM | ACTUATOR | RUDDER);
+					.addl(belly, -2, &arm_shape, ARM | ACTUATOR | RUDDER);
 			}
 		}
 
 		builder.addr(belly, belly_mid - 1, &leg_shape, LEG | ACTUATOR | THRUSTER)
-		       .addl(belly,
-		             -(belly_mid - 1),
-		             &leg_shape,
-		             LEG | ACTUATOR | THRUSTER)
-		       .add(belly, belly_mid, &tail_shape, TAIL);
+			.addl(belly,
+			      -(belly_mid - 1),
+			      &leg_shape,
+			      LEG | ACTUATOR | THRUSTER)
+			.add(belly, belly_mid, &tail_shape, TAIL);
 
 		self.insert(builder.build())
 	}
@@ -532,7 +533,7 @@ impl AgentRefs {
 }
 
 pub struct World {
-	pub extent: obj::Size,
+	pub extent: Rect,
 	pub fence: obj::Mesh,
 	pub players: Flock,
 	pub minions: Flock,
@@ -556,9 +557,9 @@ impl WorldState for World {
 impl World {
 	pub fn new() -> Self {
 		World {
-			extent: Size {
-				width: 1000.,
-				height: 1000.,
+			extent: Rect {
+				min: Position::new(-550., -550.),
+				max: Position::new(550., 550.),
 			},
 			fence: Mesh::from_shape(Shape::new_ball(500.), Winding::CW),
 			players: Flock::new(),
@@ -571,11 +572,11 @@ impl World {
 		}
 	}
 
-	pub fn new_resource(&mut self, pos: obj::Position) -> obj::Id {
+	pub fn new_resource(&mut self, pos: Position) -> obj::Id {
 		self.minions.new_resource(pos, 0.3)
 	}
 
-	pub fn new_minion(&mut self, pos: obj::Position) -> obj::Id {
+	pub fn new_minion(&mut self, pos: Position) -> obj::Id {
 		self.minions.new_minion(pos, 0.3)
 	}
 

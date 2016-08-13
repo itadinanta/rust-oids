@@ -16,7 +16,8 @@ use glutin;
 use cgmath;
 use cgmath::Matrix4;
 use frontend::input::Button::*;
-use backend::obj::{Geometry, Drawable, Transformable};
+use backend::obj::*;
+use core::geometry::*;
 
 pub fn run() {
 	mainloop::main_loop();
@@ -82,7 +83,7 @@ pub struct App {
 	frame_smooth: math::Smooth<f32>,
 	is_running: bool,
 	//
-	light_position: obj::Position,
+	light_position: Position,
 	lights: Cycle<[f32; 4]>,
 	backgrounds: Cycle<[f32; 4]>,
 	//
@@ -93,7 +94,7 @@ pub struct App {
 
 pub struct Environment {
 	pub light: [f32; 4],
-	pub light_position: obj::Position,
+	pub light_position: Position,
 	pub background: [f32; 4],
 }
 
@@ -113,7 +114,7 @@ impl App {
 			input_state: input::InputState::default(),
 
 			// testbed, will need a display/render subsystem
-			light_position: obj::Position::new(10.0, 10.0),
+			light_position: Position::new(10.0, 10.0),
 			lights: Self::init_lights(),
 			backgrounds: Self::init_backgrounds(),
 
@@ -155,7 +156,7 @@ impl App {
 	}
 
 
-	fn on_click(&mut self, btn: glutin::MouseButton, pos: obj::Position) {
+	fn on_click(&mut self, btn: glutin::MouseButton, pos: Position) {
 		match btn {
 			glutin::MouseButton::Left => {
 				self.input_state.button_press(Left);
@@ -170,12 +171,12 @@ impl App {
 		}
 	}
 
-	fn new_resource(&mut self, pos: obj::Position) {
+	fn new_resource(&mut self, pos: Position) {
 		let id = self.world.new_resource(pos);
 		self.register(id);
 	}
 
-	fn new_minion(&mut self, pos: obj::Position) {
+	fn new_minion(&mut self, pos: Position) {
 		let id = self.world.new_minion(pos);
 		self.register(id);
 	}
@@ -185,19 +186,19 @@ impl App {
 		self.physics_system.register(found.unwrap());
 	}
 
-	fn on_left_drag(&mut self, pos: obj::Position) {
+	fn on_left_drag(&mut self, pos: Position) {
 		self.new_resource(pos);
 	}
 
-	fn on_mouse_move(&mut self, pos: obj::Position) {
+	fn on_mouse_move(&mut self, pos: Position) {
 		// self.light_position = pos;
 	}
 
-	fn on_right_drag(&mut self, pos: obj::Position) {
+	fn on_right_drag(&mut self, pos: Position) {
 		self.light_position = pos;
 	}
 
-	fn on_release(&mut self, btn: glutin::MouseButton, _: obj::Position) {
+	fn on_release(&mut self, btn: glutin::MouseButton, _: Position) {
 		match btn {
 			glutin::MouseButton::Left => {
 				self.input_state.button_release(Left);
@@ -255,9 +256,9 @@ impl App {
 				self.on_click(b, pos);
 			}
 			glutin::Event::MouseMoved(x, y) => {
-				fn transform_pos(viewport: &Viewport, x: u32, y: u32) -> obj::Position {
+				fn transform_pos(viewport: &Viewport, x: u32, y: u32) -> Position {
 					let (tx, ty) = viewport.to_world(x, y);
-					return obj::Position { x: tx, y: ty };
+					return Position { x: tx, y: ty };
 				}
 				let pos = transform_pos(&self.viewport, x as u32, y as u32);
 				self.input_state.mouse_position_at(pos);
@@ -337,7 +338,7 @@ impl App {
 
 			self.update_systems(frame_time_smooth);
 			self.frame_count += 1;
-			
+
 			Update {
 				wall_clock_elapsed: self.wall_clock_start.elapsed().unwrap_or_else(|_| Duration::new(0, 0)),
 				frame_count: self.frame_count,

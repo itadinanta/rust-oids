@@ -6,6 +6,7 @@ use backend::obj::{Solid, Geometry, Transformable};
 use backend::world;
 use std::collections::HashMap;
 use std::f32::consts;
+use core::geometry::*;
 
 struct AgentData;
 
@@ -17,7 +18,7 @@ impl UserDataTypes for AgentData {
 
 pub struct PhysicsSystem {
 	edge: f32,
-	remote: obj::Position,
+	remote: Position,
 	world: b2::World<AgentData>,
 	handles: HashMap<world::AgentRefs, b2::BodyHandle>,
 	dropped: Vec<world::AgentRefs>,
@@ -52,8 +53,8 @@ impl Updateable for PhysicsSystem {
 		for force in v {
 			match force {
 				BodyForce::Perpendicular(h, power, center, facing) => {
-					let t = self.remote - obj::Position::new(center.x, center.y);
-					let f = obj::Position::new(center.x - facing.x, center.y - facing.y);
+					let t = self.remote - Position::new(center.x, center.y);
+					let f = Position::new(center.x - facing.x, center.y - facing.y);
 					let d = f.dot(t);
 
 					if d > 0. {
@@ -64,8 +65,8 @@ impl Updateable for PhysicsSystem {
 					}
 				}
 				BodyForce::Parallel(h, power, center, facing) => {
-					let t = self.remote - obj::Position::new(center.x, center.y);
-					let f = obj::Position::new(facing.x - center.x, facing.y - center.y);
+					let t = self.remote - Position::new(center.x, center.y);
+					let f = Position::new(facing.x - center.x, facing.y - center.y);
 					// let d = f.dot(t);
 
 					//if d > 0. {
@@ -121,8 +122,8 @@ impl System for PhysicsSystem {
 			if let Some(agent) = world.minions.get_mut(key.agent_id) {
 				if let Some(object) = agent.segment_mut(key.segment_index) {
 					let scale = object.transform().scale;
-					object.transform_to(obj::Transform {
-						position: obj::Position {
+					object.transform_to(Transform {
+						position: Position {
 							x: position.x,
 							y: position.y,
 						},
@@ -140,7 +141,7 @@ impl PhysicsSystem {
 		PhysicsSystem {
 			world: Self::new_world(),
 			edge: 0.,
-			remote: obj::Position::new(0., 0.),
+			remote: Position::new(0., 0.),
 			handles: HashMap::new(),
 			dropped: Vec::new(),
 		}
@@ -285,7 +286,7 @@ impl PhysicsSystem {
 		self.edge = edge;
 	}
 
-	pub fn follow_me(&mut self, pos: obj::Position) {
+	pub fn follow_me(&mut self, pos: Position) {
 		self.remote = pos;
 	}
 

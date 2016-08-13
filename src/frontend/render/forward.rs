@@ -179,7 +179,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 		encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32 });
 	}
 
-	pub fn draw_triangles(&self,
+	pub fn draw_primitives(&self,
 	                      shader: Shader,
 	                      encoder: &mut gfx::Encoder<R, C>,
 	                      vertices: gfx::handle::Buffer<R, VertexPosNormal>,
