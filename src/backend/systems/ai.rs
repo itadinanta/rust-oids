@@ -37,7 +37,8 @@ impl System for AiSystem {
 						let power = segment.state.charge * segment.mesh.shape.radius().powi(2);
 						let f: Position = Matrix2::from_angle(rad(segment.transform.angle)) * Position::unit_y();
 						let proj = t.dot(f);
-						let intent = if segment.flags.contains(world::RUDDER) && proj > 0. && d > d0 && d < d0 * 2.0 {
+						let intent = if segment.flags.contains(world::RUDDER) && proj > 0. && d > d0 * 1.2 &&
+						                d < d0 * 2.0 {
 							Some(f.normalize_to(power * 4. * order))
 						} else if segment.flags.contains(world::THRUSTER) && proj > 0. && d > d0 * 1.1 {
 							Some(f.normalize_to(power * 2. * order))
