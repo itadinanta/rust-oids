@@ -2,20 +2,20 @@
 use std::io;
 
 pub trait ResourceLoader<T> {
-	fn load_resource(&self, key: &str) -> io::Result<Box<[T]>>;
+	fn load(&self, key: &str) -> io::Result<Box<[T]>>;
 }
 
-mod filesystem {
+pub mod filesystem {
 	use std::io;
 	use std::io::Read;
 	use std::fs;
 	use std::path;
 
-	struct ResourceLoader {
+	pub struct ResourceLoader {
 		roots: Box<[path::PathBuf]>,
 	}
 
-	struct ResourceLoaderBuilder {
+	pub struct ResourceLoaderBuilder {
 		roots: Vec<path::PathBuf>,
 	}
 
@@ -29,14 +29,13 @@ mod filesystem {
 			self
 		}
 
-		// consumes the builder
-		pub fn build(mut self) -> ResourceLoader {
-			ResourceLoader { roots: self.roots.into_boxed_slice() }
+		pub fn build(&self) -> ResourceLoader {
+			ResourceLoader { roots: self.roots.clone().into_boxed_slice() }
 		}
 	}
 
 	impl super::ResourceLoader<u8> for ResourceLoader {
-		fn load_resource(&self, key: &str) -> io::Result<Box<[u8]>> {
+		fn load(&self, key: &str) -> io::Result<Box<[u8]>> {
 
 			// swallow the file whole into a buffer
 			fn load_from_path(path: &path::Path) -> io::Result<Box<[u8]>> {
@@ -52,15 +51,23 @@ mod filesystem {
 			}
 
 			// look for the first file which exists
-			match &self.roots.iter().find(|&r| {
-				let mut path = path::PathBuf::from(r);
-				path.push(key);
-				path.exists() && path.is_file()
-			}) {
+			match &self.roots
+			           .iter()
+			           .map(|ref r| {
+				           // try all roots in order, if some has it
+				           let mut path = path::PathBuf::from(r);
+				           path.push(key);
+				           path
+				          })
+			           .find(|path| path.exists() && path.is_file()) {
 				// and then either read it
-				&Some(path) => load_from_path(path),
+				&Some(ref p) => load_from_path(p.as_path()),
 				// or give up
-				&None => Err(io::Error::new(io::ErrorKind::Other, "Resource not found in path")),
+				&None => {
+					let mut err = String::from("Resource not found in path: ");
+					err.push_str(key);
+					Err(io::Error::new(io::ErrorKind::Other, err))
+				}
 			}
 		}
 	}

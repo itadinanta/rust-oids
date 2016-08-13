@@ -1,221 +1,7 @@
 use gfx;
 use gfx::traits::FactoryExt;
 
-pub static VERTEX_SRC: &'static [u8] = b"
-
-#version 150 core
-
-in vec2 a_Pos;
-in vec2 a_TexCoord;
-out vec2 v_TexCoord;
-
-void main() {
-    v_TexCoord = a_TexCoord;
-    gl_Position = vec4(a_Pos, 0.0, 1.0);
-}
-
-";
-
-pub static LUMINANCE_VERTEX_SRC: &'static [u8] = b"
-
-#version 150 core
-
-uniform sampler2D t_VertexLuminance;
-
-layout (std140) uniform cb_VertexArgs {
-    float u_White;
-    float u_Black;
-};
-
-in vec2 a_Pos;
-in vec2 a_TexCoord;
-out vec2 v_TexCoord;
-out float v_Exposure;
-
-void main() {
-    v_TexCoord = a_TexCoord;
-    float luminance = dot(vec3(0.2126, 0.7152, 0.0722), texture(t_VertexLuminance, vec2(0.5, 0.5)).rgb);
-
-	// todo: interpolate flat
-    v_Exposure =  1.0 / (u_Black + (u_White * luminance));
-    gl_Position = vec4(a_Pos, 0.0, 1.0);
-}
-";
-
-
-pub static EXPOSURE_TONE_MAP_SRC: &'static [u8] = b"
-#version 150 core
-
-uniform sampler2D t_Source;
-
-in vec2 v_TexCoord;
-in float v_Exposure;
-out vec4 o_Color;
-
-void main() {
-	vec4 linear_color = v_Exposure * texture(t_Source, v_TexCoord, 0);
-	o_Color = vec4(linear_color.rgb, 1.0);
-}
-";
-
-pub static EXPONENTIAL_SMOOTH_SRC: &'static [u8] = b"
-
-#version 150 core
-
-uniform sampler2D t_Value;
-uniform sampler2D t_Acc;
-
-layout (std140) uniform cb_FragmentArgs {
-    float u_ExpAlpha;
-};
-
-in vec2 v_TexCoord;
-out vec4 o_Smooth;
-
-void main() {
-	vec4 value = texture(t_Value, v_TexCoord, 0);
-	vec4 acc = texture(t_Acc, v_TexCoord, 0);
-	
-	o_Smooth = max(u_ExpAlpha * value, vec4(0.)) + max((1. - u_ExpAlpha) * acc, vec4(0.));
-}
-";
-
-pub static SIMPLE_BLIT_SRC: &'static [u8] = b"
-
-#version 150 core
-
-uniform sampler2D t_Source;
-
-in vec2 v_TexCoord;
-out vec4 o_Color;
-
-void main() {
-	o_Color = texture(t_Source, v_TexCoord, 0);
-}
-
-";
-
-// http://learnopengl.com/#!Advanced-Lighting/Bloom
-pub static GAUSSIAN_BLUR_HORIZONTAL_SRC: &'static [u8] = b"
-
-#version 150 core
-
-uniform sampler2D t_Source;
-
-in vec2 v_TexCoord;
-out vec4 o_Color;
-
-const float weight[5] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
-
-void main()
-{
-	const float weight[5] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
-    vec2 tex_offset = 1.0 / textureSize(t_Source, 0); // gets size of single texel
-    vec3 result = texture(t_Source, v_TexCoord).rgb * weight[0]; // current fragment's contribution
-
-    result += texture(t_Source, v_TexCoord + vec2(tex_offset.x * 1, 0.0)).rgb * weight[1];
-	result += texture(t_Source, v_TexCoord - vec2(tex_offset.x * 1, 0.0)).rgb * weight[1];
-
-    result += texture(t_Source, v_TexCoord + vec2(tex_offset.x * 2, 0.0)).rgb * weight[2];
-	result += texture(t_Source, v_TexCoord - vec2(tex_offset.x * 2, 0.0)).rgb * weight[2];
-
-    result += texture(t_Source, v_TexCoord + vec2(tex_offset.x * 3, 0.0)).rgb * weight[3];
-	result += texture(t_Source, v_TexCoord - vec2(tex_offset.x * 3, 0.0)).rgb * weight[3];
-
-    result += texture(t_Source, v_TexCoord + vec2(tex_offset.x * 4, 0.0)).rgb * weight[4];
-	result += texture(t_Source, v_TexCoord - vec2(tex_offset.x * 4, 0.0)).rgb * weight[4];
-
-    o_Color = vec4(result, 1.0);
-}
-";
-
-pub static GAUSSIAN_BLUR_VERTICAL_SRC: &'static [u8] = b"
-
-#version 150 core
-
-uniform sampler2D t_Source;
-
-in vec2 v_TexCoord;
-out vec4 o_Color;
-
-const float weight[5] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
-
-void main()
-{
-    vec2 tex_offset = 1.0 / textureSize(t_Source, 0); // gets size of single texel
-    vec3 result = texture(t_Source, v_TexCoord).rgb * weight[0]; // current fragment's contribution
-
-    result += texture(t_Source, v_TexCoord + vec2(0.0, tex_offset.y * 1)).rgb * weight[1];
-    result += texture(t_Source, v_TexCoord - vec2(0.0, tex_offset.y * 1)).rgb * weight[1];
-
-    result += texture(t_Source, v_TexCoord + vec2(0.0, tex_offset.y * 2)).rgb * weight[2];
-    result += texture(t_Source, v_TexCoord - vec2(0.0, tex_offset.y * 2)).rgb * weight[2];
-
-    result += texture(t_Source, v_TexCoord + vec2(0.0, tex_offset.y * 3)).rgb * weight[3];
-    result += texture(t_Source, v_TexCoord - vec2(0.0, tex_offset.y * 3)).rgb * weight[3];
-
-    result += texture(t_Source, v_TexCoord + vec2(0.0, tex_offset.y * 4)).rgb * weight[4];
-    result += texture(t_Source, v_TexCoord - vec2(0.0, tex_offset.y * 4)).rgb * weight[4];
-
-    o_Color = vec4(result, 1.0);
-}
-";
-
-pub static COMPOSE_2_SRC: &'static [u8] = b"
-
-#version 150 core
-
-uniform sampler2D t_Source1;
-uniform sampler2D t_Source2;
-
-in vec2 v_TexCoord;
-out vec4 o_Color;
-
-void main() {
-	o_Color = texture(t_Source1, v_TexCoord, 0) + texture(t_Source2, v_TexCoord, 0);
-}
-";
-
-pub static CLIP_LUMINANCE_SRC: &'static [u8] = b"
-
-#version 150 core
-
-uniform sampler2D t_Source;
-
-in vec2 v_TexCoord;
-out vec4 o_Color;
-
-void main() {
-	vec4 src = texture(t_Source, v_TexCoord, 0);
-	float l = max((dot(vec3(0.2126, 0.7152, 0.0722), src.rgb) - 1.), 0.);
-
-	o_Color = vec4(src.rgb * l, src.a);
-}
-
-";
-
-pub static QUAD_SMOOTH_SRC: &'static [u8] = b"
-
-#version 150 core
-
-uniform sampler2D t_Source;
-
-in vec2 v_TexCoord;
-out vec4 o_Color;
-
-void main() {
-	vec2 d = 1.0 / textureSize(t_Source, 0); // gets size of single texel
-	float x1 = v_TexCoord.x - d.x/2;
-	float x2 = x1 + d.x;
-	float y1 = v_TexCoord.y - d.y/2.;
-	float y2 = y1 + d.y;
-    o_Color = (texture(t_Source, vec2(x1, y1), 0)
-	         + texture(t_Source, vec2(x1, y2), 0)
-	         + texture(t_Source, vec2(x2, y1), 0)
-	         + texture(t_Source, vec2(x2, y2), 0)) / 4.0;
-}
-
-";
+use core::resource;
 
 pub type HDR = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
 pub type LDR = gfx::format::Srgba8;
@@ -295,7 +81,7 @@ pub struct PostLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 }
 
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
-	pub fn new<F>(factory: &mut F, w: u16, h: u16) -> PostLighting<R, C>
+	pub fn new<F>(factory: &mut F, res: &resource::ResourceLoader<u8>, w: u16, h: u16) -> PostLighting<R, C>
 		where F: gfx::Factory<R> {
 
 		let full_screen_triangle = vec![BlitVertex {
@@ -320,28 +106,25 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		                                                                       gfx::tex::WrapMode::Clamp));
 
 		let tone_map_vertex_args = factory.create_constant_buffer(1);
-
-		let tone_map_pso = factory.create_pipeline_simple(LUMINANCE_VERTEX_SRC, EXPOSURE_TONE_MAP_SRC, tone_map::new())
-		                          .unwrap();
-		let highlight_pso = factory.create_pipeline_simple(VERTEX_SRC, CLIP_LUMINANCE_SRC, postprocess::new()).unwrap();
-
-		let blur_h_pso = factory.create_pipeline_simple(VERTEX_SRC, GAUSSIAN_BLUR_HORIZONTAL_SRC, postprocess::new())
-		                        .unwrap();
-		let blur_v_pso = factory.create_pipeline_simple(VERTEX_SRC, GAUSSIAN_BLUR_VERTICAL_SRC, postprocess::new())
-		                        .unwrap();
-
-		let blit_pso = factory.create_pipeline_simple(VERTEX_SRC, SIMPLE_BLIT_SRC, postprocess::new())
-		                      .unwrap();
-
 		let smooth_fragment_args = factory.create_constant_buffer(1);
 
-		let smooth_pso = factory.create_pipeline_simple(VERTEX_SRC, EXPONENTIAL_SMOOTH_SRC, smooth::new())
-		                        .unwrap();
-		let average_pso = factory.create_pipeline_simple(VERTEX_SRC, QUAD_SMOOTH_SRC, postprocess::new())
-		                         .unwrap();
+		macro_rules! load_pipeline_simple {
+			($v:expr, $f:expr, $s:ident) => { factory.create_pipeline_simple(
+					&res.load(concat!("shaders/effects/", $v, ".vert")).unwrap(), 
+					&res.load(concat!("shaders/effects/", $f, ".frag")).unwrap(),
+					$s::new()
+				)
+				.unwrap() }
+		};
 
-		let compose_pso = factory.create_pipeline_simple(VERTEX_SRC, COMPOSE_2_SRC, compose::new())
-		                         .unwrap();
+		let tone_map_pso = load_pipeline_simple!("luminance", "exposure_tone_map", tone_map);
+		let highlight_pso = load_pipeline_simple!("identity", "clip_luminance", postprocess);
+		let blur_h_pso = load_pipeline_simple!("identity", "gaussian_blur_horizontal", postprocess);
+		let blur_v_pso = load_pipeline_simple!("identity", "gaussian_blur_vertical", postprocess);
+		let blit_pso = load_pipeline_simple!("identity", "simple_blit", postprocess);
+		let smooth_pso = load_pipeline_simple!("identity", "exponential_smooth", smooth);
+		let average_pso = load_pipeline_simple!("identity", "quad_smooth", postprocess);
+		let compose_pso = load_pipeline_simple!("identity", "compose_2", compose);
 
 		let ping_pong_small = [factory.create_render_target::<HDR>(w / 4, h / 4).unwrap(),
 		                       factory.create_render_target::<HDR>(w / 4, h / 4).unwrap()];

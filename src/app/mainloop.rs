@@ -5,18 +5,23 @@ use app;
 use cgmath;
 use glutin;
 use gfx_window_glutin;
+use core::resource;
+use std::path;
 
 pub fn main_loop() {
 	const WIDTH: u32 = 1280;
 	const HEIGHT: u32 = 720;
 
 	let builder = glutin::WindowBuilder::new()
-		.with_title("Box2d + GFX".to_string())
-		.with_dimensions(WIDTH, HEIGHT)
-		.with_vsync();
+		              .with_title("Box2d + GFX".to_string())
+		              .with_dimensions(WIDTH, HEIGHT)
+		              .with_vsync();
 
-	let (window, mut device, mut factory, mut frame_buffer, mut depth_buffer) =
-		gfx_window_glutin::init::<render::ColorFormat, render::DepthFormat>(builder);
+	let (window,
+	     mut device,
+	     mut factory,
+	     mut frame_buffer,
+	     mut depth_buffer) = gfx_window_glutin::init::<render::ColorFormat, render::DepthFormat>(builder);
 
 	let (w, h, _, _) = frame_buffer.get_dimensions();
 

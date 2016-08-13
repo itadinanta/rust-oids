@@ -1,230 +1,9 @@
 use gfx;
 use gfx::traits::FactoryExt;
+use core::resource;
 
 extern crate cgmath;
 extern crate gfx_text;
-
-pub static LIGHTING_VERTEX_SRC: &'static [u8] = b"
-
-#version 150 core
-
-layout (std140) uniform cb_CameraArgs {
-    uniform mat4 u_Proj;
-    uniform mat4 u_View;
-};
-
-layout (std140) uniform cb_ModelArgs {
-    uniform mat4 u_Model;
-};
-
-in vec3 a_Pos;
-in vec3 a_Normal;
-in vec3 a_Tangent;
-in vec2 a_TexCoord;
-
-out VertexData {
-    vec4 Position;
-    vec3 Normal;
-    mat3 TBN;
-    vec2 TexCoord;
-} v_Out;
-
-void main() {
-    v_Out.Position = u_Model * vec4(a_Pos, 1.0);
-    mat3 model = mat3(u_Model);
-	vec3 normal = normalize(model * a_Normal);
-
-    v_Out.Normal = normal;
-	vec3 tangent = normalize(model * a_Tangent);
-	vec3 bitangent = cross(normal, tangent);
-
-    v_Out.TBN = mat3(tangent, bitangent, normal);
-
-    v_Out.TexCoord = a_TexCoord;
-    gl_Position = u_Proj * u_View * v_Out.Position;
-}
-
-";
-const MAX_NUM_TOTAL_LIGHTS: usize = 16;
-
-pub static LIGHTING_BALL_FRAGMENT_SRC: &'static [u8] = b"
-
-#version 150 core
-#define MAX_NUM_TOTAL_LIGHTS 16
-
-const float PI = 3.1415926535897932384626433832795;
-const float PI_2 = 1.57079632679489661923;
-
-layout (std140) uniform cb_FragmentArgs {
-    int u_LightCount;
-};
-
-struct Light {
-    vec4 propagation;
-    vec4 center;
-    vec4 color;
-};
-
-layout (std140) uniform u_Lights {
-    Light light[MAX_NUM_TOTAL_LIGHTS];
-};
-
-layout (std140) uniform cb_MaterialArgs {
-    uniform vec4 u_Emissive;
-};
-
-in VertexData {
-    vec4 Position;
-    vec3 Normal;
-    mat3 TBN;
-    vec2 TexCoord;
-} v_In;
-
-out vec4 o_Color;
-
-void main() {
-    vec4 kd = vec4(0.2, 0.2, 0.2, 1.0);
-    vec4 ks = vec4(1.0, 1.0, 1.0, 1.0);
-    vec4 kp = vec4(64.0, 32.0, 64.0, 1.0);
-    vec4 ka = vec4(0.0, 0.0, 0.01, 1.0);
-
-    vec4 color = (ka + u_Emissive);
-
-    float dx = v_In.TexCoord.x - 0.5;
-    float dy = v_In.TexCoord.y - 0.5;
-	float r = dx * dx + dy * dy;
-	vec3 normal_map = vec3(0., 0., 1.);
-    if (r > 0.25) {
-        discard;
-    }
-    else {
-	    dx *= 2;
-	    dy *= 2;
-
-		float bump = sqrt(1. - dx * dx - dy * dy);
-		normal_map = vec3(dx, dy, bump);
-	};
-
-	vec3 normal = v_In.TBN * normal_map;
-
-	for (int i = 0; i < u_LightCount; i++) {
-		vec4 delta = light[i].center - v_In.Position;
-		float dist = length(delta);
-		float inv_dist = 1. / dist;
-		vec4 light_to_point_normal = delta * inv_dist;
-		float intensity = dot(light[i].propagation.xyz, vec3(1., inv_dist, inv_dist * inv_dist));
-
-		float lambert = max(0, dot(light_to_point_normal, vec4(normal, 0.0)));
-
-		vec4 specular;
-		if (lambert >= 0.0) {
-//			Blinn-Phong:
-			vec3 lightDir = light_to_point_normal.xyz;
-            vec3 viewDir = vec3(0.0, 0.0, 1.0); // ortho, normalize(-v_In.Position.xyz); perspective
-            vec3 halfDir = normalize(lightDir + viewDir); // can be done in vertex shader
-			float specAngle = max(dot(halfDir, normal), 0.0);
-			specular = pow(vec4(specAngle), kp);
-		}
-		else {
-			specular = vec4(0.0);
-		}
-		color += light[i].color * intensity * (kd * lambert + ks * specular);
-	}
-	// gl_FragDepth = bump;
-	o_Color = color;
-}
-
-";
-
-pub static LIGHTING_POLY_FRAGMENT_SRC: &'static [u8] = b"
-
-#version 150 core
-#define MAX_NUM_TOTAL_LIGHTS 16
-
-const float PI = 3.1415926535897932384626433832795;
-const float PI_2 = 1.57079632679489661923;
-
-layout (std140) uniform cb_FragmentArgs {
-    int u_LightCount;
-};
-
-struct Light {
-    vec4 propagation;
-    vec4 center;
-    vec4 color;
-};
-
-layout (std140) uniform u_Lights {
-    Light light[MAX_NUM_TOTAL_LIGHTS];
-};
-
-layout (std140) uniform cb_MaterialArgs {
-    uniform vec4 u_Emissive;
-};
-
-in VertexData {
-    vec4 Position;
-    vec3 Normal;
-    mat3 TBN;
-    vec2 TexCoord;
-} v_In;
-
-out vec4 o_Color;
-
-void main() {
-    vec4 kd = vec4(0.2, 0.2, 0.2, 1.0);
-    vec4 ks = vec4(1.0, 1.0, 1.0, 1.0);
-    vec4 kp = vec4(64.0, 32.0, 64.0, 1.0);
-    vec4 ka = vec4(0.0, 0.0, 0.0, 1.0);
-
-    vec4 color = (ka + u_Emissive);
-
-    float dx = v_In.TexCoord.x - 0.5;
-    float dy = v_In.TexCoord.y - 0.5;
-	float r = dx * dx + dy * dy;
-	vec3 normal_map = vec3(0., 0., 1.);
-
-    vec3 normal;
-    if (r <= 0.25) {
-	    dx *= 2;
-	    dy *= 2;
-
-		float bump = sqrt(1. - dx * dx - dy * dy);
-		normal_map = vec3(dx, dy, bump);
-	    normal = v_In.TBN * normal_map;
-	} else {
-		normal = v_In.Normal;
-	}
-
-	for (int i = 0; i < u_LightCount; i++) {
-		vec4 delta = light[i].center - v_In.Position;
-		float dist = length(delta);
-		float inv_dist = 1. / dist;
-		vec4 light_to_point_normal = delta * inv_dist;
-		float intensity = dot(light[i].propagation.xyz, vec3(1., inv_dist, inv_dist * inv_dist));
-
-		float lambert = max(0, dot(light_to_point_normal, vec4(normal, 0.0)));
-
-		vec4 specular;
-		if (lambert >= 0.0) {
-//			Blinn-Phong:
-			vec3 lightDir = light_to_point_normal.xyz;
-            vec3 viewDir = vec3(0.0, 0.0, 1.0); // ortho, normalize(-v_In.Position.xyz); perspective
-            vec3 halfDir = normalize(lightDir + viewDir); // can be done in vertex shader
-			float specAngle = max(dot(halfDir, normal), 0.0);
-			specular = pow(vec4(specAngle), kp);
-		}
-		else {
-			specular = vec4(0.0);
-		}
-		color += light[i].color * intensity * (kd * lambert + ks * specular);
-	}
-	// gl_FragDepth = bump;
-	o_Color = color;
-}
-
-";
-
 
 gfx_vertex_struct!(VertexPosNormal {
 	pos: [f32; 3] = "a_Pos",
@@ -248,6 +27,8 @@ pub type Vertex = VertexPosNormal;
 pub type HDRColorFormat = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
 pub type ColorFormat = gfx::format::Rgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
+
+const MAX_NUM_TOTAL_LIGHTS: usize = 16;
 
 pub type GFormat = [f32; 4];
 
@@ -309,9 +90,8 @@ pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 	_buffer: PhantomData<C>,
 }
 
-
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
-	pub fn new<F>(factory: &mut F) -> ForwardLighting<R, C>
+	pub fn new<F>(factory: &mut F, res: &resource::ResourceLoader<u8>) -> ForwardLighting<R, C>
 		where F: gfx::Factory<R> {
 		let lights = factory.create_constant_buffer(MAX_NUM_TOTAL_LIGHTS);
 		let camera = factory.create_constant_buffer(1);
@@ -319,13 +99,20 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 		let fragment = factory.create_constant_buffer(1);
 		let material = factory.create_constant_buffer(1);
 
-		let solid_shaders = factory.create_shader_set(LIGHTING_VERTEX_SRC, LIGHTING_POLY_FRAGMENT_SRC)
-			.unwrap();
-		let ball_shaders = factory.create_shader_set(LIGHTING_VERTEX_SRC, LIGHTING_BALL_FRAGMENT_SRC)
-			.unwrap();
+		macro_rules! load_shaders {
+			($v:expr, $f:expr) => { factory.create_shader_set(
+					&res.load(concat!("shaders/forward/", $v, ".vert")).unwrap(), 
+					&res.load(concat!("shaders/forward/", $f, ".frag")).unwrap())
+				.unwrap() }
+		};
 
-		let solid_rasterizer =
-			gfx::state::Rasterizer { samples: Some(gfx::state::MultiSample), ..gfx::state::Rasterizer::new_fill() };
+		let solid_shaders = load_shaders!("lighting", "lighting_poly");
+		let ball_shaders = load_shaders!("lighting", "lighting_ball");
+
+		let solid_rasterizer = gfx::state::Rasterizer {
+			samples: Some(gfx::state::MultiSample),
+			..gfx::state::Rasterizer::new_fill()
+		};
 
 		let line_rasterizer = gfx::state::Rasterizer { method: gfx::state::RasterMethod::Line(2), ..solid_rasterizer };
 
@@ -341,7 +128,6 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 		                                  &solid_shaders,
 		                                  gfx::Primitive::TriangleList,
 		                                  line_rasterizer);
-
 		let lines_pso = Self::new_pso(factory,
 		                              &solid_shaders,
 		                              gfx::Primitive::LineStrip,
@@ -364,7 +150,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 	              -> gfx::pso::PipelineState<R, shaded::Meta>
 		where F: gfx::Factory<R> {
 		factory.create_pipeline_state(&shaders, primitive, rasterizer, shaded::new())
-			.unwrap()
+		       .unwrap()
 	}
 
 	pub fn setup(&self,
