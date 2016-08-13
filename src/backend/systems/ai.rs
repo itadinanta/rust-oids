@@ -22,27 +22,26 @@ impl System for AiSystem {
 	fn from_world(&self, world: &world::World) {}
 
 	fn to_world(&self, world: &mut world::World) {
+		let target = self.remote;
 		for (_, agent) in world.minions.agents_mut() {
-			// let torso = segments[0].unwrap();
-			// 			let sensor = {
-			// 				agent.segments_mut().find(|segment| segment.flags.contains(world::SENSOR))
-			// 			};
 			let segments = &mut agent.segments_mut();
 			let order = segments.len() as f32;
 			if let Some(sensor) = segments.iter()
-				.find(|segment| segment.flags.contains(world::HEAD))
+				.find(|segment| segment.flags.contains(world::SENSOR))
 				.map(|sensor| sensor.clone()) {
+				let t = target - sensor.transform.position;
+				let d = t.length();
 				for segment in segments.iter_mut() {
 					if segment.flags.intersects(world::ACTUATOR) {
 						let power = segment.state.charge * segment.mesh.shape.radius().powi(2);
 						let f: Position = Matrix2::from_angle(rad(segment.transform.angle)) * Position::unit_y();
-						let t = self.remote - sensor.transform.position;
-						let d = t.length();
-						let intent = if segment.flags.contains(world::RUDDER) && t.dot(f) > 0. && t.length() > 10 {
+						let proj = t.dot(f);
+						let intent = if segment.flags.contains(world::RUDDER) && proj > 0. && d > order &&
+						                d < order * 2.0 {
 							Some(f.normalize_to(power * 4. * order))
-						} else if segment.flags.contains(world::THRUSTER) && t.dot(f) > 0. && d > 10.5 {
+						} else if segment.flags.contains(world::THRUSTER) && proj > 0. && d > order * 1.1 {
 							Some(f.normalize_to(power * 2. * order))
-						} else if segment.flags.contains(world::BRAKE) && (t.dot(f) < 0. || d < 9.5) {
+						} else if segment.flags.contains(world::BRAKE) && (proj < 0. || d < order * 0.9) {
 							Some(f.normalize_to(-power * 3. * order))
 						} else {
 							None

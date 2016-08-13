@@ -453,7 +453,7 @@ impl Flock {
 		builder.addr(torso, 2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER)
 			.addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
 
-		let head = builder.add(torso, 0, &head_shape, HEAD | SENSOR | JOINT).index();
+		let head = builder.add(torso, 0, &head_shape, HEAD | SENSOR).index();
 		builder.addr(head, 1, &head_shape, HEAD | ACTUATOR | RUDDER)
 			.addl(head, 2, &head_shape, HEAD | ACTUATOR | RUDDER);
 
