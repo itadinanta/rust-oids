@@ -19,6 +19,7 @@ pub struct State {
 	pub charge: f32,
 	pub target_charge: f32,
 	pub tau: f32,
+	pub intent: Option<Position>,
 }
 
 impl Default for State {
@@ -29,6 +30,7 @@ impl Default for State {
 			charge: 1.,
 			target_charge: 0.,
 			tau: 2.0,
+			intent: None,
 		}
 	}
 }
@@ -490,6 +492,10 @@ impl Flock {
 	pub fn agents(&self) -> &HashMap<Id, Agent> {
 		&self.agents
 	}
+	
+	pub fn agents_mut(&mut self) -> &mut HashMap<Id, Agent> {
+		&mut self.agents
+	}	
 }
 
 #[repr(packed)]

@@ -17,11 +17,8 @@ impl UserDataTypes for AgentData {
 }
 
 pub struct PhysicsSystem {
-	edge: f32,
-	remote: Position,
 	world: b2::World<AgentData>,
 	handles: HashMap<world::AgentRefs, b2::BodyHandle>,
-	dropped: Vec<world::AgentRefs>,
 }
 
 use cgmath::Vector;
@@ -29,57 +26,26 @@ use cgmath::EuclideanVector;
 
 impl Updateable for PhysicsSystem {
 	fn update(&mut self, state: &world::WorldState, dt: f32) {
-		enum BodyForce {
-			Parallel(b2::BodyHandle, f32, b2::Vec2, b2::Vec2),
-			Perpendicular(b2::BodyHandle, f32, b2::Vec2, b2::Vec2),
-		}
 		let mut v = Vec::new();
 
 		for (h, b) in self.world.bodies() {
 			let body = b.borrow();
 			let center = (*body).world_center().clone();
-			let facing = (*body).world_point(&b2::Vec2 { x: 0., y: 1. }).clone();
 			let key = (*body).user_data();
 			if let Some(segment) = state.minion(key.agent_id).and_then(|c| c.segment(key.segment_index)) {
-				let power = segment.state.charge * segment.mesh.shape.radius().powi(2);
-				if segment.flags.contains(world::RUDDER) {
-					v.push(BodyForce::Perpendicular(h, power, center, facing));
-				}
-				if segment.flags.contains(world::THRUSTER) {
-					v.push(BodyForce::Parallel(h, power, center, facing));
+				if let Some(force) = segment.state.intent {
+					v.push((h, center, force));
 				}
 			}
 		}
-		for force in v {
-			match force {
-				BodyForce::Perpendicular(h, power, center, facing) => {
-					let t = self.remote - Position::new(center.x, center.y);
-					let f = Position::new(center.x - facing.x, center.y - facing.y);
-					let d = f.dot(t);
-
-					if d > 0. {
-						let b = &mut self.world.body_mut(h);
-						let power = power * 10.;
-						let f = f.normalize_to(power);
-						b.apply_force(&b2::Vec2 { x: f.x, y: f.y }, &center, true);
-					}
-				}
-				BodyForce::Parallel(h, power, center, facing) => {
-					let t = self.remote - Position::new(center.x, center.y);
-					let f = Position::new(facing.x - center.x, facing.y - center.y);
-					// let d = f.dot(t);
-
-					//if d > 0. {
-						let power = power * 50.;
-						let f = f.normalize_to(power);
-						self.world.body_mut(h).apply_force(&b2::Vec2 { x: f.x, y: f.y }, &center, true);
-					//} else {
-					//	let power = power * 10.;
-					//	let f = f.normalize_to(power);
-					//	self.world.body_mut(h).apply_force(&b2::Vec2 { x: -f.x, y: -f.y }, &center, true);
-					//}
-				}
-			}
+		for (h, center, force) in v {
+			let b = &mut self.world.body_mut(h);
+			b.apply_force(&b2::Vec2 {
+				              x: force.x,
+				              y: force.y,
+			              },
+			              &center,
+			              true);
 		}
 
 		self.world.step(dt, 8, 3);
@@ -95,6 +61,8 @@ struct JointRef<'a> {
 }
 
 impl System for PhysicsSystem {
+	fn init(&mut self, world: &world::World) {}
+
 	fn register(&mut self, agent: &world::Agent) {
 		// build fixtures
 		let joint_refs = PhysicsSystem::build_fixtures(&mut self.world, &agent);
@@ -109,10 +77,6 @@ impl System for PhysicsSystem {
 	fn from_world(&self, _: &world::World) {}
 
 	fn to_world(&self, world: &mut world::World) {
-		for key in &self.dropped {
-			world.minions.kill(&key.agent_id);
-			// println!("Killed object: {}", key.agent_id);
-		}
 		for (_, b) in self.world.bodies() {
 			let body = b.borrow();
 			let position = (*body).position();
@@ -140,10 +104,7 @@ impl PhysicsSystem {
 	pub fn new() -> Self {
 		PhysicsSystem {
 			world: Self::new_world(),
-			edge: 0.,
-			remote: Position::new(0., 0.),
 			handles: HashMap::new(),
-			dropped: Vec::new(),
 		}
 	}
 
@@ -280,14 +241,6 @@ impl PhysicsSystem {
 				}
 			}
 		}
-	}
-
-	pub fn drop_below(&mut self, edge: f32) {
-		self.edge = edge;
-	}
-
-	pub fn follow_me(&mut self, pos: Position) {
-		self.remote = pos;
 	}
 
 	fn new_world() -> b2::World<AgentData> {

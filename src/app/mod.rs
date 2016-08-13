@@ -88,8 +88,11 @@ pub struct App {
 	backgrounds: Cycle<[f32; 4]>,
 	//
 	world: world::World,
-	physics_system: systems::PhysicsSystem,
-	animation_system: systems::AnimationSystem,
+
+	physics: systems::PhysicsSystem,
+	animation: systems::AnimationSystem,
+	game: systems::GameSystem,
+	ai: systems::AiSystem,
 }
 
 pub struct Environment {
@@ -120,8 +123,10 @@ impl App {
 
 			world: world::World::new(),
 			// subsystem, need to update each
-			physics_system: systems::PhysicsSystem::new(),
-			animation_system: systems::AnimationSystem::new(),
+			physics: systems::PhysicsSystem::new(),
+			animation: systems::AnimationSystem::new(),
+			game: systems::GameSystem::new(),
+			ai: systems::AiSystem::new(),
 
 			// runtime and timing
 			frame_count: 0u32,
@@ -183,7 +188,7 @@ impl App {
 
 	fn register(&mut self, id: obj::Id) {
 		let found = self.world.friend_mut(id);
-		self.physics_system.register(found.unwrap());
+		self.physics.register(found.unwrap());
 	}
 
 	fn on_left_drag(&mut self, pos: Position) {
@@ -323,8 +328,24 @@ impl App {
 	}
 
 	fn update_systems(&mut self, dt: f32) {
-		self.update_physics(dt);
-		self.update_animation(dt);
+		self.animation.update_world(dt, &mut self.world);
+
+		self.game.update_world(dt, &mut self.world);
+
+		self.ai.follow_me(self.light_position);
+		self.ai.update_world(dt, &mut self.world);
+
+		self.physics.update_world(dt, &mut self.world);
+	}
+
+	fn init_systems(&mut self) {
+		self.animation.init(&mut self.world);
+
+		self.ai.init(&mut self.world);
+
+		self.game.init(&mut self.world);
+
+		self.physics.init(&mut self.world);
 	}
 
 	pub fn update(&mut self) -> Result<Update, SystemTimeError> {
@@ -348,16 +369,5 @@ impl App {
 				fps: 1.0 / frame_time_smooth,
 			}
 		})
-	}
-
-	fn update_physics(&mut self, dt: f32) {
-		let (_, edge) = self.viewport.to_world(0, self.viewport.height);
-		self.physics_system.drop_below(edge);
-		self.physics_system.follow_me(self.light_position);
-		self.physics_system.update_world(dt, &mut self.world);
-	}
-
-	fn update_animation(&mut self, dt: f32) {
-		self.animation_system.update_world(dt, &mut self.world);
 	}
 }

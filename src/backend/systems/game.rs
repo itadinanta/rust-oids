@@ -3,7 +3,7 @@ use backend::world;
 use backend::world::WorldState;
 use std::time::*;
 
-pub struct AnimationSystem {
+pub struct GameSystem {
 	speed: f32,
 	t0: SystemTime,
 	now: SystemTime,
@@ -12,7 +12,7 @@ pub struct AnimationSystem {
 	elapsed: f32,
 }
 
-impl Updateable for AnimationSystem {
+impl Updateable for GameSystem {
 	fn update(&mut self, _: &WorldState, dt: f32) {
 		self.now = SystemTime::now();
 		self.dt = dt;
@@ -23,19 +23,28 @@ impl Updateable for AnimationSystem {
 	}
 }
 
-impl System for AnimationSystem {
+impl System for GameSystem {
 	fn init(&mut self, world: &world::World) {}
 
 	fn register(&mut self, _: &world::Agent) {}
 
 	fn from_world(&self, world: &world::World) {}
 
-	fn to_world(&self, world: &mut world::World) {}
+	fn to_world(&self, world: &mut world::World) {
+		let keys: Vec<_> = world.minions.agents().keys().cloned().collect();
+		for k in keys {
+			if let Some(b) = world.minions.get_mut(k) {
+				for segment in b.segments_mut() {
+					segment.state.update(self.dt * self.speed);
+				}
+			}
+		}
+	}
 }
 
-impl AnimationSystem {
+impl GameSystem {
 	pub fn new() -> Self {
-		AnimationSystem {
+		GameSystem {
 			dt: 1. / 60.,
 			speed: 1.,
 			t0: SystemTime::now(),

@@ -44,3 +44,7 @@ impl Transform {
 		Transform { position: position, ..Transform::default() }
 	}
 }
+
+pub fn origin() -> Position {
+	Position::new(0., 0.)
+}
