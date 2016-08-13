@@ -26,6 +26,7 @@ impl System for AiSystem {
 		for (_, agent) in world.minions.agents_mut() {
 			let segments = &mut agent.segments_mut();
 			let order = segments.len() as f32;
+			let d0 = 2. * order;
 			if let Some(sensor) = segments.iter()
 				.find(|segment| segment.flags.contains(world::SENSOR))
 				.map(|sensor| sensor.clone()) {
@@ -36,12 +37,11 @@ impl System for AiSystem {
 						let power = segment.state.charge * segment.mesh.shape.radius().powi(2);
 						let f: Position = Matrix2::from_angle(rad(segment.transform.angle)) * Position::unit_y();
 						let proj = t.dot(f);
-						let intent = if segment.flags.contains(world::RUDDER) && proj > 0. && d > order &&
-						                d < order * 2.0 {
+						let intent = if segment.flags.contains(world::RUDDER) && proj > 0. && d > d0 && d < d0 * 2.0 {
 							Some(f.normalize_to(power * 4. * order))
-						} else if segment.flags.contains(world::THRUSTER) && proj > 0. && d > order * 1.1 {
+						} else if segment.flags.contains(world::THRUSTER) && proj > 0. && d > d0 * 1.1 {
 							Some(f.normalize_to(power * 2. * order))
-						} else if segment.flags.contains(world::BRAKE) && (proj < 0. || d < order * 0.9) {
+						} else if segment.flags.contains(world::BRAKE) && (proj < 0. || d < d0 * 0.9) {
 							Some(f.normalize_to(-power * 3. * order))
 						} else {
 							None
