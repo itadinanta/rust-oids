@@ -331,12 +331,13 @@ impl App {
 			let frame_time = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
 			let frame_time_smooth = self.frame_smooth.smooth(frame_time);
 
-			self.update_systems(frame_time_smooth);
 
 			self.frame_elapsed += frame_time;
 			self.frame_start = SystemTime::now();
-			self.frame_count += 1;
 
+			self.update_systems(frame_time_smooth);
+			self.frame_count += 1;
+			
 			Update {
 				wall_clock_elapsed: self.wall_clock_start.elapsed().unwrap_or_else(|_| Duration::new(0, 0)),
 				frame_count: self.frame_count,
