@@ -165,12 +165,24 @@ impl App {
 		match btn {
 			glutin::MouseButton::Left => {
 				self.input_state.button_press(Left);
-				self.new_minion(pos);
+				self.light_position = pos;
 			}
 			glutin::MouseButton::Right => {
 				self.input_state.button_press(Right);
+				self.new_minion(pos);
+			}
+			_ => (),
+		}
+	}
+
+	fn on_mouse_move(&mut self, btn: Option<glutin::MouseButton>, pos: Position) {
+		match btn {
+			Some(glutin::MouseButton::Left) => {
 				self.light_position = pos;
-				// self.new_star(pos);
+			}
+			Some(glutin::MouseButton::Right) => {
+				let id = self.world.new_resource(pos);
+				self.register(id);
 			}
 			_ => (),
 		}
@@ -189,18 +201,6 @@ impl App {
 	fn register(&mut self, id: obj::Id) {
 		let found = self.world.friend_mut(id);
 		self.physics.register(found.unwrap());
-	}
-
-	fn on_left_drag(&mut self, pos: Position) {
-		self.new_resource(pos);
-	}
-
-	fn on_mouse_move(&mut self, pos: Position) {
-		// self.light_position = pos;
-	}
-
-	fn on_right_drag(&mut self, pos: Position) {
-		self.light_position = pos;
 	}
 
 	fn on_release(&mut self, btn: glutin::MouseButton, _: Position) {
@@ -268,11 +268,11 @@ impl App {
 				let pos = transform_pos(&self.viewport, x as u32, y as u32);
 				self.input_state.mouse_position_at(pos);
 				if self.input_state.button_pressed(Left) {
-					self.on_left_drag(pos);
+					self.on_mouse_move(Some(glutin::MouseButton::Left), pos);
 				} else if self.input_state.button_pressed(Right) {
-					self.on_right_drag(pos);
+					self.on_mouse_move(Some(glutin::MouseButton::Right), pos);
 				} else {
-					self.on_mouse_move(pos);
+					self.on_mouse_move(None, pos);
 				}
 			}
 			_ => (),
@@ -283,19 +283,24 @@ impl App {
 		self.viewport = Viewport::rect(width, height, self.viewport.scale);
 	}
 
-	pub fn render(&self, renderer: &mut render::Draw) {
+	fn from_transform(transform: &Transform) -> Matrix4<f32> {
+		use cgmath::Rotation3;
+		let position = transform.position;
+		let angle = transform.angle;
+		let rot = Matrix4::from(cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::rad(angle)));
+		let trans = Matrix4::from_translation(cgmath::Vector3::new(position.x, position.y, 0.0));
+
+		trans * rot
+	}
+
+	fn from_position(position: &Position) -> Matrix4<f32> {
+		Matrix4::from_translation(cgmath::Vector3::new(position.x, position.y, 0.0))
+	}
+
+	fn render_minions(&self, renderer: &mut render::Draw) {
 		for (_, b) in self.world.minions.agents() {
 			for segment in b.segments() {
-				let transform = segment.transform();
-				let position = transform.position;
-				let angle = transform.angle;
-
-				use cgmath::Rotation3;
-				let body_rot = Matrix4::from(cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(),
-				                                                                 cgmath::rad(angle)));
-				let body_trans = Matrix4::from_translation(cgmath::Vector3::new(position.x, position.y, 0.0));
-
-				let body_transform = body_trans * body_rot;
+				let body_transform = Self::from_transform(&segment.transform());
 
 				let mesh = &segment.mesh();
 				let fixture_scale = Matrix4::from_scale(mesh.shape.radius());
@@ -303,20 +308,33 @@ impl App {
 
 				match mesh.shape {
 					obj::Shape::Ball { .. } => {
-						renderer.draw_ball(&transform.into(), segment.color());
+						renderer.draw_ball(&transform, segment.color());
 					}
 					obj::Shape::Star { .. } => {
-						renderer.draw_star(&transform.into(), &mesh.vertices[..], segment.color());
+						renderer.draw_star(&transform, &mesh.vertices[..], segment.color());
 					}
 					obj::Shape::Box { ratio, .. } => {
-						renderer.draw_quad(&transform.into(), ratio, segment.color());
+						renderer.draw_quad(&transform, ratio, segment.color());
 					}
 					obj::Shape::Triangle { .. } => {
-						renderer.draw_triangle(&transform.into(), &mesh.vertices[0..3], segment.color());
+						renderer.draw_triangle(&transform, &mesh.vertices[0..3], segment.color());
 					}
 				}
 			}
 		}
+	}
+
+	fn render_extent(&self, renderer: &mut render::Draw) {}
+
+	fn render_hud(&self, renderer: &mut render::Draw) {
+		let transform = Self::from_position(&self.light_position);
+		renderer.draw_ball(&transform, self.lights.get());
+	}
+
+	pub fn render(&self, renderer: &mut render::Draw) {
+		self.render_minions(renderer);
+		self.render_extent(renderer);
+		self.render_hud(renderer);
 	}
 
 	pub fn environment(&self) -> Environment {

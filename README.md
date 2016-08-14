@@ -23,8 +23,8 @@ I've only built on Ubuntu GNU/Linux but I've got reports of successful builds on
 
 ## How to play
 
-- Left mouse click: create bioid.
-- Left mouse drag: drop some balls.
-- Right mouse click, drag: move light.
+- Right mouse click: create bioid.
+- Right mouse drag: drop some balls.
+- Left mouse click/drag: move light.
 - B: set background tone
 - L: change light intensity
