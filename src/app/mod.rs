@@ -312,7 +312,7 @@ impl App {
 						renderer.draw_quad(&transform.into(), ratio, segment.color());
 					}
 					obj::Shape::Triangle { .. } => {
-						renderer.draw_star(&transform.into(), &mesh.vertices[0..3], segment.color());
+						renderer.draw_triangle(&transform.into(), &mesh.vertices[0..3], segment.color());
 					}
 				}
 			}

@@ -292,7 +292,7 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 
 			let (vertices, indices) = self.factory.create_vertex_buffer_with_slice(v, ());
 
-			self.pass_forward_lighting.draw_primitives(forward::Shader::Flat,
+			self.pass_forward_lighting.draw_primitives(forward::Shader::Wireframe,
 			                                           &mut self.encoder,
 			                                           vertices,
 			                                           &indices,
