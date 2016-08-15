@@ -1,12 +1,16 @@
 use wrapped2d::b2;
 use wrapped2d::user_data::*;
+use wrapped2d::dynamics::world::callbacks::ContactAccess;
 use backend::obj;
-use super::*;
 use backend::obj::{Solid, Geometry, Transformable};
 use backend::world;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::f32::consts;
+use std::rc::Rc;
+use std::cell::RefCell;
 use core::geometry::*;
+use super::*;
 
 struct AgentData;
 
@@ -19,10 +23,8 @@ impl UserDataTypes for AgentData {
 pub struct PhysicsSystem {
 	world: b2::World<AgentData>,
 	handles: HashMap<world::AgentRefs, b2::BodyHandle>,
+	touched: Rc<RefCell<HashSet<world::AgentRefs>>>,
 }
-
-use cgmath::Vector;
-use cgmath::EuclideanVector;
 
 impl Updateable for PhysicsSystem {
 	fn update(&mut self, state: &world::WorldState, dt: f32) {
@@ -102,9 +104,11 @@ impl System for PhysicsSystem {
 
 impl PhysicsSystem {
 	pub fn new() -> Self {
+		let touched = Rc::new(RefCell::new(HashSet::new()));
 		PhysicsSystem {
-			world: Self::new_world(),
+			world: Self::new_world(touched.clone()),
 			handles: HashMap::new(),
+			touched: touched,
 		}
 	}
 
@@ -244,9 +248,23 @@ impl PhysicsSystem {
 		}
 	}
 
-	fn new_world() -> b2::World<AgentData> {
-		let world = b2::World::new(&b2::Vec2 { x: 0.0, y: 0.0 });
-
+	fn new_world(touched: Rc<RefCell<HashSet<world::AgentRefs>>>) -> b2::World<AgentData> {
+		let mut world = b2::World::new(&b2::Vec2 { x: 0.0, y: 0.0 });
+		world.set_contact_listener(Box::new(ContactListener { touched: touched }));
 		world
+	}
+}
+
+struct ContactListener {
+	touched: Rc<RefCell<HashSet<world::AgentRefs>>>,
+}
+
+impl b2::ContactListener<AgentData> for ContactListener {
+	fn post_solve(&mut self, ca: ContactAccess<AgentData>, _: &b2::ContactImpulse) {
+		let body_a = ca.fixture_a.user_data();
+		let body_b = ca.fixture_b.user_data();
+		self.touched.borrow_mut().insert(body_a.clone());
+		self.touched.borrow_mut().insert(body_b.clone());
+		println!("{:?} touched {:?}", body_a, body_b);
 	}
 }
