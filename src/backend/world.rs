@@ -3,7 +3,6 @@ use backend::obj::*;
 use rand;
 use rand::Rng;
 use std::collections::HashMap;
-use std::slice;
 use std::f32::consts;
 use cgmath;
 use cgmath::EuclideanVector;
@@ -449,13 +448,13 @@ impl Flock {
 		let initial_angle = consts::PI / 2. + f32::atan2(initial_pos.y, initial_pos.x);
 
 		let torso = builder.start(initial_pos, initial_angle, &torso_shape)
-			.index();
+		                   .index();
 		builder.addr(torso, 2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER)
-			.addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
+		       .addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
 
 		let head = builder.add(torso, 0, &head_shape, HEAD | SENSOR).index();
 		builder.addr(head, 1, &head_shape, HEAD | ACTUATOR | RUDDER)
-			.addl(head, 2, &head_shape, HEAD | ACTUATOR | RUDDER);
+		       .addl(head, 2, &head_shape, HEAD | ACTUATOR | RUDDER);
 
 		let mut belly = torso;
 		let mut belly_mid = torso_shape.mid();
@@ -466,16 +465,16 @@ impl Flock {
 			belly_mid = belly_shape.mid();
 			if self.rnd.irand(0, 4) == 0 {
 				builder.addr(belly, 2, &arm_shape, ARM | ACTUATOR | RUDDER)
-					.addl(belly, -2, &arm_shape, ARM | ACTUATOR | RUDDER);
+				       .addl(belly, -2, &arm_shape, ARM | ACTUATOR | RUDDER);
 			}
 		}
 
 		builder.addr(belly, belly_mid - 1, &leg_shape, LEG | ACTUATOR | THRUSTER)
-			.addl(belly,
-			      -(belly_mid - 1),
-			      &leg_shape,
-			      LEG | ACTUATOR | THRUSTER)
-			.add(belly, belly_mid, &tail_shape, TAIL | ACTUATOR | BRAKE);
+		       .addl(belly,
+		             -(belly_mid - 1),
+		             &leg_shape,
+		             LEG | ACTUATOR | THRUSTER)
+		       .add(belly, belly_mid, &tail_shape, TAIL | ACTUATOR | BRAKE);
 
 		self.insert(builder.build())
 	}

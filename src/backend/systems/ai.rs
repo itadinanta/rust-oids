@@ -1,8 +1,6 @@
 use super::*;
 use backend::world;
 use backend::world::WorldState;
-use std::time::*;
-use backend::obj;
 use cgmath::*;
 use core::geometry::Position;
 
@@ -28,8 +26,8 @@ impl System for AiSystem {
 			let order = segments.len() as f32;
 			let d0 = 2. * order;
 			if let Some(sensor) = segments.iter()
-				.find(|segment| segment.flags.contains(world::SENSOR))
-				.map(|sensor| sensor.clone()) {
+			                              .find(|segment| segment.flags.contains(world::SENSOR))
+			                              .map(|sensor| sensor.clone()) {
 				let t = target - sensor.transform.position;
 				let d = t.length();
 				for segment in segments.iter_mut() {

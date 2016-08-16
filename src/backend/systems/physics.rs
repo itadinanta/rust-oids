@@ -21,9 +21,6 @@ pub struct PhysicsSystem {
 	handles: HashMap<world::AgentRefs, b2::BodyHandle>,
 }
 
-use cgmath::Vector;
-use cgmath::EuclideanVector;
-
 impl Updateable for PhysicsSystem {
 	fn update(&mut self, state: &world::WorldState, dt: f32) {
 		let mut v = Vec::new();
@@ -112,100 +109,100 @@ impl PhysicsSystem {
 		let object_id = agent.id();
 		let segments = agent.segments();
 		segments.into_iter()
-			.enumerate()
-			.map(|(segment_index, segment)| {
-				let material = segment.material();
-				let mut f_def = b2::FixtureDef::new();
-				f_def.density = material.density;
-				f_def.restitution = material.restitution;
-				f_def.friction = material.friction;
+		        .enumerate()
+		        .map(|(segment_index, segment)| {
+			        let material = segment.material();
+			        let mut f_def = b2::FixtureDef::new();
+			        f_def.density = material.density;
+			        f_def.restitution = material.restitution;
+			        f_def.friction = material.friction;
 
-				let transform = segment.transform();
-				let mut b_def = b2::BodyDef::new();
-				b_def.body_type = b2::BodyType::Dynamic;
-				b_def.linear_damping = 0.5;
-				b_def.angular_damping = 0.8;
-				b_def.angle = transform.angle;
-				b_def.position = b2::Vec2 {
-					x: transform.position.x,
-					y: transform.position.y,
-				};
-				let refs = world::AgentRefs::with_segment(object_id, segment_index as u8);
-				let handle = world.create_body_with(&b_def, refs);
+			        let transform = segment.transform();
+			        let mut b_def = b2::BodyDef::new();
+			        b_def.body_type = b2::BodyType::Dynamic;
+			        b_def.linear_damping = 0.5;
+			        b_def.angular_damping = 0.8;
+			        b_def.angle = transform.angle;
+			        b_def.position = b2::Vec2 {
+				        x: transform.position.x,
+				        y: transform.position.y,
+			        };
+			        let refs = world::AgentRefs::with_segment(object_id, segment_index as u8);
+			        let handle = world.create_body_with(&b_def, refs);
 
-				let mesh = segment.mesh();
-				let flags = segment.flags;
-				let attached_to = segment.attached_to;
-				match mesh.shape {
-					obj::Shape::Ball { radius } => {
-						let mut circle_shape = b2::CircleShape::new();
-						circle_shape.set_radius(radius);
-						world.body_mut(handle).create_fixture_with(&circle_shape, &mut f_def, refs);
-					}
-					obj::Shape::Box { radius, ratio } => {
-						let mut rect_shape = b2::PolygonShape::new();
-						rect_shape.set_as_box(radius * ratio, radius);
-						world.body_mut(handle).create_fixture_with(&rect_shape, &mut f_def, refs);
-					}
-					obj::Shape::Star { radius, n, .. } => {
-						let p = &mesh.vertices;
-						for i in 0..n {
-							let mut quad = b2::PolygonShape::new();
-							let i1 = (i * 2 + 1) as usize;
-							let i2 = (i * 2) as usize;
-							let i3 = ((i * 2 + (n * 2) - 1) % (n * 2)) as usize;
-							let (p1, p2, p3) = match mesh.winding {
-								obj::Winding::CW => (&p[i1], &p[i2], &p[i3]),
-								obj::Winding::CCW => (&p[i1], &p[i3], &p[i2]),
-							};
-							quad.set(&[b2::Vec2 { x: 0., y: 0. },
-							           b2::Vec2 {
-								           x: p1.x * radius,
-								           y: p1.y * radius,
-							           },
-							           b2::Vec2 {
-								           x: p2.x * radius,
-								           y: p2.y * radius,
-							           },
-							           b2::Vec2 {
-								           x: p3.x * radius,
-								           y: p3.y * radius,
-							           }]);
-							let refs = world::AgentRefs::with_bone(object_id, segment_index as u8, i as u8);
-							world.body_mut(handle).create_fixture_with(&quad, &mut f_def, refs);
-						}
-					}
-					obj::Shape::Triangle { radius, .. } => {
-						let p = &mesh.vertices;
-						let mut tri = b2::PolygonShape::new();
-						let (p1, p2, p3) = match mesh.winding {
-							obj::Winding::CW => (&p[0], &p[2], &p[1]),
-							obj::Winding::CCW => (&p[0], &p[1], &p[2]),
-						};
-						tri.set(&[b2::Vec2 {
-							          x: p1.x * radius,
-							          y: p1.y * radius,
-						          },
-						          b2::Vec2 {
-							          x: p2.x * radius,
-							          y: p2.y * radius,
-						          },
-						          b2::Vec2 {
-							          x: p3.x * radius,
-							          y: p3.y * radius,
-						          }]);
-						world.body_mut(handle).create_fixture_with(&tri, &mut f_def, refs);
-					}
-				};
-				JointRef {
-					refs: refs,
-					handle: handle,
-					mesh: mesh,
-					flags: flags,
-					attachment: attached_to,
-				}
-			})
-			.collect::<Vec<_>>()
+			        let mesh = segment.mesh();
+			        let flags = segment.flags;
+			        let attached_to = segment.attached_to;
+			        match mesh.shape {
+				        obj::Shape::Ball { radius } => {
+					        let mut circle_shape = b2::CircleShape::new();
+					        circle_shape.set_radius(radius);
+					        world.body_mut(handle).create_fixture_with(&circle_shape, &mut f_def, refs);
+					       }
+				        obj::Shape::Box { radius, ratio } => {
+					        let mut rect_shape = b2::PolygonShape::new();
+					        rect_shape.set_as_box(radius * ratio, radius);
+					        world.body_mut(handle).create_fixture_with(&rect_shape, &mut f_def, refs);
+					       }
+				        obj::Shape::Star { radius, n, .. } => {
+					        let p = &mesh.vertices;
+					        for i in 0..n {
+						        let mut quad = b2::PolygonShape::new();
+						        let i1 = (i * 2 + 1) as usize;
+						        let i2 = (i * 2) as usize;
+						        let i3 = ((i * 2 + (n * 2) - 1) % (n * 2)) as usize;
+						        let (p1, p2, p3) = match mesh.winding {
+							        obj::Winding::CW => (&p[i1], &p[i2], &p[i3]),
+							        obj::Winding::CCW => (&p[i1], &p[i3], &p[i2]),
+						        };
+						        quad.set(&[b2::Vec2 { x: 0., y: 0. },
+						                   b2::Vec2 {
+							                   x: p1.x * radius,
+							                   y: p1.y * radius,
+						                   },
+						                   b2::Vec2 {
+							                   x: p2.x * radius,
+							                   y: p2.y * radius,
+						                   },
+						                   b2::Vec2 {
+							                   x: p3.x * radius,
+							                   y: p3.y * radius,
+						                   }]);
+						        let refs = world::AgentRefs::with_bone(object_id, segment_index as u8, i as u8);
+						        world.body_mut(handle).create_fixture_with(&quad, &mut f_def, refs);
+						       }
+					       }
+				        obj::Shape::Triangle { radius, .. } => {
+					        let p = &mesh.vertices;
+					        let mut tri = b2::PolygonShape::new();
+					        let (p1, p2, p3) = match mesh.winding {
+						        obj::Winding::CW => (&p[0], &p[2], &p[1]),
+						        obj::Winding::CCW => (&p[0], &p[1], &p[2]),
+					        };
+					        tri.set(&[b2::Vec2 {
+						                  x: p1.x * radius,
+						                  y: p1.y * radius,
+					                  },
+					                  b2::Vec2 {
+						                  x: p2.x * radius,
+						                  y: p2.y * radius,
+					                  },
+					                  b2::Vec2 {
+						                  x: p3.x * radius,
+						                  y: p3.y * radius,
+					                  }]);
+					        world.body_mut(handle).create_fixture_with(&tri, &mut f_def, refs);
+					       }
+			        };
+			        JointRef {
+				        refs: refs,
+				        handle: handle,
+				        mesh: mesh,
+				        flags: flags,
+				        attachment: attached_to,
+			        }
+			       })
+		        .collect::<Vec<_>>()
 	}
 
 	fn build_joints(world: &mut b2::World<AgentData>, joint_refs: &Vec<JointRef>) {
