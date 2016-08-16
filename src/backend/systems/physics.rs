@@ -4,6 +4,7 @@ use wrapped2d::dynamics::world::callbacks::ContactAccess;
 use backend::obj;
 use backend::obj::{Solid, Geometry, Transformable};
 use backend::world;
+use backend::world::Intent;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::f32::consts;
@@ -28,19 +29,22 @@ pub struct PhysicsSystem {
 
 impl Updateable for PhysicsSystem {
 	fn update(&mut self, state: &world::WorldState, dt: f32) {
-		let mut v = Vec::new();
+		let mut forces = Vec::new();
+		let mut impulses = Vec::new();
 
 		for (h, b) in self.world.bodies() {
 			let body = b.borrow();
 			let center = (*body).world_center().clone();
 			let key = (*body).user_data();
 			if let Some(segment) = state.minion(key.agent_id).and_then(|c| c.segment(key.segment_index)) {
-				if let Some(force) = segment.state.intent {
-					v.push((h, center, force));
+				match segment.state.intent {
+					Intent::Move(force) => forces.push((h, center, force)),
+					Intent::RunAway(impulse) => impulses.push((h, center, impulse)),
+					Intent::Idle => {}
 				}
 			}
 		}
-		for (h, center, force) in v {
+		for (h, center, force) in forces {
 			let b = &mut self.world.body_mut(h);
 			b.apply_force(&b2::Vec2 {
 				              x: force.x,
@@ -49,6 +53,17 @@ impl Updateable for PhysicsSystem {
 			              &center,
 			              true);
 		}
+
+		for (h, center, impulse) in impulses {
+			let b = &mut self.world.body_mut(h);
+			b.apply_linear_impulse(&b2::Vec2 {
+				                       x: impulse.x,
+				                       y: impulse.y,
+			                       },
+			                       &center,
+			                       true);
+		}
+
 
 		self.world.step(dt, 8, 3);
 	}
@@ -86,19 +101,21 @@ impl System for PhysicsSystem {
 			let key = (*body).user_data();
 
 			if let Some(agent) = world.minions.get_mut(key.agent_id) {
-				if let Some(object) = agent.segment_mut(key.segment_index) {
-					let scale = object.transform().scale;
-					object.transform_to(Transform {
+				if let Some(segment) = agent.segment_mut(key.segment_index) {
+					let t = segment.transform();
+					segment.transform_to(Transform {
 						position: Position {
 							x: position.x,
 							y: position.y,
 						},
 						angle: angle,
-						scale: scale,
+						..t
 					});
+					segment.state.collision_detected = self.touched.borrow().contains(key);
 				}
 			}
 		}
+		self.touched.borrow_mut().clear();
 	}
 }
 
@@ -263,8 +280,10 @@ impl b2::ContactListener<AgentData> for ContactListener {
 	fn post_solve(&mut self, ca: ContactAccess<AgentData>, _: &b2::ContactImpulse) {
 		let body_a = ca.fixture_a.user_data();
 		let body_b = ca.fixture_b.user_data();
-		self.touched.borrow_mut().insert(body_a.clone());
-		self.touched.borrow_mut().insert(body_b.clone());
-		println!("{:?} touched {:?}", body_a, body_b);
+		if body_a.agent_id != body_b.agent_id {
+			self.touched.borrow_mut().insert(body_a.no_bone());
+			self.touched.borrow_mut().insert(body_b.no_bone());
+			//println!("{:?} touched {:?}", body_a, body_b);
+		}
 	}
 }

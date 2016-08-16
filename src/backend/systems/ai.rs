@@ -1,5 +1,6 @@
 use super::*;
 use backend::world;
+use backend::world::Intent;
 use backend::world::WorldState;
 use cgmath::*;
 use core::geometry::Position;
@@ -35,19 +36,22 @@ impl System for AiSystem {
 						let power = segment.state.charge * segment.mesh.shape.radius().powi(2);
 						let f: Position = Matrix2::from_angle(rad(segment.transform.angle)) * Position::unit_y();
 						let proj = t.dot(f);
-						let intent = if segment.flags.contains(world::RUDDER) && proj > 0. && d > d0 * 1.2 &&
+						let intent = if segment.state.collision_detected {
+							Intent::RunAway(f.normalize_to(power * 2. * (12.0 - order)))
+						} else if segment.flags.contains(world::RUDDER) && proj > 0. && d > d0 * 1.1 &&
 						                d < d0 * 2.0 {
-							Some(f.normalize_to(power * 4. * order))
-						} else if segment.flags.contains(world::THRUSTER) && proj > 0. && d > d0 * 1.1 {
-							Some(f.normalize_to(power * 2. * order))
-						} else if segment.flags.contains(world::BRAKE) && (proj < 0. || d < d0 * 0.9) {
-							Some(f.normalize_to(-power * 3. * order))
+							Intent::Move(f.normalize_to(power * 4. * order))
+						} else if segment.flags.contains(world::THRUSTER) && proj > 0. && d > d0 * 1.2 {
+							Intent::Move(f.normalize_to(power * 2. * order))
+						} else if segment.flags.contains(world::BRAKE) && (proj < 0. || d < d0 * 0.5) {
+							Intent::Move(f.normalize_to(-power * 3. * order))
 						} else {
-							None
+							Intent::Idle
 						};
 						match intent {
-							None => segment.state.target_charge = 0.1,
-							Some(_) => segment.state.target_charge = 0.5,
+							Intent::Idle => segment.state.target_charge = 0.1,
+							Intent::Move(_) => segment.state.target_charge = 0.5,
+							Intent::RunAway(_) => segment.state.charge = 0.5,
 						}
 						segment.state.intent = intent;
 					}

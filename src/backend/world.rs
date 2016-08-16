@@ -12,13 +12,21 @@ use core::color::ToRgb;
 use core::geometry::*;
 
 #[derive(Clone)]
+pub enum Intent {
+	Idle,
+	Move(Position),
+	RunAway(Position),
+}
+
+#[derive(Clone)]
 pub struct State {
 	pub age_seconds: f32,
 	pub age_frames: usize,
 	pub charge: f32,
 	pub target_charge: f32,
 	pub tau: f32,
-	pub intent: Option<Position>,
+	pub intent: Intent,
+	pub collision_detected: bool,
 }
 
 impl Default for State {
@@ -29,7 +37,8 @@ impl Default for State {
 			charge: 1.,
 			target_charge: 0.,
 			tau: 2.0,
-			intent: None,
+			intent: Intent::Idle,
+			collision_detected: false,
 		}
 	}
 }
@@ -510,8 +519,8 @@ impl Default for AgentRefs {
 	fn default() -> AgentRefs {
 		AgentRefs {
 			agent_id: 0xdeadbeef,
-			segment_index: 0xff,
-			bone_index: 0xff,
+			segment_index: 0,
+			bone_index: 0,
 		}
 	}
 }
@@ -535,6 +544,10 @@ impl AgentRefs {
 			segment_index: segment_index,
 			bone_index: bone_index,
 		}
+	}
+
+	pub fn no_bone(&self) -> AgentRefs {
+		AgentRefs { bone_index: 0, ..*self }
 	}
 }
 
