@@ -7,7 +7,7 @@ authors = [
 ]
 
 [[bin]]
-name = "rust-evaluation"
+name = "rust-oids"
 path = "src/main.rs"
 
 [dependencies]

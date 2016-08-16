@@ -499,7 +499,7 @@ impl Flock {
 }
 
 #[repr(packed)]
-#[derive(Eq, Hash, PartialEq, Clone, Copy)]
+#[derive(Eq, Hash, PartialEq, Clone, Copy, Debug)]
 pub struct AgentRefs {
 	pub agent_id: obj::Id,
 	pub segment_index: obj::SegmentIndex,
