@@ -1,6 +1,7 @@
 mod mainloop;
-
+mod ev;
 use core::math;
+use core::math::Directional;
 
 use backend::obj;
 use backend::world;
@@ -84,6 +85,7 @@ pub struct App {
 	is_running: bool,
 	//
 	light_position: Position,
+	camera: math::Inertial<f32>,
 	lights: Cycle<[f32; 4]>,
 	backgrounds: Cycle<[f32; 4]>,
 	//
@@ -118,6 +120,7 @@ impl App {
 
 			// testbed, will need a display/render subsystem
 			light_position: Position::new(10.0, 10.0),
+			camera: Self::init_camera(),
 			lights: Self::init_lights(),
 			backgrounds: Self::init_backgrounds(),
 
@@ -136,6 +139,10 @@ impl App {
 			frame_smooth: math::Smooth::new(120),
 			is_running: true,
 		}
+	}
+
+	fn init_camera() -> math::Inertial<f32> {
+		math::Inertial::new(200.0, 0.9, 10.)
 	}
 
 	fn init_lights() -> Cycle<[f32; 4]> {
@@ -217,29 +224,70 @@ impl App {
 		}
 	}
 
-	pub fn on_keyboard_input(&mut self, e: glutin::Event) {
+	pub fn on_app_event(&mut self, e: ev::Event) {
+		match e {
+			ev::Event::CamUp => self.camera.push(math::Direction::Up),
+			ev::Event::CamDown => self.camera.push(math::Direction::Down),
+			ev::Event::CamLeft => self.camera.push(math::Direction::Left),
+			ev::Event::CamRight => self.camera.push(math::Direction::Right),
+
+			ev::Event::NextLight => {
+				self.lights.next();
+			}
+			ev::Event::PrevLight => {
+				self.lights.next();
+			}
+
+			ev::Event::NextBackground => {
+				self.backgrounds.next();
+			}
+			ev::Event::PrevBackground => {
+				self.backgrounds.next();
+			}
+
+			ev::Event::Reload => {}
+
+			ev::Event::AppQuit => self.quit(),
+
+			ev::Event::MoveLight(_, _) => {}
+			ev::Event::NewMinion(_, _) => {}
+
+			_ => {}
+		}
+	}
+
+	fn keymap(e: glutin::Event) -> ev::Event {
 		match e {
 			glutin::Event::ReceivedCharacter(char) => {
 				match char {
-					_ => println!("Key pressed {:?}", char),
+					_ => {
+						println!("Key pressed {:?}", char);
+						ev::Event::NoEvent
+					}
 				}
 			}
 			glutin::Event::KeyboardInput(glutin::ElementState::Pressed, scancode, vk) => {
 				match vk {
-					Some(glutin::VirtualKeyCode::L) => {
-						self.lights.next();
+					Some(glutin::VirtualKeyCode::Up) => ev::Event::CamUp, 
+					Some(glutin::VirtualKeyCode::Down) => ev::Event::CamDown,
+					Some(glutin::VirtualKeyCode::Right) => ev::Event::CamRight,
+					Some(glutin::VirtualKeyCode::Left) => ev::Event::CamLeft,
+
+					Some(glutin::VirtualKeyCode::L) => ev::Event::NextLight, 
+					Some(glutin::VirtualKeyCode::B) => ev::Event::NextBackground,
+					Some(glutin::VirtualKeyCode::Escape) => ev::Event::AppQuit,
+					_ => {
+						println!("No mapping for {:?}/{:?}", scancode, vk);
+						ev::Event::NoEvent
 					}
-					Some(glutin::VirtualKeyCode::B) => {
-						self.backgrounds.next();
-					}
-					Some(glutin::VirtualKeyCode::Escape) => {
-						self.quit();
-					}
-					_ => println!("Key pressed {:?}/{:?}", scancode, vk),
 				}
 			}
-			_ => (),
+			_ => ev::Event::NoEvent,
 		}
+	}
+
+	pub fn on_keyboard_input(&mut self, e: glutin::Event) {
+		self.on_app_event(Self::keymap(e))
 	}
 
 	pub fn quit(&mut self) {
@@ -375,6 +423,7 @@ impl App {
 			self.frame_elapsed += frame_time;
 			self.frame_start = SystemTime::now();
 
+			self.camera.update(frame_time_smooth);
 			self.update_systems(frame_time_smooth);
 			self.frame_count += 1;
 

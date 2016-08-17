@@ -1,6 +1,7 @@
 use frontend::render;
 use frontend::render::Draw;
 use frontend::render::Renderer;
+use core::math::Directional;
 use app;
 use cgmath;
 use glutin;
@@ -53,7 +54,7 @@ pub fn main_loop() {
 			break 'main;
 		}
 
-		let camera = render::Camera::ortho(cgmath::Point2::new(0., 0.),
+		let camera = render::Camera::ortho(app.camera.position(),
 		                                   app.viewport.scale,
 		                                   app.viewport.ratio);
 
