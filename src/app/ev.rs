@@ -4,6 +4,8 @@ pub enum Event {
 	CamLeft,
 	CamRight,
 	
+	CamReset,
+	
 	NextLight,
 	PrevLight,
 	

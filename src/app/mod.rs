@@ -142,7 +142,7 @@ impl App {
 	}
 
 	fn init_camera() -> math::Inertial<f32> {
-		math::Inertial::new(200.0, 0.9, 10.)
+		math::Inertial::new(10.0, 1. / 180., 0.5)
 	}
 
 	fn init_lights() -> Cycle<[f32; 4]> {
@@ -231,6 +231,8 @@ impl App {
 			ev::Event::CamLeft => self.camera.push(math::Direction::Left),
 			ev::Event::CamRight => self.camera.push(math::Direction::Right),
 
+			ev::Event::CamReset => self.camera.reset(),
+
 			ev::Event::NextLight => {
 				self.lights.next();
 			}
@@ -268,12 +270,13 @@ impl App {
 			}
 			glutin::Event::KeyboardInput(glutin::ElementState::Pressed, scancode, vk) => {
 				match vk {
-					Some(glutin::VirtualKeyCode::Up) => ev::Event::CamUp, 
+					Some(glutin::VirtualKeyCode::Up) => ev::Event::CamUp,
 					Some(glutin::VirtualKeyCode::Down) => ev::Event::CamDown,
 					Some(glutin::VirtualKeyCode::Right) => ev::Event::CamRight,
 					Some(glutin::VirtualKeyCode::Left) => ev::Event::CamLeft,
+					Some(glutin::VirtualKeyCode::Home) => ev::Event::CamReset,
 
-					Some(glutin::VirtualKeyCode::L) => ev::Event::NextLight, 
+					Some(glutin::VirtualKeyCode::L) => ev::Event::NextLight,
 					Some(glutin::VirtualKeyCode::B) => ev::Event::NextBackground,
 					Some(glutin::VirtualKeyCode::Escape) => ev::Event::AppQuit,
 					_ => {
@@ -309,11 +312,8 @@ impl App {
 				self.on_click(b, pos);
 			}
 			glutin::Event::MouseMoved(x, y) => {
-				fn transform_pos(viewport: &Viewport, x: u32, y: u32) -> Position {
-					let (tx, ty) = viewport.to_world(x, y);
-					return Position { x: tx, y: ty };
-				}
-				let pos = transform_pos(&self.viewport, x as u32, y as u32);
+				let pos = self.to_world(x as u32, y as u32);
+
 				self.input_state.mouse_position_at(pos);
 				if self.input_state.button_pressed(Left) {
 					self.on_mouse_move(Some(glutin::MouseButton::Left), pos);
@@ -324,6 +324,15 @@ impl App {
 				}
 			}
 			_ => (),
+		}
+	}
+
+	fn to_world(&self, x: u32, y: u32) -> Position {
+		let (tx, ty) = self.viewport.to_world(x, y);
+		let cgmath::Point2 { x: cx, y: cy } = self.camera.position();
+		Position {
+			x: tx + cx,
+			y: ty + cy,
 		}
 	}
 

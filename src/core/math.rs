@@ -107,6 +107,11 @@ impl<T> Inertial<T>
 		}
 	}
 
+	pub fn reset(&mut self) {
+		self.position = cgmath::Vector::zero();
+		self.velocity = cgmath::Vector::zero();
+	}
+
 	pub fn set(&mut self, position: cgmath::Point2<T>) {
 		self.position = cgmath::Point::to_vec(position);
 	}
@@ -116,7 +121,9 @@ impl<T> Inertial<T>
 	}
 
 	pub fn update(&mut self, dt: T) {
+		let one = T::one();
+		let damp = one - (-dt / self.inertia).exp();
 		self.position = self.position + self.velocity * dt;
-		self.velocity = self.velocity * self.inertia;
+		self.velocity = self.velocity * damp;
 	}
 }
