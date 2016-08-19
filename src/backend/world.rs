@@ -22,11 +22,11 @@ pub enum Intent {
 
 #[derive(Clone)]
 pub struct State {
-	pub age_seconds: f32,
-	pub age_frames: usize,
-	pub charge: f32,
-	pub target_charge: f32,
-	pub smooth: math::Exponential<f32, f32>,
+	age_seconds: f32,
+	age_frames: usize,
+	charge: f32,
+	target_charge: f32,
+	smooth: math::Exponential<f32, f32>,
 	pub intent: Intent,
 	pub collision_detected: bool,
 }
@@ -46,6 +46,19 @@ impl Default for State {
 }
 
 impl State {
+	pub fn get_charge(&self) -> f32 {
+		self.charge
+	}
+
+	pub fn set_charge(&mut self, charge: f32) {
+		self.charge = charge;
+		self.smooth.reset(self.charge);
+	}
+
+	pub fn set_target_charge(&mut self, target_charge: f32) {
+		self.target_charge = target_charge;
+	}
+
 	pub fn update(&mut self, dt: f32) {
 		self.age_seconds += dt;
 		self.age_frames += 1;

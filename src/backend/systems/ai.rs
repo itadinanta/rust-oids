@@ -26,7 +26,7 @@ impl System for AiSystem {
 				let d = t.length();
 				for segment in segments.iter_mut() {
 					if segment.flags.intersects(world::ACTUATOR) {
-						let power = segment.state.charge * segment.mesh.shape.radius().powi(2);
+						let power = segment.state.get_charge() * segment.mesh.shape.radius().powi(2);
 						let f: Position = Matrix2::from_angle(rad(segment.transform.angle)) * Position::unit_y();
 						let proj = t.dot(f);
 						let intent = if segment.state.collision_detected {
@@ -42,9 +42,9 @@ impl System for AiSystem {
 							Intent::Idle
 						};
 						match intent {
-							Intent::Idle => segment.state.target_charge = brain.rest,
-							Intent::Move(_) => segment.state.target_charge = brain.thrust,
-							Intent::RunAway(_) => segment.state.charge = brain.thrust,
+							Intent::Idle => segment.state.set_target_charge(brain.rest),
+							Intent::Move(_) => segment.state.set_target_charge(brain.thrust),
+							Intent::RunAway(_) => segment.state.set_charge(brain.thrust),
 						}
 						segment.state.intent = intent;
 					}

@@ -65,6 +65,10 @@ impl<S, T> Exponential<S, T>
 		}
 	}
 
+	pub fn reset(&mut self, value: S) {
+		self.last = value;
+	}
+
 	pub fn dt(&mut self, dt: T) -> &mut Self {
 		self.dt = dt;
 		self
