@@ -57,7 +57,7 @@ pub struct Camera {
 }
 
 impl Camera {
-	pub fn ortho(center: cgmath::Point2<f32>, scale: f32, ratio: f32) -> Camera {
+	pub fn ortho(center: cgmath::Vector2<f32>, scale: f32, ratio: f32) -> Camera {
 		Camera {
 			projection: {
 					let hw = 0.5 * scale;

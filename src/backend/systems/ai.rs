@@ -10,25 +10,18 @@ pub struct AiSystem {
 }
 
 impl Updateable for AiSystem {
-	fn update(&mut self, state: &WorldState, dt: f32) {}
+	fn update(&mut self, _: &WorldState, dt: f32) {}
 }
 
 impl System for AiSystem {
-	fn init(&mut self, world: &world::World) {}
-
-	fn register(&mut self, _: &world::Agent) {}
-
-	fn from_world(&self, world: &world::World) {}
-
 	fn to_world(&self, world: &mut world::World) {
 		let target = self.remote;
 		for (_, agent) in world.minions.agents_mut() {
+			let brain = agent.brain();
 			let segments = &mut agent.segments_mut();
-			let order = segments.len() as f32;
-			let d0 = 2. * order;
 			if let Some(sensor) = segments.iter()
-			                              .find(|segment| segment.flags.contains(world::SENSOR))
-			                              .map(|sensor| sensor.clone()) {
+				.find(|segment| segment.flags.contains(world::SENSOR))
+				.map(|sensor| sensor.clone()) {
 				let t = target - sensor.transform.position;
 				let d = t.length();
 				for segment in segments.iter_mut() {
@@ -37,21 +30,21 @@ impl System for AiSystem {
 						let f: Position = Matrix2::from_angle(rad(segment.transform.angle)) * Position::unit_y();
 						let proj = t.dot(f);
 						let intent = if segment.state.collision_detected {
-							Intent::RunAway(f.normalize_to(power * 2. * (12.0 - order)))
-						} else if segment.flags.contains(world::RUDDER) && proj > 0. && d > d0 * 1.1 &&
-						                d < d0 * 2.0 {
-							Intent::Move(f.normalize_to(power * 4. * order))
-						} else if segment.flags.contains(world::THRUSTER) && proj > 0. && d > d0 * 1.2 {
-							Intent::Move(f.normalize_to(power * 2. * order))
-						} else if segment.flags.contains(world::BRAKE) && (proj < 0. || d < d0 * 0.5) {
-							Intent::Move(f.normalize_to(-power * 3. * order))
+							Intent::RunAway(f.normalize_to(power * brain.timidity))
+						} else if segment.flags.contains(world::RUDDER) && proj > 0. && d > brain.focus &&
+						                d < brain.caution {
+							Intent::Move(f.normalize_to(power * brain.hunger))
+						} else if segment.flags.contains(world::THRUSTER) && proj > 0. && d > brain.curiosity {
+							Intent::Move(f.normalize_to(power * brain.haste))
+						} else if segment.flags.contains(world::BRAKE) && (proj < 0. || d < brain.fear) {
+							Intent::Move(f.normalize_to(-power * brain.prudence))
 						} else {
 							Intent::Idle
 						};
 						match intent {
-							Intent::Idle => segment.state.target_charge = 0.1,
-							Intent::Move(_) => segment.state.target_charge = 0.5,
-							Intent::RunAway(_) => segment.state.charge = 0.5,
+							Intent::Idle => segment.state.target_charge = brain.rest,
+							Intent::Move(_) => segment.state.target_charge = brain.thrust,
+							Intent::RunAway(_) => segment.state.charge = brain.thrust,
 						}
 						segment.state.intent = intent;
 					}

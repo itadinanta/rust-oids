@@ -23,15 +23,7 @@ impl Updateable for AnimationSystem {
 	}
 }
 
-impl System for AnimationSystem {
-	fn init(&mut self, world: &world::World) {}
-
-	fn register(&mut self, _: &world::Agent) {}
-
-	fn from_world(&self, world: &world::World) {}
-
-	fn to_world(&self, world: &mut world::World) {}
-}
+impl System for AnimationSystem {}
 
 impl AnimationSystem {
 	pub fn new() -> Self {

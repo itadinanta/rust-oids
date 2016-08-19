@@ -116,8 +116,23 @@ impl Segment {
 	}
 }
 
+#[derive(Clone)]
+pub struct Brain<T> {
+	pub timidity: T,
+	pub caution: T,
+	pub curiosity: T,
+	pub hunger: T,
+	pub focus: T,
+	pub haste: T,
+	pub fear: T,
+	pub prudence: T,
+	pub rest: T,
+	pub thrust: T,
+}
+
 pub struct Agent {
 	id: Id,
+	brain: Brain<f32>,
 	segments: Box<[Segment]>,
 }
 
@@ -187,6 +202,10 @@ impl Agent {
 
 	pub fn segment_mut(&mut self, index: SegmentIndex) -> Option<&mut Segment> {
 		self.segments.get_mut(index as usize)
+	}
+
+	pub fn brain(&self) -> Brain<f32> {
+		self.brain.clone()
 	}
 }
 
@@ -398,8 +417,25 @@ impl AgentBuilder {
 	}
 
 	pub fn build(&self) -> Agent {
+		let order = self.segments.len() as f32;
+		let d0 = 2. * order;
+
 		Agent {
 			id: self.id,
+			brain: Brain {
+				timidity: 2. * (12.0 - order),
+				hunger: 4. * order,
+				haste: 2. * order,
+				prudence: 3. * order,
+
+				caution: d0 * 2.0,
+				focus: d0 * 1.5,
+				curiosity: d0 * 1.2,
+				fear: d0 * 0.5,
+
+				rest: 0.1,
+				thrust: 0.5,
+			},
 			segments: self.segments.clone().into_boxed_slice(),
 		}
 	}
@@ -457,13 +493,13 @@ impl Flock {
 		let initial_angle = consts::PI / 2. + f32::atan2(initial_pos.y, initial_pos.x);
 
 		let torso = builder.start(initial_pos, initial_angle, &torso_shape)
-		                   .index();
+			.index();
 		builder.addr(torso, 2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER)
-		       .addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
+			.addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
 
 		let head = builder.add(torso, 0, &head_shape, HEAD | SENSOR).index();
 		builder.addr(head, 1, &head_shape, HEAD | ACTUATOR | RUDDER)
-		       .addl(head, 2, &head_shape, HEAD | ACTUATOR | RUDDER);
+			.addl(head, 2, &head_shape, HEAD | ACTUATOR | RUDDER);
 
 		let mut belly = torso;
 		let mut belly_mid = torso_shape.mid();
@@ -474,16 +510,16 @@ impl Flock {
 			belly_mid = belly_shape.mid();
 			if self.rnd.irand(0, 4) == 0 {
 				builder.addr(belly, 2, &arm_shape, ARM | ACTUATOR | RUDDER)
-				       .addl(belly, -2, &arm_shape, ARM | ACTUATOR | RUDDER);
+					.addl(belly, -2, &arm_shape, ARM | ACTUATOR | RUDDER);
 			}
 		}
 
 		builder.addr(belly, belly_mid - 1, &leg_shape, LEG | ACTUATOR | THRUSTER)
-		       .addl(belly,
-		             -(belly_mid - 1),
-		             &leg_shape,
-		             LEG | ACTUATOR | THRUSTER)
-		       .add(belly, belly_mid, &tail_shape, TAIL | ACTUATOR | BRAKE);
+			.addl(belly,
+			      -(belly_mid - 1),
+			      &leg_shape,
+			      LEG | ACTUATOR | THRUSTER)
+			.add(belly, belly_mid, &tail_shape, TAIL | ACTUATOR | BRAKE);
 
 		self.insert(builder.build())
 	}

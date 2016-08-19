@@ -24,12 +24,6 @@ impl Updateable for GameSystem {
 }
 
 impl System for GameSystem {
-	fn init(&mut self, world: &world::World) {}
-
-	fn register(&mut self, _: &world::Agent) {}
-
-	fn from_world(&self, world: &world::World) {}
-
 	fn to_world(&self, world: &mut world::World) {
 		let keys: Vec<_> = world.minions.agents().keys().cloned().collect();
 		for k in keys {

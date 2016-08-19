@@ -41,11 +41,11 @@ impl Viewport {
 		}
 	}
 
-	fn to_world(&self, x: u32, y: u32) -> (f32, f32) {
+	fn to_world(&self, x: u32, y: u32) -> cgmath::Vector2<f32> {
 		let dx = self.width as f32 / self.scale;
 		let tx = (x as f32 - (self.width as f32 * 0.5)) / dx;
 		let ty = ((self.height as f32 * 0.5) - y as f32) / dx;
-		(tx, ty)
+		cgmath::Vector2::new(tx, ty)
 	}
 }
 
@@ -276,8 +276,14 @@ impl App {
 					Some(glutin::VirtualKeyCode::Left) => ev::Event::CamLeft,
 					Some(glutin::VirtualKeyCode::Home) => ev::Event::CamReset,
 
+					Some(glutin::VirtualKeyCode::F5) => ev::Event::Reload,
+
 					Some(glutin::VirtualKeyCode::L) => ev::Event::NextLight,
 					Some(glutin::VirtualKeyCode::B) => ev::Event::NextBackground,
+
+					Some(glutin::VirtualKeyCode::K) => ev::Event::PrevLight,
+					Some(glutin::VirtualKeyCode::V) => ev::Event::PrevBackground,
+
 					Some(glutin::VirtualKeyCode::Escape) => ev::Event::AppQuit,
 					_ => {
 						println!("No mapping for {:?}/{:?}", scancode, vk);
@@ -304,17 +310,17 @@ impl App {
 	pub fn on_mouse_input(&mut self, e: glutin::Event) {
 		match e {
 			glutin::Event::MouseInput(glutin::ElementState::Released, b) => {
-				let pos = self.input_state.mouse_position();
+				let pos = self.to_world(self.input_state.mouse_position());
 				self.on_release(b, pos);
 			}
 			glutin::Event::MouseInput(glutin::ElementState::Pressed, b) => {
-				let pos = self.input_state.mouse_position();
+				let pos = self.to_world(self.input_state.mouse_position());
 				self.on_click(b, pos);
 			}
 			glutin::Event::MouseMoved(x, y) => {
-				let pos = self.to_world(x as u32, y as u32);
-
-				self.input_state.mouse_position_at(pos);
+				let view_pos = self.to_view(x as u32, y as u32);
+				self.input_state.mouse_position_at(view_pos);
+				let pos = self.to_world(self.input_state.mouse_position());
 				if self.input_state.button_pressed(Left) {
 					self.on_mouse_move(Some(glutin::MouseButton::Left), pos);
 				} else if self.input_state.button_pressed(Right) {
@@ -327,13 +333,12 @@ impl App {
 		}
 	}
 
-	fn to_world(&self, x: u32, y: u32) -> Position {
-		let (tx, ty) = self.viewport.to_world(x, y);
-		let cgmath::Point2 { x: cx, y: cy } = self.camera.position();
-		Position {
-			x: tx + cx,
-			y: ty + cy,
-		}
+	fn to_view(&self, x: u32, y: u32) -> Position {
+		self.viewport.to_world(x, y)
+	}
+
+	fn to_world(&self, t: Position) -> Position {
+		t + self.camera.position()
 	}
 
 	pub fn on_resize(&mut self, width: u32, height: u32) {
