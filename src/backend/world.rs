@@ -7,6 +7,8 @@ use std::f32::consts;
 use cgmath;
 use cgmath::EuclideanVector;
 use num;
+use core::math;
+use core::math::Smooth;
 use core::color;
 use core::color::ToRgb;
 use core::geometry::*;
@@ -24,7 +26,7 @@ pub struct State {
 	pub age_frames: usize,
 	pub charge: f32,
 	pub target_charge: f32,
-	pub tau: f32,
+	pub smooth: math::Exponential<f32, f32>,
 	pub intent: Intent,
 	pub collision_detected: bool,
 }
@@ -36,7 +38,7 @@ impl Default for State {
 			age_frames: 0,
 			charge: 1.,
 			target_charge: 0.,
-			tau: 2.0,
+			smooth: math::Exponential::new(1., 1., 2.),
 			intent: Intent::Idle,
 			collision_detected: false,
 		}
@@ -47,14 +49,14 @@ impl State {
 	pub fn update(&mut self, dt: f32) {
 		self.age_seconds += dt;
 		self.age_frames += 1;
-		let alpha = 1. - f32::exp(-dt / self.tau);
-		self.charge = self.target_charge * alpha + self.charge * (1. - alpha);
+		self.charge = self.smooth.dt(dt).smooth(self.target_charge);
 	}
 
 	pub fn with_charge(initial: f32, target: f32) -> Self {
 		State {
 			charge: initial,
 			target_charge: target,
+			smooth: math::Exponential::new(initial, 1., 2.),
 			..Self::default()
 		}
 	}

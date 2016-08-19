@@ -4,7 +4,7 @@ use num;
 use std::ops;
 
 
-pub trait Smooth<S: num::Num> {
+pub trait Smooth<S> {
 	fn smooth(&mut self, value: S) -> S {
 		value
 	}
@@ -16,6 +16,13 @@ pub struct MovingAverage<S: num::Num> {
 	acc: S,
 	last: S,
 	values: Vec<S>,
+}
+
+#[derive(Copy, Clone)]
+pub struct Exponential<S, T> {
+	tau: T,
+	dt: T,
+	last: S,
 }
 
 impl<S: num::Num + num::NumCast + Copy> MovingAverage<S> {
@@ -42,6 +49,36 @@ impl<S: num::Num + num::NumCast + Copy> Smooth<S> for MovingAverage<S> {
 		self.values[self.ptr] = value;
 		self.ptr = ((self.ptr + 1) % len) as usize;
 		self.last = self.acc / num::cast(self.count).unwrap();
+		self.last
+	}
+}
+
+impl<S, T> Exponential<S, T>
+	where S: ops::Add<S, Output = S> + ops::Mul<T, Output = S> + Copy,
+	      T: cgmath::BaseFloat
+{
+	pub fn new(value: S, dt: T, tau: T) -> Self {
+		Exponential {
+			last: value,
+			dt: dt,
+			tau: tau,
+		}
+	}
+
+	pub fn dt(&mut self, dt: T) -> &mut Self {
+		self.dt = dt;
+		self
+	}
+}
+
+impl<S, T> Smooth<S> for Exponential<S, T>
+	where S: ops::Add<S, Output = S> + ops::Mul<T, Output = S> + Copy,
+	      T: cgmath::BaseFloat
+{
+	fn smooth(&mut self, value: S) -> S {
+		let one = T::one();
+		let alpha = one - T::exp(-self.dt / self.tau);
+		self.last = value * alpha + self.last * (one - alpha);
 		self.last
 	}
 }
