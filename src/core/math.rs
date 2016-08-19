@@ -3,7 +3,14 @@ use cgmath::EuclideanVector;
 use num;
 use std::ops;
 
-pub struct Smooth<S: num::Num> {
+
+pub trait Smooth<S: num::Num> {
+	fn smooth(&mut self, value: S) -> S {
+		value
+	}
+}
+
+pub struct MovingAverage<S: num::Num> {
 	ptr: usize,
 	count: usize,
 	acc: S,
@@ -11,9 +18,9 @@ pub struct Smooth<S: num::Num> {
 	values: Vec<S>,
 }
 
-impl<S: num::Num + num::NumCast + ::std::marker::Copy> Smooth<S> {
-	pub fn new(window_size: usize) -> Smooth<S> {
-		Smooth {
+impl<S: num::Num + num::NumCast + Copy> MovingAverage<S> {
+	pub fn new(window_size: usize) -> Self {
+		MovingAverage {
 			ptr: 0,
 			count: 0,
 			last: S::zero(),
@@ -21,8 +28,10 @@ impl<S: num::Num + num::NumCast + ::std::marker::Copy> Smooth<S> {
 			values: vec![S::zero(); window_size],
 		}
 	}
+}
 
-	pub fn smooth(&mut self, value: S) -> S {
+impl<S: num::Num + num::NumCast + Copy> Smooth<S> for MovingAverage<S> {
+	fn smooth(&mut self, value: S) -> S {
 		let len = self.values.len();
 		if self.count < len {
 			self.count = self.count + 1;

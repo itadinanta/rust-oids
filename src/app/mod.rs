@@ -2,6 +2,8 @@ mod mainloop;
 mod ev;
 use core::math;
 use core::math::Directional;
+use core::math::Smooth;
+
 
 use backend::obj;
 use backend::world;
@@ -81,7 +83,7 @@ pub struct App {
 	frame_count: u32,
 	frame_start: SystemTime,
 	frame_elapsed: f32,
-	frame_smooth: math::Smooth<f32>,
+	frame_smooth: math::MovingAverage<f32>,
 	is_running: bool,
 	//
 	light_position: Position,
@@ -136,7 +138,7 @@ impl App {
 			frame_elapsed: 0.0f32,
 			frame_start: SystemTime::now(),
 			wall_clock_start: SystemTime::now(),
-			frame_smooth: math::Smooth::new(120),
+			frame_smooth: math::MovingAverage::new(120),
 			is_running: true,
 		}
 	}
