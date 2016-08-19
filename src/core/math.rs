@@ -121,9 +121,7 @@ impl<T> Inertial<T>
 	}
 
 	pub fn update(&mut self, dt: T) {
-		let one = T::one();
-		let damp = one - (-dt / self.inertia).exp();
 		self.position = self.position + self.velocity * dt;
-		self.velocity = self.velocity * damp;
+		self.velocity = self.velocity - self.velocity * T::exp(-dt / self.inertia);
 	}
 }
