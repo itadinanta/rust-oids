@@ -1,9 +1,9 @@
 mod mainloop;
 mod ev;
+use core::util::Cycle;
 use core::math;
 use core::math::Directional;
 use core::math::Smooth;
-
 
 use backend::obj;
 use backend::world;
@@ -48,31 +48,6 @@ impl Viewport {
 		let tx = (x as f32 - (self.width as f32 * 0.5)) / dx;
 		let ty = ((self.height as f32 * 0.5) - y as f32) / dx;
 		cgmath::Vector2::new(tx, ty)
-	}
-}
-
-struct Cycle<T: Copy> {
-	items: Vec<T>,
-	index: usize,
-}
-
-impl<T> Cycle<T>
-    where T: Copy
-{
-	pub fn new(items: &[T]) -> Cycle<T> {
-		Cycle {
-			items: items.to_vec(),
-			index: 0,
-		}
-	}
-
-	pub fn get(&self) -> T {
-		self.items[self.index]
-	}
-
-	pub fn next(&mut self) -> T {
-		self.index = (self.index + 1) % self.items.len();
-		self.items[self.index]
 	}
 }
 
@@ -233,20 +208,20 @@ impl App {
 			ev::Event::CamLeft => self.camera.push(math::Direction::Left),
 			ev::Event::CamRight => self.camera.push(math::Direction::Right),
 
-			ev::Event::CamReset => self.camera.reset(),
-
+			ev::Event::CamReset => {
+				self.camera.reset();
+			}
 			ev::Event::NextLight => {
 				self.lights.next();
 			}
 			ev::Event::PrevLight => {
-				self.lights.next();
+				self.lights.prev();
 			}
-
 			ev::Event::NextBackground => {
 				self.backgrounds.next();
 			}
 			ev::Event::PrevBackground => {
-				self.backgrounds.next();
+				self.backgrounds.prev();
 			}
 
 			ev::Event::Reload => {}

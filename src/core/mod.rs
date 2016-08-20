@@ -1,4 +1,5 @@
 pub mod math;
+pub mod util;
 pub mod resource;
 pub mod color;
 pub mod geometry;
