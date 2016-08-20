@@ -1,5 +1,4 @@
 use super::*;
-use backend::world;
 use backend::world::WorldState;
 use std::time::*;
 
@@ -15,8 +14,8 @@ pub struct AnimationSystem {
 impl Updateable for AnimationSystem {
 	fn update(&mut self, _: &WorldState, dt: f32) {
 		self.now = SystemTime::now();
-		self.dt = dt;
-		self.frames += dt;
+		self.dt = dt * self.speed;
+		self.frames += self.dt;
 		if let Ok(dt) = self.t0.elapsed() {
 			self.elapsed = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
 		};

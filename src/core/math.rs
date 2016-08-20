@@ -80,9 +80,8 @@ impl<S, T> Smooth<S> for Exponential<S, T>
 	      T: cgmath::BaseFloat
 {
 	fn smooth(&mut self, value: S) -> S {
-		let one = T::one();
-		let alpha = one - T::exp(-self.dt / self.tau);
-		self.last = value * alpha + self.last * (one - alpha);
+		let alpha1 = T::exp(-self.dt / self.tau);
+		self.last = value * (T::one() - alpha1) + self.last * alpha1;
 		self.last
 	}
 }
