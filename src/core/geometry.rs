@@ -22,6 +22,30 @@ pub struct Rect {
 	pub max: Position,
 }
 
+impl Rect {
+	pub fn new(left: f32, bottom: f32, right: f32, top: f32) -> Self {
+		Rect {
+			min: Position::new(left, bottom),
+			max: Position::new(right, top),
+		}
+	}
+
+	pub fn bottom_left(&self) -> Position {
+		self.min
+	}
+	pub fn top_right(&self) -> Position {
+		self.max
+	}
+
+	pub fn bottom_right(&self) -> Position {
+		Position::new(self.max.x, self.min.y)
+	}
+
+	pub fn top_left(&self) -> Position {
+		Position::new(self.min.x, self.max.y)
+	}
+}
+
 impl Default for Transform {
 	fn default() -> Transform {
 		Transform {

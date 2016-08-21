@@ -81,13 +81,6 @@ impl Shape {
 		}
 	}
 
-	pub fn new_box_with_dimensions(width: f32, height: f32) -> Self {
-		Shape::Box {
-			radius: height,
-			ratio: width / height,
-		}
-	}
-
 	pub fn new_star(n: u8, radius: f32, ratio1: f32, ratio2: f32) -> Self {
 		assert!(n > 1);
 		assert!(radius > 0.);

@@ -79,6 +79,7 @@ pub trait Draw {
 	fn draw_triangle(&mut self, transform: &cgmath::Matrix4<f32>, p: &[cgmath::Vector2<f32>], color: [f32; 4]);
 	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>, ratio: f32, color: [f32; 4]);
 	fn draw_star(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[cgmath::Vector2<f32>], color: [f32; 4]);
+	fn draw_lines(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[cgmath::Vector2<f32>], color: [f32; 4]);
 	fn draw_ball(&mut self, transform: &cgmath::Matrix4<f32>, color: [f32; 4]);
 	fn draw_text(&mut self, text: &str, screen_position: [i32; 2], text_color: [f32; 4]);
 }
@@ -221,6 +222,39 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 		                                           &mut self.hdr_color,
 		                                           &mut self.depth);
 	}
+
+	fn draw_lines(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[cgmath::Vector2<f32>], color: [f32; 4]) {
+		let v: Vec<_> = vertices.iter()
+			.map(|v| {
+				Vertex {
+					pos: [v.x, v.y, 0.0],
+					normal: [0.0, 0.0, 1.0],
+					tangent: [1.0, 0.0, 0.0],
+					tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
+				}
+			})
+			.collect();
+
+		// TODO: these can be cached
+		// 		let mut i: Vec<u16> = Vec::new();
+		// 		for k in 0..n {
+		// 			i.push(n as u16);
+		// 			i.push(((k + 1) % n) as u16);
+		// 			i.push(k as u16);
+		// 		}
+
+		let (vertex_buffer, index_buffer) = self.factory.create_vertex_buffer_with_slice(v.as_slice(), ());
+
+		self.pass_forward_lighting.draw_primitives(forward::Shader::Lines,
+		                                           &mut self.encoder,
+		                                           vertex_buffer,
+		                                           &index_buffer,
+		                                           &transform,
+		                                           color,
+		                                           &mut self.hdr_color,
+		                                           &mut self.depth);
+	}
+
 
 	fn draw_ball(&mut self, transform: &cgmath::Matrix4<f32>, color: [f32; 4]) {
 		self.pass_forward_lighting.draw_primitives(forward::Shader::Ball,

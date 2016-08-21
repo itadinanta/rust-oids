@@ -26,6 +26,7 @@ pub enum State {
 	Up,
 }
 
+#[allow(dead_code)]
 #[derive(Copy,Clone)]
 pub enum Key {
 	A,
@@ -79,6 +80,13 @@ pub enum Key {
 	Plus,
 	Minus,
 	Backspace,
+
+	Backtick,
+	OpenBracket,
+	CloseBracket,
+	Semicolon,
+	Apostrophe,
+	Tilde,
 
 	Up,
 	Down,

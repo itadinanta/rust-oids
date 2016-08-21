@@ -11,14 +11,14 @@ pub use self::ai::AiSystem;
 use backend::world;
 
 pub trait Updateable {
-	fn update(&mut self, state: &world::WorldState, dt: f32);
+	fn update(&mut self, _world_state: &world::WorldState, _dt: f32) {}
 }
 
 pub trait System: Updateable {
-	fn init(&mut self, world: &world::World) {}
-	fn register(&mut self, creature: &world::Agent) {}
-	fn from_world(&self, world: &world::World) {}
-	fn to_world(&self, world: &mut world::World) {}
+	fn init(&mut self, _: &world::World) {}
+	fn register(&mut self, _: &world::Agent) {}
+	fn from_world(&self, _: &world::World) {}
+	fn to_world(&self, _: &mut world::World) {}
 	fn update_world(&mut self, dt: f32, world: &mut world::World) {
 		self.from_world(world);
 		self.update(world, dt);

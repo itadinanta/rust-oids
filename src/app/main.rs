@@ -32,6 +32,8 @@ pub fn main_loop() {
 	// Create a new game and run it.
 	let mut app = app::App::new(w as u32, h as u32, 100.0);
 
+	app.init();
+
 	'main: loop {
 		for event in window.poll_events() {
 			match event {
@@ -60,7 +62,6 @@ pub fn main_loop() {
 		                                   app.viewport.ratio);
 
 		let environment = app.environment();
-
 
 		renderer.setup(&camera,
 		               environment.background,

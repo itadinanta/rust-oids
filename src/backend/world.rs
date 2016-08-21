@@ -227,7 +227,7 @@ impl Agent {
 struct Randomizer {
 	rng: rand::ThreadRng,
 }
-
+#[allow(dead_code)]
 impl Randomizer {
 	fn new() -> Self {
 		Randomizer { rng: rand::thread_rng() }
@@ -259,7 +259,6 @@ impl Randomizer {
 		let ratio: f32 = self.frand(0.1, 0.2);
 		Shape::new_box(radius, ratio)
 	}
-
 
 	fn random_triangle(&mut self) -> Shape {
 		let radius = self.frand(0.5, 1.0);
@@ -627,11 +626,8 @@ impl WorldState for World {
 impl World {
 	pub fn new() -> Self {
 		World {
-			extent: Rect {
-				min: Position::new(-550., -550.),
-				max: Position::new(550., 550.),
-			},
-			fence: Mesh::from_shape(Shape::new_ball(500.), Winding::CW),
+			extent: Rect::new(-50., -50., 50., 50.),
+			fence: Mesh::from_shape(Shape::new_ball(50.), Winding::CW),
 			players: Flock::new(),
 			minions: Flock::new(),
 			friendly_fire: Flock::new(),

@@ -1,7 +1,6 @@
 use super::*;
 use backend::world;
 use backend::world::Intent;
-use backend::world::WorldState;
 use cgmath::*;
 use core::geometry::Position;
 
@@ -9,9 +8,7 @@ pub struct AiSystem {
 	remote: Position,
 }
 
-impl Updateable for AiSystem {
-	fn update(&mut self, _: &WorldState, dt: f32) {}
-}
+impl Updateable for AiSystem {}
 
 impl System for AiSystem {
 	fn to_world(&self, world: &mut world::World) {

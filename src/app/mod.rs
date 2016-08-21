@@ -1,5 +1,6 @@
 mod main;
 mod ev;
+
 use core::util::Cycle;
 use core::math;
 use core::math::Directional;
@@ -16,7 +17,7 @@ use frontend::render;
 
 use std::time::{SystemTime, Duration, SystemTimeError};
 use cgmath;
-use cgmath::Matrix4;
+use cgmath::{Matrix4, SquareMatrix};
 use backend::obj::*;
 use core::geometry::*;
 
@@ -333,7 +334,16 @@ impl App {
 		}
 	}
 
-	fn render_extent(&self, renderer: &mut render::Draw) {}
+	fn render_extent(&self, renderer: &mut render::Draw) {
+		let extent = &self.world.extent;
+		let points = &[extent.min,
+		               Position::new(extent.min.x, extent.max.y),
+		               extent.max,
+		               Position::new(extent.max.x, extent.min.y),
+		               extent.min];
+		let transform = Matrix4::identity();
+		renderer.draw_lines(&transform, points, self.lights.get());
+	}
 
 	fn render_hud(&self, renderer: &mut render::Draw) {
 		let transform = Self::from_position(&self.light_position);
@@ -354,15 +364,8 @@ impl App {
 		}
 	}
 
-	fn update_systems(&mut self, dt: f32) {
-		self.animation.update_world(dt, &mut self.world);
-
-		self.game.update_world(dt, &mut self.world);
-
-		self.ai.follow_me(self.light_position);
-		self.ai.update_world(dt, &mut self.world);
-
-		self.physics.update_world(dt, &mut self.world);
+	pub fn init(&mut self) {
+		self.init_systems();
 	}
 
 	fn init_systems(&mut self) {
@@ -373,6 +376,17 @@ impl App {
 		self.game.init(&mut self.world);
 
 		self.physics.init(&mut self.world);
+	}
+
+	fn update_systems(&mut self, dt: f32) {
+		self.animation.update_world(dt, &mut self.world);
+
+		self.game.update_world(dt, &mut self.world);
+
+		self.ai.follow_me(self.light_position);
+		self.ai.update_world(dt, &mut self.world);
+
+		self.physics.update_world(dt, &mut self.world);
 	}
 
 	pub fn update(&mut self) -> Result<Update, SystemTimeError> {

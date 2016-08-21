@@ -144,6 +144,7 @@ impl<T> Directional<T> for Inertial<T>
 	}
 }
 
+#[allow(dead_code)]
 impl<T> Inertial<T>
     where T: cgmath::BaseFloat
 {

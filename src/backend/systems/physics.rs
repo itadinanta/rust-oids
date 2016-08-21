@@ -89,6 +89,10 @@ impl System for PhysicsSystem {
 		}
 	}
 
+	fn init(&mut self, world: &world::World) {
+		self.init_extent(&world.extent);
+	}
+
 	fn to_world(&self, world: &mut world::World) {
 		for (_, b) in self.world.bodies() {
 			let body = b.borrow();
@@ -100,10 +104,7 @@ impl System for PhysicsSystem {
 				if let Some(segment) = agent.segment_mut(key.segment_index) {
 					let t = segment.transform();
 					segment.transform_to(Transform {
-						position: Position {
-							x: position.x,
-							y: position.y,
-						},
+						position: PhysicsSystem::from_vec2(&position),
 						angle: angle,
 						..t
 					});
@@ -123,6 +124,33 @@ impl PhysicsSystem {
 			handles: HashMap::new(),
 			touched: touched,
 		}
+	}
+
+	fn to_vec2(p: &Position) -> b2::Vec2 {
+		b2::Vec2 { x: p.x, y: p.y }
+	}
+
+	fn from_vec2(p: &b2::Vec2) -> Position {
+		Position::new(p.x, p.y)
+	}
+
+	fn init_extent(&mut self, extent: &Rect) {
+		let mut f_def = b2::FixtureDef::new();
+		// f_def.density = material.density;
+		// f_def.restitution = material.restitution;
+		// f_def.friction = material.friction;
+
+		let mut b_def = b2::BodyDef::new();
+		b_def.body_type = b2::BodyType::Static;
+		let refs = world::AgentRefs::with_id(0xFFFFFFFFusize);
+		let handle = self.world.create_body_with(&b_def, refs);
+
+		let mut rect = b2::ChainShape::new();
+		rect.create_chain(&[Self::to_vec2(&extent.bottom_left()),
+		                    Self::to_vec2(&extent.bottom_right()),
+		                    Self::to_vec2(&extent.top_right()),
+		                    Self::to_vec2(&extent.top_left())]);
+		self.world.body_mut(handle).create_fixture_with(&rect, &mut f_def, refs);
 	}
 
 	fn build_fixtures<'a>(world: &mut b2::World<AgentData>, agent: &'a world::Agent) -> Vec<JointRef<'a>> {
@@ -236,26 +264,27 @@ impl PhysicsSystem {
 				let v1 = mesh.vertices[0] * mesh.shape.radius();
 				let a = b2::Vec2 { x: v0.x, y: v0.y };
 				let b = b2::Vec2 { x: v1.x, y: v1.y };
+				macro_rules! common_joint (
+					($joint:ident) => {
+						$joint.collide_connected = false;
+						$joint.reference_angle = angle_delta;
+						$joint.local_anchor_a = a;
+						$joint.local_anchor_b = b;
+						world.create_joint_with(&$joint, ())
+					}
+				);
 				if flags.contains(world::JOINT) {
 					let mut joint = b2::RevoluteJointDef::new(medial, distal);
-					joint.collide_connected = false;
-					joint.reference_angle = angle_delta;
 					joint.enable_limit = true;
 					joint.upper_angle = consts::PI / 6.;
 					joint.lower_angle = -consts::PI / 6.;
-					joint.local_anchor_a = a;
-					joint.local_anchor_b = b;
-					world.create_joint_with(&joint, ());
+					common_joint!(joint);
 				} else {
 					// TODO: how do we reduce the clutter?
 					let mut joint = b2::WeldJointDef::new(medial, distal);
-					joint.collide_connected = false;
-					joint.reference_angle = angle_delta;
 					joint.frequency = 5.0;
 					joint.damping_ratio = 0.9;
-					joint.local_anchor_a = a;
-					joint.local_anchor_b = b;
-					world.create_joint_with(&joint, ());
+					common_joint!(joint);
 				}
 			}
 		}
