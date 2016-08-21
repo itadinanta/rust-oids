@@ -1,9 +1,10 @@
 use frontend::render;
+use frontend::input::EventMapper;
 use frontend::render::Draw;
 use frontend::render::Renderer;
 use core::math::Directional;
 use app;
-use cgmath;
+use app::ev::GlutinEventMapper;
 use glutin;
 use gfx_window_glutin;
 
@@ -27,26 +28,23 @@ pub fn main_loop() {
 	let mut encoder = factory.create_command_buffer().into();
 
 	let renderer = &mut render::ForwardRenderer::new(&mut factory, &mut encoder, &frame_buffer, &depth_buffer);
-
+	let mapper = GlutinEventMapper::new();
 	// Create a new game and run it.
 	let mut app = app::App::new(w as u32, h as u32, 100.0);
 
 	'main: loop {
-
 		for event in window.poll_events() {
 			match event {
-				e @ glutin::Event::MouseMoved(_, _) |
-				e @ glutin::Event::MouseInput(_, _) => app.on_mouse_input(e),
-				glutin::Event::KeyboardInput(_, _, Some(glutin::VirtualKeyCode::F5)) => renderer.rebuild(),
-				e @ glutin::Event::KeyboardInput(_, _, _) => app.on_keyboard_input(e),
-
 				glutin::Event::Resized(new_width, new_height) => {
 					gfx_window_glutin::update_views(&window, &mut frame_buffer, &mut depth_buffer);
 					renderer.resize_to(&frame_buffer, &depth_buffer);
 					app.on_resize(new_width, new_height);
 				}
 				glutin::Event::Closed => app.quit(),
-				_ => {}
+				glutin::Event::KeyboardInput(_, _, Some(glutin::VirtualKeyCode::F5)) => renderer.rebuild(),
+				e => {
+					mapper.translate(&e).map(|i| app.on_input_event(&i));
+				}
 			}
 		}
 
@@ -54,19 +52,21 @@ pub fn main_loop() {
 			break 'main;
 		}
 
+		// update and measure
+		let update_result = app.update();
+
 		let camera = render::Camera::ortho(app.camera.position(),
 		                                   app.viewport.scale,
 		                                   app.viewport.ratio);
 
 		let environment = app.environment();
 
+
 		renderer.setup(&camera,
 		               environment.background,
 		               environment.light,
 		               environment.light_position);
 
-		// update and measure
-		let update_result = app.update();
 
 		// draw a frame
 		renderer.begin_frame();

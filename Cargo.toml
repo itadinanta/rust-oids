@@ -19,6 +19,7 @@ rand = "0.3"
 mopa ="0.2"
 genmesh="0.4"
 bitflags="*"
+bit-set="*"
 
 image = "*"
 piston = "*"
