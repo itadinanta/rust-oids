@@ -7,7 +7,6 @@ pub struct InputState {
 	key_pressed: BitSet,
 	key_ack: BitSet,
 	mouse_position: Vector2<f32>,
-
 }
 
 impl Default for InputState {
@@ -20,11 +19,13 @@ impl Default for InputState {
 	}
 }
 
+#[derive(Copy,Clone)]
 pub enum State {
 	Down,
 	Up,
 }
 
+#[derive(Copy,Clone)]
 pub enum Key {
 	A,
 	B,
@@ -117,9 +118,15 @@ pub enum Key {
 	RAlt,
 	LSuper,
 	RSuper,
+	LCtrl,
+	RCtrl,
+	CapsLock,
+
 	Space,
 	Esc,
 	Tab,
+	PrintScreen,
+	SysRq,
 
 	MouseLeft,
 	MouseRight,
@@ -146,7 +153,30 @@ impl InputState {
 		self.key_pressed.contains(b as usize)
 	}
 
-	pub fn key_once(&self, b: Key) -> bool {
+	pub fn any_ctrl_pressed(&self) -> bool {
+		self.any_key_pressed(&[Key::LCtrl, Key::RCtrl])
+	}
+
+	pub fn any_alt_pressed(&self) -> bool {
+		self.any_key_pressed(&[Key::LAlt, Key::RAlt])
+	}
+
+	pub fn any_super_pressed(&self) -> bool {
+		self.any_key_pressed(&[Key::LSuper, Key::RSuper])
+	}
+
+	pub fn any_key_pressed(&self, b: &[Key]) -> bool {
+		let other: BitSet = b.into_iter().map(|k| *k as usize).collect();
+		!self.key_pressed.is_disjoint(&other)
+	}
+
+	pub fn chord_pressed(&self, b: &[Key]) -> bool {
+		let other: BitSet = b.into_iter().map(|k| *k as usize).collect();
+		self.key_pressed.is_superset(&other)
+
+	}
+
+	pub fn key_once(&mut self, b: Key) -> bool {
 		if self.key_ack.contains(b as usize) {
 			false
 		} else {

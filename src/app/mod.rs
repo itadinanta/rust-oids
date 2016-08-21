@@ -42,10 +42,10 @@ impl Viewport {
 		}
 	}
 
-	fn to_world(&self, x: u32, y: u32) -> cgmath::Vector2<f32> {
+	fn to_world(&self, x: f32, y: f32) -> cgmath::Vector2<f32> {
 		let dx = self.width as f32 / self.scale;
-		let tx = (x as f32 - (self.width as f32 * 0.5)) / dx;
-		let ty = ((self.height as f32 * 0.5) - y as f32) / dx;
+		let tx = (x - (self.width as f32 * 0.5)) / dx;
+		let ty = ((self.height as f32 * 0.5) - y) / dx;
 		cgmath::Vector2::new(tx, ty)
 	}
 }
@@ -205,22 +205,24 @@ impl App {
 	}
 
 	fn update_input(&mut self, _: f32) {
+		let mut events = Vec::new();
+
 		macro_rules! on_key_held {
 			[$($key:ident -> $app_event:ident),*] => (
-				$(if self.input_state.key_pressed(Key::$key) { self.on_app_event(ev::Event::$app_event); })
+				$(if self.input_state.key_pressed(Key::$key) { events.push(ev::Event::$app_event); })
 				*
 			)
 		}
 		macro_rules! on_key_pressed_once {
 			[$($key:ident -> $app_event:ident),*] => (
-				$(if self.input_state.key_once(Key::$key) { self.on_app_event(ev::Event::$app_event); })
+				$(if self.input_state.key_once(Key::$key) { events.push(ev::Event::$app_event); })
 				*
 			)
 		}
 		on_key_held! [
 			Up -> CamUp,
 			Down -> CamDown,
-			Left->CamLeft,
+			Left -> CamLeft,
 			Right-> CamRight
 		];
 
@@ -233,20 +235,27 @@ impl App {
 			Esc -> AppQuit
 		];
 
-		let view_pos = self.to_view(x as u32, y as u32);
-		self.input_state.mouse_at(view_pos);
-		let pos = self.to_world(self.input_state.mouse_position());
-		if self.input_state.button_pressed(Left) {
-			self.on_mouse_move(Some(glutin::MouseButton::Left), pos);
-		} else if self.input_state.button_pressed(Right) {
-			self.on_mouse_move(Some(glutin::MouseButton::Right), pos);
-		} else {
-			self.on_mouse_move(None, pos);
+		let mouse_pos = self.input_state.mouse_position();
+		let view_pos = self.to_view(mouse_pos.x, mouse_pos.y);
+		let world_pos = self.to_world(self.input_state.mouse_position());
+
+		if self.input_state.key_once(Key::MouseRight) {
+			if self.input_state.any_ctrl_pressed() {
+				events.push(ev::Event::NewMinion(world_pos));
+			} else {
+				events.push(ev::Event::NewResource(world_pos));
+			}
 		}
+
+		if self.input_state.key_pressed(Key::MouseLeft) {
+			events.push(ev::Event::MoveLight(world_pos));
+		}
+
 	}
 
-	fn to_view(&self, x: u32, y: u32) -> Position {
-		self.viewport.to_world(x, y)
+	fn to_view<T>(&self, x: T, y: T) -> Position
+		where T: Into<f32> {
+		self.viewport.to_world(x.into(), y.into())
 	}
 
 	fn to_world(&self, t: Position) -> Position {
@@ -354,13 +363,13 @@ impl App {
 		self.update_systems(frame_time_smooth);
 		self.frame_count += 1;
 
-		Update {
+		Ok(Update {
 			wall_clock_elapsed: self.wall_clock_start.elapsed().unwrap_or_else(|_| Duration::new(0, 0)),
 			frame_count: self.frame_count,
 			frame_elapsed: self.frame_elapsed,
 			frame_time: frame_time,
 			frame_time_smooth: frame_time_smooth,
 			fps: 1.0 / frame_time_smooth,
-		}
+		})
 	}
 }
