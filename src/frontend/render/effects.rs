@@ -126,8 +126,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		let average_pso = load_pipeline_simple!("identity", "quad_smooth", postprocess);
 		let compose_pso = load_pipeline_simple!("identity", "compose_2", compose);
 
-		let ping_pong_small = [factory.create_render_target::<HDR>(w / 4, h / 4).unwrap(),
-		                       factory.create_render_target::<HDR>(w / 4, h / 4).unwrap()];
+		let ping_pong_small = [factory.create_render_target::<HDR>(w / 2, h / 2).unwrap(),
+		                       factory.create_render_target::<HDR>(w / 2, h / 2).unwrap()];
 
 		let ping_pong_large = [factory.create_render_target::<HDR>(w, h).unwrap(),
 		                       factory.create_render_target::<HDR>(w, h).unwrap()];
