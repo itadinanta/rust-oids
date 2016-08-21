@@ -146,10 +146,10 @@ impl PhysicsSystem {
 		let handle = self.world.create_body_with(&b_def, refs);
 
 		let mut rect = b2::ChainShape::new();
-		rect.create_chain(&[Self::to_vec2(&extent.bottom_left()),
-		                    Self::to_vec2(&extent.bottom_right()),
-		                    Self::to_vec2(&extent.top_right()),
-		                    Self::to_vec2(&extent.top_left())]);
+		rect.create_loop(&[Self::to_vec2(&extent.bottom_left()),
+		                   Self::to_vec2(&extent.bottom_right()),
+		                   Self::to_vec2(&extent.top_right()),
+		                   Self::to_vec2(&extent.top_left())]);
 		self.world.body_mut(handle).create_fixture_with(&rect, &mut f_def, refs);
 	}
 
