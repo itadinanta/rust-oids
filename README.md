@@ -23,8 +23,10 @@ I've only built on Ubuntu GNU/Linux but I've got reports of successful builds on
 
 ## How to play
 
-- Right mouse click: create bioid.
-- Right mouse drag: drop some balls.
+- Right mouse click: new rustoid.
+- Ctrl + Right mouse click: new ball (inert obstacle).
 - Left mouse click/drag: move light.
-- B: set background tone
-- L: change light intensity
+- V,B: set background tone
+- K,L: change light intensity
+- 0, Home: reset camera pan
+- Arrows: camera pan
