@@ -7,6 +7,7 @@ in float v_Exposure;
 out vec4 o_Color;
 
 void main() {
-	vec4 linear_color = v_Exposure * texture(t_Source, v_TexCoord, 0);
-	o_Color = vec4(linear_color.rgb, 1.0);
+	vec4 src = texture(t_Source, v_TexCoord, 0);
+	vec4 linear_color = v_Exposure * src;
+	o_Color = vec4(linear_color.rgb, src.a);
 }

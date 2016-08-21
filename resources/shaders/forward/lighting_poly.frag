@@ -36,9 +36,8 @@ void main() {
 	vec4 kd = vec4(0.2, 0.2, 0.2, 1.0);
 	vec4 ks = vec4(1.0, 1.0, 1.0, 1.0);
 	vec4 kp = vec4(64.0, 32.0, 64.0, 1.0);
-	vec4 ka = vec4(0.0, 0.0, 0.0, 1.0);
 
-	vec4 color = (ka + u_Emissive);
+	vec4 color = u_Emissive;
 
 	float dx = v_In.TexCoord.x - 0.5;
 	float dy = v_In.TexCoord.y - 0.5;
