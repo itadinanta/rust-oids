@@ -1,12 +1,13 @@
 //! Input state, including current mouse position and button click
 //! TODO: add keyboard presses
-use cgmath::Vector2;
+use core::geometry;
+use core::geometry::Position;
 use bit_set::BitSet;
 
 pub struct InputState {
 	key_pressed: BitSet,
 	key_ack: BitSet,
-	mouse_position: Vector2<f32>,
+	mouse_position: Position,
 }
 
 impl Default for InputState {
@@ -14,7 +15,7 @@ impl Default for InputState {
 		InputState {
 			key_pressed: BitSet::new(),
 			key_ack: BitSet::new(),
-			mouse_position: Vector2::new(0., 0.),
+			mouse_position: geometry::origin(),
 		}
 	}
 }
@@ -126,7 +127,6 @@ pub enum Key {
 	Esc,
 	Tab,
 	PrintScreen,
-	SysRq,
 
 	MouseLeft,
 	MouseRight,
@@ -137,15 +137,15 @@ pub enum Key {
 
 pub enum Event {
 	Key(State, Key),
-	Mouse(f32, f32),
+	Mouse(Position),
 }
 
-
+#[allow(dead_code)]
 impl InputState {
 	pub fn event(&mut self, event: &Event) {
 		match event {
 			&Event::Key(state, key) => self.key(state, key),
-			&Event::Mouse(x, y) => self.mouse_at(Vector2::new(x, y)),
+			&Event::Mouse(position) => self.mouse_at(position),
 		}
 	}
 
@@ -185,7 +185,7 @@ impl InputState {
 		}
 	}
 
-	pub fn mouse_position(&self) -> Vector2<f32> {
+	pub fn mouse_position(&self) -> Position {
 		self.mouse_position
 	}
 
@@ -197,11 +197,11 @@ impl InputState {
 		};
 	}
 
-	pub fn mouse_at(&mut self, pos: Vector2<f32>) {
+	pub fn mouse_at(&mut self, pos: Position) {
 		self.mouse_position = pos;
 	}
 }
 
-pub trait EventMapper<T, S> {
-	fn eventmap(src: &T) -> Event;
+pub trait EventMapper<T> {
+	fn translate(&self, e: &T) -> Option<Event>;
 }

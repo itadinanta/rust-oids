@@ -1,4 +1,4 @@
-mod mainloop;
+mod main;
 mod ev;
 use core::util::Cycle;
 use core::math;
@@ -12,7 +12,6 @@ use backend::systems;
 use backend::systems::System;
 
 use frontend::input;
-use frontend::input::*;
 use frontend::render;
 
 use std::time::{SystemTime, Duration, SystemTimeError};
@@ -21,8 +20,31 @@ use cgmath::Matrix4;
 use backend::obj::*;
 use core::geometry::*;
 
+pub enum Event {
+	CamUp,
+	CamDown,
+	CamLeft,
+	CamRight,
+
+	CamReset,
+
+	NextLight,
+	PrevLight,
+
+	NextBackground,
+	PrevBackground,
+
+	Reload,
+
+	AppQuit,
+
+	MoveLight(Position),
+	NewMinion(Position),
+	NewResource(Position),
+}
+
 pub fn run() {
-	mainloop::main_loop();
+	main::main_loop();
 }
 
 pub struct Viewport {
@@ -42,11 +64,11 @@ impl Viewport {
 		}
 	}
 
-	fn to_world(&self, x: f32, y: f32) -> cgmath::Vector2<f32> {
+	fn to_world(&self, pos: &Position) -> Position {
 		let dx = self.width as f32 / self.scale;
-		let tx = (x - (self.width as f32 * 0.5)) / dx;
-		let ty = ((self.height as f32 * 0.5) - y) / dx;
-		cgmath::Vector2::new(tx, ty)
+		let tx = (pos.x - (self.width as f32 * 0.5)) / dx;
+		let ty = ((self.height as f32 * 0.5) - pos.y) / dx;
+		Position::new(tx, ty)
 	}
 }
 
@@ -158,37 +180,36 @@ impl App {
 		self.physics.register(found.unwrap());
 	}
 
-	pub fn on_app_event(&mut self, e: ev::Event) {
+	pub fn on_app_event(&mut self, e: Event) {
 		match e {
-			ev::Event::CamUp => self.camera.push(math::Direction::Up),
-			ev::Event::CamDown => self.camera.push(math::Direction::Down),
-			ev::Event::CamLeft => self.camera.push(math::Direction::Left),
-			ev::Event::CamRight => self.camera.push(math::Direction::Right),
+			Event::CamUp => self.camera.push(math::Direction::Up),
+			Event::CamDown => self.camera.push(math::Direction::Down),
+			Event::CamLeft => self.camera.push(math::Direction::Left),
+			Event::CamRight => self.camera.push(math::Direction::Right),
 
-			ev::Event::CamReset => {
+			Event::CamReset => {
 				self.camera.reset();
 			}
-			ev::Event::NextLight => {
+			Event::NextLight => {
 				self.lights.next();
 			}
-			ev::Event::PrevLight => {
+			Event::PrevLight => {
 				self.lights.prev();
 			}
-			ev::Event::NextBackground => {
+			Event::NextBackground => {
 				self.backgrounds.next();
 			}
-			ev::Event::PrevBackground => {
+			Event::PrevBackground => {
 				self.backgrounds.prev();
 			}
 
-			ev::Event::Reload => {}
+			Event::Reload => {}
 
-			ev::Event::AppQuit => self.quit(),
+			Event::AppQuit => self.quit(),
 
-			ev::Event::MoveLight(pos) => self.light_position = pos,
-			ev::Event::NewMinion(pos) => self.new_minion(pos),
-			ev::Event::NewResource(pos) => self.new_resource(pos),
-			_ => {}
+			Event::MoveLight(pos) => self.light_position = pos,
+			Event::NewMinion(pos) => self.new_minion(pos),
+			Event::NewResource(pos) => self.new_resource(pos),
 		}
 	}
 
@@ -209,13 +230,13 @@ impl App {
 
 		macro_rules! on_key_held {
 			[$($key:ident -> $app_event:ident),*] => (
-				$(if self.input_state.key_pressed(Key::$key) { events.push(ev::Event::$app_event); })
+				$(if self.input_state.key_pressed(input::Key::$key) { events.push(Event::$app_event); })
 				*
 			)
 		}
 		macro_rules! on_key_pressed_once {
 			[$($key:ident -> $app_event:ident),*] => (
-				$(if self.input_state.key_once(Key::$key) { events.push(ev::Event::$app_event); })
+				$(if self.input_state.key_once(input::Key::$key) { events.push(Event::$app_event); })
 				*
 			)
 		}
@@ -228,6 +249,9 @@ impl App {
 
 		on_key_pressed_once! [
 			F5 -> Reload,
+			N0 -> CamReset,
+			Home -> CamReset,
+			KpHome -> CamReset,
 			L -> NextLight,
 			B -> NextBackground,
 			K -> PrevLight,
@@ -236,29 +260,31 @@ impl App {
 		];
 
 		let mouse_pos = self.input_state.mouse_position();
-		let view_pos = self.to_view(mouse_pos.x, mouse_pos.y);
-		let world_pos = self.to_world(self.input_state.mouse_position());
+		let view_pos = self.to_view(&mouse_pos);
+		let world_pos = self.to_world(&view_pos);
 
-		if self.input_state.key_once(Key::MouseRight) {
+		if self.input_state.key_once(input::Key::MouseRight) {
 			if self.input_state.any_ctrl_pressed() {
-				events.push(ev::Event::NewMinion(world_pos));
+				events.push(Event::NewResource(world_pos));
 			} else {
-				events.push(ev::Event::NewResource(world_pos));
+				events.push(Event::NewMinion(world_pos));
 			}
 		}
 
-		if self.input_state.key_pressed(Key::MouseLeft) {
-			events.push(ev::Event::MoveLight(world_pos));
+		if self.input_state.key_pressed(input::Key::MouseLeft) {
+			events.push(Event::MoveLight(world_pos));
 		}
 
+		for e in events {
+			self.on_app_event(e)
+		}
 	}
 
-	fn to_view<T>(&self, x: T, y: T) -> Position
-		where T: Into<f32> {
-		self.viewport.to_world(x.into(), y.into())
+	fn to_view(&self, pos: &Position) -> Position {
+		self.viewport.to_world(pos)
 	}
 
-	fn to_world(&self, t: Position) -> Position {
+	fn to_world(&self, t: &Position) -> Position {
 		t + self.camera.position()
 	}
 
