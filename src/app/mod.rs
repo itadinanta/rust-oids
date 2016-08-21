@@ -12,13 +12,12 @@ use backend::systems;
 use backend::systems::System;
 
 use frontend::input;
+use frontend::input::*;
 use frontend::render;
 
 use std::time::{SystemTime, Duration, SystemTimeError};
-use glutin;
 use cgmath;
 use cgmath::Matrix4;
-use frontend::input::Button::*;
 use backend::obj::*;
 use core::geometry::*;
 
@@ -144,34 +143,6 @@ impl App {
 		             [0.01, 0.01, 0.01, 1.0]])
 	}
 
-
-	fn on_click(&mut self, btn: glutin::MouseButton, pos: Position) {
-		match btn {
-			glutin::MouseButton::Left => {
-				self.input_state.button_press(Left);
-				self.light_position = pos;
-			}
-			glutin::MouseButton::Right => {
-				self.input_state.button_press(Right);
-				self.new_minion(pos);
-			}
-			_ => (),
-		}
-	}
-
-	fn on_mouse_move(&mut self, btn: Option<glutin::MouseButton>, pos: Position) {
-		match btn {
-			Some(glutin::MouseButton::Left) => {
-				self.light_position = pos;
-			}
-			Some(glutin::MouseButton::Right) => {
-				let id = self.world.new_resource(pos);
-				self.register(id);
-			}
-			_ => (),
-		}
-	}
-
 	fn new_resource(&mut self, pos: Position) {
 		let id = self.world.new_resource(pos);
 		self.register(id);
@@ -185,20 +156,6 @@ impl App {
 	fn register(&mut self, id: obj::Id) {
 		let found = self.world.friend_mut(id);
 		self.physics.register(found.unwrap());
-	}
-
-	fn on_release(&mut self, btn: glutin::MouseButton, _: Position) {
-		match btn {
-			glutin::MouseButton::Left => {
-				self.input_state.button_release(Left);
-			}
-
-			glutin::MouseButton::Right => {
-				self.input_state.button_release(Right);
-			}
-
-			_ => (),
-		}
 	}
 
 	pub fn on_app_event(&mut self, e: ev::Event) {
@@ -228,52 +185,11 @@ impl App {
 
 			ev::Event::AppQuit => self.quit(),
 
-			ev::Event::MoveLight(_, _) => {}
-			ev::Event::NewMinion(_, _) => {}
-
+			ev::Event::MoveLight(pos) => self.light_position = pos,
+			ev::Event::NewMinion(pos) => self.new_minion(pos),
+			ev::Event::NewResource(pos) => self.new_resource(pos),
 			_ => {}
 		}
-	}
-
-	fn keymap(e: glutin::Event) -> ev::Event {
-		match e {
-			glutin::Event::ReceivedCharacter(char) => {
-				match char {
-					_ => {
-						println!("Key pressed {:?}", char);
-						ev::Event::NoEvent
-					}
-				}
-			}
-			glutin::Event::KeyboardInput(glutin::ElementState::Pressed, scancode, vk) => {
-				match vk {
-					Some(glutin::VirtualKeyCode::Up) => ev::Event::CamUp,
-					Some(glutin::VirtualKeyCode::Down) => ev::Event::CamDown,
-					Some(glutin::VirtualKeyCode::Right) => ev::Event::CamRight,
-					Some(glutin::VirtualKeyCode::Left) => ev::Event::CamLeft,
-					Some(glutin::VirtualKeyCode::Home) => ev::Event::CamReset,
-
-					Some(glutin::VirtualKeyCode::F5) => ev::Event::Reload,
-
-					Some(glutin::VirtualKeyCode::L) => ev::Event::NextLight,
-					Some(glutin::VirtualKeyCode::B) => ev::Event::NextBackground,
-
-					Some(glutin::VirtualKeyCode::K) => ev::Event::PrevLight,
-					Some(glutin::VirtualKeyCode::V) => ev::Event::PrevBackground,
-
-					Some(glutin::VirtualKeyCode::Escape) => ev::Event::AppQuit,
-					_ => {
-						println!("No mapping for {:?}/{:?}", scancode, vk);
-						ev::Event::NoEvent
-					}
-				}
-			}
-			_ => ev::Event::NoEvent,
-		}
-	}
-
-	pub fn on_keyboard_input(&mut self, e: glutin::Event) {
-		self.on_app_event(Self::keymap(e))
 	}
 
 	pub fn quit(&mut self) {
@@ -284,29 +200,48 @@ impl App {
 		self.is_running
 	}
 
-	pub fn on_mouse_input(&mut self, e: glutin::Event) {
-		match e {
-			glutin::Event::MouseInput(glutin::ElementState::Released, b) => {
-				let pos = self.to_world(self.input_state.mouse_position());
-				self.on_release(b, pos);
-			}
-			glutin::Event::MouseInput(glutin::ElementState::Pressed, b) => {
-				let pos = self.to_world(self.input_state.mouse_position());
-				self.on_click(b, pos);
-			}
-			glutin::Event::MouseMoved(x, y) => {
-				let view_pos = self.to_view(x as u32, y as u32);
-				self.input_state.mouse_position_at(view_pos);
-				let pos = self.to_world(self.input_state.mouse_position());
-				if self.input_state.button_pressed(Left) {
-					self.on_mouse_move(Some(glutin::MouseButton::Left), pos);
-				} else if self.input_state.button_pressed(Right) {
-					self.on_mouse_move(Some(glutin::MouseButton::Right), pos);
-				} else {
-					self.on_mouse_move(None, pos);
-				}
-			}
-			_ => (),
+	pub fn on_input_event(&mut self, e: &input::Event) {
+		self.input_state.event(e);
+	}
+
+	fn update_input(&mut self, _: f32) {
+		macro_rules! on_key_held {
+			[$($key:ident -> $app_event:ident),*] => (
+				$(if self.input_state.key_pressed(Key::$key) { self.on_app_event(ev::Event::$app_event); })
+				*
+			)
+		}
+		macro_rules! on_key_pressed_once {
+			[$($key:ident -> $app_event:ident),*] => (
+				$(if self.input_state.key_once(Key::$key) { self.on_app_event(ev::Event::$app_event); })
+				*
+			)
+		}
+		on_key_held! [
+			Up -> CamUp,
+			Down -> CamDown,
+			Left->CamLeft,
+			Right-> CamRight
+		];
+
+		on_key_pressed_once! [
+			F5 -> Reload,
+			L -> NextLight,
+			B -> NextBackground,
+			K -> PrevLight,
+			V -> PrevBackground,
+			Esc -> AppQuit
+		];
+
+		let view_pos = self.to_view(x as u32, y as u32);
+		self.input_state.mouse_at(view_pos);
+		let pos = self.to_world(self.input_state.mouse_position());
+		if self.input_state.button_pressed(Left) {
+			self.on_mouse_move(Some(glutin::MouseButton::Left), pos);
+		} else if self.input_state.button_pressed(Right) {
+			self.on_mouse_move(Some(glutin::MouseButton::Right), pos);
+		} else {
+			self.on_mouse_move(None, pos);
 		}
 	}
 
@@ -406,26 +341,26 @@ impl App {
 	}
 
 	pub fn update(&mut self) -> Result<Update, SystemTimeError> {
-		self.frame_start.elapsed().map(|dt| {
-			let frame_time = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
-			let frame_time_smooth = self.frame_smooth.smooth(frame_time);
+		let dt = try!(self.frame_start.elapsed());
+		let frame_time = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
+		let frame_time_smooth = self.frame_smooth.smooth(frame_time);
 
 
-			self.frame_elapsed += frame_time;
-			self.frame_start = SystemTime::now();
+		self.frame_elapsed += frame_time;
+		self.frame_start = SystemTime::now();
 
-			self.camera.update(frame_time_smooth);
-			self.update_systems(frame_time_smooth);
-			self.frame_count += 1;
+		self.camera.update(frame_time_smooth);
+		self.update_input(frame_time_smooth);
+		self.update_systems(frame_time_smooth);
+		self.frame_count += 1;
 
-			Update {
-				wall_clock_elapsed: self.wall_clock_start.elapsed().unwrap_or_else(|_| Duration::new(0, 0)),
-				frame_count: self.frame_count,
-				frame_elapsed: self.frame_elapsed,
-				frame_time: frame_time,
-				frame_time_smooth: frame_time_smooth,
-				fps: 1.0 / frame_time_smooth,
-			}
-		})
+		Update {
+			wall_clock_elapsed: self.wall_clock_start.elapsed().unwrap_or_else(|_| Duration::new(0, 0)),
+			frame_count: self.frame_count,
+			frame_elapsed: self.frame_elapsed,
+			frame_time: frame_time,
+			frame_time_smooth: frame_time_smooth,
+			fps: 1.0 / frame_time_smooth,
+		}
 	}
 }

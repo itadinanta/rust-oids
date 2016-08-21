@@ -9,6 +9,7 @@ extern crate simplelog;
 
 #[macro_use]
 extern crate bitflags;
+extern crate bit_set;
 extern crate cgmath;
 
 extern crate wrapped2d;

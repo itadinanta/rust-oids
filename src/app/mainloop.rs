@@ -1,4 +1,6 @@
 use frontend::render;
+use frontend::input;
+use frontend::input::Key;
 use frontend::render::Draw;
 use frontend::render::Renderer;
 use core::math::Directional;
@@ -6,6 +8,86 @@ use app;
 use cgmath;
 use glutin;
 use gfx_window_glutin;
+
+fn translate(e: &glutin::Event) -> Option<input::Event> {
+	fn keymap(vk: glutin::VirtualKeyCode) -> Option<input::Key> {
+		macro_rules! glutin_map {
+			[$($gkey:ident -> $ekey:ident),*] => (
+				match vk {
+					$(glutin::VirtualKeyCode::$gkey => Some(Key::$ekey)),
+					*,
+					_ => None,
+				}
+			)
+		}
+		glutin_map! [
+			F1 -> F1,
+			F2 -> F2,
+			F3 -> F3,
+			F4 -> F4,
+			F5 -> F5,
+			F6 -> F6,
+			F7 -> F7,
+			F8 -> F8,
+			F9 -> F9,
+			F10 -> F10,
+			F11 -> F11,
+			F12 -> F12,
+			Home -> Home,
+			Down -> Down,
+			Up -> Down,
+			Left -> Left,
+			Right -> Right,
+			A -> A,
+			B -> B,
+			C -> C,
+			D -> D,
+			E -> E,
+			F -> F,
+			G -> G,
+			H -> H,
+			I -> I,
+			J -> J,
+			K -> K,
+			L -> L,
+			M -> M,
+			N -> N,
+			O -> O,
+			P -> P,
+			Q -> Q,
+			R -> R,
+			S -> S,
+			T -> T,
+			U -> U,
+			V -> V,
+			W -> W,
+			X -> X,
+			Y -> Y,
+			Z -> Z,
+			Escape -> Esc
+		]
+	}
+	match e {
+		&glutin::Event::ReceivedCharacter(char) => {
+			match char {
+				_ => {
+					println!("Key pressed {:?}", char);
+					None
+				}
+			}
+		}
+		&glutin::Event::KeyboardInput(elementState, scancode, vk) => {
+			let state = match elementState {
+				glutin::ElementState::Pressed => input::State::Down,
+				glutin::ElementState::Released => input::State::Up,
+			};
+			vk.and_then(|vk| keymap(vk)).and_then(|key| Some(input::Event::Key(state, key)))
+		}
+		_ => None,
+	}
+}
+
+
 
 pub fn main_loop() {
 	const WIDTH: u32 = 1280;
@@ -32,21 +114,17 @@ pub fn main_loop() {
 	let mut app = app::App::new(w as u32, h as u32, 100.0);
 
 	'main: loop {
-
 		for event in window.poll_events() {
 			match event {
-				e @ glutin::Event::MouseMoved(_, _) |
-				e @ glutin::Event::MouseInput(_, _) => app.on_mouse_input(e),
-				glutin::Event::KeyboardInput(_, _, Some(glutin::VirtualKeyCode::F5)) => renderer.rebuild(),
-				e @ glutin::Event::KeyboardInput(_, _, _) => app.on_keyboard_input(e),
-
 				glutin::Event::Resized(new_width, new_height) => {
 					gfx_window_glutin::update_views(&window, &mut frame_buffer, &mut depth_buffer);
 					renderer.resize_to(&frame_buffer, &depth_buffer);
 					app.on_resize(new_width, new_height);
 				}
-				glutin::Event::Closed => app.quit(),
-				_ => {}
+				glutin::Event::KeyboardInput(_, _, Some(glutin::VirtualKeyCode::F5)) => renderer.rebuild(),
+				e => {
+					translate(&e).map(|i| app.on_input_event(&i));
+				}
 			}
 		}
 
