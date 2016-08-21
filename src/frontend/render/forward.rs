@@ -65,7 +65,7 @@ gfx_defines!(
         fragment_args: gfx::ConstantBuffer<FragmentArgs> = "cb_FragmentArgs",
         material_args: gfx::ConstantBuffer<MaterialArgs> = "cb_MaterialArgs",
         lights: gfx::ConstantBuffer<PointLight> = "u_Lights",
-        color_target: gfx::RenderTarget<HDRColorFormat> = "o_Color",
+        color_target: gfx::BlendTarget<HDRColorFormat> = ("o_Color", gfx::state::MASK_ALL, gfx::preset::blend::ADD),
         depth_target: gfx::DepthTarget<gfx::format::DepthStencil> = gfx::preset::depth::LESS_EQUAL_WRITE,
     }
 );
