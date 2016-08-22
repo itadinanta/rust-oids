@@ -178,7 +178,23 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 		let factory = &mut self.factory;
 
 		let (w, h, _, _) = frame_buffer.get_dimensions();
-		let (_, hdr_srv, hdr_color_buffer) = factory.create_render_target(w, h).unwrap();
+
+		let kind = gfx::tex::Kind::D2(w, h, gfx::tex::AaMode::Single);
+		let levels = 1;
+		let tex = (factory.create_texture(kind,
+		                                  levels,
+		                                  gfx::SHADER_RESOURCE | gfx::RENDER_TARGET,
+		                                  gfx::Usage::GpuOnly,
+		                                  Some(gfx::format::ChannelType::Float)))
+			.unwrap();
+		let hdr_srv =
+			(factory.view_texture_as_shader_resource::<HDRColorFormat>(&tex,
+			                                                           (0, levels - 1),
+			                                                           gfx::format::Swizzle::new()))
+				.unwrap();
+		let hdr_color_buffer = (factory.view_texture_as_render_target(&tex, 0, None)).unwrap();
+
+		// 		let (_, hdr_srv, hdr_color_buffer) = factory.create_render_target(w, h).unwrap();
 
 		self.hdr_srv = hdr_srv;
 		self.hdr_color = hdr_color_buffer;
