@@ -58,8 +58,8 @@ pub struct PostLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 	resolved: HDRRenderSurface<R>,
 	resolve_msaa_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
 
-	ping_pong_small: [HDRRenderSurface<R>; 2],
-	ping_pong_large: [HDRRenderSurface<R>; 2],
+	ping_pong_half: [HDRRenderSurface<R>; 2],
+	ping_pong_full: [HDRRenderSurface<R>; 2],
 
 	mips: Vec<HDRRenderSurface<R>>,
 	luminance_smooth: HDRRenderSurface<R>,
@@ -132,11 +132,11 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 
 		let resolved = factory.create_render_target::<HDR>(w, h).unwrap();
 
-		let ping_pong_small = [factory.create_render_target::<HDR>(w / 2, h / 2).unwrap(),
-		                       factory.create_render_target::<HDR>(w / 2, h / 2).unwrap()];
+		let ping_pong_half = [factory.create_render_target::<HDR>(w / 2, h / 2).unwrap(),
+		                      factory.create_render_target::<HDR>(w / 2, h / 2).unwrap()];
 
-		let ping_pong_large = [factory.create_render_target::<HDR>(w, h).unwrap(),
-		                       factory.create_render_target::<HDR>(w, h).unwrap()];
+		let ping_pong_full = [factory.create_render_target::<HDR>(w, h).unwrap(),
+		                      factory.create_render_target::<HDR>(w, h).unwrap()];
 
 		let mut mips: Vec<HDRRenderSurface<R>> = Vec::new();
 		let mut w2 = w;
@@ -179,8 +179,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 			luminance_smooth: luminance_smooth,
 			luminance_acc: luminance_acc,
 
-			ping_pong_small: ping_pong_small,
-			ping_pong_large: ping_pong_large,
+			ping_pong_half: ping_pong_half,
+			ping_pong_full: ping_pong_full,
 
 			_buffer: PhantomData,
 		}
@@ -205,8 +205,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 	                 raw_hdr_src: gfx::handle::ShaderResourceView<R, [f32; 4]>,
 	                 color_target: gfx::handle::RenderTargetView<R, LDR>) {
 
-		let ping_pong_large = &self.ping_pong_large[..];
-		let ping_pong_small = &self.ping_pong_small[..];
+		let ping_pong_full = &self.ping_pong_full[..];
+		let ping_pong_half = &self.ping_pong_half[..];
 
 		// blits smoothed luminance to "acc" buffer. TODO: pingpong
 		self.full_screen_pass(encoder,
@@ -252,10 +252,10 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 			                                self.nearest_sampler.clone()),
 			             vertex_args: self.tone_map_vertex_args.clone(),
 			             src: (self.resolved.1.clone(), self.nearest_sampler.clone()),
-			             dst: ping_pong_large[0].2.clone(),
+			             dst: ping_pong_full[0].2.clone(),
 		             });
 
-		// blits smoothed luminance to "acc" buffer. TODO: pingpong
+		// blits smoothed luminance to "acc" buffer for next frame. TODO: CPU?
 		self.full_screen_pass(encoder,
 		                      &self.blit_pso,
 		                      &self.luminance_smooth.1,
@@ -264,27 +264,28 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		// 1. extract high luminance
 		self.full_screen_pass(encoder,
 		                      &self.highlight_pso,
-		                      &ping_pong_large[0].1,
-		                      &ping_pong_small[0].2);
+		                      &ping_pong_full[0].1,
+		                      &ping_pong_half[0].2);
 		// 2. horizontal 4x, 9x9 gaussian blur
 		self.full_screen_pass(encoder,
 		                      &self.blur_h_pso,
-		                      &ping_pong_small[0].1,
-		                      &ping_pong_small[1].2);
+		                      &ping_pong_half[0].1,
+		                      &ping_pong_half[1].2);
 		// 2. vertical 4x, 9x9 gaussian blur
 		self.full_screen_pass(encoder,
 		                      &self.blur_v_pso,
-		                      &ping_pong_small[1].1,
-		                      &ping_pong_small[0].2);
+		                      &ping_pong_half[1].1,
+		                      &ping_pong_half[0].2);
 
 		// compose tone mapped + bloom and resolve
 		encoder.draw(&self.index_buffer_slice,
 		             &self.compose_pso,
 		             &compose::Data {
 			             vbuf: self.vertex_buffer.clone(),
-			             src1: (ping_pong_large[0].1.clone(), self.nearest_sampler.clone()),
-			             // src1: (self.mips[10].1.clone(), self.nearest_sampler.clone()),
-			             src2: (ping_pong_small[0].1.clone(), self.linear_sampler.clone()),
+			             // original
+			             src1: (ping_pong_full[0].1.clone(), self.nearest_sampler.clone()),
+			             // bloom
+			             src2: (ping_pong_half[0].1.clone(), self.linear_sampler.clone()),
 			             dst: color_target.clone(),
 		             });
 	}

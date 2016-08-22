@@ -17,7 +17,7 @@ void main() {
 	float luminance = dot(vec3(0.2126, 0.7152, 0.0722),
 			texture(t_VertexLuminance, vec2(0.5, 0.5)).rgb);
 
-	// todo: interpolate flat
+	// TODO: interpolate flat
 	v_Exposure = 1.0 / (u_Black + (u_White * luminance));
 	gl_Position = vec4(a_Pos, 0.0, 1.0);
 }

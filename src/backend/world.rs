@@ -73,10 +73,6 @@ impl State {
 			..Self::default()
 		}
 	}
-
-	pub fn charge(&self) -> f32 {
-		self.charge
-	}
 }
 
 #[derive(Copy, Clone)]
@@ -193,7 +189,7 @@ impl obj::Solid for Segment {
 impl obj::Drawable for Segment {
 	fn color(&self) -> Rgba {
 		let rgba = self.livery.albedo;
-		let c = 10. * ((self.state.charge * 0.99) + 0.01);
+		let c = 5. * ((self.state.charge * 0.99) + 0.01);
 		[rgba[0] * c, rgba[1] * c, rgba[2] * c, rgba[3] * self.material.density]
 	}
 }
@@ -329,11 +325,6 @@ impl AgentBuilder {
 		let segment = self.new_segment(shape, Winding::CW, position, angle, None, TORSO | MIDDLE);
 		self.segments.clear();
 		self.segments.push(segment);
-		self
-	}
-
-	fn id(&mut self, id: Id) -> &mut Self {
-		self.id = id;
 		self
 	}
 
@@ -507,13 +498,13 @@ impl Flock {
 		let initial_angle = consts::PI / 2. + f32::atan2(initial_pos.y, initial_pos.x);
 
 		let torso = builder.start(initial_pos, initial_angle, &torso_shape)
-			.index();
+		                   .index();
 		builder.addr(torso, 2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER)
-			.addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
+		       .addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
 
 		let head = builder.add(torso, 0, &head_shape, HEAD | SENSOR).index();
 		builder.addr(head, 1, &head_shape, HEAD | ACTUATOR | RUDDER)
-			.addl(head, 2, &head_shape, HEAD | ACTUATOR | RUDDER);
+		       .addl(head, 2, &head_shape, HEAD | ACTUATOR | RUDDER);
 
 		let mut belly = torso;
 		let mut belly_mid = torso_shape.mid();
@@ -524,16 +515,16 @@ impl Flock {
 			belly_mid = belly_shape.mid();
 			if self.rnd.irand(0, 4) == 0 {
 				builder.addr(belly, 2, &arm_shape, ARM | ACTUATOR | RUDDER)
-					.addl(belly, -2, &arm_shape, ARM | ACTUATOR | RUDDER);
+				       .addl(belly, -2, &arm_shape, ARM | ACTUATOR | RUDDER);
 			}
 		}
 
 		builder.addr(belly, belly_mid - 1, &leg_shape, LEG | ACTUATOR | THRUSTER)
-			.addl(belly,
-			      -(belly_mid - 1),
-			      &leg_shape,
-			      LEG | ACTUATOR | THRUSTER)
-			.add(belly, belly_mid, &tail_shape, TAIL | ACTUATOR | BRAKE);
+		       .addl(belly,
+		             -(belly_mid - 1),
+		             &leg_shape,
+		             LEG | ACTUATOR | THRUSTER)
+		       .add(belly, belly_mid, &tail_shape, TAIL | ACTUATOR | BRAKE);
 
 		self.insert(builder.build())
 	}
@@ -544,9 +535,9 @@ impl Flock {
 		id
 	}
 
-	pub fn kill(&mut self, id: &Id) {
-		self.agents.remove(id);
-	}
+	// 	pub fn kill(&mut self, id: &Id) {
+	// 		self.agents.remove(id);
+	// 	}
 
 	pub fn agents(&self) -> &HashMap<Id, Agent> {
 		&self.agents
@@ -639,7 +630,7 @@ impl World {
 	}
 
 	pub fn new_resource(&mut self, pos: Position) -> obj::Id {
-		self.minions.new_resource(pos, 0.3)
+		self.minions.new_resource(pos, 0.8)
 	}
 
 	pub fn new_minion(&mut self, pos: Position) -> obj::Id {

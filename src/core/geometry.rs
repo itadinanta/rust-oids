@@ -63,10 +63,6 @@ impl Transform {
 			..Transform::default()
 		}
 	}
-
-	pub fn with_position(position: Position) -> Self {
-		Transform { position: position, ..Transform::default() }
-	}
 }
 
 pub fn origin() -> Position {
