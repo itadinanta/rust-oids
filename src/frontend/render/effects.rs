@@ -46,14 +46,17 @@ gfx_defines!{
 }
 
 use std::marker::PhantomData;
-type HDRRenderSurface<R> = (gfx::handle::Texture<R, gfx::format::R16_G16_B16_A16>,
-                            gfx::handle::ShaderResourceView<R, [f32; 4]>,
-                            gfx::handle::RenderTargetView<R, (gfx::format::R16_G16_B16_A16, gfx::format::Float)>);
+pub type HDRRenderSurface<R> = (gfx::handle::Texture<R, gfx::format::R16_G16_B16_A16>,
+                                gfx::handle::ShaderResourceView<R, [f32; 4]>,
+                                gfx::handle::RenderTargetView<R, (gfx::format::R16_G16_B16_A16, gfx::format::Float)>);
 pub struct PostLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 	vertex_buffer: gfx::handle::Buffer<R, BlitVertex>,
 	index_buffer_slice: gfx::Slice<R>,
 	nearest_sampler: gfx::handle::Sampler<R>,
 	linear_sampler: gfx::handle::Sampler<R>,
+
+	resolved: HDRRenderSurface<R>,
+	resolve_msaa_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
 
 	ping_pong_small: [HDRRenderSurface<R>; 2],
 	ping_pong_large: [HDRRenderSurface<R>; 2],
@@ -118,6 +121,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		};
 
 		let tone_map_pso = load_pipeline_simple!("luminance", "exposure_tone_map", tone_map);
+		let resolve_msaa_pso = load_pipeline_simple!("identity", "simple_blit", postprocess);
 		let highlight_pso = load_pipeline_simple!("identity", "clip_luminance", postprocess);
 		let blur_h_pso = load_pipeline_simple!("identity", "gaussian_blur_horizontal", postprocess);
 		let blur_v_pso = load_pipeline_simple!("identity", "gaussian_blur_vertical", postprocess);
@@ -125,6 +129,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		let smooth_pso = load_pipeline_simple!("identity", "exponential_smooth", smooth);
 		let average_pso = load_pipeline_simple!("identity", "quad_smooth", postprocess);
 		let compose_pso = load_pipeline_simple!("identity", "compose_2", compose);
+
+		let resolved = factory.create_render_target::<HDR>(w, h).unwrap();
 
 		let ping_pong_small = [factory.create_render_target::<HDR>(w / 2, h / 2).unwrap(),
 		                       factory.create_render_target::<HDR>(w / 2, h / 2).unwrap()];
@@ -164,7 +170,9 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 			highlight_pso: highlight_pso,
 			blur_h_pso: blur_h_pso,
 			blur_v_pso: blur_v_pso,
+			resolve_msaa_pso: resolve_msaa_pso,
 
+			resolved: resolved,
 			compose_pso: compose_pso,
 
 			mips: mips,
@@ -200,8 +208,14 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		let ping_pong_large = &self.ping_pong_large[..];
 		let ping_pong_small = &self.ping_pong_small[..];
 
+		// blits smoothed luminance to "acc" buffer. TODO: pingpong
+		self.full_screen_pass(encoder,
+		                      &self.resolve_msaa_pso,
+		                      &raw_hdr_src,
+		                      &self.resolved.2);
+
 		// get average lum
-		let mut exposure_src = raw_hdr_src.clone();
+		let mut exposure_src = self.resolved.1.clone();
 		let mut exposure_dst;
 		// this is a fold, can we do it functionally?
 		for mip in &self.mips {
@@ -237,7 +251,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 			             vertex_luminance: (self.luminance_smooth.1.clone(),
 			                                self.nearest_sampler.clone()),
 			             vertex_args: self.tone_map_vertex_args.clone(),
-			             src: (raw_hdr_src, self.nearest_sampler.clone()),
+			             src: (self.resolved.1.clone(), self.nearest_sampler.clone()),
 			             dst: ping_pong_large[0].2.clone(),
 		             });
 

@@ -60,17 +60,17 @@ impl Camera {
 	pub fn ortho(center: cgmath::Vector2<f32>, scale: f32, ratio: f32) -> Camera {
 		Camera {
 			projection: {
-					let hw = 0.5 * scale;
-					let hh = hw / ratio;
-					let near = 10.0;
-					let far = -near;
-					cgmath::ortho(-hw, hw, -hh, hh, near, far)
-				}
-				.into(),
+				            let hw = 0.5 * scale;
+				            let hh = hw / ratio;
+				            let near = 10.0;
+				            let far = -near;
+				            cgmath::ortho(-hw, hw, -hh, hh, near, far)
+				           }
+			            .into(),
 			view: cgmath::Matrix4::look_at(cgmath::Point3::new(center.x, center.y, 1.0),
 			                               cgmath::Point3::new(center.x, center.y, 0.0),
 			                               cgmath::Vector3::unit_y())
-				.into(),
+				      .into(),
 		}
 	}
 }
@@ -127,18 +127,17 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 	           encoder: &'e mut gfx::Encoder<R, C>,
 	           frame_buffer: &gfx::handle::RenderTargetView<R, ColorFormat>,
 	           depth: &gfx::handle::DepthStencilView<R, DepthFormat>)
-	           -> ForwardRenderer<'e, R, C, F>
-		where F: Factory<R> {
+	           -> ForwardRenderer<'e, R, C, F> {
 		let my_factory = factory.clone();
 		let (vertex_buffer, quad_slice) = factory.create_vertex_buffer_with_slice(&QUAD_VERTICES, &QUAD_INDICES[..]);
 
 		let (w, h, _, _) = frame_buffer.get_dimensions();
 
-		let (_, hdr_srv, hdr_color_buffer) = factory.create_render_target(w, h).unwrap();
+		let (_, hdr_srv, hdr_color_buffer) = Self::create_render_target(factory, w, h).unwrap();
 
 		let res = resource::filesystem::ResourceLoaderBuilder::new()
-			.add(path::Path::new("resources"))
-			.build();
+			          .add(path::Path::new("resources"))
+			          .build();
 
 		let forward = forward::ForwardLighting::new(factory, &res);
 		let effects = effects::PostLighting::new(factory, &res, w, h);
@@ -170,52 +169,47 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 		self.pass_effects = effects::PostLighting::new(factory, &self.res, w, h);
 	}
 
+	fn create_render_target(factory: &mut F, w: u16, h: u16) -> Result<effects::HDRRenderSurface<R>, gfx::CombinedError> {
+		let kind = gfx::tex::Kind::D2(w, h, gfx::tex::AaMode::Single);
+		let tex = try!(factory.create_texture(kind,
+		                                      1,
+		                                      gfx::SHADER_RESOURCE | gfx::RENDER_TARGET,
+		                                      gfx::Usage::GpuOnly,
+		                                      Some(gfx::format::ChannelType::Float)));
+		let hdr_srv = try!(factory.view_texture_as_shader_resource::<HDRColorFormat>(&tex,
+		                                                                             (0, 0),
+		                                                                             gfx::format::Swizzle::new()));
+		let hdr_color_buffer = try!(factory.view_texture_as_render_target(&tex, 0, None));
+		Ok((tex, hdr_srv, hdr_color_buffer))
+	}
+
 	pub fn resize_to(&mut self,
 	                 frame_buffer: &gfx::handle::RenderTargetView<R, ColorFormat>,
 	                 depth: &gfx::handle::DepthStencilView<R, DepthFormat>) {
 		// TODO: this thing leaks?
-
-		let factory = &mut self.factory;
-
 		let (w, h, _, _) = frame_buffer.get_dimensions();
-
-		let kind = gfx::tex::Kind::D2(w, h, gfx::tex::AaMode::Single);
-		let levels = 1;
-		let tex = (factory.create_texture(kind,
-		                                  levels,
-		                                  gfx::SHADER_RESOURCE | gfx::RENDER_TARGET,
-		                                  gfx::Usage::GpuOnly,
-		                                  Some(gfx::format::ChannelType::Float)))
-			.unwrap();
-		let hdr_srv =
-			(factory.view_texture_as_shader_resource::<HDRColorFormat>(&tex,
-			                                                           (0, levels - 1),
-			                                                           gfx::format::Swizzle::new()))
-				.unwrap();
-		let hdr_color_buffer = (factory.view_texture_as_render_target(&tex, 0, None)).unwrap();
-
-		// 		let (_, hdr_srv, hdr_color_buffer) = factory.create_render_target(w, h).unwrap();
+		let (_, hdr_srv, hdr_color_buffer) = Self::create_render_target(&mut self.factory, w, h).unwrap();
 
 		self.hdr_srv = hdr_srv;
 		self.hdr_color = hdr_color_buffer;
 		self.depth = depth.clone();
 		self.frame_buffer = frame_buffer.clone();
-		self.pass_effects = effects::PostLighting::new(factory, &self.res, w, h);
+		self.pass_effects = effects::PostLighting::new(&mut self.factory, &self.res, w, h);
 	}
 }
 
 impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for ForwardRenderer<'e, R, C, F> {
 	fn draw_star(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[cgmath::Vector2<f32>], color: [f32; 4]) {
 		let mut v: Vec<_> = vertices.iter()
-			.map(|v| {
-				Vertex {
-					pos: [v.x, v.y, 0.0],
-					normal: [0.0, 0.0, 1.0],
-					tangent: [1.0, 0.0, 0.0],
-					tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
-				}
-			})
-			.collect();
+		                            .map(|v| {
+			                            Vertex {
+				                            pos: [v.x, v.y, 0.0],
+				                            normal: [0.0, 0.0, 1.0],
+				                            tangent: [1.0, 0.0, 0.0],
+				                            tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
+			                            }
+			                           })
+		                            .collect();
 		let n = v.len();
 		v.push(Vertex::default());
 
@@ -241,15 +235,15 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 
 	fn draw_lines(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[cgmath::Vector2<f32>], color: [f32; 4]) {
 		let v: Vec<_> = vertices.iter()
-			.map(|v| {
-				Vertex {
-					pos: [v.x, v.y, 0.0],
-					normal: [0.0, 0.0, 1.0],
-					tangent: [1.0, 0.0, 0.0],
-					tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
-				}
-			})
-			.collect();
+		                        .map(|v| {
+			                        Vertex {
+				                        pos: [v.x, v.y, 0.0],
+				                        normal: [0.0, 0.0, 1.0],
+				                        tangent: [1.0, 0.0, 0.0],
+				                        tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
+			                        }
+			                       })
+		                        .collect();
 
 		// TODO: these can be cached
 		// 		let mut i: Vec<u16> = Vec::new();
@@ -371,17 +365,19 @@ impl<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>> Render
 		self.background_color = background_color;
 		self.light_color = light_color;
 		self.light_position = light_position;
-		let lights: Vec<forward::PointLight> =
-			vec![forward::PointLight {
-				     propagation: [0.3, 0.5, 0.4, 0.0],
-				     center: [-15.0, -5.0, 1.0, 1.0],
-				     color: [0.3, 0.0, 0.0, 1.0],
-			     },
-			     forward::PointLight {
-				     propagation: [0.2, 0.8, 0.1, 0.1],
-				     center: [self.light_position.x, self.light_position.y, 2.0, 1.0],
-				     color: self.light_color,
-			     }];
+		let lights: Vec<forward::PointLight> = vec![forward::PointLight {
+			                                            propagation: [0.3, 0.5, 0.4, 0.0],
+			                                            center: [-15.0, -5.0, 1.0, 1.0],
+			                                            color: [0.3, 0.0, 0.0, 1.0],
+		                                            },
+		                                            forward::PointLight {
+			                                            propagation: [0.2, 0.8, 0.1, 0.1],
+			                                            center: [self.light_position.x,
+			                                                     self.light_position.y,
+			                                                     2.0,
+			                                                     1.0],
+			                                            color: self.light_color,
+		                                            }];
 
 		self.pass_forward_lighting.setup(&mut self.encoder, camera.projection, camera.view, &lights);
 	}
