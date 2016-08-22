@@ -121,7 +121,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		};
 
 		let tone_map_pso = load_pipeline_simple!("luminance", "exposure_tone_map", tone_map);
-		let resolve_msaa_pso = load_pipeline_simple!("identity", "simple_blit", postprocess);
+		let resolve_msaa_pso = load_pipeline_simple!("identity", "msaa4x_resolve", postprocess);
 		let highlight_pso = load_pipeline_simple!("identity", "clip_luminance", postprocess);
 		let blur_h_pso = load_pipeline_simple!("identity", "gaussian_blur_horizontal", postprocess);
 		let blur_v_pso = load_pipeline_simple!("identity", "gaussian_blur_vertical", postprocess);

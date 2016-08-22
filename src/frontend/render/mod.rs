@@ -169,8 +169,11 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 		self.pass_effects = effects::PostLighting::new(factory, &self.res, w, h);
 	}
 
-	fn create_render_target(factory: &mut F, w: u16, h: u16) -> Result<effects::HDRRenderSurface<R>, gfx::CombinedError> {
-		let kind = gfx::tex::Kind::D2(w, h, gfx::tex::AaMode::Single);
+	fn create_render_target(factory: &mut F,
+	                        w: u16,
+	                        h: u16)
+	                        -> Result<effects::HDRRenderSurface<R>, gfx::CombinedError> {
+		let kind = gfx::tex::Kind::D2(w, h, gfx::tex::AaMode::Multi(4));
 		let tex = try!(factory.create_texture(kind,
 		                                      1,
 		                                      gfx::SHADER_RESOURCE | gfx::RENDER_TARGET,
@@ -244,15 +247,6 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 			                        }
 			                       })
 		                        .collect();
-
-		// TODO: these can be cached
-		// 		let mut i: Vec<u16> = Vec::new();
-		// 		for k in 0..n {
-		// 			i.push(n as u16);
-		// 			i.push(((k + 1) % n) as u16);
-		// 			i.push(k as u16);
-		// 		}
-
 		let (vertex_buffer, index_buffer) = self.factory.create_vertex_buffer_with_slice(v.as_slice(), ());
 
 		self.pass_forward_lighting.draw_primitives(forward::Shader::Lines,
