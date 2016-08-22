@@ -10,9 +10,9 @@ Feedback welcome, feel free to post issues.
 
 Some procedurally generated rust-oids:
 
-![screenshot](img/screenshot_003.png)
+![screenshot](img/screenshot_005.png)
 
-![screenshot](img/screenshot_004.png)
+![screenshot](img/screenshot_006.png)
 
 ## Prerequisite
 
