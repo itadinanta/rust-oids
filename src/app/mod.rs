@@ -73,6 +73,34 @@ impl Viewport {
 	}
 }
 
+pub struct Systems {
+	physics: systems::PhysicsSystem,
+	animation: systems::AnimationSystem,
+	game: systems::GameSystem,
+	ai: systems::AiSystem,
+}
+
+impl Systems {
+	fn systems(&mut self) -> Vec<&mut systems::System> {
+		vec![&mut self.animation as &mut systems::System,
+		     &mut self.game as &mut systems::System,
+		     &mut self.ai as &mut systems::System,
+		     &mut self.physics as &mut systems::System]
+	}
+
+	fn from_world(&mut self, world: &world::World, apply: &Fn(&mut systems::System, &world::World)) {
+		for r in self.systems().as_mut_slice() {
+			apply(*r, &world);
+		}
+	}
+
+	fn to_world(&mut self, mut world: &mut world::World, apply: &Fn(&mut systems::System, &mut world::World)) {
+		for r in self.systems().as_mut_slice() {
+			apply(*r, &mut world);
+		}
+	}
+}
+
 pub struct App {
 	pub viewport: Viewport,
 	input_state: input::InputState,
@@ -89,11 +117,7 @@ pub struct App {
 	backgrounds: Cycle<[f32; 4]>,
 	//
 	world: world::World,
-
-	physics: systems::PhysicsSystem,
-	animation: systems::AnimationSystem,
-	game: systems::GameSystem,
-	ai: systems::AiSystem,
+	systems: Systems,
 }
 
 pub struct Environment {
@@ -125,11 +149,12 @@ impl App {
 
 			world: world::World::new(),
 			// subsystem, need to update each
-			physics: systems::PhysicsSystem::new(),
-			animation: systems::AnimationSystem::new(),
-			game: systems::GameSystem::new(),
-			ai: systems::AiSystem::new(),
-
+			systems: Systems {
+				physics: systems::PhysicsSystem::new(),
+				animation: systems::AnimationSystem::new(),
+				game: systems::GameSystem::new(),
+				ai: systems::AiSystem::new(),
+			},
 			// runtime and timing
 			frame_count: 0u32,
 			frame_elapsed: 0.0f32,
@@ -139,6 +164,7 @@ impl App {
 			is_running: true,
 		}
 	}
+
 
 	fn init_camera() -> math::Inertial<f32> {
 		math::Inertial::new(10.0, 1. / 180., 0.5)
@@ -178,7 +204,7 @@ impl App {
 
 	fn register(&mut self, id: obj::Id) {
 		let found = self.world.friend_mut(id);
-		self.physics.register(found.unwrap());
+		self.systems.physics.register(found.unwrap());
 	}
 
 	pub fn on_app_event(&mut self, e: Event) {
@@ -369,24 +395,13 @@ impl App {
 	}
 
 	fn init_systems(&mut self) {
-		self.animation.init(&mut self.world);
-
-		self.ai.init(&mut self.world);
-
-		self.game.init(&mut self.world);
-
-		self.physics.init(&mut self.world);
+		self.systems.from_world(&self.world, &|s, world| s.init(&world));
 	}
 
 	fn update_systems(&mut self, dt: f32) {
-		self.animation.update_world(dt, &mut self.world);
-
-		self.game.update_world(dt, &mut self.world);
-
-		self.ai.follow_me(self.light_position);
-		self.ai.update_world(dt, &mut self.world);
-
-		self.physics.update_world(dt, &mut self.world);
+		self.systems.ai.follow_me(self.light_position);
+		self.systems.to_world(&mut self.world,
+		                      &|s, mut world| s.update_world(dt, &mut world));
 	}
 
 	pub fn update(&mut self) -> Result<Update, SystemTimeError> {
@@ -399,6 +414,7 @@ impl App {
 		self.frame_start = SystemTime::now();
 
 		self.camera.update(frame_time_smooth);
+
 		self.update_input(frame_time_smooth);
 		self.update_systems(frame_time_smooth);
 		self.frame_count += 1;

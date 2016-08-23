@@ -2,6 +2,7 @@ pub mod physics;
 pub mod animation;
 pub mod ai;
 pub mod game;
+pub mod audio;
 
 pub use self::physics::PhysicsSystem;
 pub use self::animation::AnimationSystem;
