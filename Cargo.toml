@@ -30,3 +30,5 @@ gfx_device_gl = "*"
 gfx_window_glutin = "*"
 gfx_text = "*"
 glutin = "*"
+
+synth="*"

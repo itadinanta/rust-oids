@@ -16,9 +16,10 @@ dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mopa 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
- "piston 0.24.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "piston 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "simplelog 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "synth 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "wrapped2d 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -128,6 +129,14 @@ version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "daggy"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "petgraph 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "deque"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -152,6 +161,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "dsp-chain"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "daggy 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sample 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "dtoa"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -172,6 +190,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "num 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "envelope"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "interpolation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "fixedbitset"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "flate2"
@@ -214,7 +247,7 @@ dependencies = [
 
 [[package]]
 name = "gcc"
-version = "0.3.33"
+version = "0.3.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -339,7 +372,7 @@ dependencies = [
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "objc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "osmesa-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "osmesa-sys 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "shared_library 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "shell32-sys 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "user32-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -370,6 +403,11 @@ dependencies = [
 [[package]]
 name = "inflate"
 version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "interpolation"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -431,7 +469,7 @@ name = "libz-sys"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "gcc 0.3.33 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gcc 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -466,11 +504,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "mindtree_utils"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "num 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "mindtree_utils"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "num 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "miniz-sys"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "gcc 0.3.33 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gcc 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -563,20 +622,33 @@ dependencies = [
 
 [[package]]
 name = "osmesa-sys"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "shared_library 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
-name = "piston"
-version = "0.24.0"
+name = "panning"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "petgraph"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "pistoncore-event_loop 0.24.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "pistoncore-input 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "pistoncore-window 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fixedbitset 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "piston"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "pistoncore-event_loop 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pistoncore-input 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pistoncore-window 0.22.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -594,18 +666,18 @@ dependencies = [
 
 [[package]]
 name = "pistoncore-event_loop"
-version = "0.24.0"
+version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "piston-viewport 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "pistoncore-input 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "pistoncore-window 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pistoncore-input 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pistoncore-window 0.22.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "pistoncore-input"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -615,11 +687,21 @@ dependencies = [
 
 [[package]]
 name = "pistoncore-window"
-version = "0.21.0"
+version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "pistoncore-input 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pistoncore-input 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "shader_version 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "pitch_calc"
+version = "0.9.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "num 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -670,6 +752,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "sample"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "scoped_threadpool"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -686,7 +773,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "serde"
-version = "0.8.3"
+version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -697,7 +784,7 @@ dependencies = [
  "dtoa 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "itoa 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -724,6 +811,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "simple_gaussian"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "mindtree_utils 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "simplelog"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -731,6 +828,23 @@ dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "term 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "synth"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "dsp-chain 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "envelope 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mindtree_utils 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "panning 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pitch_calc 0.9.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "simple_gaussian 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time_calc 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -770,6 +884,16 @@ dependencies = [
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "time_calc"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "num 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -854,7 +978,7 @@ version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gcc 0.3.33 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gcc 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "vec_map 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
