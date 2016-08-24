@@ -91,6 +91,18 @@ pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 }
 
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
+	fn create_shader_set<F>(factory: &mut F,
+	                        gs_code: &[u8],
+	                        vs_code: &[u8],
+	                        ps_code: &[u8])
+	                        -> Result<gfx::ShaderSet<R>, gfx::shade::core::CreateShaderError>
+		where F: gfx::Factory<R> {
+		let gs = try!(factory.create_shader_geometry(gs_code));
+		let vs = try!(factory.create_shader_vertex(vs_code));
+		let ps = try!(factory.create_shader_pixel(ps_code));
+		Ok(gfx::ShaderSet::Geometry(vs, gs, ps))
+	}
+
 	pub fn new<F>(factory: &mut F, res: &resource::ResourceLoader<u8>) -> ForwardLighting<R, C>
 		where F: gfx::Factory<R> {
 		let lights = factory.create_constant_buffer(MAX_NUM_TOTAL_LIGHTS);
@@ -99,20 +111,25 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 		let fragment = factory.create_constant_buffer(1);
 		let material = factory.create_constant_buffer(1);
 
+
 		macro_rules! load_shaders {
 			($v:expr, $f:expr) => { factory.create_shader_set(
-					&res.load(concat!("shaders/forward/", $v, ".vert")).unwrap(), 
+					&res.load(concat!("shaders/forward/", $v, ".vert")).unwrap(),
+					&res.load(concat!("shaders/forward/", $f, ".frag")).unwrap())
+				.unwrap() };
+
+			($g:expr, $v:expr, $f:expr) => { Self::create_shader_set(factory,
+					&res.load(concat!("shaders/forward/", $g, ".geom")).unwrap(),
+					&res.load(concat!("shaders/forward/", $v, ".vert")).unwrap(),
 					&res.load(concat!("shaders/forward/", $f, ".frag")).unwrap())
 				.unwrap() }
 		};
 
 		let solid_shaders = load_shaders!("lighting", "lighting_poly");
-		let ball_shaders = load_shaders!("lighting", "lighting_ball");
+		let ball_shaders = load_shaders!("point_ball", "lighting", "lighting_ball");
 
-		let solid_rasterizer = gfx::state::Rasterizer {
-			samples: Some(gfx::state::MultiSample),
-			..gfx::state::Rasterizer::new_fill()
-		};
+		let solid_rasterizer =
+			gfx::state::Rasterizer { samples: Some(gfx::state::MultiSample), ..gfx::state::Rasterizer::new_fill() };
 
 		let line_rasterizer = gfx::state::Rasterizer { method: gfx::state::RasterMethod::Line(2), ..solid_rasterizer };
 
@@ -150,7 +167,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 	              -> gfx::pso::PipelineState<R, shaded::Meta>
 		where F: gfx::Factory<R> {
 		factory.create_pipeline_state(&shaders, primitive, rasterizer, shaded::new())
-		       .unwrap()
+			.unwrap()
 	}
 
 	pub fn setup(&self,
@@ -180,14 +197,14 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 	}
 
 	pub fn draw_primitives(&self,
-	                      shader: Shader,
-	                      encoder: &mut gfx::Encoder<R, C>,
-	                      vertices: gfx::handle::Buffer<R, VertexPosNormal>,
-	                      indices: &gfx::Slice<R>,
-	                      transform: &M44,
-	                      color: [f32; 4],
-	                      color_buffer: &gfx::handle::RenderTargetView<R, HDRColorFormat>,
-	                      depth_buffer: &gfx::handle::DepthStencilView<R, DepthFormat>) {
+	                       shader: Shader,
+	                       encoder: &mut gfx::Encoder<R, C>,
+	                       vertices: gfx::handle::Buffer<R, VertexPosNormal>,
+	                       indices: &gfx::Slice<R>,
+	                       transform: &M44,
+	                       color: [f32; 4],
+	                       color_buffer: &gfx::handle::RenderTargetView<R, HDRColorFormat>,
+	                       depth_buffer: &gfx::handle::DepthStencilView<R, DepthFormat>) {
 		encoder.update_constant_buffer(&self.model, &ModelArgs { model: (*transform).into() });
 		encoder.update_constant_buffer(&self.material, &MaterialArgs { emissive: color });
 		encoder.draw(indices,
