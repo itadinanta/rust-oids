@@ -1,0 +1,11 @@
+- DESIGN rustoid's lifecycle - feed, starve, die
+- DESIGN rustoid's breeding - egg? sex? spore?
+- ARCHITECTURE input as a system?
+- DESIGN alternative body plans
+- DESIGN minions vs enemies
+- DESIGN distinguish between friend and foe
+- TECH sound effects (audio system)
+- DESIGN synth background music (audio system)
+- TECH background render - ray marching? generated skybox?
+- DESIGN shooting mechanics
+
