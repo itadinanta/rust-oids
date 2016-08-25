@@ -487,7 +487,7 @@ impl Flock {
 		let mut builder = AgentBuilder::new(self.next_id(),
 		                                    Material { density: 1.0, ..Default::default() },
 		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
-		                                    State::with_charge(charge, 0., charge * 0.75));
+		                                    State::with_charge(charge, 0., charge));
 		self.insert(builder.start(initial_pos, 0., &ball).build())
 	}
 
