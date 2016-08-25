@@ -14,7 +14,7 @@ Some procedurally generated rust-oids:
 
 ![screenshot](img/screenshot_006.png)
 
-## Prerequisite
+## Prerequisites
 
 I've only built on Ubuntu GNU/Linux but I've got reports of successful builds on Mac OS + Homebrew. Aside from the full Rust toolchain, the following packages are required:
 
@@ -30,3 +30,6 @@ I've only built on Ubuntu GNU/Linux but I've got reports of successful builds on
 - K,L: change light intensity
 - 0, Home: reset camera pan
 - Arrows: camera pan
+
+Keywords: rust rustlang gfx box2d wrapper2d hdr alpha tonemapping shader fragment pixel vertex geometry pso testbed ai alife
+
