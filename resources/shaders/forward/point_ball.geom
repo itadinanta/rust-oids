@@ -1,7 +1,7 @@
 #version 150 core
 
 layout(triangles) in;
-layout(triangle_strip, max_vertices = 100) out;
+layout(triangle_strip, max_vertices = 192) out;
 
 in VertexData {
 	vec4 Position;
@@ -35,52 +35,58 @@ void emit_vertex(V v) {
 }
 
 const float PI = 3.1415926535897932384626433832795;
-const float PI_2 = PI / 2;
+const int N = 33;
+const float D = 2 * PI / N;
+const mat2 R = mat2(cos(D), -sin(D), sin(D), cos(D));
+
+V read_vert(int i) {
+	V result;
+	result.GlPosition = gl_in[i].gl_Position;
+	result.Position = v_In[i].Position;
+	result.TexCoord = v_In[i].TexCoord;
+	result.Normal = v_In[i].Normal;
+	result.TBN = v_In[i].TBN;
+	return result;
+}
 
 void main() {
-	V verts[4];
-	for (int i = 0; i < 3; ++i) {
-		verts[i].GlPosition = gl_in[i].gl_Position;
-		verts[i].Position = v_In[i].Position;
-		verts[i].TexCoord = v_In[i].TexCoord;
-		verts[i].Normal = v_In[i].Normal;
-		verts[i].TBN = v_In[i].TBN;
-	}
-
-	V o = verts[0];
-	V u = verts[1];
-	V v = verts[2];
+	// triangle o, u, v -> (o, u) and (o, v) are a vector
+	// basis for local "ball space"
+	V o = read_vert(0);
+	V u = read_vert(1);
+	V v = read_vert(2);
 
 	V u0 = u;
 	u.GlPosition -= o.GlPosition;
 	u.Position -= o.Position;
 	u.TexCoord -= o.TexCoord;
 
-	V v0 = v;
 	v.GlPosition -= o.GlPosition;
 	v.Position -= o.Position;
 	v.TexCoord -= o.TexCoord;
 
-	int n = 32;
-	float d = 2 * PI / n;
-
+	// we use a clock "hand" and go round the circle,
+	// rotating the "hand" counterclockwise
+	// of D radians, D = 2*pi/N, each step
 	vec2 unit = vec2(1, 0);
 	V prev;
 	V hand = u0;
-	mat2 r = mat2(cos(d), -sin(d), sin(d), cos(d));
-	for (int i = 0; i < n; ++i) {
+	// we build a triangle fan of N triangles using (o, hand(i), hand(i-1))
+	// as the vertices.
+	for (int i = 0; i < N; ++i) {
 		prev = hand;
-		unit = r * unit;
+		unit = R * unit;
 
 		hand.GlPosition = unit.x * u.GlPosition + unit.y * v.GlPosition
 				+ o.GlPosition;
 		hand.Position = unit.x * u.Position + unit.y * v.Position + o.Position;
 		hand.TexCoord = unit.x * u.TexCoord + unit.y * v.TexCoord + o.TexCoord;
 
-		emit_vertex(o);
-		emit_vertex(prev);
-		emit_vertex(hand);
-
-		EndPrimitive();
+		if (i % 3 != 0) {
+			emit_vertex(o);
+			emit_vertex(prev);
+			emit_vertex(hand);
+			EndPrimitive();
+		}
 	}
 }
