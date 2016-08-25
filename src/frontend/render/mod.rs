@@ -51,6 +51,26 @@ const QUAD_VERTICES: [Vertex; 4] = [Vertex {
 
 const QUAD_INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
 
+const BASE_VERTICES: [Vertex; 3] = [Vertex {
+	                                    pos: [0.0, 0.0, 0.0],
+	                                    normal: [0.0, 0.0, 1.0],
+	                                    tangent: [1.0, 0.0, 0.0],
+	                                    tex_coord: [0.5, 0.5],
+                                    },
+                                    Vertex {
+	                                    pos: [1.0, 0.0, 0.0],
+	                                    normal: [0.0, 0.0, 1.0],
+	                                    tangent: [1.0, 0.0, 0.0],
+	                                    tex_coord: [1.0, 0.5],
+                                    },
+                                    Vertex {
+	                                    pos: [0.0, 1.0, 0.0],
+	                                    normal: [0.0, 0.0, 1.0],
+	                                    tangent: [1.0, 0.0, 0.0],
+	                                    tex_coord: [0.5, 1.0],
+                                    }];
+
+
 pub struct Camera {
 	pub projection: M44,
 	pub view: M44,
@@ -60,17 +80,17 @@ impl Camera {
 	pub fn ortho(center: cgmath::Vector2<f32>, scale: f32, ratio: f32) -> Camera {
 		Camera {
 			projection: {
-				            let hw = 0.5 * scale;
-				            let hh = hw / ratio;
-				            let near = 10.0;
-				            let far = -near;
-				            cgmath::ortho(-hw, hw, -hh, hh, near, far)
-				           }
-			            .into(),
+					let hw = 0.5 * scale;
+					let hh = hw / ratio;
+					let near = 10.0;
+					let far = -near;
+					cgmath::ortho(-hw, hw, -hh, hh, near, far)
+				}
+				.into(),
 			view: cgmath::Matrix4::look_at(cgmath::Point3::new(center.x, center.y, 1.0),
 			                               cgmath::Point3::new(center.x, center.y, 0.0),
 			                               cgmath::Vector3::unit_y())
-				      .into(),
+				.into(),
 		}
 	}
 }
@@ -113,6 +133,9 @@ pub struct ForwardRenderer<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>,
 	quad_vertices: gfx::handle::Buffer<R, Vertex>,
 	quad_indices: gfx::Slice<R>,
 
+	base_vertices: gfx::handle::Buffer<R, Vertex>,
+	base_indices: gfx::Slice<R>,
+
 	text_renderer: gfx_text::Renderer<R, F>,
 	pass_forward_lighting: forward::ForwardLighting<R, C>,
 	pass_effects: effects::PostLighting<R, C>,
@@ -129,15 +152,16 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 	           depth: &gfx::handle::DepthStencilView<R, DepthFormat>)
 	           -> ForwardRenderer<'e, R, C, F> {
 		let my_factory = factory.clone();
-		let (vertex_buffer, quad_slice) = factory.create_vertex_buffer_with_slice(&QUAD_VERTICES, &QUAD_INDICES[..]);
+		let (quad_vertices, quad_indices) = factory.create_vertex_buffer_with_slice(&QUAD_VERTICES, &QUAD_INDICES[..]);
+		let (base_vertices, base_indices) = factory.create_vertex_buffer_with_slice(&BASE_VERTICES, ());
 
 		let (w, h, _, _) = frame_buffer.get_dimensions();
 
 		let (_, hdr_srv, hdr_color_buffer) = Self::create_render_target(factory, w, h).unwrap();
 
 		let res = resource::filesystem::ResourceLoaderBuilder::new()
-			          .add(path::Path::new("resources"))
-			          .build();
+			.add(path::Path::new("resources"))
+			.build();
 
 		let forward = forward::ForwardLighting::new(factory, &res);
 		let effects = effects::PostLighting::new(factory, &res, w, h);
@@ -151,8 +175,10 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 			depth: depth.clone(),
 			frame_buffer: frame_buffer.clone(),
 			text_renderer: gfx_text::new(factory.clone()).build().unwrap(),
-			quad_vertices: vertex_buffer,
-			quad_indices: quad_slice,
+			quad_vertices: quad_vertices,
+			quad_indices: quad_indices,
+			base_vertices: base_vertices,
+			base_indices: base_indices,
 			pass_forward_lighting: forward,
 			pass_effects: effects,
 			background_color: BACKGROUND,
@@ -179,9 +205,8 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 		                                      gfx::SHADER_RESOURCE | gfx::RENDER_TARGET,
 		                                      gfx::Usage::GpuOnly,
 		                                      Some(gfx::format::ChannelType::Float)));
-		let hdr_srv = try!(factory.view_texture_as_shader_resource::<HDRColorFormat>(&tex,
-		                                                                             (0, 0),
-		                                                                             gfx::format::Swizzle::new()));
+		let hdr_srv =
+			try!(factory.view_texture_as_shader_resource::<HDRColorFormat>(&tex, (0, 0), gfx::format::Swizzle::new()));
 		let hdr_color_buffer = try!(factory.view_texture_as_render_target(&tex, 0, None));
 		Ok((tex, hdr_srv, hdr_color_buffer))
 	}
@@ -204,15 +229,15 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for ForwardRenderer<'e, R, C, F> {
 	fn draw_star(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[cgmath::Vector2<f32>], color: [f32; 4]) {
 		let mut v: Vec<_> = vertices.iter()
-		                            .map(|v| {
-			                            Vertex {
-				                            pos: [v.x, v.y, 0.0],
-				                            normal: [0.0, 0.0, 1.0],
-				                            tangent: [1.0, 0.0, 0.0],
-				                            tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
-			                            }
-			                           })
-		                            .collect();
+			.map(|v| {
+				Vertex {
+					pos: [v.x, v.y, 0.0],
+					normal: [0.0, 0.0, 1.0],
+					tangent: [1.0, 0.0, 0.0],
+					tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
+				}
+			})
+			.collect();
 		let n = v.len();
 		v.push(Vertex::default());
 
@@ -238,15 +263,15 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 
 	fn draw_lines(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[cgmath::Vector2<f32>], color: [f32; 4]) {
 		let v: Vec<_> = vertices.iter()
-		                        .map(|v| {
-			                        Vertex {
-				                        pos: [v.x, v.y, 0.0],
-				                        normal: [0.0, 0.0, 1.0],
-				                        tangent: [1.0, 0.0, 0.0],
-				                        tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
-			                        }
-			                       })
-		                        .collect();
+			.map(|v| {
+				Vertex {
+					pos: [v.x, v.y, 0.0],
+					normal: [0.0, 0.0, 1.0],
+					tangent: [1.0, 0.0, 0.0],
+					tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
+				}
+			})
+			.collect();
 		let (vertex_buffer, index_buffer) = self.factory.create_vertex_buffer_with_slice(v.as_slice(), ());
 
 		self.pass_forward_lighting.draw_primitives(forward::Shader::Lines,
@@ -263,8 +288,8 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 	fn draw_ball(&mut self, transform: &cgmath::Matrix4<f32>, color: [f32; 4]) {
 		self.pass_forward_lighting.draw_primitives(forward::Shader::Ball,
 		                                           &mut self.encoder,
-		                                           self.quad_vertices.clone(),
-		                                           &self.quad_indices,
+		                                           self.base_vertices.clone(),
+		                                           &self.base_indices,
 		                                           &transform,
 		                                           color,
 		                                           &mut self.hdr_color,
@@ -359,19 +384,17 @@ impl<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>> Render
 		self.background_color = background_color;
 		self.light_color = light_color;
 		self.light_position = light_position;
-		let lights: Vec<forward::PointLight> = vec![forward::PointLight {
-			                                            propagation: [0.3, 0.5, 0.4, 0.0],
-			                                            center: [-15.0, -5.0, 1.0, 1.0],
-			                                            color: [0.3, 0.0, 0.0, 1.0],
-		                                            },
-		                                            forward::PointLight {
-			                                            propagation: [0.2, 0.8, 0.1, 0.1],
-			                                            center: [self.light_position.x,
-			                                                     self.light_position.y,
-			                                                     2.0,
-			                                                     1.0],
-			                                            color: self.light_color,
-		                                            }];
+		let lights: Vec<forward::PointLight> =
+			vec![forward::PointLight {
+				     propagation: [0.3, 0.5, 0.4, 0.0],
+				     center: [-15.0, -5.0, 1.0, 1.0],
+				     color: [0.3, 0.0, 0.0, 1.0],
+			     },
+			     forward::PointLight {
+				     propagation: [0.2, 0.8, 0.1, 0.1],
+				     center: [self.light_position.x, self.light_position.y, 2.0, 1.0],
+				     color: self.light_color,
+			     }];
 
 		self.pass_forward_lighting.setup(&mut self.encoder, camera.projection, camera.view, &lights);
 	}

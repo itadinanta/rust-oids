@@ -40,22 +40,11 @@ void main() {
 
 	vec4 color = u_Emissive;
 
-	float dx = v_In.TexCoord.x - 0.5;
-	float dy = v_In.TexCoord.y - 0.5;
-	float r = dx * dx + dy * dy;
-	vec3 normal_map = vec3(0., 0., 1.);
+	float dx = 2 * v_In.TexCoord.x - 1;
+	float dy = 2 * v_In.TexCoord.y - 1;
+	float r = min(1, dx * dx + dy * dy);
 
-	if (r > 0.25) {
-		discard;
-	} else {
-		dx *= 2;
-		dy *= 2;
-
-		float bump = sqrt(1. - dx * dx - dy * dy);
-		normal_map = vec3(dx, dy, bump);
-	};
-
-	vec3 normal = v_In.TBN * normal_map;
+	vec3 normal = v_In.TBN * vec3(dx, dy, sqrt(1 - r));
 
 	for (int i = 0; i < u_LightCount; i++) {
 		vec4 delta = light[i].center - v_In.Position;
@@ -80,6 +69,5 @@ void main() {
 		}
 		color += light[i].color * intensity * (kd * lambert + ks * specular);
 	}
-	// gl_FragDepth = bump;
 	o_Color = color;
 }

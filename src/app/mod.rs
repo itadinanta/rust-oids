@@ -409,7 +409,6 @@ impl App {
 		let frame_time = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
 		let frame_time_smooth = self.frame_smooth.smooth(frame_time);
 
-
 		self.frame_elapsed += frame_time;
 		self.frame_start = SystemTime::now();
 
