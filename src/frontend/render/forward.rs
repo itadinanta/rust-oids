@@ -1,6 +1,7 @@
 use gfx;
 use gfx::traits::FactoryExt;
-use frontend::render;
+use std::result;
+use frontend::render::Result;
 use frontend::render::RenderFactoryExt;
 use core::resource;
 
@@ -93,9 +94,7 @@ pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 }
 
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
-	pub fn new<F>(factory: &mut F,
-	              res: &resource::ResourceLoader<u8>)
-	              -> Result<ForwardLighting<R, C>, render::RenderError>
+	pub fn new<F>(factory: &mut F, res: &resource::ResourceLoader<u8>) -> Result<ForwardLighting<R, C>>
 		where F: gfx::Factory<R> {
 		let lights = factory.create_constant_buffer(MAX_NUM_TOTAL_LIGHTS);
 		let camera = factory.create_constant_buffer(1);
@@ -118,8 +117,10 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 		let solid_shaders = try!(load_shaders!("lighting", "lighting_poly"));
 		let ball_shaders = try!(load_shaders!("point_ball", "lighting", "lighting_ball"));
 
-		let solid_rasterizer =
-			gfx::state::Rasterizer { samples: Some(gfx::state::MultiSample), ..gfx::state::Rasterizer::new_fill() };
+		let solid_rasterizer = gfx::state::Rasterizer {
+			samples: Some(gfx::state::MultiSample),
+			..gfx::state::Rasterizer::new_fill()
+		};
 
 		let line_rasterizer = gfx::state::Rasterizer { method: gfx::state::RasterMethod::Line(2), ..solid_rasterizer };
 
@@ -154,7 +155,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 	              shaders: &gfx::ShaderSet<R>,
 	              primitive: gfx::Primitive,
 	              rasterizer: gfx::state::Rasterizer)
-	              -> Result<gfx::pso::PipelineState<R, shaded::Meta>, gfx::PipelineStateError>
+	              -> result::Result<gfx::pso::PipelineState<R, shaded::Meta>, gfx::PipelineStateError>
 		where F: gfx::Factory<R> {
 		factory.create_pipeline_state(&shaders, primitive, rasterizer, shaded::new())
 	}
@@ -176,13 +177,14 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 			})
 		}
 
-		encoder.update_buffer(&self.lights, &lights_buf[..], 0).unwrap();
-		encoder.update_constant_buffer(&self.camera,
-		                               &CameraArgs {
-			                               proj: camera_projection.into(),
-			                               view: camera_view.into(),
-		                               });
-		encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32 });
+		if let Ok(_) = encoder.update_buffer(&self.lights, &lights_buf[..], 0) {
+			encoder.update_constant_buffer(&self.camera,
+			                               &CameraArgs {
+				                               proj: camera_projection.into(),
+				                               view: camera_view.into(),
+			                               });
+			encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32 });
+		}
 	}
 
 	pub fn draw_primitives(&self,

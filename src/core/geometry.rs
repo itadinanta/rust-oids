@@ -1,7 +1,9 @@
+use cgmath;
 use cgmath::Vector2;
 
 pub type Position = Vector2<f32>;
 pub type Translation = Vector2<f32>;
+pub type M44 = cgmath::Matrix4<f32>;
 
 #[derive(Clone, Default)]
 pub struct Size {

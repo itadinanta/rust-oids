@@ -2,6 +2,7 @@ use gfx;
 use gfx::traits::FactoryExt;
 
 use core::resource;
+use frontend::render::Result;
 
 pub type HDR = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
 pub type LDR = gfx::format::Srgba8;
@@ -84,7 +85,7 @@ pub struct PostLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 }
 
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
-	pub fn new<F>(factory: &mut F, res: &resource::ResourceLoader<u8>, w: u16, h: u16) -> PostLighting<R, C>
+	pub fn new<F>(factory: &mut F, res: &resource::ResourceLoader<u8>, w: u16, h: u16) -> Result<PostLighting<R, C>>
 		where F: gfx::Factory<R> {
 
 		let full_screen_triangle = vec![BlitVertex {
@@ -113,30 +114,28 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 
 		macro_rules! load_pipeline_simple {
 			($v:expr, $f:expr, $s:ident) => { factory.create_pipeline_simple(
-					&res.load(concat!("shaders/effects/", $v, ".vert")).unwrap(), 
-					&res.load(concat!("shaders/effects/", $f, ".frag")).unwrap(),
-					$s::new()
-				)
-				.unwrap() }
+					&try!(res.load(concat!("shaders/effects/", $v, ".vert"))), 
+					&try!(res.load(concat!("shaders/effects/", $f, ".frag"))),
+					$s::new())}
 		};
 
-		let tone_map_pso = load_pipeline_simple!("luminance", "exposure_tone_map", tone_map);
-		let resolve_msaa_pso = load_pipeline_simple!("identity", "msaa4x_resolve", postprocess);
-		let highlight_pso = load_pipeline_simple!("identity", "clip_luminance", postprocess);
-		let blur_h_pso = load_pipeline_simple!("identity", "gaussian_blur_horizontal", postprocess);
-		let blur_v_pso = load_pipeline_simple!("identity", "gaussian_blur_vertical", postprocess);
-		let blit_pso = load_pipeline_simple!("identity", "simple_blit", postprocess);
-		let smooth_pso = load_pipeline_simple!("identity", "exponential_smooth", smooth);
-		let average_pso = load_pipeline_simple!("identity", "quad_smooth", postprocess);
-		let compose_pso = load_pipeline_simple!("identity", "compose_2", compose);
+		let tone_map_pso = try!(load_pipeline_simple!("luminance", "exposure_tone_map", tone_map));
+		let resolve_msaa_pso = try!(load_pipeline_simple!("identity", "msaa4x_resolve", postprocess));
+		let highlight_pso = try!(load_pipeline_simple!("identity", "clip_luminance", postprocess));
+		let blur_h_pso = try!(load_pipeline_simple!("identity", "gaussian_blur_horizontal", postprocess));
+		let blur_v_pso = try!(load_pipeline_simple!("identity", "gaussian_blur_vertical", postprocess));
+		let blit_pso = try!(load_pipeline_simple!("identity", "simple_blit", postprocess));
+		let smooth_pso = try!(load_pipeline_simple!("identity", "exponential_smooth", smooth));
+		let average_pso = try!(load_pipeline_simple!("identity", "quad_smooth", postprocess));
+		let compose_pso = try!(load_pipeline_simple!("identity", "compose_2", compose));
 
-		let resolved = factory.create_render_target::<HDR>(w, h).unwrap();
+		let resolved = try!(factory.create_render_target::<HDR>(w, h));
 
-		let ping_pong_half = [factory.create_render_target::<HDR>(w / 2, h / 2).unwrap(),
-		                      factory.create_render_target::<HDR>(w / 2, h / 2).unwrap()];
+		let ping_pong_half = [try!(factory.create_render_target::<HDR>(w / 2, h / 2)),
+		                      try!(factory.create_render_target::<HDR>(w / 2, h / 2))];
 
-		let ping_pong_full = [factory.create_render_target::<HDR>(w, h).unwrap(),
-		                      factory.create_render_target::<HDR>(w, h).unwrap()];
+		let ping_pong_full = [try!(factory.create_render_target::<HDR>(w, h)),
+		                      try!(factory.create_render_target::<HDR>(w, h))];
 
 		let mut mips: Vec<HDRRenderSurface<R>> = Vec::new();
 		let mut w2 = w;
@@ -146,13 +145,13 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 			w2 = (w2 + 1) / 2;
 			h2 = (h2 + 1) / 2;
 			// println!("{}x{}", w2, h2);
-			mips.push(factory.create_render_target::<HDR>(w2, h2).unwrap());
+			mips.push(try!(factory.create_render_target::<HDR>(w2, h2)));
 		}
 
-		let luminance_smooth = factory.create_render_target::<HDR>(1, 1).unwrap();
-		let luminance_acc = factory.create_render_target::<HDR>(1, 1).unwrap();
+		let luminance_smooth = try!(factory.create_render_target::<HDR>(1, 1));
+		let luminance_acc = try!(factory.create_render_target::<HDR>(1, 1));
 
-		PostLighting {
+		Ok(PostLighting {
 			vertex_buffer: vertex_buffer,
 			index_buffer_slice: slice,
 			nearest_sampler: nearest_sampler,
@@ -183,7 +182,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 			ping_pong_full: ping_pong_full,
 
 			_buffer: PhantomData,
-		}
+		})
 	}
 
 	fn full_screen_pass(&self,

@@ -13,12 +13,15 @@ pub fn main_loop() {
 	const HEIGHT: u32 = 720;
 
 	let builder = glutin::WindowBuilder::new()
-		.with_title("Box2d + GFX".to_string())
-		.with_dimensions(WIDTH, HEIGHT)
-		.with_vsync();
+		              .with_title("Box2d + GFX".to_string())
+		              .with_dimensions(WIDTH, HEIGHT)
+		              .with_vsync();
 
-	let (window, mut device, mut factory, mut frame_buffer, mut depth_buffer) =
-		gfx_window_glutin::init::<render::ColorFormat, render::DepthFormat>(builder);
+	let (window,
+	     mut device,
+	     mut factory,
+	     mut frame_buffer,
+	     mut depth_buffer) = gfx_window_glutin::init::<render::ColorFormat, render::DepthFormat>(builder);
 
 	let (w, h, _, _) = frame_buffer.get_dimensions();
 
@@ -36,7 +39,7 @@ pub fn main_loop() {
 			match event {
 				glutin::Event::Resized(new_width, new_height) => {
 					gfx_window_glutin::update_views(&window, &mut frame_buffer, &mut depth_buffer);
-					renderer.resize_to(&frame_buffer, &depth_buffer);
+					renderer.resize_to(&frame_buffer, &depth_buffer).unwrap();
 					app.on_resize(new_width, new_height);
 				}
 				glutin::Event::Closed => app.quit(),
@@ -60,18 +63,14 @@ pub fn main_loop() {
 
 		let environment = app.environment();
 
-		renderer.setup(&camera,
-		               environment.background,
-		               environment.light,
-		               environment.light_position);
-
-
+		renderer.setup_frame(&camera,
+		                     environment.background,
+		                     environment.light,
+		                     environment.light_position);
 		// draw a frame
 		renderer.begin_frame();
-
 		// draw the scene
 		app.render(renderer);
-
 		// post-render effects and tone mapping
 		renderer.resolve_frame_buffer();
 
