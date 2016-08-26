@@ -1,7 +1,6 @@
 use super::*;
 use backend::world;
 use backend::world::WorldState;
-use core::clock;
 use core::clock::Stopwatch;
 use std::time::*;
 

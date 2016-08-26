@@ -186,12 +186,12 @@ struct AgentBuilder {
 	id: Id,
 	material: Material,
 	livery: Livery,
-	state: State,
+	state: segment::State,
 	segments: Vec<Segment>,
 }
 
 impl AgentBuilder {
-	fn new(id: Id, material: Material, livery: Livery, state: State) -> Self {
+	fn new(id: Id, material: Material, livery: Livery, state: segment::State) -> Self {
 		AgentBuilder {
 			id: id,
 			material: material,
@@ -213,7 +213,7 @@ impl AgentBuilder {
 	           parent_index: SegmentIndex,
 	           attachment_index_offset: isize,
 	           shape: &Shape,
-	           flags: SegmentFlags)
+	           flags: Flags)
 	           -> &mut Self {
 		self.addw(parent_index,
 		          attachment_index_offset,
@@ -226,7 +226,7 @@ impl AgentBuilder {
 	            parent_index: SegmentIndex,
 	            attachment_index_offset: isize,
 	            shape: &Shape,
-	            flags: SegmentFlags)
+	            flags: Flags)
 	            -> &mut Self {
 		self.addw(parent_index,
 		          attachment_index_offset,
@@ -239,13 +239,13 @@ impl AgentBuilder {
 	            parent_index: SegmentIndex,
 	            attachment_index_offset: isize,
 	            shape: &Shape,
-	            flags: SegmentFlags)
+	            flags: segment::Flags)
 	            -> &mut Self {
 		self.addw(parent_index,
 		          attachment_index_offset,
 		          shape,
 		          Winding::CW,
-		          flags | RIGHT)
+		          flags | segment::RIGHT)
 	}
 
 	pub fn addw(&mut self,
@@ -253,7 +253,7 @@ impl AgentBuilder {
 	            attachment_index_offset: isize,
 	            shape: &Shape,
 	            winding: Winding,
-	            flags: SegmentFlags)
+	            flags: Flags)
 	            -> &mut Self {
 		let parent = self.segments[parent_index as usize].clone();//urgh!;
 		let parent_pos = parent.transform.position;
@@ -287,7 +287,7 @@ impl AgentBuilder {
 	               position: Position,
 	               angle: f32,
 	               attachment: Option<Attachment>,
-	               flags: SegmentFlags)
+	               flags: Flags)
 	               -> Segment {
 		Segment {
 			index: self.segments.len() as SegmentIndex,
@@ -360,7 +360,7 @@ impl Flock {
 		let mut builder = AgentBuilder::new(self.next_id(),
 		                                    Material { density: 1.0, ..Default::default() },
 		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
-		                                    State::with_charge(charge, 0., charge));
+		                                    segment::State::with_charge(charge, 0., charge));
 		self.insert(builder.start(initial_pos, 0., &ball).build())
 	}
 
@@ -369,7 +369,7 @@ impl Flock {
 		let mut builder = AgentBuilder::new(self.next_id(),
 		                                    Material { density: 0.2, ..Default::default() },
 		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
-		                                    State::with_charge(0., charge, charge));
+		                                    segment::State::with_charge(0., charge, charge));
 		let arm_shape = self.rnd.random_star();
 		let leg_shape = self.rnd.random_star();
 		let torso_shape = self.rnd.random_npoly(5, true);

@@ -74,7 +74,7 @@ struct JointRef<'a> {
 	refs: world::AgentRefs,
 	handle: b2::BodyHandle,
 	mesh: &'a obj::Mesh,
-	flags: world::segment::SegmentFlags,
+	flags: segment::Flags,
 	attachment: Option<segment::Attachment>,
 }
 

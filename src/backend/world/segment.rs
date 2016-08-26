@@ -80,24 +80,24 @@ pub struct Attachment {
 }
 
 bitflags! {
-		pub flags SegmentFlags: u32 {
-			const SENSOR       = 0x1,
-			const JOINT        = 0x4,
-			const HEAD		   = 0x10,
-			const LEG          = 0x20,
-			const ARM          = 0x40,
-			const TORSO        = 0x100,
-			const BELLY        = 0x200,
-			const TAIL         = 0x400,
-			const LEFT         = 0x1000,
-			const RIGHT        = 0x2000,
-			const MIDDLE       = 0x4000,
-			const THRUSTER     = 0x10000,
-			const RUDDER       = 0x20000,
-			const BRAKE        = 0x40000,
-			const ACTUATOR     = THRUSTER.bits | RUDDER.bits | BRAKE.bits,
-		}
+	pub flags Flags: u32 {
+		const SENSOR       = 0x1,
+		const JOINT        = 0x4,
+		const HEAD		   = 0x10,
+		const LEG          = 0x20,
+		const ARM          = 0x40,
+		const TORSO        = 0x100,
+		const BELLY        = 0x200,
+		const TAIL         = 0x400,
+		const LEFT         = 0x1000,
+		const RIGHT        = 0x2000,
+		const MIDDLE       = 0x4000,
+		const THRUSTER     = 0x10000,
+		const RUDDER       = 0x20000,
+		const BRAKE        = 0x40000,
+		const ACTUATOR     = THRUSTER.bits | RUDDER.bits | BRAKE.bits,
 	}
+}
 
 #[derive(Clone)]
 pub struct Segment {
@@ -108,7 +108,7 @@ pub struct Segment {
 	pub livery: Livery,
 	pub attached_to: Option<Attachment>,
 	pub state: State,
-	pub flags: SegmentFlags,
+	pub flags: Flags,
 }
 
 impl Segment {
