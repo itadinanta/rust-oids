@@ -70,7 +70,6 @@ const BASE_VERTICES: [Vertex; 3] = [Vertex {
 	                                    tex_coord: [0.5, 1.0],
                                     }];
 
-
 pub struct Camera {
 	pub projection: M44,
 	pub view: M44,
@@ -94,6 +93,38 @@ impl Camera {
 		}
 	}
 }
+#[derive(Debug)]
+pub enum RenderError {
+	Shader(String),
+}
+
+use std::convert;
+use std::fmt;
+use std::result;
+
+pub type Result<T> = result::Result<T, RenderError>;
+
+impl<T: fmt::Display> convert::From<T> for RenderError {
+	fn from(e: T) -> Self {
+		RenderError::Shader(e.to_string())
+	}
+}
+
+trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
+	fn create_shader_set_with_geometry(&mut self,
+	                                   gs_code: &[u8],
+	                                   vs_code: &[u8],
+	                                   ps_code: &[u8])
+	                                   -> Result<gfx::ShaderSet<R>> {
+		let gs = try!(self.create_shader_geometry(gs_code));
+		let vs = try!(self.create_shader_vertex(vs_code));
+		let ps = try!(self.create_shader_pixel(ps_code));
+		Ok(gfx::ShaderSet::Geometry(vs, gs, ps))
+	}
+}
+
+impl<R: gfx::Resources, E: gfx::traits::FactoryExt<R>> RenderFactoryExt<R> for E {}
+
 
 pub trait Draw {
 	fn draw_triangle(&mut self, transform: &cgmath::Matrix4<f32>, p: &[cgmath::Vector2<f32>], color: [f32; 4]);
@@ -150,7 +181,7 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 	           encoder: &'e mut gfx::Encoder<R, C>,
 	           frame_buffer: &gfx::handle::RenderTargetView<R, ColorFormat>,
 	           depth: &gfx::handle::DepthStencilView<R, DepthFormat>)
-	           -> ForwardRenderer<'e, R, C, F> {
+	           -> Result<ForwardRenderer<'e, R, C, F>> {
 		let my_factory = factory.clone();
 		let (quad_vertices, quad_indices) = factory.create_vertex_buffer_with_slice(&QUAD_VERTICES, &QUAD_INDICES[..]);
 		let (base_vertices, base_indices) = factory.create_vertex_buffer_with_slice(&BASE_VERTICES, ());
@@ -163,10 +194,10 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 			.add(path::Path::new("resources"))
 			.build();
 
-		let forward = forward::ForwardLighting::new(factory, &res);
+		let forward = try!(forward::ForwardLighting::new(factory, &res));
 		let effects = effects::PostLighting::new(factory, &res, w, h);
 
-		ForwardRenderer {
+		Ok(ForwardRenderer {
 			factory: my_factory,
 			res: res,
 			encoder: encoder,
@@ -184,21 +215,19 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 			background_color: BACKGROUND,
 			light_color: BLACK,
 			light_position: cgmath::Vector2::new(0.0, 0.0),
-		}
+		})
 	}
 
-	pub fn rebuild(&mut self) {
+	pub fn rebuild(&mut self) -> Result<()> {
 		let factory = &mut self.factory;
 
 		let (w, h, _, _) = self.frame_buffer.get_dimensions();
-		self.pass_forward_lighting = forward::ForwardLighting::new(factory, &self.res);
+		self.pass_forward_lighting = try!(forward::ForwardLighting::new(factory, &self.res));
 		self.pass_effects = effects::PostLighting::new(factory, &self.res, w, h);
+		Ok(())
 	}
 
-	fn create_render_target(factory: &mut F,
-	                        w: u16,
-	                        h: u16)
-	                        -> Result<effects::HDRRenderSurface<R>, gfx::CombinedError> {
+	fn create_render_target(factory: &mut F, w: u16, h: u16) -> Result<effects::HDRRenderSurface<R>> {
 		let kind = gfx::tex::Kind::D2(w, h, gfx::tex::AaMode::Multi(4));
 		let tex = try!(factory.create_texture(kind,
 		                                      1,

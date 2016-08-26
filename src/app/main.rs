@@ -24,7 +24,7 @@ pub fn main_loop() {
 
 	let mut encoder = factory.create_command_buffer().into();
 
-	let renderer = &mut render::ForwardRenderer::new(&mut factory, &mut encoder, &frame_buffer, &depth_buffer);
+	let renderer = &mut render::ForwardRenderer::new(&mut factory, &mut encoder, &frame_buffer, &depth_buffer).unwrap();
 	let mapper = GlutinEventMapper::new();
 	// Create a new game and run it.
 	let mut app = app::App::new(w as u32, h as u32, 100.0);
@@ -40,7 +40,7 @@ pub fn main_loop() {
 					app.on_resize(new_width, new_height);
 				}
 				glutin::Event::Closed => app.quit(),
-				glutin::Event::KeyboardInput(_, _, Some(glutin::VirtualKeyCode::F5)) => renderer.rebuild(),
+				glutin::Event::KeyboardInput(_, _, Some(glutin::VirtualKeyCode::F5)) => renderer.rebuild().unwrap(),
 				e => {
 					mapper.translate(&e).map(|i| app.on_input_event(&i));
 				}
