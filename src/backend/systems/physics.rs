@@ -4,7 +4,8 @@ use wrapped2d::dynamics::world::callbacks::ContactAccess;
 use backend::obj;
 use backend::obj::{Solid, Geometry, Transformable};
 use backend::world;
-use backend::world::Intent;
+use backend::world::segment;
+use backend::world::segment::Intent;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::f32::consts;
@@ -73,8 +74,8 @@ struct JointRef<'a> {
 	refs: world::AgentRefs,
 	handle: b2::BodyHandle,
 	mesh: &'a obj::Mesh,
-	flags: world::SegmentFlags,
-	attachment: Option<world::Attachment>,
+	flags: world::segment::SegmentFlags,
+	attachment: Option<segment::Attachment>,
 }
 
 impl System for PhysicsSystem {
@@ -273,7 +274,7 @@ impl PhysicsSystem {
 						world.create_joint_with(&$joint, ())
 					}
 				);
-				if flags.contains(world::JOINT) {
+				if flags.contains(world::segment::JOINT) {
 					let mut joint = b2::RevoluteJointDef::new(medial, distal);
 					joint.enable_limit = true;
 					joint.upper_angle = consts::PI / 6.;

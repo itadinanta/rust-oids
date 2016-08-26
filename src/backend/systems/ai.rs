@@ -1,6 +1,7 @@
 use super::*;
 use backend::world;
-use backend::world::Intent;
+use backend::world::segment;
+use backend::world::segment::Intent;
 use cgmath::*;
 use core::geometry::Position;
 
@@ -17,23 +18,23 @@ impl System for AiSystem {
 			let brain = agent.brain();
 			let segments = &mut agent.segments_mut();
 			if let Some(sensor) = segments.iter()
-				.find(|segment| segment.flags.contains(world::SENSOR))
+				.find(|segment| segment.flags.contains(segment::SENSOR))
 				.map(|sensor| sensor.clone()) {
 				let t = target - sensor.transform.position;
 				let d = t.length();
 				for segment in segments.iter_mut() {
-					if segment.flags.intersects(world::ACTUATOR) {
+					if segment.flags.intersects(segment::ACTUATOR) {
 						let power = segment.state.get_charge() * segment.mesh.shape.radius().powi(2);
 						let f: Position = Matrix2::from_angle(rad(segment.transform.angle)) * Position::unit_y();
 						let proj = t.dot(f);
 						let intent = if segment.state.collision_detected {
 							Intent::RunAway(f.normalize_to(power * brain.timidity))
-						} else if segment.flags.contains(world::RUDDER) && proj > 0. && d > brain.focus &&
+						} else if segment.flags.contains(segment::RUDDER) && proj > 0. && d > brain.focus &&
 						                d < brain.caution {
 							Intent::Move(f.normalize_to(power * brain.hunger))
-						} else if segment.flags.contains(world::THRUSTER) && proj > 0. && d > brain.curiosity {
+						} else if segment.flags.contains(segment::THRUSTER) && proj > 0. && d > brain.curiosity {
 							Intent::Move(f.normalize_to(power * brain.haste))
-						} else if segment.flags.contains(world::BRAKE) && (proj < 0. || d < brain.fear) {
+						} else if segment.flags.contains(segment::BRAKE) && (proj < 0. || d < brain.fear) {
 							Intent::Move(f.normalize_to(-power * brain.prudence))
 						} else {
 							Intent::Idle

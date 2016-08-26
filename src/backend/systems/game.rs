@@ -1,12 +1,13 @@
 use super::*;
 use backend::world;
 use backend::world::WorldState;
+use core::clock;
+use core::clock::Stopwatch;
 use std::time::*;
 
 pub struct GameSystem {
 	speed: f32,
 	t0: SystemTime,
-	now: SystemTime,
 	dt: f32,
 	frames: f32,
 	elapsed: f32,
@@ -14,12 +15,9 @@ pub struct GameSystem {
 
 impl Updateable for GameSystem {
 	fn update(&mut self, _: &WorldState, dt: f32) {
-		self.now = SystemTime::now();
 		self.dt = dt;
 		self.frames += dt;
-		if let Ok(dt) = self.t0.elapsed() {
-			self.elapsed = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
-		};
+		self.elapsed = self.t0.seconds();
 	}
 }
 
@@ -41,8 +39,7 @@ impl GameSystem {
 		GameSystem {
 			dt: 1. / 60.,
 			speed: 1.,
-			t0: SystemTime::now(),
-			now: SystemTime::now(),
+			t0: SystemTime::new(),
 			frames: 0.,
 			elapsed: 0.,
 		}
