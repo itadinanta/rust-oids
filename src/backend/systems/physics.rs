@@ -79,7 +79,7 @@ struct JointRef<'a> {
 }
 
 impl System for PhysicsSystem {
-	fn register(&mut self, agent: &world::Agent) {
+	fn register(&mut self, agent: &world::agent::Agent) {
 		// build fixtures
 		let joint_refs = PhysicsSystem::build_fixtures(&mut self.world, &agent);
 		// and then assemble them with joints
@@ -92,6 +92,21 @@ impl System for PhysicsSystem {
 
 	fn init(&mut self, world: &world::World) {
 		self.init_extent(&world.extent);
+	}
+
+	fn from_world(&mut self, world: &world::World) {
+		for (_, agent) in world.minions.agents() {
+			if !agent.state.is_alive() {
+				let object_id = agent.id();
+				let segments = agent.segments();
+				for segment in segments {
+					let refs = world::AgentRefs::with_segment(object_id, segment.index);
+					if let Some(handle) = self.handles.remove(&refs) {
+						self.world.destroy_body(handle);
+					}
+				}
+			}
+		}
 	}
 
 	fn to_world(&self, world: &mut world::World) {
@@ -154,7 +169,7 @@ impl PhysicsSystem {
 		self.world.body_mut(handle).create_fixture_with(&rect, &mut f_def, refs);
 	}
 
-	fn build_fixtures<'a>(world: &mut b2::World<AgentData>, agent: &'a world::Agent) -> Vec<JointRef<'a>> {
+	fn build_fixtures<'a>(world: &mut b2::World<AgentData>, agent: &'a world::agent::Agent) -> Vec<JointRef<'a>> {
 		let object_id = agent.id();
 		let segments = agent.segments();
 		segments.into_iter()

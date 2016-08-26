@@ -7,7 +7,9 @@ pub trait Stopwatch: Sized {
 
 	fn seconds(&self) -> f32;
 
-	fn reset(&mut self);
+	fn reset(&mut self) {
+		*self = Self::new();
+	}
 
 	fn restart(&mut self) -> f32 {
 		let elapsed = self.seconds();
@@ -23,7 +25,7 @@ pub struct Hourglass<T: Stopwatch> {
 }
 
 impl<T: Stopwatch> Hourglass<T> {
-	fn new(seconds: f32) -> Self {
+	pub fn new(seconds: f32) -> Self {
 		Hourglass {
 			stopwatch: T::new(),
 			capacity: seconds,
@@ -31,24 +33,27 @@ impl<T: Stopwatch> Hourglass<T> {
 		}
 	}
 
-	fn renew(&mut self) {
+	pub fn renew(&mut self) {
 		self.timeout = self.capacity;
 		self.stopwatch.reset()
 	}
 
-	fn flip(&mut self) -> f32 {
+	pub fn flip(&mut self) -> f32 {
 		let left = self.left();
 		self.timeout = self.capacity - left;
 		self.stopwatch.reset();
 		left
 	}
 
-	fn left(&self) -> f32 {
-		f32::max(0., self.stopwatch.seconds() - self.timeout)
+	pub fn left(&self) -> f32 {
+		let dt = self.timeout - self.stopwatch.seconds();
+		f32::max(0., dt)
 	}
 
-	fn is_expired(&self) -> bool {
-		self.left() <= 0.
+	pub fn is_expired(&self) -> bool {
+		let dt = self.left();
+		let e = dt <= 0.;
+		e
 	}
 }
 
@@ -62,9 +67,5 @@ impl Stopwatch for SystemStopwatch {
 			Ok(dt) => (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9,
 			Err(_) => 0.0,
 		}
-	}
-
-	fn reset(&mut self) {
-		*self = time::SystemTime::now();
 	}
 }

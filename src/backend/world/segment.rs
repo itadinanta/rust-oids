@@ -132,3 +132,27 @@ impl obj::Drawable for Segment {
 		[rgba[0] * c, rgba[1] * c, rgba[2] * c, rgba[3] * self.material.density]
 	}
 }
+
+impl Transformable for Segment {
+	fn transform(&self) -> Transform {
+		self.transform
+	}
+	fn transform_to(&mut self, t: Transform) {
+		self.transform = t;
+	}
+}
+
+impl obj::Geometry for Segment {
+	fn mesh(&self) -> &Mesh {
+		&self.mesh
+	}
+}
+
+impl obj::Solid for Segment {
+	fn material(&self) -> Material {
+		self.material
+	}
+	fn livery(&self) -> Livery {
+		self.livery
+	}
+}

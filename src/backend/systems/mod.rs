@@ -17,8 +17,8 @@ pub trait Updateable {
 
 pub trait System: Updateable {
 	fn init(&mut self, _: &world::World) {}
-	fn register(&mut self, _: &world::Agent) {}
-	fn from_world(&self, _: &world::World) {}
+	fn register(&mut self, _: &world::agent::Agent) {}
+	fn from_world(&mut self, _: &world::World) {}
 	fn to_world(&self, _: &mut world::World) {}
 	fn update_world(&mut self, dt: f32, world: &mut world::World) {
 		self.from_world(world);

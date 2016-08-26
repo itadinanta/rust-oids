@@ -25,8 +25,14 @@ impl System for GameSystem {
 		let keys: Vec<_> = world.minions.agents().keys().cloned().collect();
 		for k in keys {
 			if let Some(b) = world.minions.get_mut(k) {
-				for segment in b.segments_mut() {
-					segment.state.update(self.dt * self.speed);
+				if b.state.is_active() {
+					if b.state.lifespan().is_expired() {
+						b.state.kill();
+					} else {
+						for segment in b.segments_mut() {
+							segment.state.update(self.dt * self.speed);
+						}
+					}
 				}
 			}
 		}
