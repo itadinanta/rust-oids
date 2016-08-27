@@ -403,7 +403,7 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 
 	fn draw_text(&mut self, text: &str, screen_position: [i32; 2], text_color: Rgba) {
 		self.text_renderer.add(&text, screen_position, text_color);
-		self.text_renderer.draw(&mut self.encoder, &mut self.frame_buffer).unwrap();
+		self.text_renderer.draw(&mut self.encoder, &mut self.frame_buffer).expect("Failed to write text");
 	}
 }
 
