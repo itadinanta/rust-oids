@@ -15,7 +15,7 @@ use core::geometry::*;
 use backend::world::segment::*;
 use backend::world::agent::Agent;
 
-pub struct Flock {
+pub struct Swarm {
 	seq: Id,
 	rnd: Randomizer,
 	agents: HashMap<Id, agent::Agent>,
@@ -105,9 +105,9 @@ impl Randomizer {
 	}
 }
 
-impl Flock {
-	pub fn new() -> Flock {
-		Flock {
+impl Swarm {
+	pub fn new() -> Swarm {
+		Swarm {
 			seq: 0,
 			rnd: Randomizer::new(),
 			agents: HashMap::new(),
@@ -264,13 +264,13 @@ impl AgentRefs {
 pub struct World {
 	pub extent: Rect,
 	pub fence: obj::Mesh,
-	pub players: Flock,
-	pub minions: Flock,
-	pub friendly_fire: Flock,
-	pub enemies: Flock,
-	pub enemy_fire: Flock,
-	pub resources: Flock,
-	pub props: Flock,
+	pub players: Swarm,
+	pub minions: Swarm,
+	pub friendly_fire: Swarm,
+	pub enemies: Swarm,
+	pub enemy_fire: Swarm,
+	pub resources: Swarm,
+	pub props: Swarm,
 }
 
 pub trait WorldState {
@@ -292,13 +292,13 @@ impl World {
 		World {
 			extent: Rect::new(-50., -50., 50., 50.),
 			fence: Mesh::from_shape(Shape::new_ball(50.), Winding::CW),
-			players: Flock::new(),
-			minions: Flock::new(),
-			friendly_fire: Flock::new(),
-			enemies: Flock::new(),
-			enemy_fire: Flock::new(),
-			resources: Flock::new(),
-			props: Flock::new(),
+			players: Swarm::new(),
+			minions: Swarm::new(),
+			friendly_fire: Swarm::new(),
+			enemies: Swarm::new(),
+			enemy_fire: Swarm::new(),
+			resources: Swarm::new(),
+			props: Swarm::new(),
 		}
 	}
 
