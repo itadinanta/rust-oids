@@ -6,6 +6,7 @@ use backend::obj::*;
 use rand;
 use rand::Rng;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::f32::consts;
 use num;
 use core::color;
@@ -18,6 +19,7 @@ pub struct Flock {
 	seq: Id,
 	rnd: Randomizer,
 	agents: HashMap<Id, agent::Agent>,
+	dead: HashSet<Id>,
 }
 
 struct Randomizer {
@@ -109,6 +111,7 @@ impl Flock {
 			seq: 0,
 			rnd: Randomizer::new(),
 			agents: HashMap::new(),
+			dead: HashSet::new(),
 		}
 	}
 
@@ -133,6 +136,21 @@ impl Flock {
 		                                           Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                           segment::State::with_charge(charge, 0., charge));
 		self.insert(builder.start(initial_pos, 0., &ball).build())
+	}
+
+	pub fn free_resources(&mut self, freed: &mut Vec<Agent>) {
+		self.dead.clear();
+		for id in self.agents
+			.iter()
+			.filter(|&(_, agent)| !agent.state.is_alive())
+			.map(|(&id, _)| id) {
+			self.dead.insert(id);
+		}
+		for id in self.dead.iter() {
+			if let Some(agent) = self.agents.remove(&id) {
+				freed.push(agent);
+			}
+		}
 	}
 
 	pub fn new_minion(&mut self, initial_pos: Position, charge: f32) -> Id {
@@ -265,6 +283,10 @@ impl WorldState for World {
 	}
 }
 
+pub struct Cleanup {
+	pub dead: Box<[Agent]>,
+}
+
 impl World {
 	pub fn new() -> Self {
 		World {
@@ -290,5 +312,11 @@ impl World {
 
 	pub fn friend_mut(&mut self, id: obj::Id) -> Option<&mut Agent> {
 		self.minions.get_mut(id)
+	}
+
+	pub fn cleanup(&mut self) -> Cleanup {
+		let mut v = Vec::new();
+		self.minions.free_resources(&mut v);
+		Cleanup { dead: v.into_boxed_slice() }
 	}
 }

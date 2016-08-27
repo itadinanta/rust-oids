@@ -90,23 +90,19 @@ impl System for PhysicsSystem {
 		}
 	}
 
-	fn init(&mut self, world: &world::World) {
-		self.init_extent(&world.extent);
-	}
-
-	fn from_world(&mut self, world: &world::World) {
-		for (_, agent) in world.minions.agents() {
-			if !agent.state.is_alive() {
-				let object_id = agent.id();
-				let segments = agent.segments();
-				for segment in segments {
-					let refs = world::AgentRefs::with_segment(object_id, segment.index);
-					if let Some(handle) = self.handles.remove(&refs) {
-						self.world.destroy_body(handle);
-					}
-				}
+	fn unregister(&mut self, agent: &world::agent::Agent) {
+		let object_id = agent.id();
+		let segments = agent.segments();
+		for segment in segments {
+			let refs = world::AgentRefs::with_segment(object_id, segment.index);
+			if let Some(handle) = self.handles.remove(&refs) {
+				self.world.destroy_body(handle);
 			}
 		}
+	}
+
+	fn init(&mut self, world: &world::World) {
+		self.init_extent(&world.extent);
 	}
 
 	fn to_world(&self, world: &mut world::World) {

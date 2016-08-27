@@ -40,6 +40,7 @@ impl State {
 
 	pub fn kill(&mut self) {
 		self.flags |= DEAD;
+		self.flags -= ACTIVE;
 	}
 
 	pub fn is_alive(&self) -> bool {
@@ -47,7 +48,7 @@ impl State {
 	}
 
 	pub fn is_active(&self) -> bool {
-		self.flags.contains(ACTIVE) && self.is_alive()
+		self.flags.contains(ACTIVE)
 	}
 }
 

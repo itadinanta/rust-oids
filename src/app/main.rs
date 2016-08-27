@@ -13,15 +13,12 @@ pub fn main_loop() {
 	const HEIGHT: u32 = 720;
 
 	let builder = glutin::WindowBuilder::new()
-		              .with_title("Box2d + GFX".to_string())
-		              .with_dimensions(WIDTH, HEIGHT)
-		              .with_vsync();
+		.with_title("Box2d + GFX".to_string())
+		.with_dimensions(WIDTH, HEIGHT)
+		.with_vsync();
 
-	let (window,
-	     mut device,
-	     mut factory,
-	     mut frame_buffer,
-	     mut depth_buffer) = gfx_window_glutin::init::<render::ColorFormat, render::DepthFormat>(builder);
+	let (window, mut device, mut factory, mut frame_buffer, mut depth_buffer) =
+		gfx_window_glutin::init::<render::ColorFormat, render::DepthFormat>(builder);
 
 	let (w, h, _, _) = frame_buffer.get_dimensions();
 
@@ -74,17 +71,16 @@ pub fn main_loop() {
 		// post-render effects and tone mapping
 		renderer.resolve_frame_buffer();
 
-		if let Ok(r) = update_result {
-			// draw some debug text on screen
-			renderer.draw_text(&format!("F: {} E: {:.3} FT: {:.2} SFT: {:.2} FPS: {:.1}",
-			                            r.frame_count,
-			                            r.frame_elapsed,
-			                            r.frame_time * 1000.0,
-			                            r.frame_time_smooth * 1000.0,
-			                            r.fps),
-			                   [10, 10],
-			                   [1.0; 4]);
-		}
+		let r = update_result;
+		// draw some debug text on screen
+		renderer.draw_text(&format!("F: {} E: {:.3} FT: {:.2} SFT: {:.2} FPS: {:.1}",
+		                            r.frame_count,
+		                            r.frame_elapsed,
+		                            r.frame_time * 1000.0,
+		                            r.frame_time_smooth * 1000.0,
+		                            r.fps),
+		                   [10, 10],
+		                   [1.0; 4]);
 
 		// push the commands
 		renderer.end_frame(&mut device);

@@ -1,25 +1,26 @@
 mod main;
 mod ev;
 
+use std::time;
+
 use core::util::Cycle;
+use core::geometry::*;
+use core::clock::*;
 use core::math;
 use core::math::Directional;
 use core::math::Smooth;
 
 use backend::obj;
+use backend::obj::*;
 use backend::world;
 use backend::systems;
-
 use backend::systems::System;
 
 use frontend::input;
 use frontend::render;
 
-use std::time::{SystemTime, Duration, SystemTimeError};
 use cgmath;
 use cgmath::{Matrix4, SquareMatrix};
-use backend::obj::*;
-use core::geometry::*;
 
 pub enum Event {
 	CamUp,
@@ -104,9 +105,9 @@ impl Systems {
 pub struct App {
 	pub viewport: Viewport,
 	input_state: input::InputState,
-	wall_clock_start: SystemTime,
+	wall_clock_start: SystemStopwatch,
 	frame_count: u32,
-	frame_start: SystemTime,
+	frame_start: SystemStopwatch,
 	frame_elapsed: f32,
 	frame_smooth: math::MovingAverage<f32>,
 	is_running: bool,
@@ -128,7 +129,7 @@ pub struct Environment {
 
 pub struct Update {
 	pub frame_count: u32,
-	pub wall_clock_elapsed: Duration,
+	pub wall_clock_elapsed: f32,
 	pub frame_elapsed: f32,
 	pub frame_time: f32,
 	pub frame_time_smooth: f32,
@@ -158,8 +159,8 @@ impl App {
 			// runtime and timing
 			frame_count: 0u32,
 			frame_elapsed: 0.0f32,
-			frame_start: SystemTime::now(),
-			wall_clock_start: SystemTime::now(),
+			frame_start: SystemStopwatch::new(),
+			wall_clock_start: time::SystemTime::now(),
 			frame_smooth: math::MovingAverage::new(120),
 			is_running: true,
 		}
@@ -398,33 +399,37 @@ impl App {
 		self.systems.from_world(&self.world, &|s, world| s.init(&world));
 	}
 
+	fn cleanup(&mut self) {
+		self.world.cleanup();
+	}
+
 	fn update_systems(&mut self, dt: f32) {
 		self.systems.ai.follow_me(self.light_position);
 		self.systems.to_world(&mut self.world,
 		                      &|s, mut world| s.update_world(dt, &mut world));
 	}
 
-	pub fn update(&mut self) -> Result<Update, SystemTimeError> {
-		let dt = try!(self.frame_start.elapsed());
-		let frame_time = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
+	pub fn update(&mut self) -> Update {
+		let frame_time = self.frame_start.seconds();
 		let frame_time_smooth = self.frame_smooth.smooth(frame_time);
 
 		self.frame_elapsed += frame_time;
-		self.frame_start = SystemTime::now();
+		self.frame_start.reset();
 
 		self.camera.update(frame_time_smooth);
 
 		self.update_input(frame_time_smooth);
 		self.update_systems(frame_time_smooth);
+		self.cleanup();
 		self.frame_count += 1;
 
-		Ok(Update {
-			wall_clock_elapsed: self.wall_clock_start.elapsed().unwrap_or_else(|_| Duration::new(0, 0)),
+		Update {
+			wall_clock_elapsed: self.wall_clock_start.seconds(),
 			frame_count: self.frame_count,
 			frame_elapsed: self.frame_elapsed,
 			frame_time: frame_time,
 			frame_time_smooth: frame_time_smooth,
 			fps: 1.0 / frame_time_smooth,
-		})
+		}
 	}
 }
