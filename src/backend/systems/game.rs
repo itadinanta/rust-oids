@@ -24,12 +24,12 @@ impl System for GameSystem {
 	fn to_world(&self, world: &mut world::World) {
 		let keys: Vec<_> = world.minions.agents().keys().cloned().collect();
 		for k in keys {
-			if let Some(b) = world.minions.get_mut(k) {
-				if b.state.is_active() {
-					if b.state.lifespan().is_expired() {
-						b.state.kill();
+			if let Some(agent) = world.minions.get_mut(k) {
+				if agent.state.is_active() {
+					if agent.state.lifespan().is_expired() {
+						agent.state.die();
 					} else {
-						for segment in b.segments_mut() {
+						for segment in agent.segments_mut() {
 							segment.state.update(self.dt * self.speed);
 						}
 					}

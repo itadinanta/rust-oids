@@ -34,19 +34,22 @@ pub struct State {
 }
 
 impl State {
+	#[inline]
 	pub fn lifespan(&self) -> &Hourglass<SystemStopwatch> {
 		&self.lifespan
 	}
 
-	pub fn kill(&mut self) {
+	pub fn die(&mut self) {
 		self.flags |= DEAD;
 		self.flags -= ACTIVE;
 	}
 
+	#[inline]
 	pub fn is_alive(&self) -> bool {
 		!self.flags.contains(DEAD)
 	}
 
+	#[inline]
 	pub fn is_active(&self) -> bool {
 		self.flags.contains(ACTIVE)
 	}

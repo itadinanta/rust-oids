@@ -19,7 +19,6 @@ pub struct Swarm {
 	seq: Id,
 	rnd: Randomizer,
 	agents: HashMap<Id, agent::Agent>,
-	dead: HashSet<Id>,
 }
 
 struct Randomizer {
@@ -111,7 +110,6 @@ impl Swarm {
 			seq: 0,
 			rnd: Randomizer::new(),
 			agents: HashMap::new(),
-			dead: HashSet::new(),
 		}
 	}
 
@@ -139,14 +137,15 @@ impl Swarm {
 	}
 
 	pub fn free_resources(&mut self, freed: &mut Vec<Agent>) {
-		self.dead.clear();
+		let mut dead = HashSet::new();
+
 		for id in self.agents
 			.iter()
 			.filter(|&(_, agent)| !agent.state.is_alive())
 			.map(|(&id, _)| id) {
-			self.dead.insert(id);
+			dead.insert(id);
 		}
-		for id in self.dead.iter() {
+		for id in &dead {
 			if let Some(agent) = self.agents.remove(&id) {
 				freed.push(agent);
 			}
@@ -204,9 +203,11 @@ impl Swarm {
 		id
 	}
 
-	// 	pub fn kill(&mut self, id: &Id) {
-	// 		self.agents.remove(id);
-	// 	}
+	pub fn kill(&mut self, id: &Id) {
+		if let Some(ref mut agent) = self.agents.get_mut(id) {
+			agent.state.die();
+		}
+	}
 
 	pub fn agents(&self) -> &HashMap<Id, Agent> {
 		&self.agents
@@ -284,7 +285,7 @@ impl WorldState for World {
 }
 
 pub struct Cleanup {
-	pub dead: Box<[Agent]>,
+	pub freed: Box<[Agent]>,
 }
 
 impl World {
@@ -317,6 +318,6 @@ impl World {
 	pub fn cleanup(&mut self) -> Cleanup {
 		let mut v = Vec::new();
 		self.minions.free_resources(&mut v);
-		Cleanup { dead: v.into_boxed_slice() }
+		Cleanup { freed: v.into_boxed_slice() }
 	}
 }

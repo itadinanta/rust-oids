@@ -89,6 +89,12 @@ impl Systems {
 		     &mut self.physics as &mut systems::System]
 	}
 
+	fn for_each(&mut self, apply: &Fn(&mut systems::System)) {
+		for r in self.systems().as_mut_slice() {
+			apply(*r);
+		}
+	}
+
 	fn from_world(&mut self, world: &world::World, apply: &Fn(&mut systems::System, &world::World)) {
 		for r in self.systems().as_mut_slice() {
 			apply(*r, &world);
@@ -400,7 +406,10 @@ impl App {
 	}
 
 	fn cleanup(&mut self) {
-		self.world.cleanup();
+		let freed = self.world.cleanup().freed;
+		self.systems.for_each(&|s| for freed_agent in freed.iter() {
+			s.unregister(freed_agent);
+		});
 	}
 
 	fn update_systems(&mut self, dt: f32) {
@@ -416,11 +425,12 @@ impl App {
 		self.frame_elapsed += frame_time;
 		self.frame_start.reset();
 
+		self.cleanup();
+
 		self.camera.update(frame_time_smooth);
 
 		self.update_input(frame_time_smooth);
 		self.update_systems(frame_time_smooth);
-		self.cleanup();
 		self.frame_count += 1;
 
 		Update {
