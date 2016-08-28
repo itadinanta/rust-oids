@@ -29,7 +29,7 @@ impl Swarm {
 			seq: 0,
 			seq_tag: seq_tag,
 			rng: rand::thread_rng(),
-			gen: Genome::new(&[0xff]),
+			gen: Genome::new(b"Rust-Oids are cool!"),
 			agents: HashMap::new(),
 		}
 	}
