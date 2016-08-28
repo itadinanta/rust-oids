@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::f32::consts;
 use core::color;
+use rand;
 use core::color::ToRgb;
 use core::geometry::*;
 use backend::world::segment::*;
@@ -17,7 +18,8 @@ use backend::world::gen::*;
 pub struct Swarm {
 	seq: Id,
 	seq_tag: Id,
-	gen: Randomizer,
+	rng: rand::ThreadRng,
+	gen: Genome,
 	agents: HashMap<Id, agent::Agent>,
 }
 
@@ -26,7 +28,8 @@ impl Swarm {
 		Swarm {
 			seq: 0,
 			seq_tag: seq_tag,
-			gen: Randomizer::new(),
+			rng: rand::thread_rng(),
+			gen: Genome::new(&[0xff]),
 			agents: HashMap::new(),
 		}
 	}
@@ -37,6 +40,10 @@ impl Swarm {
 
 	pub fn get_mut(&mut self, id: Id) -> Option<&mut agent::Agent> {
 		self.agents.get_mut(&id)
+	}
+
+	pub fn mutate(&mut self) {
+		self.gen = self.gen.mutate(&mut self.rng);
 	}
 
 	pub fn next_id(&mut self) -> Id {
@@ -60,9 +67,9 @@ impl Swarm {
 		let mut dead = HashSet::new();
 
 		for id in self.agents
-			.iter()
-			.filter(|&(_, agent)| !agent.state.is_alive())
-			.map(|(&id, _)| id) {
+		              .iter()
+		              .filter(|&(_, agent)| !agent.state.is_alive())
+		              .map(|(&id, _)| id) {
 			dead.insert(id);
 		}
 		for id in &dead {
@@ -73,6 +80,7 @@ impl Swarm {
 	}
 
 	pub fn new_minion(&mut self, initial_pos: Position, charge: f32) -> Id {
+		self.mutate();
 		let albedo = color::Hsl::new(self.gen.next_float(0., 1.), 0.5, 0.5);
 		let mut builder = agent::AgentBuilder::new(self.next_id(),
 		                                           Material { density: 0.2, ..Default::default() },
@@ -86,13 +94,13 @@ impl Swarm {
 		let initial_angle = consts::PI / 2. + f32::atan2(initial_pos.y, initial_pos.x);
 
 		let torso = builder.start(initial_pos, initial_angle, &torso_shape)
-			.index();
+		                   .index();
 		builder.addr(torso, 2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER)
-			.addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
+		       .addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
 
 		let head = builder.add(torso, 0, &head_shape, HEAD | SENSOR).index();
 		builder.addr(head, 1, &head_shape, HEAD | ACTUATOR | RUDDER)
-			.addl(head, 2, &head_shape, HEAD | ACTUATOR | RUDDER);
+		       .addl(head, 2, &head_shape, HEAD | ACTUATOR | RUDDER);
 
 		let mut belly = torso;
 		let mut belly_mid = torso_shape.mid();
@@ -103,16 +111,16 @@ impl Swarm {
 			belly_mid = belly_shape.mid();
 			if self.gen.next_integer(0, 4) == 0 {
 				builder.addr(belly, 2, &arm_shape, ARM | ACTUATOR | RUDDER)
-					.addl(belly, -2, &arm_shape, ARM | ACTUATOR | RUDDER);
+				       .addl(belly, -2, &arm_shape, ARM | ACTUATOR | RUDDER);
 			}
 		}
 
 		builder.addr(belly, belly_mid - 1, &leg_shape, LEG | ACTUATOR | THRUSTER)
-			.addl(belly,
-			      -(belly_mid - 1),
-			      &leg_shape,
-			      LEG | ACTUATOR | THRUSTER)
-			.add(belly, belly_mid, &tail_shape, TAIL | ACTUATOR | BRAKE);
+		       .addl(belly,
+		             -(belly_mid - 1),
+		             &leg_shape,
+		             LEG | ACTUATOR | THRUSTER)
+		       .add(belly, belly_mid, &tail_shape, TAIL | ACTUATOR | BRAKE);
 
 		self.insert(builder.build())
 	}

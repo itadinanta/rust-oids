@@ -1,5 +1,6 @@
 use num;
 use std::f32::consts;
+use std::u16;
 use rand;
 use rand::Rng;
 use backend::obj::*;
@@ -8,7 +9,8 @@ use backend::obj::*;
 pub trait Generator {
 	fn next_float<T>(&mut self, min: T, max: T) -> T where T: rand::Rand + num::Float;
 
-	fn next_integer<T>(&mut self, min: T, max: T) -> T where T: rand::Rand + num::Integer + Copy;
+	fn next_integer<T>(&mut self, min: T, max: T) -> T
+		where T: rand::Rand + num::Integer + num::ToPrimitive + num::FromPrimitive + Copy;
 
 	fn ball(&mut self) -> Shape {
 		let radius: f32 = self.next_float(1.0, 2.0);
@@ -107,18 +109,58 @@ impl Genome {
 			bits: bits.to_owned().into_boxed_slice(),
 		}
 	}
+
+	fn next_byte(&mut self) -> u8 {
+		let next = self.bits[self.ptr];
+		self.ptr = (self.ptr + 1) % self.bits.len();
+		next
+	}
+
+	fn next_bytes(&mut self, n: u8) -> i64 {
+		let bytes = (0..n).fold(0, |a, _| a << 8 | self.next_byte() as i64);
+		bytes
+	}
+
+	fn next_i32(&mut self, min: i32, max: i32) -> i32 {
+		let diff = max as i64 - min as i64 + 1i64;
+		if diff <= 0 {
+			min
+		} else {
+			for i in 1..4 {
+				if diff < (1 << (i * 8)) {
+					return (self.next_bytes(i) % diff + min as i64) as i32;
+				}
+			}
+			min
+		}
+	}
+
+	pub fn mutate<R: rand::Rng>(&self, rng: &mut R) -> Self {
+		let p: usize = rng.gen::<usize>() % (self.bits.len() * 8);
+		let mut new_genes = self.bits.to_vec();
+		let byte = p / 8;
+		let bit = p % 8;
+		new_genes[byte] ^= 1 << bit;
+		Genome {
+			ptr: 0,
+			bits: new_genes.into_boxed_slice(),
+		}
+	}
 }
 
 impl Generator for Genome {
 	fn next_float<T>(&mut self, min: T, max: T) -> T
 		where T: rand::Rand + num::Float {
-		//self.rng.gen::<T>() * 
-		(max - min) + min
+		let u0 = self.next_bytes(2) as u16;
+		let n: T = T::from(u0).unwrap() / T::from(u16::MAX).unwrap();
+		n * (max - min) + min
 	}
 
 	fn next_integer<T>(&mut self, min: T, max: T) -> T
-		where T: rand::Rand + num::Integer + Copy {
-		//self.rng.gen::<T>() % 
-		(max - min + T::one()) + min
+		where T: rand::Rand + num::Integer + num::ToPrimitive + num::FromPrimitive + Copy {
+		num::NumCast::from(min)
+			.and_then(|a| num::NumCast::from(max).map(|b| self.next_i32(a, b)))
+			.and_then(|value| num::FromPrimitive::from_i32(value))
+			.unwrap_or(min)
 	}
 }
