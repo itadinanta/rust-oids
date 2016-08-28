@@ -52,11 +52,13 @@ impl System for AiSystem {
 	}
 }
 
-impl AiSystem {
-	pub fn new() -> Self {
+impl Default for AiSystem {
+	fn default() -> Self {
 		AiSystem { remote: Position::zero() }
 	}
+}
 
+impl AiSystem {
 	pub fn follow_me(&mut self, pos: Position) {
 		self.remote = pos;
 	}

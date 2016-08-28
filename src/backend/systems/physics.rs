@@ -128,8 +128,8 @@ impl System for PhysicsSystem {
 	}
 }
 
-impl PhysicsSystem {
-	pub fn new() -> Self {
+impl Default for PhysicsSystem {
+	fn default() -> Self {
 		let touched = Rc::new(RefCell::new(HashSet::new()));
 		PhysicsSystem {
 			world: Self::new_world(touched.clone()),
@@ -137,7 +137,9 @@ impl PhysicsSystem {
 			touched: touched,
 		}
 	}
+}
 
+impl PhysicsSystem {
 	fn to_vec2(p: &Position) -> b2::Vec2 {
 		b2::Vec2 { x: p.x, y: p.y }
 	}

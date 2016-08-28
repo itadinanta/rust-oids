@@ -24,8 +24,8 @@ impl Updateable for AnimationSystem {
 
 impl System for AnimationSystem {}
 
-impl AnimationSystem {
-	pub fn new() -> Self {
+impl Default for AnimationSystem {
+	fn default() -> Self {
 		AnimationSystem {
 			dt: 1. / 60.,
 			speed: 1.,
@@ -36,3 +36,5 @@ impl AnimationSystem {
 		}
 	}
 }
+
+impl AnimationSystem {}

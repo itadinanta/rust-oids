@@ -1,8 +1,6 @@
 mod main;
 mod ev;
 
-use std::time;
-
 use core::util::Cycle;
 use core::geometry::*;
 use core::clock::*;
@@ -74,18 +72,23 @@ impl Viewport {
 	}
 }
 
+#[derive(Default)]
 pub struct Systems {
 	physics: systems::PhysicsSystem,
 	animation: systems::AnimationSystem,
 	game: systems::GameSystem,
 	ai: systems::AiSystem,
+	alife: systems::AlifeSystem,
+	audio: systems::AudioSystem,
 }
 
 impl Systems {
 	fn systems(&mut self) -> Vec<&mut systems::System> {
 		vec![&mut self.animation as &mut systems::System,
+		     &mut self.audio as &mut systems::System,
 		     &mut self.game as &mut systems::System,
 		     &mut self.ai as &mut systems::System,
+		     &mut self.alife as &mut systems::System,
 		     &mut self.physics as &mut systems::System]
 	}
 
@@ -155,18 +158,13 @@ impl App {
 			backgrounds: Self::init_backgrounds(),
 
 			world: world::World::new(),
-			// subsystem, need to update each
-			systems: Systems {
-				physics: systems::PhysicsSystem::new(),
-				animation: systems::AnimationSystem::new(),
-				game: systems::GameSystem::new(),
-				ai: systems::AiSystem::new(),
-			},
+			// subsystems
+			systems: Systems::default(),
 			// runtime and timing
 			frame_count: 0u32,
 			frame_elapsed: 0.0f32,
 			frame_start: SystemStopwatch::new(),
-			wall_clock_start: time::SystemTime::now(),
+			wall_clock_start: SystemStopwatch::new(),
 			frame_smooth: math::MovingAverage::new(120),
 			is_running: true,
 		}
@@ -414,8 +412,10 @@ impl App {
 
 	fn update_systems(&mut self, dt: f32) {
 		self.systems.ai.follow_me(self.light_position);
+		self.systems.alife.source(self.light_position);
+		
 		self.systems.to_world(&mut self.world,
-		                      &|s, mut world| s.update_world(dt, &mut world));
+		                      &|s, mut world| s.update_world(&mut world, dt));
 	}
 
 	pub fn update(&mut self) -> Update {
