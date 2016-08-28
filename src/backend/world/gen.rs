@@ -4,16 +4,12 @@ use rand;
 use rand::Rng;
 use backend::obj::*;
 
-pub trait Gen {
-	fn new() -> Self;
-
+#[allow(dead_code)]
+pub trait Generator {
 	fn next_float<T>(&mut self, min: T, max: T) -> T where T: rand::Rand + num::Float;
 
 	fn next_integer<T>(&mut self, min: T, max: T) -> T where T: rand::Rand + num::Integer + Copy;
-}
 
-#[allow(dead_code)]
-pub trait Generator: Gen {
 	fn ball(&mut self) -> Shape {
 		let radius: f32 = self.next_float(1.0, 2.0);
 		Shape::new_ball(radius)
@@ -81,11 +77,13 @@ pub struct Randomizer {
 	rng: rand::ThreadRng,
 }
 
-impl Gen for Randomizer {
-	fn new() -> Self {
+impl Randomizer {
+	pub fn new() -> Self {
 		Randomizer { rng: rand::thread_rng() }
 	}
+}
 
+impl Generator for Randomizer {
 	fn next_float<T>(&mut self, min: T, max: T) -> T
 		where T: rand::Rand + num::Float {
 		self.rng.gen::<T>() * (max - min) + min
@@ -96,5 +94,3 @@ impl Gen for Randomizer {
 		self.rng.gen::<T>() % (max - min + T::one()) + min
 	}
 }
-
-impl Generator for Randomizer {}
