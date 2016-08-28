@@ -94,3 +94,31 @@ impl Generator for Randomizer {
 		self.rng.gen::<T>() % (max - min + T::one()) + min
 	}
 }
+
+pub struct Genome {
+	bits: Box<[u8]>,
+	ptr: usize,
+}
+
+impl Genome {
+	pub fn new(bits: &[u8]) -> Self {
+		Genome {
+			ptr: 0,
+			bits: bits.to_owned().into_boxed_slice(),
+		}
+	}
+}
+
+impl Generator for Genome {
+	fn next_float<T>(&mut self, min: T, max: T) -> T
+		where T: rand::Rand + num::Float {
+		//self.rng.gen::<T>() * 
+		(max - min) + min
+	}
+
+	fn next_integer<T>(&mut self, min: T, max: T) -> T
+		where T: rand::Rand + num::Integer + Copy {
+		//self.rng.gen::<T>() % 
+		(max - min + T::one()) + min
+	}
+}
