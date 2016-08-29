@@ -146,6 +146,10 @@ impl Genome {
 			bits: new_genes.into_boxed_slice(),
 		}
 	}
+
+	pub fn dna(&self) -> &Box<[u8]> {
+		&self.bits
+	}
 }
 
 impl Generator for Genome {

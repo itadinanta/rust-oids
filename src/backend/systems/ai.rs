@@ -14,7 +14,7 @@ impl Updateable for AiSystem {}
 impl System for AiSystem {
 	fn to_world(&self, world: &mut world::World) {
 		let target = self.remote;
-		for (_, agent) in world.minions.agents_mut() {
+		for (_, agent) in world.agents_mut(world::AgentType::Minion) {
 			let brain = agent.brain();
 			let segments = &mut agent.segments_mut();
 			if let Some(sensor) = segments.iter()

@@ -24,6 +24,8 @@ extern crate piston;
 
 extern crate rand;
 extern crate num;
+#[macro_use] 
+extern crate enum_primitive;
 extern crate gfx_text;
 
 fn main() {

@@ -5,6 +5,7 @@ dependencies = [
  "bit-set 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cgmath 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enum_primitive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "genmesh 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_core 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",

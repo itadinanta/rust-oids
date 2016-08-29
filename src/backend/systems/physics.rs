@@ -2,7 +2,7 @@ use wrapped2d::b2;
 use wrapped2d::user_data::*;
 use wrapped2d::dynamics::world::callbacks::ContactAccess;
 use backend::obj;
-use backend::obj::{Solid, Geometry, Transformable};
+use backend::obj::*;
 use backend::world;
 use backend::world::segment;
 use backend::world::segment::Intent;
@@ -37,7 +37,7 @@ impl Updateable for PhysicsSystem {
 			let body = b.borrow();
 			let center = (*body).world_center().clone();
 			let key = (*body).user_data();
-			if let Some(segment) = state.minion(key.agent_id).and_then(|c| c.segment(key.segment_index)) {
+			if let Some(segment) = state.agent(key.agent_id).and_then(|c| c.segment(key.segment_index)) {
 				match segment.state.intent {
 					Intent::Move(force) => forces.push((h, center, force)),
 					Intent::RunAway(impulse) => impulses.push((h, center, impulse)),
@@ -112,7 +112,7 @@ impl System for PhysicsSystem {
 			let angle = (*body).angle();
 			let key = (*body).user_data();
 
-			if let Some(agent) = world.minions.get_mut(key.agent_id) {
+			if let Some(agent) = world.agent_mut(key.agent_id) {
 				if let Some(segment) = agent.segment_mut(key.segment_index) {
 					let t = segment.transform();
 					segment.transform_to(Transform {
@@ -150,10 +150,6 @@ impl PhysicsSystem {
 
 	fn init_extent(&mut self, extent: &Rect) {
 		let mut f_def = b2::FixtureDef::new();
-		// f_def.density = material.density;
-		// f_def.restitution = material.restitution;
-		// f_def.friction = material.friction;
-
 		let mut b_def = b2::BodyDef::new();
 		b_def.body_type = b2::BodyType::Static;
 		let refs = world::AgentRefs::with_id(0xFFFFFFFFusize);
@@ -164,6 +160,7 @@ impl PhysicsSystem {
 		                   Self::to_vec2(&extent.bottom_right()),
 		                   Self::to_vec2(&extent.top_right()),
 		                   Self::to_vec2(&extent.top_left())]);
+
 		self.world.body_mut(handle).create_fixture_with(&rect, &mut f_def, refs);
 	}
 
@@ -294,7 +291,6 @@ impl PhysicsSystem {
 					joint.lower_angle = -consts::PI / 6.;
 					common_joint!(joint);
 				} else {
-					// TODO: how do we reduce the clutter?
 					let mut joint = b2::WeldJointDef::new(medial, distal);
 					joint.frequency = 5.0;
 					joint.damping_ratio = 0.9;

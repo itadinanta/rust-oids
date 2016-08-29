@@ -4,8 +4,12 @@ use cgmath;
 use cgmath::EuclideanVector;
 use core::geometry::*;
 use core::clock::*;
+use backend::world::AgentType;
 use backend::world::segment;
 use backend::world::segment::Segment;
+use num::FromPrimitive;
+
+pub type Dna = Box<[u8]>;
 
 #[derive(Clone)]
 pub struct Brain<T> {
@@ -78,6 +82,7 @@ pub struct Agent {
 	id: Id,
 	brain: Brain<f32>,
 	pub state: State,
+	dna: Dna,
 	pub segments: Box<[Segment]>,
 }
 
@@ -96,10 +101,9 @@ impl Transformable for Agent {
 	}
 }
 
-
 impl Agent {
-	pub fn id(&self) -> Id {
-		self.id
+	pub fn dna(&self) -> &Dna {
+		&self.dna
 	}
 
 	pub fn segments(&self) -> &[Segment] {
@@ -121,23 +125,29 @@ impl Agent {
 	pub fn brain(&self) -> Brain<f32> {
 		self.brain.clone()
 	}
+
+	pub fn type_of(&self) -> AgentType {
+		AgentType::from_usize(self.id & 0xff).unwrap_or(AgentType::Prop)
+	}
 }
 
 pub struct AgentBuilder {
 	id: Id,
 	material: Material,
 	livery: Livery,
+	dna: Dna,
 	state: segment::State,
 	segments: Vec<Segment>,
 }
 
 impl AgentBuilder {
-	pub fn new(id: Id, material: Material, livery: Livery, state: segment::State) -> Self {
+	pub fn new(id: Id, material: Material, livery: Livery, dna: &Dna, state: segment::State) -> Self {
 		AgentBuilder {
 			id: id,
 			material: material,
 			livery: livery,
 			state: state,
+			dna: dna.clone(),
 			segments: Vec::new(),
 		}
 	}
@@ -272,6 +282,7 @@ impl AgentBuilder {
 				rest: 0.1,
 				thrust: 0.5,
 			},
+			dna: self.dna.clone(),
 			segments: self.segments.clone().into_boxed_slice(),
 		}
 	}

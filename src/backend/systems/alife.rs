@@ -18,7 +18,7 @@ impl Updateable for AlifeSystem {
 
 impl System for AlifeSystem {
 	fn to_world(&self, world: &mut world::World) {
-		for (_, agent) in world.minions.agents_mut().iter_mut() {
+		for (_, agent) in world.agents_mut(world::AgentType::Minion).iter_mut() {
 			if agent.state.is_active() {
 				if agent.state.power() > 0. {
 					agent.state.renew();

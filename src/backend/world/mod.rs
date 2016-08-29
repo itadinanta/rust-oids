@@ -14,24 +14,43 @@ use core::geometry::*;
 use backend::world::segment::*;
 use backend::world::agent::Agent;
 use backend::world::gen::*;
+use num::FromPrimitive;
+
+enum_from_primitive! {
+	#[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
+	pub enum AgentType {
+		Minion,
+		Spore,
+		Player,
+		FriendlyBullet,
+		Enemy,
+		EnemyBullet,
+		Resource,
+		Prop,
+	}
+}
 
 pub struct Swarm {
 	seq: Id,
-	seq_tag: Id,
+	agent_type: AgentType,
 	rng: rand::ThreadRng,
 	gen: Genome,
-	agents: HashMap<Id, agent::Agent>,
+	agents: AgentMap,
 }
 
 impl Swarm {
-	pub fn new(seq_tag: Id) -> Swarm {
+	pub fn new(agent_type: AgentType) -> Swarm {
 		Swarm {
 			seq: 0,
-			seq_tag: seq_tag,
+			agent_type: agent_type,
 			rng: rand::thread_rng(),
 			gen: Genome::new(b"Rust-Oids are cool!"),
 			agents: HashMap::new(),
 		}
+	}
+
+	pub fn type_of(&self) -> AgentType {
+		self.agent_type
 	}
 
 	pub fn get(&self, id: Id) -> Option<&Agent> {
@@ -48,7 +67,7 @@ impl Swarm {
 
 	pub fn next_id(&mut self) -> Id {
 		self.seq = self.seq + 1;
-		self.seq << 8 + self.seq_tag
+		self.seq << 8 + (self.agent_type as usize)
 	}
 
 	pub fn new_resource(&mut self, initial_pos: Position, charge: f32) -> Id {
@@ -59,6 +78,7 @@ impl Swarm {
 		let mut builder = agent::AgentBuilder::new(self.next_id(),
 		                                           Material { density: 1.0, ..Default::default() },
 		                                           Livery { albedo: albedo.to_rgba(), ..Default::default() },
+		                                           self.gen.dna(),
 		                                           segment::State::with_charge(charge, 0., charge));
 		self.insert(builder.start(initial_pos, 0., &ball).build())
 	}
@@ -84,6 +104,7 @@ impl Swarm {
 		let mut builder = agent::AgentBuilder::new(self.next_id(),
 		                                           Material { density: 0.2, ..Default::default() },
 		                                           Livery { albedo: albedo.to_rgba(), ..Default::default() },
+		                                           self.gen.dna(),
 		                                           segment::State::with_charge(0., charge, charge));
 		let arm_shape = self.gen.star();
 		let leg_shape = self.gen.star();
@@ -145,6 +166,10 @@ impl Swarm {
 	}
 }
 
+
+pub type AgentMap = HashMap<Id, agent::Agent>;
+pub type SwarmMap = HashMap<AgentType, Swarm>;
+
 #[repr(packed)]
 #[derive(Eq, Hash, PartialEq, Clone, Copy, Debug)]
 pub struct AgentRefs {
@@ -189,25 +214,29 @@ impl AgentRefs {
 	}
 }
 
+pub trait TypedAgent {
+	fn type_of(&self) -> AgentType;
+}
+
+impl TypedAgent for Id {
+	fn type_of(&self) -> AgentType {
+		AgentType::from_usize(*self & 0xff).unwrap_or(AgentType::Prop)
+	}
+}
+
 pub struct World {
 	pub extent: Rect,
 	pub fence: obj::Mesh,
-	pub players: Swarm,
-	pub minions: Swarm,
-	pub friendly_fire: Swarm,
-	pub enemies: Swarm,
-	pub enemy_fire: Swarm,
-	pub resources: Swarm,
-	pub props: Swarm,
+	agents: HashMap<AgentType, Swarm>,
 }
 
 pub trait WorldState {
-	fn minion(&self, id: obj::Id) -> Option<&Agent>;
+	fn agent(&self, id: obj::Id) -> Option<&Agent>;
 }
 
 impl WorldState for World {
-	fn minion(&self, id: obj::Id) -> Option<&Agent> {
-		self.minions.get(id)
+	fn agent(&self, id: obj::Id) -> Option<&Agent> {
+		self.agents.get(&id.type_of()).and_then(|m| m.get(id))
 	}
 }
 
@@ -217,34 +246,46 @@ pub struct Cleanup {
 
 impl World {
 	pub fn new() -> Self {
+		let mut agents = HashMap::new();
+		agents.insert(AgentType::Minion, Swarm::new(AgentType::Minion));
+		agents.insert(AgentType::Resource, Swarm::new(AgentType::Resource));
+
 		World {
 			extent: Rect::new(-50., -50., 50., 50.),
 			fence: Mesh::from_shape(Shape::new_ball(50.), Winding::CW),
-			minions: Swarm::new(0),
-			players: Swarm::new(1),
-			friendly_fire: Swarm::new(2),
-			enemies: Swarm::new(3),
-			enemy_fire: Swarm::new(4),
-			resources: Swarm::new(5),
-			props: Swarm::new(6),
+			agents: agents,
 		}
 	}
 
 	pub fn new_resource(&mut self, pos: Position) -> obj::Id {
-		self.minions.new_resource(pos, 0.8)
+		self.agents.get_mut(&AgentType::Resource).unwrap().new_resource(pos, 0.8)
 	}
 
 	pub fn new_minion(&mut self, pos: Position) -> obj::Id {
-		self.minions.new_minion(pos, 0.3)
+		self.agents.get_mut(&AgentType::Minion).unwrap().new_minion(pos, 0.3)
 	}
 
-	pub fn friend_mut(&mut self, id: obj::Id) -> Option<&mut Agent> {
-		self.minions.get_mut(id)
+	pub fn agent_mut(&mut self, id: obj::Id) -> Option<&mut Agent> {
+		self.agents.get_mut(&id.type_of()).and_then(|m| m.get_mut(id))
+	}
+
+	pub fn agents_mut(&mut self, agent_type: AgentType) -> &mut AgentMap {
+		&mut self.agents.get_mut(&agent_type).unwrap().agents
+	}
+
+	pub fn swarms(&self) -> &SwarmMap {
+		&self.agents
+	}
+
+	pub fn swarms_mut(&mut self) -> &mut SwarmMap {
+		&mut self.agents
 	}
 
 	pub fn cleanup(&mut self) -> Cleanup {
 		let mut v = Vec::new();
-		self.minions.free_resources(&mut v);
+		for (_, agents) in self.agents.iter_mut() {
+			agents.free_resources(&mut v);
+		}
 		Cleanup { freed: v.into_boxed_slice() }
 	}
 }

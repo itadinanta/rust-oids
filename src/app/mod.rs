@@ -208,8 +208,9 @@ impl App {
 	}
 
 	fn register(&mut self, id: obj::Id) {
-		let found = self.world.friend_mut(id);
-		self.systems.physics.register(found.unwrap());
+		if let Some(found) = self.world.agent_mut(id) {
+			self.systems.physics.register(found);
+		}
 	}
 
 	pub fn on_app_event(&mut self, e: Event) {
@@ -339,26 +340,28 @@ impl App {
 	}
 
 	fn render_minions(&self, renderer: &mut render::Draw) {
-		for (_, b) in self.world.minions.agents() {
-			for segment in b.segments() {
-				let body_transform = Self::from_transform(&segment.transform());
+		for (_, swarm) in self.world.swarms().iter() {
+			for (_, agent) in swarm.agents().iter() {
+				for segment in agent.segments() {
+					let body_transform = Self::from_transform(&segment.transform());
 
-				let mesh = &segment.mesh();
-				let fixture_scale = Matrix4::from_scale(mesh.shape.radius());
-				let transform = body_transform * fixture_scale;
+					let mesh = &segment.mesh();
+					let fixture_scale = Matrix4::from_scale(mesh.shape.radius());
+					let transform = body_transform * fixture_scale;
 
-				match mesh.shape {
-					obj::Shape::Ball { .. } => {
-						renderer.draw_ball(&transform, segment.color());
-					}
-					obj::Shape::Star { .. } => {
-						renderer.draw_star(&transform, &mesh.vertices[..], segment.color());
-					}
-					obj::Shape::Box { ratio, .. } => {
-						renderer.draw_quad(&transform, ratio, segment.color());
-					}
-					obj::Shape::Triangle { .. } => {
-						renderer.draw_triangle(&transform, &mesh.vertices[0..3], segment.color());
+					match mesh.shape {
+						obj::Shape::Ball { .. } => {
+							renderer.draw_ball(&transform, segment.color());
+						}
+						obj::Shape::Star { .. } => {
+							renderer.draw_star(&transform, &mesh.vertices[..], segment.color());
+						}
+						obj::Shape::Box { ratio, .. } => {
+							renderer.draw_quad(&transform, ratio, segment.color());
+						}
+						obj::Shape::Triangle { .. } => {
+							renderer.draw_triangle(&transform, &mesh.vertices[0..3], segment.color());
+						}
 					}
 				}
 			}
@@ -413,7 +416,7 @@ impl App {
 	fn update_systems(&mut self, dt: f32) {
 		self.systems.ai.follow_me(self.light_position);
 		self.systems.alife.source(self.light_position);
-		
+
 		self.systems.to_world(&mut self.world,
 		                      &|s, mut world| s.update_world(&mut world, dt));
 	}
