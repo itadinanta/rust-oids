@@ -13,8 +13,19 @@ impl Updateable for AiSystem {}
 
 impl System for AiSystem {
 	fn to_world(&self, world: &mut world::World) {
-		let target = self.remote;
-		for (_, agent) in world.agents_mut(world::AgentType::Minion) {
+		Self::update_minions(&self.remote, &mut world.agents_mut(world::AgentType::Minion))
+	}
+}
+
+impl Default for AiSystem {
+	fn default() -> Self {
+		AiSystem { remote: Position::zero() }
+	}
+}
+
+impl AiSystem {
+	fn update_minions(target: &Position, minions: &mut world::AgentMap) {
+		for (_, agent) in minions.iter_mut() {
 			let brain = agent.brain();
 			let segments = &mut agent.segments_mut();
 			if let Some(sensor) = segments.iter()
@@ -50,15 +61,7 @@ impl System for AiSystem {
 			}
 		}
 	}
-}
 
-impl Default for AiSystem {
-	fn default() -> Self {
-		AiSystem { remote: Position::zero() }
-	}
-}
-
-impl AiSystem {
 	pub fn follow_me(&mut self, pos: Position) {
 		self.remote = pos;
 	}

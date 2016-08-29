@@ -19,7 +19,7 @@ use num::FromPrimitive;
 enum_from_primitive! {
 	#[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
 	pub enum AgentType {
-		Minion,
+		Minion ,
 		Spore,
 		Player,
 		FriendlyBullet,
@@ -27,6 +27,22 @@ enum_from_primitive! {
 		EnemyBullet,
 		Resource,
 		Prop,
+	}
+}
+
+// TODO: is there a better way to derive this?
+const AGENT_TYPES: &'static [AgentType] = &[AgentType::Minion,
+                                            AgentType::Spore,
+                                            AgentType::Player,
+                                            AgentType::FriendlyBullet,
+                                            AgentType::Enemy,
+                                            AgentType::EnemyBullet,
+                                            AgentType::Resource,
+                                            AgentType::Prop];
+
+impl AgentType {
+	pub fn all() -> &'static [AgentType] {
+		AGENT_TYPES
 	}
 }
 
@@ -49,6 +65,7 @@ impl Swarm {
 		}
 	}
 
+	#[allow(dead_code)]
 	pub fn type_of(&self) -> AgentType {
 		self.agent_type
 	}
@@ -67,7 +84,7 @@ impl Swarm {
 
 	pub fn next_id(&mut self) -> Id {
 		self.seq = self.seq + 1;
-		self.seq << 8 + (self.agent_type as usize)
+		self.seq << 8 | (self.agent_type as usize)
 	}
 
 	pub fn new_resource(&mut self, initial_pos: Position, charge: f32) -> Id {
@@ -247,9 +264,10 @@ pub struct Cleanup {
 impl World {
 	pub fn new() -> Self {
 		let mut agents = HashMap::new();
-		agents.insert(AgentType::Minion, Swarm::new(AgentType::Minion));
-		agents.insert(AgentType::Resource, Swarm::new(AgentType::Resource));
-
+		let types = AgentType::all();
+		for t in types {
+			agents.insert(*t, Swarm::new(*t));
+		}
 		World {
 			extent: Rect::new(-50., -50., 50., 50.),
 			fence: Mesh::from_shape(Shape::new_ball(50.), Winding::CW),

@@ -22,6 +22,8 @@ genmesh="0.4"
 enum_primitive="*"
 bitflags="*"
 bit-set="*"
+custom_derive="*"
+enum_derive="*"
 
 image = "*"
 piston = "*"

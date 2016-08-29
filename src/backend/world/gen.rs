@@ -75,10 +75,12 @@ pub trait Generator {
 	}
 }
 
+#[allow(dead_code)]
 pub struct Randomizer {
 	rng: rand::ThreadRng,
 }
 
+#[allow(dead_code)]
 impl Randomizer {
 	pub fn new() -> Self {
 		Randomizer { rng: rand::thread_rng() }
