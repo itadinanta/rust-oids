@@ -31,12 +31,31 @@ bitflags! {
 pub struct State {
 	lifespan: Hourglass<SystemStopwatch>,
 	flags: Flags,
+	power: f32,
 }
 
 impl State {
 	#[inline]
 	pub fn lifespan(&self) -> &Hourglass<SystemStopwatch> {
 		&self.lifespan
+	}
+
+	pub fn renew(&mut self) {
+		self.lifespan.renew()
+	}
+
+	pub fn power(&self) -> f32 {
+		self.power
+	}
+
+	pub fn consume(&mut self, q: f32) -> f32 {
+		let residual = f32::min(self.power, q);
+		self.power -= residual;
+		residual
+	}
+
+	pub fn absorb(&mut self, q: f32) {
+		self.power += q;
 	}
 
 	pub fn die(&mut self) {
@@ -59,7 +78,7 @@ pub struct Agent {
 	id: Id,
 	brain: Brain<f32>,
 	pub state: State,
-	segments: Box<[Segment]>,
+	pub segments: Box<[Segment]>,
 }
 
 impl Identified for Agent {
@@ -237,6 +256,7 @@ impl AgentBuilder {
 			state: State {
 				flags: ACTIVE,
 				lifespan: Hourglass::new(10.),
+				power: 10.,
 			},
 			brain: Brain {
 				timidity: 2. * (12.0 - order),

@@ -1,11 +1,11 @@
 use super::*;
 use backend::world::WorldState;
-use std::time::*;
+use core::clock::*;
 
 pub struct AnimationSystem {
 	speed: f32,
-	t0: SystemTime,
-	now: SystemTime,
+	t0: SystemStopwatch,
+	now: SystemStopwatch,
 	dt: f32,
 	frames: f32,
 	elapsed: f32,
@@ -13,12 +13,10 @@ pub struct AnimationSystem {
 
 impl Updateable for AnimationSystem {
 	fn update(&mut self, _: &WorldState, dt: f32) {
-		self.now = SystemTime::now();
+		self.now.reset();
 		self.dt = dt * self.speed;
 		self.frames += self.dt;
-		if let Ok(dt) = self.t0.elapsed() {
-			self.elapsed = (dt.as_secs() as f32) + (dt.subsec_nanos() as f32) * 1e-9;
-		};
+		self.elapsed = self.t0.seconds();
 	}
 }
 
@@ -29,8 +27,8 @@ impl Default for AnimationSystem {
 		AnimationSystem {
 			dt: 1. / 60.,
 			speed: 1.,
-			t0: SystemTime::now(),
-			now: SystemTime::now(),
+			t0: Stopwatch::new(),
+			now: Stopwatch::new(),
 			frames: 0.,
 			elapsed: 0.,
 		}

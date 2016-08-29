@@ -322,7 +322,6 @@ impl b2::ContactListener<AgentData> for ContactListener {
 		if body_a.agent_id != body_b.agent_id {
 			self.touched.borrow_mut().insert(body_a.no_bone());
 			self.touched.borrow_mut().insert(body_b.no_bone());
-			// println!("{:?} touched {:?}", body_a, body_b);
 		}
 	}
 }
