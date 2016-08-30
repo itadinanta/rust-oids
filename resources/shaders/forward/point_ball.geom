@@ -1,7 +1,7 @@
 #version 150 core
 
 layout(triangles) in;
-layout(triangle_strip, max_vertices = 192) out;
+layout(triangle_strip, max_vertices = 50) out;
 
 in VertexData {
 	vec4 Position;
@@ -35,7 +35,7 @@ void emit_vertex(V v) {
 }
 
 const float PI = 3.1415926535897932384626433832795;
-const int N = 33;
+const int N = 15;
 const float D = 2 * PI / N;
 const mat2 R = mat2(cos(D), -sin(D), sin(D), cos(D));
 
