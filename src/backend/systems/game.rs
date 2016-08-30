@@ -25,12 +25,12 @@ impl System for GameSystem {
 	}
 	fn to_world(&self, world: &mut world::World) {
 		for i in self.spawned..self.to_spawn {
-			let id = world.new_resource(Position::zero(),
-			                            Some(Motion {
-				                            velocity: Velocity::new((i as f32).cos(), (i as f32).sin()),
-				                            spin: 0.01,
-			                            }));
-			world.register(id);
+			let r = 0.2 * i as f32;
+			world.new_resource(Position::zero(),
+			                   Some(Motion {
+				                   velocity: Velocity::new(r.cos(), r.sin()),
+				                   spin: 0.16,
+			                   }));
 		}
 	}
 }

@@ -267,7 +267,7 @@ impl AgentBuilder {
 			state: State {
 				flags: ACTIVE,
 				lifespan: Hourglass::new(10.),
-				power: 10.,
+				power: 20.,
 			},
 			brain: Brain {
 				timidity: 2. * (12.0 - order),

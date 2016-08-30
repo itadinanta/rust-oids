@@ -111,6 +111,7 @@ impl Swarm {
 		                                           Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                           self.gen.dna(),
 		                                           segment::State::with_charge(charge, 0., charge));
+		self.mutate(&mut rand::thread_rng());
 		self.insert(builder.start(Transform::with_position(initial_pos), initial_vel, &ball).build())
 	}
 
@@ -279,6 +280,11 @@ impl World {
 
 	pub fn new_resource(&mut self, pos: Position, vel: Option<Motion>) -> obj::Id {
 		let id = self.agents.get_mut(&AgentType::Resource).unwrap().new_resource(pos, vel, 0.8);
+		self.register(id)
+	}
+
+	pub fn new_spore(&mut self, pos: Position, vel: Option<Motion>) -> obj::Id {
+		let id = self.agents.get_mut(&AgentType::Minion).unwrap().new_resource(pos, vel, 0.8);
 		self.register(id)
 	}
 
