@@ -186,6 +186,13 @@ impl PhysicsSystem {
 					x: transform.position.x,
 					y: transform.position.y,
 				};
+				if let Some(Motion { velocity, spin }) = segment.motion {
+					b_def.linear_velocity = b2::Vec2 {
+						x: velocity.x,
+						y: velocity.y,
+					};
+					b_def.angular_velocity = spin;
+				}
 				let refs = world::AgentRefs::with_segment(object_id, segment_index as u8);
 				let handle = world.create_body_with(&b_def, refs);
 

@@ -152,11 +152,11 @@ impl AgentBuilder {
 		}
 	}
 
-	pub fn start(&mut self, position: Position, angle: f32, shape: &Shape) -> &mut Self {
+	pub fn start(&mut self, transform: Transform, initial_vel: Option<Motion>, shape: &Shape) -> &mut Self {
 		let segment = self.new_segment(shape,
 		                               Winding::CW,
-		                               position,
-		                               angle,
+		                               transform,
+		                               initial_vel,
 		                               None,
 		                               segment::TORSO | segment::MIDDLE);
 		self.segments.clear();
@@ -222,8 +222,8 @@ impl AgentBuilder {
 		let r1 = shape.radius();
 		let segment = self.new_segment(shape,
 		                               winding,
-		                               parent_pos + (p0 * (r0 + r1)),
-		                               consts::PI / 2. + angle,
+		                               Transform::new(parent_pos + (p0 * (r0 + r1)), consts::PI / 2. + angle),
+		                               None,
 		                               parent.new_attachment(attachment_index as AttachmentIndex),
 		                               flags);
 		self.segments.push(segment);
@@ -240,14 +240,15 @@ impl AgentBuilder {
 	fn new_segment(&mut self,
 	               shape: &Shape,
 	               winding: Winding,
-	               position: Position,
-	               angle: f32,
+	               transform: Transform,
+	               motion: Option<Motion>,
 	               attachment: Option<segment::Attachment>,
 	               flags: segment::Flags)
 	               -> segment::Segment {
 		segment::Segment {
 			index: self.segments.len() as SegmentIndex,
-			transform: Transform::new(position, angle),
+			transform: transform,
+			motion: motion,
 			mesh: Mesh::from_shape(shape.clone(), winding),
 			material: self.material.clone(),
 			livery: self.livery.clone(),

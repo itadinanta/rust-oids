@@ -198,18 +198,18 @@ impl App {
 	}
 
 	fn new_resource(&mut self, pos: Position) {
-		let id = self.world.new_resource(pos);
-		self.register(id);
+		self.world.new_resource(pos, None);
 	}
 
 	fn new_minion(&mut self, pos: Position) {
-		let id = self.world.new_minion(pos);
-		self.register(id);
+		self.world.new_minion(pos, None);
 	}
 
-	fn register(&mut self, id: obj::Id) {
-		if let Some(found) = self.world.agent_mut(id) {
-			self.systems.physics.register(found);
+	fn register_all(&mut self) {
+		for id in self.world.registered().into_iter() {
+			if let Some(found) = self.world.agent_mut(*id) {
+				self.systems.physics.register(found);
+			}
 		}
 	}
 
@@ -434,6 +434,7 @@ impl App {
 
 		self.update_input(frame_time_smooth);
 		self.update_systems(frame_time_smooth);
+		self.register_all();
 		self.frame_count += 1;
 
 		Update {

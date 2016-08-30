@@ -3,6 +3,11 @@ use cgmath::Vector2;
 
 pub type Position = Vector2<f32>;
 pub type Translation = Vector2<f32>;
+pub type Velocity = Vector2<f32>;
+pub type Angle = f32;
+pub type Rotation = f32;
+pub type Spin = f32;
+
 pub type M44 = cgmath::Matrix4<f32>;
 
 #[derive(Clone, Default)]
@@ -16,6 +21,12 @@ pub struct Transform {
 	pub position: Position,
 	pub angle: f32,
 	pub scale: f32,
+}
+
+#[derive(Copy, Clone)]
+pub struct Motion {
+	pub velocity: Velocity,
+	pub spin: Spin,
 }
 
 #[derive(Copy, Clone)]
@@ -64,6 +75,9 @@ impl Transform {
 			angle: angle,
 			..Transform::default()
 		}
+	}
+	pub fn with_position(position: Position) -> Self {
+		Transform { position: position, ..Transform::default() }
 	}
 }
 
