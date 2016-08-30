@@ -49,7 +49,6 @@ impl AgentType {
 pub struct Swarm {
 	seq: Id,
 	agent_type: AgentType,
-	rng: rand::ThreadRng,
 	gen: Genome,
 	agents: AgentMap,
 }
@@ -59,7 +58,6 @@ impl Swarm {
 		Swarm {
 			seq: 0,
 			agent_type: agent_type,
-			rng: rand::thread_rng(),
 			gen: Genome::new(b"Rust-Oids are cool!"),
 			agents: HashMap::new(),
 		}
@@ -78,8 +76,8 @@ impl Swarm {
 		self.agents.get_mut(&id)
 	}
 
-	pub fn mutate(&mut self) {
-		self.gen = self.gen.mutate(&mut self.rng);
+	pub fn mutate<R: rand::Rng>(&mut self, rng: &mut R) {
+		self.gen = self.gen.mutate(rng);
 	}
 
 	pub fn next_id(&mut self) -> Id {
@@ -104,9 +102,9 @@ impl Swarm {
 		let mut dead = HashSet::new();
 
 		for id in self.agents
-			.iter()
-			.filter(|&(_, agent)| !agent.state.is_alive())
-			.map(|(&id, _)| id) {
+		              .iter()
+		              .filter(|&(_, agent)| !agent.state.is_alive())
+		              .map(|(&id, _)| id) {
 			dead.insert(id);
 		}
 		for id in &dead {
@@ -131,13 +129,13 @@ impl Swarm {
 		let initial_angle = consts::PI / 2. + f32::atan2(initial_pos.y, initial_pos.x);
 
 		let torso = builder.start(initial_pos, initial_angle, &torso_shape)
-			.index();
+		                   .index();
 		builder.addr(torso, 2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER)
-			.addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
+		       .addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
 
 		let head = builder.add(torso, 0, &head_shape, HEAD | SENSOR).index();
 		builder.addr(head, 1, &head_shape, HEAD | ACTUATOR | RUDDER)
-			.addl(head, 2, &head_shape, HEAD | ACTUATOR | RUDDER);
+		       .addl(head, 2, &head_shape, HEAD | ACTUATOR | RUDDER);
 
 		let mut belly = torso;
 		let mut belly_mid = torso_shape.mid();
@@ -148,17 +146,17 @@ impl Swarm {
 			belly_mid = belly_shape.mid();
 			if self.gen.next_integer(0, 4) == 0 {
 				builder.addr(belly, 2, &arm_shape, ARM | ACTUATOR | RUDDER)
-					.addl(belly, -2, &arm_shape, ARM | ACTUATOR | RUDDER);
+				       .addl(belly, -2, &arm_shape, ARM | ACTUATOR | RUDDER);
 			}
 		}
 
 		builder.addr(belly, belly_mid - 1, &leg_shape, LEG | ACTUATOR | THRUSTER)
-			.addl(belly,
-			      -(belly_mid - 1),
-			      &leg_shape,
-			      LEG | ACTUATOR | THRUSTER)
-			.add(belly, belly_mid, &tail_shape, TAIL | ACTUATOR | BRAKE);
-		self.mutate();
+		       .addl(belly,
+		             -(belly_mid - 1),
+		             &leg_shape,
+		             LEG | ACTUATOR | THRUSTER)
+		       .add(belly, belly_mid, &tail_shape, TAIL | ACTUATOR | BRAKE);
+		self.mutate(&mut rand::thread_rng());
 		self.insert(builder.build())
 	}
 
