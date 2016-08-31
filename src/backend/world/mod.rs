@@ -6,6 +6,8 @@ pub mod phen;
 
 use backend::obj;
 use backend::obj::*;
+use rand;
+use std::f32::consts;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use core::geometry::*;
@@ -51,17 +53,28 @@ impl World {
 	}
 
 	pub fn new_resource(&mut self, pos: Position, vel: Option<Motion>) -> obj::Id {
-		let id = self.swarm_mut(&AgentType::Resource).spawn::<phen::Resource>(pos, vel, 0.8);
+		let id = self.swarm_mut(&AgentType::Resource).spawn::<phen::Resource>(Transform::with_position(pos), vel, 0.8);
 		self.register(id)
 	}
 
-	pub fn new_spore(&mut self, pos: Position, vel: Option<Motion>) -> obj::Id {
-		let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Resource>(pos, vel, 0.8);
+	pub fn new_spore(&mut self, transform: Transform, dna: &gen::Dna) -> obj::Id {
+		let id = self.swarm_mut(&AgentType::Spore)
+			.replicate::<phen::Spore>(&mut gen::Genome::new(dna).mutate(&mut rand::thread_rng()),
+			                          transform,
+			                          None,
+			                          0.8);
+		self.register(id)
+	}
+
+	pub fn hatch_spore(&mut self, transform: Transform, dna: &gen::Dna) -> obj::Id {
+		let id = self.swarm_mut(&AgentType::Minion)
+			.replicate::<phen::Minion>(&mut gen::Genome::new(dna), transform, None, 0.3);
 		self.register(id)
 	}
 
 	pub fn new_minion(&mut self, pos: Position, vel: Option<Motion>) -> obj::Id {
-		let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Minion>(pos, vel, 0.3);
+		let angle = consts::PI / 2. + f32::atan2(pos.y, pos.x);
+		let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Minion>(Transform::new(pos, angle), vel, 0.3);
 		self.register(id)
 	}
 

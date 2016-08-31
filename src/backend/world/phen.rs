@@ -12,23 +12,15 @@ use cgmath;
 use cgmath::EuclideanVector;
 
 pub trait Phenotype {
-	fn develop(gen: &mut Genome,
-	           id: Id,
-	           initial_pos: Position,
-	           initial_vel: Option<Motion>,
-	           charge: f32)
-	           -> agent::Agent;
+	fn develop(gen: &mut Genome, id: Id, transform: Transform, motion: Option<Motion>, charge: f32) -> agent::Agent;
 }
 
 pub struct Resource {}
+pub struct Minion {}
+pub struct Spore {}
 
 impl Phenotype for Resource {
-	fn develop(gen: &mut Genome,
-	           id: Id,
-	           initial_pos: Position,
-	           initial_vel: Option<Motion>,
-	           charge: f32)
-	           -> agent::Agent {
+	fn develop(gen: &mut Genome, id: Id, transform: Transform, motion: Option<Motion>, charge: f32) -> agent::Agent {
 
 		let albedo = color::YPbPr::new(0.5, gen.next_float(-0.5, 0.5), gen.next_float(-0.5, 0.5));
 		let ball = gen.ball();
@@ -37,36 +29,24 @@ impl Phenotype for Resource {
 		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                    gen.dna(),
 		                                    segment::State::with_charge(charge, 0., charge));
-		builder.start(Transform::with_position(initial_pos), initial_vel, &ball).build()
+		builder.start(Transform::with_position(transform.position), motion, &ball).build()
 	}
 }
 
-pub struct Minion {}
-
 impl Phenotype for Minion {
-	fn develop(gen: &mut Genome,
-	           id: Id,
-	           initial_pos: Position,
-	           initial_vel: Option<Motion>,
-	           charge: f32)
-	           -> agent::Agent {
+	fn develop(gen: &mut Genome, id: Id, transform: Transform, motion: Option<Motion>, charge: f32) -> agent::Agent {
 		let albedo = color::Hsl::new(gen.next_float(0., 1.), 0.5, 0.5);
 		let mut builder = AgentBuilder::new(id,
 		                                    Material { density: 0.2, ..Default::default() },
 		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                    gen.dna(),
 		                                    segment::State::with_charge(0., charge, charge));
+		let torso_shape = gen.npoly(5, true);
+		let torso = builder.start(transform, motion, &torso_shape).index();
 		let arm_shape = gen.star();
 		let leg_shape = gen.star();
-		let torso_shape = gen.npoly(5, true);
 		let head_shape = gen.iso_triangle();
 		let tail_shape = gen.vbar();
-		let initial_angle = consts::PI / 2. + f32::atan2(initial_pos.y, initial_pos.x);
-
-		let torso = builder.start(Transform::new(initial_pos, initial_angle),
-			       initial_vel,
-			       &torso_shape)
-			.index();
 		builder.addr(torso, 2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER)
 			.addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
 
@@ -94,6 +74,18 @@ impl Phenotype for Minion {
 			      LEG | ACTUATOR | THRUSTER)
 			.add(belly, belly_mid, &tail_shape, TAIL | ACTUATOR | BRAKE)
 			.build()
+	}
+}
+
+impl Phenotype for Spore {
+	fn develop(gen: &mut Genome, id: Id, transform: Transform, motion: Option<Motion>, charge: f32) -> agent::Agent {
+		let albedo = color::Hsl::new(gen.next_float(0., 1.), 0.5, 0.5);
+		let mut builder = AgentBuilder::new(id,
+		                                    Material { density: 0.2, ..Default::default() },
+		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
+		                                    gen.dna(),
+		                                    segment::State::with_charge(0., charge, charge));
+		builder.start(transform, motion, &gen.ball()).build()
 	}
 }
 

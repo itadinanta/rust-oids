@@ -131,10 +131,13 @@ impl State {
 		self.power
 	}
 
-	pub fn consume(&mut self, q: f32) -> f32 {
-		let residual = f32::min(self.power, q);
-		self.power -= residual;
-		residual
+	pub fn consume(&mut self, q: f32) -> bool {
+		if self.power >= q {
+			self.power -= q;
+			true
+		} else {
+			false
+		}
 	}
 
 	pub fn absorb(&mut self, q: f32) {

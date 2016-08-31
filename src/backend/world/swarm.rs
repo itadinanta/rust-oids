@@ -64,11 +64,22 @@ impl Swarm {
 		}
 	}
 
-	pub fn spawn<T>(&mut self, initial_pos: Position, initial_vel: Option<Motion>, charge: f32) -> Id
+	pub fn spawn<T>(&mut self, transform: Transform, motion: Option<Motion>, charge: f32) -> Id
 		where T: phen::Phenotype {
 		let id = self.next_id();
-		let entity = T::develop(&mut self.gen, id, initial_pos, initial_vel, charge);
+		let entity = T::develop(&mut self.gen, id, transform, motion, charge);
 		self.mutate(&mut rand::thread_rng());
+		self.insert(entity)
+	}
+
+	pub fn replicate<T>(&mut self,
+	                    genome: &mut Genome,
+	                    transform: Transform,
+	                    motion: Option<Motion>,
+	                    charge: f32)
+	                    -> Id
+		where T: phen::Phenotype {
+		let entity = T::develop(genome, self.next_id(), transform, motion, charge);
 		self.insert(entity)
 	}
 
