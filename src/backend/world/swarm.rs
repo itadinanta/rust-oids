@@ -13,7 +13,7 @@ pub struct Swarm {
 	seq: Id,
 	agent_type: AgentType,
 	gen: Genome,
-	pub agents: agent::AgentMap,
+	agents: agent::AgentMap,
 }
 
 impl Swarm {
@@ -76,12 +76,6 @@ impl Swarm {
 		let id = agent.id();
 		self.agents.insert(id, agent);
 		id
-	}
-
-	pub fn kill(&mut self, id: &Id) {
-		if let Some(ref mut agent) = self.agents.get_mut(id) {
-			agent.state.die();
-		}
 	}
 
 	pub fn agents(&self) -> &HashMap<Id, Agent> {

@@ -205,10 +205,6 @@ impl Agent {
 		self.brain.clone()
 	}
 
-	pub fn type_of(&self) -> AgentType {
-		AgentType::from_usize(self.id & 0xff).unwrap_or(AgentType::Prop)
-	}
-
 	pub fn new(id: Id, d0: f32, order: f32, dna: &Dna, segments: Box<[Segment]>) -> Self {
 		Agent {
 			id: id,

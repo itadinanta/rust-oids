@@ -17,7 +17,7 @@ use backend::world::swarm::*;
 pub struct World {
 	pub extent: Rect,
 	pub fence: obj::Mesh,
-	agents: HashMap<AgentType, Swarm>,
+	swarms: HashMap<AgentType, Swarm>,
 	registered: HashSet<Id>,
 }
 
@@ -27,7 +27,7 @@ pub trait WorldState {
 
 impl WorldState for World {
 	fn agent(&self, id: obj::Id) -> Option<&Agent> {
-		self.agents.get(&id.type_of()).and_then(|m| m.get(id))
+		self.swarms.get(&id.type_of()).and_then(|m| m.get(id))
 	}
 }
 
@@ -37,31 +37,31 @@ pub struct Cleanup {
 
 impl World {
 	pub fn new() -> Self {
-		let mut agents = HashMap::new();
+		let mut swarms = HashMap::new();
 		let types = AgentType::all();
 		for t in types {
-			agents.insert(*t, Swarm::new(*t));
+			swarms.insert(*t, Swarm::new(*t));
 		}
 		World {
 			extent: Rect::new(-50., -50., 50., 50.),
 			fence: Mesh::from_shape(Shape::new_ball(50.), Winding::CW),
-			agents: agents,
+			swarms: swarms,
 			registered: HashSet::new(),
 		}
 	}
 
 	pub fn new_resource(&mut self, pos: Position, vel: Option<Motion>) -> obj::Id {
-		let id = self.agents.get_mut(&AgentType::Resource).unwrap().spawn::<phen::Resource>(pos, vel, 0.8);
+		let id = self.swarm_mut(&AgentType::Resource).spawn::<phen::Resource>(pos, vel, 0.8);
 		self.register(id)
 	}
 
 	pub fn new_spore(&mut self, pos: Position, vel: Option<Motion>) -> obj::Id {
-		let id = self.agents.get_mut(&AgentType::Minion).unwrap().spawn::<phen::Resource>(pos, vel, 0.8);
+		let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Resource>(pos, vel, 0.8);
 		self.register(id)
 	}
 
 	pub fn new_minion(&mut self, pos: Position, vel: Option<Motion>) -> obj::Id {
-		let id = self.agents.get_mut(&AgentType::Minion).unwrap().spawn::<phen::Minion>(pos, vel, 0.3);
+		let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Minion>(pos, vel, 0.3);
 		self.register(id)
 	}
 
@@ -77,24 +77,24 @@ impl World {
 	}
 
 	pub fn agent_mut(&mut self, id: obj::Id) -> Option<&mut Agent> {
-		self.agents.get_mut(&id.type_of()).and_then(|m| m.get_mut(id))
+		self.swarms.get_mut(&id.type_of()).and_then(|m| m.get_mut(id))
 	}
 
 	pub fn agents_mut(&mut self, agent_type: AgentType) -> &mut agent::AgentMap {
-		&mut self.agents.get_mut(&agent_type).unwrap().agents
+		self.swarms.get_mut(&agent_type).unwrap().agents_mut()
+	}
+
+	pub fn swarm_mut(&mut self, agent_type: &AgentType) -> &mut Swarm {
+		self.swarms.get_mut(&agent_type).unwrap()
 	}
 
 	pub fn swarms(&self) -> &SwarmMap {
-		&self.agents
-	}
-
-	pub fn swarms_mut(&mut self) -> &mut SwarmMap {
-		&mut self.agents
+		&self.swarms
 	}
 
 	pub fn cleanup(&mut self) -> Cleanup {
 		let mut v = Vec::new();
-		for (_, agents) in self.agents.iter_mut() {
+		for (_, agents) in self.swarms.iter_mut() {
 			agents.free_resources(&mut v);
 		}
 		Cleanup { freed: v.into_boxed_slice() }
