@@ -28,8 +28,8 @@ impl System for GameSystem {
 			let r = 0.2 * i as f32;
 			world.new_resource(Position::zero(),
 			                   Some(Motion {
-				                   velocity: Velocity::new(r.cos(), r.sin()) * 5.,
-				                   spin: 0.16,
+				                   velocity: Velocity::new(r.cos(), r.sin()) * 10.,
+				                   spin: 3.14,
 			                   }));
 		}
 	}
