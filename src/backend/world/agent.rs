@@ -4,12 +4,40 @@ use cgmath;
 use cgmath::EuclideanVector;
 use core::geometry::*;
 use core::clock::*;
-use backend::world::AgentType;
 use backend::world::segment;
 use backend::world::segment::Segment;
 use num::FromPrimitive;
 
 pub type Dna = Box<[u8]>;
+
+enum_from_primitive! {
+	#[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
+	pub enum AgentType {
+		Minion ,
+		Spore,
+		Player,
+		FriendlyBullet,
+		Enemy,
+		EnemyBullet,
+		Resource,
+		Prop,
+	}
+}
+
+// TODO: is there a better way to derive this?
+const AGENT_TYPES: &'static [AgentType] = &[AgentType::Minion,
+                                            AgentType::Spore,
+                                            AgentType::Player,
+                                            AgentType::FriendlyBullet,
+                                            AgentType::Enemy,
+                                            AgentType::EnemyBullet,
+                                            AgentType::Resource,
+                                            AgentType::Prop];
+impl AgentType {
+	pub fn all() -> &'static [AgentType] {
+		AGENT_TYPES
+	}
+}
 
 #[derive(Clone)]
 pub struct Brain<T> {

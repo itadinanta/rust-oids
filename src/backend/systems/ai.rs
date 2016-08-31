@@ -1,5 +1,6 @@
 use super::*;
 use backend::world;
+use backend::world::agent;
 use backend::world::segment;
 use backend::world::segment::Intent;
 use cgmath::*;
@@ -13,7 +14,7 @@ impl Updateable for AiSystem {}
 
 impl System for AiSystem {
 	fn to_world(&self, world: &mut world::World) {
-		Self::update_minions(&self.remote, &mut world.agents_mut(world::AgentType::Minion))
+		Self::update_minions(&self.remote, &mut world.agents_mut(agent::AgentType::Minion))
 	}
 }
 

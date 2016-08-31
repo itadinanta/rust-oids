@@ -1,50 +1,18 @@
 pub mod segment;
 pub mod agent;
 pub mod gen;
+pub mod phen;
 
 use backend::obj;
 use backend::obj::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::f32::consts;
-use core::color;
 use rand;
-use core::color::ToRgb;
 use core::geometry::*;
-use backend::world::segment::*;
 use backend::world::agent::Agent;
+use backend::world::agent::AgentType;
 use backend::world::gen::*;
 use num::FromPrimitive;
-
-enum_from_primitive! {
-	#[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
-	pub enum AgentType {
-		Minion ,
-		Spore,
-		Player,
-		FriendlyBullet,
-		Enemy,
-		EnemyBullet,
-		Resource,
-		Prop,
-	}
-}
-
-// TODO: is there a better way to derive this?
-const AGENT_TYPES: &'static [AgentType] = &[AgentType::Minion,
-                                            AgentType::Spore,
-                                            AgentType::Player,
-                                            AgentType::FriendlyBullet,
-                                            AgentType::Enemy,
-                                            AgentType::EnemyBullet,
-                                            AgentType::Resource,
-                                            AgentType::Prop];
-
-impl AgentType {
-	pub fn all() -> &'static [AgentType] {
-		AGENT_TYPES
-	}
-}
 
 pub struct Swarm {
 	seq: Id,
@@ -101,66 +69,12 @@ impl Swarm {
 		}
 	}
 
-	pub fn new_resource(&mut self, initial_pos: Position, initial_vel: Option<Motion>, charge: f32) -> Id {
-		let albedo = color::YPbPr::new(0.5,
-		                               self.gen.next_float(-0.5, 0.5),
-		                               self.gen.next_float(-0.5, 0.5));
-		let ball = self.gen.ball();
-		let mut builder = agent::AgentBuilder::new(self.next_id(),
-		                                           Material { density: 1.0, ..Default::default() },
-		                                           Livery { albedo: albedo.to_rgba(), ..Default::default() },
-		                                           self.gen.dna(),
-		                                           segment::State::with_charge(charge, 0., charge));
+	pub fn spawn<T>(&mut self, initial_pos: Position, initial_vel: Option<Motion>, charge: f32) -> Id
+		where T: phen::Phenotype {
+		let id = self.next_id();
+		let entity = T::develop(&mut self.gen, id, initial_pos, initial_vel, charge);
 		self.mutate(&mut rand::thread_rng());
-		self.insert(builder.start(Transform::with_position(initial_pos), initial_vel, &ball).build())
-	}
-
-	pub fn new_minion(&mut self, initial_pos: Position, initial_vel: Option<Motion>, charge: f32) -> Id {
-		let albedo = color::Hsl::new(self.gen.next_float(0., 1.), 0.5, 0.5);
-		let mut builder = agent::AgentBuilder::new(self.next_id(),
-		                                           Material { density: 0.2, ..Default::default() },
-		                                           Livery { albedo: albedo.to_rgba(), ..Default::default() },
-		                                           self.gen.dna(),
-		                                           segment::State::with_charge(0., charge, charge));
-		let arm_shape = self.gen.star();
-		let leg_shape = self.gen.star();
-		let torso_shape = self.gen.npoly(5, true);
-		let head_shape = self.gen.iso_triangle();
-		let tail_shape = self.gen.vbar();
-		let initial_angle = consts::PI / 2. + f32::atan2(initial_pos.y, initial_pos.x);
-
-		let torso = builder.start(Transform::new(initial_pos, initial_angle),
-			       initial_vel,
-			       &torso_shape)
-			.index();
-		builder.addr(torso, 2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER)
-			.addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
-
-		let head = builder.add(torso, 0, &head_shape, HEAD | SENSOR).index();
-		builder.addr(head, 1, &head_shape, HEAD | ACTUATOR | RUDDER)
-			.addl(head, 2, &head_shape, HEAD | ACTUATOR | RUDDER);
-
-		let mut belly = torso;
-		let mut belly_mid = torso_shape.mid();
-		for _ in 0..self.gen.next_integer(0, 4) {
-			let belly_shape = self.gen.poly(true);
-
-			belly = builder.add(belly, belly_mid, &belly_shape, BELLY | JOINT).index();
-			belly_mid = belly_shape.mid();
-			if self.gen.next_integer(0, 4) == 0 {
-				builder.addr(belly, 2, &arm_shape, ARM | ACTUATOR | RUDDER)
-					.addl(belly, -2, &arm_shape, ARM | ACTUATOR | RUDDER);
-			}
-		}
-
-		builder.addr(belly, belly_mid - 1, &leg_shape, LEG | ACTUATOR | THRUSTER)
-			.addl(belly,
-			      -(belly_mid - 1),
-			      &leg_shape,
-			      LEG | ACTUATOR | THRUSTER)
-			.add(belly, belly_mid, &tail_shape, TAIL | ACTUATOR | BRAKE);
-		self.mutate(&mut rand::thread_rng());
-		self.insert(builder.build())
+		self.insert(entity)
 	}
 
 	fn insert(&mut self, agent: Agent) -> Id {
@@ -279,17 +193,17 @@ impl World {
 	}
 
 	pub fn new_resource(&mut self, pos: Position, vel: Option<Motion>) -> obj::Id {
-		let id = self.agents.get_mut(&AgentType::Resource).unwrap().new_resource(pos, vel, 0.8);
+		let id = self.agents.get_mut(&AgentType::Resource).unwrap().spawn::<phen::Resource>(pos, vel, 0.8);
 		self.register(id)
 	}
 
 	pub fn new_spore(&mut self, pos: Position, vel: Option<Motion>) -> obj::Id {
-		let id = self.agents.get_mut(&AgentType::Minion).unwrap().new_resource(pos, vel, 0.8);
+		let id = self.agents.get_mut(&AgentType::Minion).unwrap().spawn::<phen::Resource>(pos, vel, 0.8);
 		self.register(id)
 	}
 
 	pub fn new_minion(&mut self, pos: Position, vel: Option<Motion>) -> obj::Id {
-		let id = self.agents.get_mut(&AgentType::Minion).unwrap().new_minion(pos, vel, 0.3);
+		let id = self.agents.get_mut(&AgentType::Minion).unwrap().spawn::<phen::Minion>(pos, vel, 0.3);
 		self.register(id)
 	}
 

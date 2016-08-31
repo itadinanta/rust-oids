@@ -1,5 +1,6 @@
 use super::*;
 use backend::world;
+use backend::world::agent;
 use backend::world::segment;
 use backend::world::WorldState;
 use cgmath::*;
@@ -18,10 +19,10 @@ impl Updateable for AlifeSystem {
 
 impl System for AlifeSystem {
 	fn to_world(&self, world: &mut world::World) {
-		Self::update_resources(self.dt, &mut world.agents_mut(world::AgentType::Resource));
+		Self::update_resources(self.dt, &mut world.agents_mut(agent::AgentType::Resource));
 		let spawns = Self::update_minions(self.dt,
 		                                  &self.source,
-		                                  &mut world.agents_mut(world::AgentType::Minion));
+		                                  &mut world.agents_mut(agent::AgentType::Minion));
 
 		for t in spawns.into_iter() {
 			world.new_spore(*t, None);

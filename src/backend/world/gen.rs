@@ -100,21 +100,21 @@ impl Generator for Randomizer {
 }
 
 pub struct Genome {
-	bits: Box<[u8]>,
+	dna: Box<[u8]>,
 	ptr: usize,
 }
 
 impl Genome {
-	pub fn new(bits: &[u8]) -> Self {
+	pub fn new(dna: &[u8]) -> Self {
 		Genome {
 			ptr: 0,
-			bits: bits.to_owned().into_boxed_slice(),
+			dna: dna.to_owned().into_boxed_slice(),
 		}
 	}
 
 	fn next_byte(&mut self) -> u8 {
-		let next = self.bits[self.ptr];
-		self.ptr = (self.ptr + 1) % self.bits.len();
+		let next = self.dna[self.ptr];
+		self.ptr = (self.ptr + 1) % self.dna.len();
 		next
 	}
 
@@ -138,19 +138,19 @@ impl Genome {
 	}
 
 	pub fn mutate<R: rand::Rng>(&self, rng: &mut R) -> Self {
-		let p: usize = rng.gen::<usize>() % (self.bits.len() * 8);
-		let mut new_genes = self.bits.to_vec();
+		let p: usize = rng.gen::<usize>() % (self.dna.len() * 8);
+		let mut new_genes = self.dna.to_vec();
 		let byte = p / 8;
 		let bit = p % 8;
 		new_genes[byte] ^= 1 << bit;
 		Genome {
 			ptr: 0,
-			bits: new_genes.into_boxed_slice(),
+			dna: new_genes.into_boxed_slice(),
 		}
 	}
 
 	pub fn dna(&self) -> &Box<[u8]> {
-		&self.bits
+		&self.dna
 	}
 }
 
