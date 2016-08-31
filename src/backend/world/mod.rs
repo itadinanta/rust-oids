@@ -31,7 +31,7 @@ impl WorldState for World {
 	}
 }
 
-pub struct Cleanup {
+pub struct Sweep {
 	pub freed: Box<[Agent]>,
 }
 
@@ -92,11 +92,11 @@ impl World {
 		&self.swarms
 	}
 
-	pub fn cleanup(&mut self) -> Cleanup {
+	pub fn sweep(&mut self) -> Sweep {
 		let mut v = Vec::new();
 		for (_, agents) in self.swarms.iter_mut() {
 			agents.free_resources(&mut v);
 		}
-		Cleanup { freed: v.into_boxed_slice() }
+		Sweep { freed: v.into_boxed_slice() }
 	}
 }

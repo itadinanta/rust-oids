@@ -407,7 +407,7 @@ impl App {
 	}
 
 	fn cleanup(&mut self) {
-		let freed = self.world.cleanup().freed;
+		let freed = self.world.sweep().freed;
 		self.systems.for_each(&|s| for freed_agent in freed.iter() {
 			s.unregister(freed_agent);
 		});
