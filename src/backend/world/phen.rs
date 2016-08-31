@@ -6,7 +6,10 @@ use core::geometry::*;
 use backend::world::segment;
 use backend::world::segment::*;
 use backend::world::agent;
+use backend::world::agent::Agent;
 use backend::world::gen::*;
+use cgmath;
+use cgmath::EuclideanVector;
 
 pub trait Phenotype {
 	fn develop(gen: &mut Genome,
@@ -29,11 +32,11 @@ impl Phenotype for Resource {
 
 		let albedo = color::YPbPr::new(0.5, gen.next_float(-0.5, 0.5), gen.next_float(-0.5, 0.5));
 		let ball = gen.ball();
-		let mut builder = agent::AgentBuilder::new(id,
-		                                           Material { density: 1.0, ..Default::default() },
-		                                           Livery { albedo: albedo.to_rgba(), ..Default::default() },
-		                                           gen.dna(),
-		                                           segment::State::with_charge(charge, 0., charge));
+		let mut builder = AgentBuilder::new(id,
+		                                    Material { density: 1.0, ..Default::default() },
+		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
+		                                    gen.dna(),
+		                                    segment::State::with_charge(charge, 0., charge));
 		builder.start(Transform::with_position(initial_pos), initial_vel, &ball).build()
 	}
 }
@@ -48,11 +51,11 @@ impl Phenotype for Minion {
 	           charge: f32)
 	           -> agent::Agent {
 		let albedo = color::Hsl::new(gen.next_float(0., 1.), 0.5, 0.5);
-		let mut builder = agent::AgentBuilder::new(id,
-		                                           Material { density: 0.2, ..Default::default() },
-		                                           Livery { albedo: albedo.to_rgba(), ..Default::default() },
-		                                           gen.dna(),
-		                                           segment::State::with_charge(0., charge, charge));
+		let mut builder = AgentBuilder::new(id,
+		                                    Material { density: 0.2, ..Default::default() },
+		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
+		                                    gen.dna(),
+		                                    segment::State::with_charge(0., charge, charge));
 		let arm_shape = gen.star();
 		let leg_shape = gen.star();
 		let torso_shape = gen.npoly(5, true);
@@ -91,5 +94,144 @@ impl Phenotype for Minion {
 			      LEG | ACTUATOR | THRUSTER)
 			.add(belly, belly_mid, &tail_shape, TAIL | ACTUATOR | BRAKE)
 			.build()
+	}
+}
+
+pub struct AgentBuilder {
+	id: Id,
+	material: Material,
+	livery: Livery,
+	dna: Dna,
+	state: segment::State,
+	segments: Vec<Segment>,
+}
+
+impl AgentBuilder {
+	pub fn new(id: Id, material: Material, livery: Livery, dna: &Dna, state: segment::State) -> Self {
+		AgentBuilder {
+			id: id,
+			material: material,
+			livery: livery,
+			state: state,
+			dna: dna.clone(),
+			segments: Vec::new(),
+		}
+	}
+
+	pub fn start(&mut self, transform: Transform, initial_vel: Option<Motion>, shape: &Shape) -> &mut Self {
+		let segment = self.new_segment(shape,
+		                               Winding::CW,
+		                               transform,
+		                               initial_vel,
+		                               None,
+		                               segment::TORSO | segment::MIDDLE);
+		self.segments.clear();
+		self.segments.push(segment);
+		self
+	}
+
+	#[inline]
+	pub fn add(&mut self,
+	           parent_index: SegmentIndex,
+	           attachment_index_offset: isize,
+	           shape: &Shape,
+	           flags: segment::Flags)
+	           -> &mut Self {
+		self.addw(parent_index,
+		          attachment_index_offset,
+		          shape,
+		          Winding::CW,
+		          flags | segment::MIDDLE)
+	}
+	#[inline]
+	pub fn addl(&mut self,
+	            parent_index: SegmentIndex,
+	            attachment_index_offset: isize,
+	            shape: &Shape,
+	            flags: segment::Flags)
+	            -> &mut Self {
+		self.addw(parent_index,
+		          attachment_index_offset,
+		          shape,
+		          Winding::CCW,
+		          flags | segment::LEFT)
+	}
+	#[inline]
+	pub fn addr(&mut self,
+	            parent_index: SegmentIndex,
+	            attachment_index_offset: isize,
+	            shape: &Shape,
+	            flags: segment::Flags)
+	            -> &mut Self {
+		self.addw(parent_index,
+		          attachment_index_offset,
+		          shape,
+		          Winding::CW,
+		          flags | segment::RIGHT)
+	}
+
+	pub fn addw(&mut self,
+	            parent_index: SegmentIndex,
+	            attachment_index_offset: isize,
+	            shape: &Shape,
+	            winding: Winding,
+	            flags: segment::Flags)
+	            -> &mut Self {
+		let parent = self.segments[parent_index as usize].clone();//urgh!;
+		let parent_pos = parent.transform.position;
+		let parent_angle = parent.transform.angle;
+		let parent_length = parent.mesh.shape.length() as isize;
+		let attachment_index = ((attachment_index_offset + parent_length) % parent_length) as usize;
+		let p0 = cgmath::Matrix2::from_angle(cgmath::rad(parent_angle)) * parent.mesh.vertices[attachment_index];
+		let angle = f32::atan2(p0.y, p0.x);
+		let r0 = p0.length() * parent.mesh.shape.radius();
+		let r1 = shape.radius();
+		let segment = self.new_segment(shape,
+		                               winding,
+		                               Transform::new(parent_pos + (p0 * (r0 + r1)), consts::PI / 2. + angle),
+		                               None,
+		                               parent.new_attachment(attachment_index as AttachmentIndex),
+		                               flags);
+		self.segments.push(segment);
+		self
+	}
+
+	pub fn index(&self) -> SegmentIndex {
+		match self.segments.len() {
+			0 => 0,
+			n => (n - 1) as SegmentIndex,
+		}
+	}
+
+	fn new_segment(&mut self,
+	               shape: &Shape,
+	               winding: Winding,
+	               transform: Transform,
+	               motion: Option<Motion>,
+	               attachment: Option<segment::Attachment>,
+	               flags: segment::Flags)
+	               -> segment::Segment {
+		segment::Segment {
+			index: self.segments.len() as SegmentIndex,
+			transform: transform,
+			motion: motion,
+			mesh: Mesh::from_shape(shape.clone(), winding),
+			material: self.material.clone(),
+			livery: self.livery.clone(),
+			state: self.state.clone(),
+			attached_to: attachment,
+			flags: flags,
+		}
+	}
+
+	pub fn build(&self) -> Agent {
+		let order = self.segments.len() as f32;
+		let d0 = 2. * order;
+
+		Agent::new(self.id,
+		           d0,
+		           order,
+		           &self.dna,
+		           self.segments.clone().into_boxed_slice())
 	}
 }

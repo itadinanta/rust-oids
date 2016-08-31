@@ -1,14 +1,9 @@
 use backend::obj::*;
-use std::f32::consts;
-use cgmath;
-use cgmath::EuclideanVector;
 use core::geometry::*;
 use core::clock::*;
-use backend::world::segment;
+use backend::world::gen::Dna;
 use backend::world::segment::Segment;
 use num::FromPrimitive;
-
-pub type Dna = Box<[u8]>;
 
 enum_from_primitive! {
 	#[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
@@ -54,7 +49,7 @@ pub struct Brain<T> {
 }
 
 bitflags! {
-	flags Flags: u32 {
+	pub flags Flags: u32 {
 		const DEAD       = 0x1,
 		const ACTIVE     = 0x2,
 	}
@@ -157,141 +152,10 @@ impl Agent {
 	pub fn type_of(&self) -> AgentType {
 		AgentType::from_usize(self.id & 0xff).unwrap_or(AgentType::Prop)
 	}
-}
 
-pub struct AgentBuilder {
-	id: Id,
-	material: Material,
-	livery: Livery,
-	dna: Dna,
-	state: segment::State,
-	segments: Vec<Segment>,
-}
-
-impl AgentBuilder {
-	pub fn new(id: Id, material: Material, livery: Livery, dna: &Dna, state: segment::State) -> Self {
-		AgentBuilder {
-			id: id,
-			material: material,
-			livery: livery,
-			state: state,
-			dna: dna.clone(),
-			segments: Vec::new(),
-		}
-	}
-
-	pub fn start(&mut self, transform: Transform, initial_vel: Option<Motion>, shape: &Shape) -> &mut Self {
-		let segment = self.new_segment(shape,
-		                               Winding::CW,
-		                               transform,
-		                               initial_vel,
-		                               None,
-		                               segment::TORSO | segment::MIDDLE);
-		self.segments.clear();
-		self.segments.push(segment);
-		self
-	}
-
-	#[inline]
-	pub fn add(&mut self,
-	           parent_index: SegmentIndex,
-	           attachment_index_offset: isize,
-	           shape: &Shape,
-	           flags: segment::Flags)
-	           -> &mut Self {
-		self.addw(parent_index,
-		          attachment_index_offset,
-		          shape,
-		          Winding::CW,
-		          flags | segment::MIDDLE)
-	}
-	#[inline]
-	pub fn addl(&mut self,
-	            parent_index: SegmentIndex,
-	            attachment_index_offset: isize,
-	            shape: &Shape,
-	            flags: segment::Flags)
-	            -> &mut Self {
-		self.addw(parent_index,
-		          attachment_index_offset,
-		          shape,
-		          Winding::CCW,
-		          flags | segment::LEFT)
-	}
-	#[inline]
-	pub fn addr(&mut self,
-	            parent_index: SegmentIndex,
-	            attachment_index_offset: isize,
-	            shape: &Shape,
-	            flags: segment::Flags)
-	            -> &mut Self {
-		self.addw(parent_index,
-		          attachment_index_offset,
-		          shape,
-		          Winding::CW,
-		          flags | segment::RIGHT)
-	}
-
-	pub fn addw(&mut self,
-	            parent_index: SegmentIndex,
-	            attachment_index_offset: isize,
-	            shape: &Shape,
-	            winding: Winding,
-	            flags: segment::Flags)
-	            -> &mut Self {
-		let parent = self.segments[parent_index as usize].clone();//urgh!;
-		let parent_pos = parent.transform.position;
-		let parent_angle = parent.transform.angle;
-		let parent_length = parent.mesh.shape.length() as isize;
-		let attachment_index = ((attachment_index_offset + parent_length) % parent_length) as usize;
-		let p0 = cgmath::Matrix2::from_angle(cgmath::rad(parent_angle)) * parent.mesh.vertices[attachment_index];
-		let angle = f32::atan2(p0.y, p0.x);
-		let r0 = p0.length() * parent.mesh.shape.radius();
-		let r1 = shape.radius();
-		let segment = self.new_segment(shape,
-		                               winding,
-		                               Transform::new(parent_pos + (p0 * (r0 + r1)), consts::PI / 2. + angle),
-		                               None,
-		                               parent.new_attachment(attachment_index as AttachmentIndex),
-		                               flags);
-		self.segments.push(segment);
-		self
-	}
-
-	pub fn index(&self) -> SegmentIndex {
-		match self.segments.len() {
-			0 => 0,
-			n => (n - 1) as SegmentIndex,
-		}
-	}
-
-	fn new_segment(&mut self,
-	               shape: &Shape,
-	               winding: Winding,
-	               transform: Transform,
-	               motion: Option<Motion>,
-	               attachment: Option<segment::Attachment>,
-	               flags: segment::Flags)
-	               -> segment::Segment {
-		segment::Segment {
-			index: self.segments.len() as SegmentIndex,
-			transform: transform,
-			motion: motion,
-			mesh: Mesh::from_shape(shape.clone(), winding),
-			material: self.material.clone(),
-			livery: self.livery.clone(),
-			state: self.state.clone(),
-			attached_to: attachment,
-			flags: flags,
-		}
-	}
-
-	pub fn build(&self) -> Agent {
-		let order = self.segments.len() as f32;
-		let d0 = 2. * order;
-
+	pub fn new(id: Id, d0: f32, order: f32, dna: &Dna, segments: Box<[Segment]>) -> Self {
 		Agent {
-			id: self.id,
+			id: id,
 			state: State {
 				flags: ACTIVE,
 				lifespan: Hourglass::new(10.),
@@ -311,8 +175,8 @@ impl AgentBuilder {
 				rest: 0.1,
 				thrust: 0.5,
 			},
-			dna: self.dna.clone(),
-			segments: self.segments.clone().into_boxed_slice(),
+			dna: dna.clone(),
+			segments: segments,
 		}
 	}
 }

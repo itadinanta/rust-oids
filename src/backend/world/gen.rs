@@ -5,6 +5,8 @@ use rand;
 use rand::Rng;
 use backend::obj::*;
 
+pub type Dna = Box<[u8]>;
+
 #[allow(dead_code)]
 pub trait Generator {
 	fn next_float<T>(&mut self, min: T, max: T) -> T where T: rand::Rand + num::Float;
