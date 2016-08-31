@@ -1,9 +1,65 @@
-use backend::obj::*;
+use std::collections::HashMap;
+use num::FromPrimitive;
 use core::geometry::*;
 use core::clock::*;
+use backend::obj;
+use backend::obj::*;
 use backend::world::gen::Dna;
 use backend::world::segment::Segment;
-use num::FromPrimitive;
+
+#[repr(packed)]
+#[derive(Eq, Hash, PartialEq, Clone, Copy, Debug)]
+pub struct AgentRefs {
+	pub agent_id: obj::Id,
+	pub segment_index: obj::SegmentIndex,
+	pub bone_index: obj::BoneIndex,
+}
+
+impl Default for AgentRefs {
+	fn default() -> AgentRefs {
+		AgentRefs {
+			agent_id: 0xdeadbeef,
+			segment_index: 0,
+			bone_index: 0,
+		}
+	}
+}
+
+impl AgentRefs {
+	pub fn with_id(id: obj::Id) -> AgentRefs {
+		AgentRefs { agent_id: id, ..Default::default() }
+	}
+
+	pub fn with_segment(id: obj::Id, segment_index: obj::SegmentIndex) -> AgentRefs {
+		AgentRefs {
+			agent_id: id,
+			segment_index: segment_index,
+			..Default::default()
+		}
+	}
+
+	pub fn with_bone(id: obj::Id, segment_index: obj::SegmentIndex, bone_index: obj::BoneIndex) -> AgentRefs {
+		AgentRefs {
+			agent_id: id,
+			segment_index: segment_index,
+			bone_index: bone_index,
+		}
+	}
+
+	pub fn no_bone(&self) -> AgentRefs {
+		AgentRefs { bone_index: 0, ..*self }
+	}
+}
+
+pub trait TypedAgent {
+	fn type_of(&self) -> AgentType;
+}
+
+impl TypedAgent for Id {
+	fn type_of(&self) -> AgentType {
+		AgentType::from_usize(*self & 0xff).unwrap_or(AgentType::Prop)
+	}
+}
 
 enum_from_primitive! {
 	#[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
@@ -180,3 +236,5 @@ impl Agent {
 		}
 	}
 }
+
+pub type AgentMap = HashMap<Id, Agent>;

@@ -4,6 +4,7 @@ use wrapped2d::dynamics::world::callbacks::ContactAccess;
 use backend::obj;
 use backend::obj::*;
 use backend::world;
+use backend::world::agent;
 use backend::world::segment;
 use backend::world::segment::Intent;
 use std::collections::HashMap;
@@ -17,15 +18,15 @@ use super::*;
 struct AgentData;
 
 impl UserDataTypes for AgentData {
-	type BodyData = world::AgentRefs;
+	type BodyData = agent::AgentRefs;
 	type JointData = ();
-	type FixtureData = world::AgentRefs;
+	type FixtureData = agent::AgentRefs;
 }
 
 pub struct PhysicsSystem {
 	world: b2::World<AgentData>,
-	handles: HashMap<world::AgentRefs, b2::BodyHandle>,
-	touched: Rc<RefCell<HashSet<world::AgentRefs>>>,
+	handles: HashMap<agent::AgentRefs, b2::BodyHandle>,
+	touched: Rc<RefCell<HashSet<agent::AgentRefs>>>,
 }
 
 impl Updateable for PhysicsSystem {
@@ -71,7 +72,7 @@ impl Updateable for PhysicsSystem {
 }
 
 struct JointRef<'a> {
-	refs: world::AgentRefs,
+	refs: agent::AgentRefs,
 	handle: b2::BodyHandle,
 	mesh: &'a obj::Mesh,
 	flags: segment::Flags,
@@ -94,7 +95,7 @@ impl System for PhysicsSystem {
 		let object_id = agent.id();
 		let segments = agent.segments();
 		for segment in segments {
-			let refs = world::AgentRefs::with_segment(object_id, segment.index);
+			let refs = agent::AgentRefs::with_segment(object_id, segment.index);
 			if let Some(handle) = self.handles.remove(&refs) {
 				self.world.destroy_body(handle);
 			}
@@ -152,7 +153,7 @@ impl PhysicsSystem {
 		let mut f_def = b2::FixtureDef::new();
 		let mut b_def = b2::BodyDef::new();
 		b_def.body_type = b2::BodyType::Static;
-		let refs = world::AgentRefs::with_id(0xFFFFFFFFusize);
+		let refs = agent::AgentRefs::with_id(0xFFFFFFFFusize);
 		let handle = self.world.create_body_with(&b_def, refs);
 
 		let mut rect = b2::ChainShape::new();
@@ -193,7 +194,7 @@ impl PhysicsSystem {
 					};
 					b_def.angular_velocity = spin;
 				}
-				let refs = world::AgentRefs::with_segment(object_id, segment_index as u8);
+				let refs = agent::AgentRefs::with_segment(object_id, segment_index as u8);
 				let handle = world.create_body_with(&b_def, refs);
 
 				let mesh = segment.mesh();
@@ -234,7 +235,7 @@ impl PhysicsSystem {
 								           x: p3.x * radius,
 								           y: p3.y * radius,
 							           }]);
-							let refs = world::AgentRefs::with_bone(object_id, segment_index as u8, i as u8);
+							let refs = agent::AgentRefs::with_bone(object_id, segment_index as u8, i as u8);
 							world.body_mut(handle).create_fixture_with(&quad, &mut f_def, refs);
 						}
 					}
@@ -307,7 +308,7 @@ impl PhysicsSystem {
 		}
 	}
 
-	fn new_world(touched: Rc<RefCell<HashSet<world::AgentRefs>>>) -> b2::World<AgentData> {
+	fn new_world(touched: Rc<RefCell<HashSet<agent::AgentRefs>>>) -> b2::World<AgentData> {
 		let mut world = b2::World::new(&b2::Vec2 { x: 0.0, y: 0.0 });
 		world.set_contact_listener(Box::new(ContactListener { touched: touched }));
 		world
@@ -315,7 +316,7 @@ impl PhysicsSystem {
 }
 
 struct ContactListener {
-	touched: Rc<RefCell<HashSet<world::AgentRefs>>>,
+	touched: Rc<RefCell<HashSet<agent::AgentRefs>>>,
 }
 
 impl b2::ContactListener<AgentData> for ContactListener {

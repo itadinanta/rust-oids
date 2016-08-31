@@ -42,7 +42,7 @@ impl Default for AlifeSystem {
 impl AlifeSystem {
 	fn update_minions(dt: f32,
 	                  source: &geometry::Position,
-	                  minions: &mut world::AgentMap)
+	                  minions: &mut agent::AgentMap)
 	                  -> Box<[geometry::Position]> {
 		let mut spawns = Vec::new();
 		for (_, agent) in minions.iter_mut() {
@@ -75,7 +75,7 @@ impl AlifeSystem {
 		spawns.into_boxed_slice()
 	}
 
-	fn update_resources(dt: f32, resources: &mut world::AgentMap) {
+	fn update_resources(dt: f32, resources: &mut agent::AgentMap) {
 		for (_, agent) in resources.iter_mut() {
 			if agent.state.lifespan().is_expired() {
 				agent.state.die();

@@ -1,5 +1,6 @@
 pub mod segment;
 pub mod agent;
+pub mod swarm;
 pub mod gen;
 pub mod phen;
 
@@ -7,154 +8,11 @@ use backend::obj;
 use backend::obj::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use rand;
 use core::geometry::*;
 use backend::world::agent::Agent;
 use backend::world::agent::AgentType;
-use backend::world::gen::*;
-use num::FromPrimitive;
-
-pub struct Swarm {
-	seq: Id,
-	agent_type: AgentType,
-	gen: Genome,
-	agents: AgentMap,
-}
-
-impl Swarm {
-	pub fn new(agent_type: AgentType) -> Swarm {
-		Swarm {
-			seq: 0,
-			agent_type: agent_type,
-			gen: Genome::new(b"Rust-Oids are cool!"),
-			agents: HashMap::new(),
-		}
-	}
-
-	#[allow(dead_code)]
-	pub fn type_of(&self) -> AgentType {
-		self.agent_type
-	}
-
-	pub fn get(&self, id: Id) -> Option<&Agent> {
-		self.agents.get(&id)
-	}
-
-	pub fn get_mut(&mut self, id: Id) -> Option<&mut agent::Agent> {
-		self.agents.get_mut(&id)
-	}
-
-	pub fn mutate<R: rand::Rng>(&mut self, rng: &mut R) {
-		self.gen = self.gen.mutate(rng);
-	}
-
-	pub fn next_id(&mut self) -> Id {
-		self.seq = self.seq + 1;
-		self.seq << 8 | (self.agent_type as usize)
-	}
-
-	pub fn free_resources(&mut self, freed: &mut Vec<Agent>) {
-		let mut dead = HashSet::new();
-
-		for id in self.agents
-			.iter()
-			.filter(|&(_, agent)| !agent.state.is_alive())
-			.map(|(&id, _)| id) {
-			dead.insert(id);
-		}
-		for id in &dead {
-			if let Some(agent) = self.agents.remove(&id) {
-				freed.push(agent);
-			}
-		}
-	}
-
-	pub fn spawn<T>(&mut self, initial_pos: Position, initial_vel: Option<Motion>, charge: f32) -> Id
-		where T: phen::Phenotype {
-		let id = self.next_id();
-		let entity = T::develop(&mut self.gen, id, initial_pos, initial_vel, charge);
-		self.mutate(&mut rand::thread_rng());
-		self.insert(entity)
-	}
-
-	fn insert(&mut self, agent: Agent) -> Id {
-		let id = agent.id();
-		self.agents.insert(id, agent);
-		id
-	}
-
-	pub fn kill(&mut self, id: &Id) {
-		if let Some(ref mut agent) = self.agents.get_mut(id) {
-			agent.state.die();
-		}
-	}
-
-	pub fn agents(&self) -> &HashMap<Id, Agent> {
-		&self.agents
-	}
-
-	pub fn agents_mut(&mut self) -> &mut HashMap<Id, Agent> {
-		&mut self.agents
-	}
-}
-
-
-pub type AgentMap = HashMap<Id, agent::Agent>;
-pub type SwarmMap = HashMap<AgentType, Swarm>;
-
-#[repr(packed)]
-#[derive(Eq, Hash, PartialEq, Clone, Copy, Debug)]
-pub struct AgentRefs {
-	pub agent_id: obj::Id,
-	pub segment_index: obj::SegmentIndex,
-	pub bone_index: obj::BoneIndex,
-}
-
-impl Default for AgentRefs {
-	fn default() -> AgentRefs {
-		AgentRefs {
-			agent_id: 0xdeadbeef,
-			segment_index: 0,
-			bone_index: 0,
-		}
-	}
-}
-
-impl AgentRefs {
-	pub fn with_id(id: obj::Id) -> AgentRefs {
-		AgentRefs { agent_id: id, ..Default::default() }
-	}
-
-	pub fn with_segment(id: obj::Id, segment_index: obj::SegmentIndex) -> AgentRefs {
-		AgentRefs {
-			agent_id: id,
-			segment_index: segment_index,
-			..Default::default()
-		}
-	}
-
-	pub fn with_bone(id: obj::Id, segment_index: obj::SegmentIndex, bone_index: obj::BoneIndex) -> AgentRefs {
-		AgentRefs {
-			agent_id: id,
-			segment_index: segment_index,
-			bone_index: bone_index,
-		}
-	}
-
-	pub fn no_bone(&self) -> AgentRefs {
-		AgentRefs { bone_index: 0, ..*self }
-	}
-}
-
-pub trait TypedAgent {
-	fn type_of(&self) -> AgentType;
-}
-
-impl TypedAgent for Id {
-	fn type_of(&self) -> AgentType {
-		AgentType::from_usize(*self & 0xff).unwrap_or(AgentType::Prop)
-	}
-}
+use backend::world::agent::TypedAgent;
+use backend::world::swarm::*;
 
 pub struct World {
 	pub extent: Rect,
@@ -222,7 +80,7 @@ impl World {
 		self.agents.get_mut(&id.type_of()).and_then(|m| m.get_mut(id))
 	}
 
-	pub fn agents_mut(&mut self, agent_type: AgentType) -> &mut AgentMap {
+	pub fn agents_mut(&mut self, agent_type: AgentType) -> &mut agent::AgentMap {
 		&mut self.agents.get_mut(&agent_type).unwrap().agents
 	}
 

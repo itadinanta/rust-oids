@@ -25,7 +25,7 @@ impl Default for AiSystem {
 }
 
 impl AiSystem {
-	fn update_minions(target: &Position, minions: &mut world::AgentMap) {
+	fn update_minions(target: &Position, minions: &mut agent::AgentMap) {
 		for (_, agent) in minions.iter_mut() {
 			let brain = agent.brain();
 			let segments = &mut agent.segments_mut();
