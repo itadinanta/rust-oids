@@ -60,15 +60,6 @@ impl Shape {
 		}
 	}
 
-	pub fn is_poly(&self) -> bool {
-		match self {
-			&Shape::Ball { .. } => true,
-			&Shape::Box { .. } => true,
-			&Shape::Star { .. } => false,
-			&Shape::Triangle { .. } => true,
-		}
-	}
-
 	pub fn mid(&self) -> isize {
 		self.length() as isize / 2
 	}
@@ -125,46 +116,46 @@ impl Shape {
 	pub fn vertices(&self, winding: Winding) -> Box<[Position]> {
 		let xunit = winding.xunit();
 		match self {
-				// first point is always unit y
-				&Shape::Ball { .. } => {
-					let n = 12usize;
-					(0..n)
-						.map(|i| {
-							let p = (i as f32) / (n as f32) * 2. * PI;
-							Position::new(xunit * f32::sin(p), f32::cos(p))
-						})
-						.collect()
-				}
-				&Shape::Box { ratio, .. } => {
-					let w2 = xunit * ratio;
-					vec![Position::new(0., 1.),
-					     Position::new(w2, 1.),
-					     Position::new(w2, 0.),
-					     Position::new(w2, -1.),
-					     Position::new(0., -1.),
-					     Position::new(-w2, -1.),
-					     Position::new(-w2, 0.),
-					     Position::new(-w2, 1.)]
-				}
-				&Shape::Star { n, ratio1, ratio2, .. } => {
-					let mut damp = 1.;
-					let ratio = &[ratio1, ratio2];
-					(0..(2 * n))
-						.map(|i| {
-							let p = i as f32 * (PI / n as f32);
-							let r = f32::max(damp, 0.01); // zero is bad!
-							damp *= ratio[i as usize % 2];
-							Position::new(xunit * r * f32::sin(p), r * f32::cos(p))
-						})
-						.collect()
-				}
-				&Shape::Triangle { angle1, angle2, .. } => {
-					vec![Position::new(0., 1.),
-					     Position::new(xunit * f32::sin(angle1), f32::cos(angle1)),
-					     Position::new(xunit * f32::sin(angle2), f32::cos(angle2))]
-				}
+			// first point is always unit y
+			&Shape::Ball { .. } => {
+				let n = 12usize;
+				(0..n)
+					.map(|i| {
+						let p = (i as f32) / (n as f32) * 2. * PI;
+						Position::new(xunit * f32::sin(p), f32::cos(p))
+					})
+					.collect()
 			}
-			.into_boxed_slice()
+			&Shape::Box { ratio, .. } => {
+				let w2 = xunit * ratio;
+				vec![Position::new(0., 1.),
+				     Position::new(w2, 1.),
+				     Position::new(w2, 0.),
+				     Position::new(w2, -1.),
+				     Position::new(0., -1.),
+				     Position::new(-w2, -1.),
+				     Position::new(-w2, 0.),
+				     Position::new(-w2, 1.)]
+			}
+			&Shape::Star { n, ratio1, ratio2, .. } => {
+				let mut damp = 1.;
+				let ratio = &[ratio1, ratio2];
+				(0..(2 * n))
+					.map(|i| {
+						let p = i as f32 * (PI / n as f32);
+						let r = f32::max(damp, 0.01); // zero is bad!
+						damp *= ratio[i as usize % 2];
+						Position::new(xunit * r * f32::sin(p), r * f32::cos(p))
+					})
+					.collect()
+			}
+			&Shape::Triangle { angle1, angle2, .. } => {
+				vec![Position::new(0., 1.),
+				     Position::new(xunit * f32::sin(angle1), f32::cos(angle1)),
+				     Position::new(xunit * f32::sin(angle2), f32::cos(angle2))]
+			}
+		}
+		.into_boxed_slice()
 	}
 }
 
@@ -173,7 +164,8 @@ bitflags! {
 		const CW       = 0x1,
 		const CCW      = 0x2,
 		const CONVEX   = 0x4,
-		const POLY     = 0x8,
+		const POLY_IN  = 0x10,
+		const POLY_OUT = 0x20,
 	}
 }
 
@@ -187,20 +179,33 @@ pub struct Mesh {
 impl Mesh {
 	pub fn from_shape(shape: Shape, winding: Winding) -> Self {
 		let vertices = shape.vertices(winding);
-		let flags = match winding {
+		let winding_flags = match winding {
 			Winding::CW => CW,
 			Winding::CCW => CCW,
-		} |
-		            if shape.is_poly() {
-			CONVEX | POLY
-		} else if shape.is_convex() {
+		};
+
+		let shape_flags = if shape.is_convex() {
 			CONVEX
 		} else {
-			MeshFlags::empty()
+			let classifier = PolygonType::classify(vertices.as_ref());
+			if classifier.is_convex() {
+				CONVEX |
+				if classifier.has_flat_vertices() {
+					if classifier.first_nonflat() == 1 {
+						POLY_OUT
+					} else {
+						POLY_IN
+					}
+				} else {
+					MeshFlags::empty()
+				}
+			} else {
+				MeshFlags::empty()
+			}
 		};
 		Mesh {
 			shape: shape,
-			flags: flags,
+			flags: winding_flags | shape_flags,
 			vertices: vertices,
 		}
 	}
@@ -211,8 +216,17 @@ impl Mesh {
 	}
 
 	#[inline]
+	pub fn first_nonflat_index(&self) -> usize {
+		if self.flags.contains(POLY_OUT) {
+			1
+		} else {
+			0
+		}
+	}
+
+	#[inline]
 	pub fn is_poly(&self) -> bool {
-		self.flags.contains(POLY)
+		self.flags.intersects(POLY_IN | POLY_OUT)
 	}
 	#[inline]
 	pub fn winding(&self) -> Winding {

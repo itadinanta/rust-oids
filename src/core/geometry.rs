@@ -1,5 +1,6 @@
 use cgmath;
 use cgmath::Vector2;
+use cgmath::ApproxEq;
 
 pub type Position = Vector2<f32>;
 pub type Translation = Vector2<f32>;
@@ -83,4 +84,60 @@ impl Transform {
 
 pub fn origin() -> Position {
 	Position::new(0., 0.)
+}
+
+#[derive(Clone, PartialEq)]
+enum VertexType {
+	Concave,
+	Convex,
+	Flat,
+}
+
+pub struct PolygonType {
+	first_nonflat_index: usize,
+	count: [usize; 3],
+}
+
+impl PolygonType {
+	fn classify_vertex(v0: &Position, v1: &Position, v2: &Position) -> VertexType {
+		let x = (v1 - v0).perp_dot(v2 - v0);
+		if x.approx_eq(&0.) {
+			VertexType::Flat
+		} else if x > 0. {
+			VertexType::Concave
+		} else {
+			VertexType::Convex
+		}
+	}
+
+	pub fn classify(v: &[Position]) -> Self {
+		let mut count = [0usize; 3];
+		let mut first_nonflat_index = None;
+
+		let n = v.len();
+		for i in 0..n {
+			let vertex_type = Self::classify_vertex(&v[(i + n - 1) % n], &v[i], &v[(i + 1) % n]);
+			if vertex_type != VertexType::Flat && first_nonflat_index.is_none() {
+				first_nonflat_index = Some(i);
+			}
+			count[vertex_type as usize] += 1;
+		}
+
+		PolygonType {
+			first_nonflat_index: first_nonflat_index.unwrap(),
+			count: count,
+		}
+	}
+
+	pub fn first_nonflat(&self) -> usize {
+		self.first_nonflat_index
+	}
+
+	pub fn is_convex(&self) -> bool {
+		self.count[VertexType::Concave as usize] == 0
+	}
+
+	pub fn has_flat_vertices(&self) -> bool {
+		self.count[VertexType::Flat as usize] > 0
+	}
 }
