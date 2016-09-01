@@ -51,6 +51,24 @@ impl Shape {
 		}
 	}
 
+	pub fn is_convex(&self) -> bool {
+		match self {
+			&Shape::Ball { .. } => true,
+			&Shape::Box { .. } => true,
+			&Shape::Star { .. } => false,
+			&Shape::Triangle { .. } => true,
+		}
+	}
+
+	pub fn is_poly(&self) -> bool {
+		match self {
+			&Shape::Ball { .. } => true,
+			&Shape::Box { .. } => true,
+			&Shape::Star { .. } => false,
+			&Shape::Triangle { .. } => true,
+		}
+	}
+
 	pub fn mid(&self) -> isize {
 		self.length() as isize / 2
 	}
@@ -150,24 +168,61 @@ impl Shape {
 	}
 }
 
+bitflags! {
+	flags MeshFlags: u8 {
+		const CW       = 0x1,
+		const CCW      = 0x2,
+		const CONVEX   = 0x4,
+		const POLY     = 0x8,
+	}
+}
+
 #[derive(Clone)]
 pub struct Mesh {
+	flags: MeshFlags,
 	pub shape: Shape,
-	pub winding: Winding,
 	pub vertices: Box<[Position]>,
 }
 
 impl Mesh {
 	pub fn from_shape(shape: Shape, winding: Winding) -> Self {
 		let vertices = shape.vertices(winding);
+		let flags = match winding {
+			Winding::CW => CW,
+			Winding::CCW => CCW,
+		} |
+		            if shape.is_poly() {
+			CONVEX | POLY
+		} else if shape.is_convex() {
+			CONVEX
+		} else {
+			MeshFlags::empty()
+		};
 		Mesh {
 			shape: shape,
-			winding: winding,
+			flags: flags,
 			vertices: vertices,
 		}
 	}
-}
 
+	#[inline]
+	pub fn is_convex(&self) -> bool {
+		self.flags.contains(CONVEX)
+	}
+
+	#[inline]
+	pub fn is_poly(&self) -> bool {
+		self.flags.contains(POLY)
+	}
+	#[inline]
+	pub fn winding(&self) -> Winding {
+		if self.flags.contains(CW) {
+			Winding::CW
+		} else {
+			Winding::CCW
+		}
+	}
+}
 
 pub trait Identified {
 	fn id(&self) -> Id;

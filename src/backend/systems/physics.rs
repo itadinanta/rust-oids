@@ -213,36 +213,71 @@ impl PhysicsSystem {
 					}
 					obj::Shape::Star { radius, n, .. } => {
 						let p = &mesh.vertices;
-						for i in 0..n {
-							let mut quad = b2::PolygonShape::new();
-							let i1 = (i * 2 + 1) as usize;
-							let i2 = (i * 2) as usize;
-							let i3 = ((i * 2 + (n * 2) - 1) % (n * 2)) as usize;
-							let (p1, p2, p3) = match mesh.winding {
-								obj::Winding::CW => (&p[i1], &p[i2], &p[i3]),
-								obj::Winding::CCW => (&p[i1], &p[i3], &p[i2]),
-							};
-							quad.set(&[b2::Vec2 { x: 0., y: 0. },
-							           b2::Vec2 {
-								           x: p1.x * radius,
-								           y: p1.y * radius,
-							           },
-							           b2::Vec2 {
-								           x: p2.x * radius,
-								           y: p2.y * radius,
-							           },
-							           b2::Vec2 {
-								           x: p3.x * radius,
-								           y: p3.y * radius,
-							           }]);
-							let refs = agent::AgentRefs::with_bone(object_id, segment_index as u8, i as u8);
-							world.body_mut(handle).create_fixture_with(&quad, &mut f_def, refs);
+
+						// TODO: refactor!
+						if mesh.is_poly() && n < 16 {
+							// TODO: DRY
+							// a polygon of n / 2 sides
+							let mut poly = b2::PolygonShape::new();
+							let mut vertices = Vec::new();
+							for i in 0..n / 2 {
+								let v = &p[2 * i as usize];
+								vertices.push(b2::Vec2 {
+									x: v.x * radius,
+									y: v.y * radius,
+								});
+							}
+							poly.set(vertices.as_slice());
+							let refs = agent::AgentRefs::with_segment(object_id, segment_index as u8);
+							world.body_mut(handle).create_fixture_with(&poly, &mut f_def, refs);
+						} else if mesh.is_convex() && n < 8 {
+							// TODO: DRY
+							// a polygon of n sides
+							let mut poly = b2::PolygonShape::new();
+							let mut vertices = Vec::new();
+							for i in 0..n {
+								let v = &p[i as usize];
+								vertices.push(b2::Vec2 {
+									x: v.x * radius,
+									y: v.y * radius,
+								});
+							}
+							poly.set(vertices.as_slice());
+							let refs = agent::AgentRefs::with_segment(object_id, segment_index as u8);
+							world.body_mut(handle).create_fixture_with(&poly, &mut f_def, refs);
+						} else {
+							// general case
+							for i in 0..n {
+								let mut quad = b2::PolygonShape::new();
+								let i1 = (i * 2 + 1) as usize;
+								let i2 = (i * 2) as usize;
+								let i3 = ((i * 2 + (n * 2) - 1) % (n * 2)) as usize;
+								let (p1, p2, p3) = match mesh.winding() {
+									obj::Winding::CW => (&p[i1], &p[i2], &p[i3]),
+									obj::Winding::CCW => (&p[i1], &p[i3], &p[i2]),
+								};
+								quad.set(&[b2::Vec2 { x: 0., y: 0. },
+								           b2::Vec2 {
+									           x: p1.x * radius,
+									           y: p1.y * radius,
+								           },
+								           b2::Vec2 {
+									           x: p2.x * radius,
+									           y: p2.y * radius,
+								           },
+								           b2::Vec2 {
+									           x: p3.x * radius,
+									           y: p3.y * radius,
+								           }]);
+								let refs = agent::AgentRefs::with_bone(object_id, segment_index as u8, i as u8);
+								world.body_mut(handle).create_fixture_with(&quad, &mut f_def, refs);
+							}
 						}
 					}
 					obj::Shape::Triangle { radius, .. } => {
 						let p = &mesh.vertices;
 						let mut tri = b2::PolygonShape::new();
-						let (p1, p2, p3) = match mesh.winding {
+						let (p1, p2, p3) = match mesh.winding() {
 							obj::Winding::CW => (&p[0], &p[2], &p[1]),
 							obj::Winding::CCW => (&p[0], &p[1], &p[2]),
 						};

@@ -85,7 +85,7 @@ impl Phenotype for Spore {
 		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                    gen.dna(),
 		                                    segment::State::with_charge(0., charge, charge));
-		builder.start(transform, motion, &gen.ball()).build()
+		builder.start(transform, motion, &gen.eq_triangle()).build()
 	}
 }
 
