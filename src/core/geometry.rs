@@ -88,13 +88,12 @@ pub fn origin() -> Position {
 
 #[derive(Clone, PartialEq)]
 enum VertexType {
-	Concave,
-	Convex,
+	Plus,
+	Minus,
 	Flat,
 }
 
 pub struct PolygonType {
-	first_nonflat_index: usize,
 	count: [usize; 3],
 }
 
@@ -104,37 +103,30 @@ impl PolygonType {
 		if x.approx_eq(&0.) {
 			VertexType::Flat
 		} else if x > 0. {
-			VertexType::Concave
+			VertexType::Plus
 		} else {
-			VertexType::Convex
+			VertexType::Minus
 		}
 	}
 
 	pub fn classify(v: &[Position]) -> Self {
 		let mut count = [0usize; 3];
-		let mut first_nonflat_index = None;
 
 		let n = v.len();
 		for i in 0..n {
 			let vertex_type = Self::classify_vertex(&v[(i + n - 1) % n], &v[i], &v[(i + 1) % n]);
-			if vertex_type != VertexType::Flat && first_nonflat_index.is_none() {
-				first_nonflat_index = Some(i);
-			}
 			count[vertex_type as usize] += 1;
 		}
 
-		PolygonType {
-			first_nonflat_index: first_nonflat_index.unwrap(),
-			count: count,
-		}
-	}
-
-	pub fn first_nonflat(&self) -> usize {
-		self.first_nonflat_index
+		PolygonType { count: count }
 	}
 
 	pub fn is_convex(&self) -> bool {
-		self.count[VertexType::Concave as usize] == 0
+		self.count[VertexType::Plus as usize] == 0 || self.count[VertexType::Minus as usize] == 0
+	}
+
+	pub fn is_concave(&self) -> bool {
+		self.count[VertexType::Plus as usize] > 0 && self.count[VertexType::Minus as usize] > 0
 	}
 
 	pub fn has_flat_vertices(&self) -> bool {

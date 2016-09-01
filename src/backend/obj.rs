@@ -25,6 +25,10 @@ pub enum Shape {
 		ratio1: f32,
 		ratio2: f32,
 	},
+	Poly {
+		radius: f32,
+		n: i8,
+	},
 	Triangle {
 		radius: f32,
 		angle1: f32,
@@ -38,6 +42,7 @@ impl Shape {
 			&Shape::Ball { radius } => radius,
 			&Shape::Box { radius, .. } => radius,
 			&Shape::Star { radius, .. } => radius,
+			&Shape::Poly { radius, .. } => radius,
 			&Shape::Triangle { radius, .. } => radius,
 		}
 	}
@@ -46,6 +51,7 @@ impl Shape {
 		match self {
 			&Shape::Ball { .. } => 12,
 			&Shape::Box { .. } => 8,
+			&Shape::Poly { n, .. } => n.abs() as usize * 2,
 			&Shape::Star { n, .. } => n as usize * 2,
 			&Shape::Triangle { .. } => 3,
 		}
@@ -55,6 +61,7 @@ impl Shape {
 		match self {
 			&Shape::Ball { .. } => true,
 			&Shape::Box { .. } => true,
+			&Shape::Poly { .. } => true,
 			&Shape::Star { .. } => false,
 			&Shape::Triangle { .. } => true,
 		}
@@ -116,46 +123,59 @@ impl Shape {
 	pub fn vertices(&self, winding: Winding) -> Box<[Position]> {
 		let xunit = winding.xunit();
 		match self {
-			// first point is always unit y
-			&Shape::Ball { .. } => {
-				let n = 12usize;
-				(0..n)
-					.map(|i| {
-						let p = (i as f32) / (n as f32) * 2. * PI;
-						Position::new(xunit * f32::sin(p), f32::cos(p))
-					})
-					.collect()
+				// first point is always unit y
+				&Shape::Ball { .. } => {
+					let n = 12usize;
+					(0..n)
+						.map(|i| {
+							let p = (i as f32) / (n as f32) * 2. * PI;
+							Position::new(xunit * f32::sin(p), f32::cos(p))
+						})
+						.collect()
+				}
+				&Shape::Box { ratio, .. } => {
+					let w2 = xunit * ratio;
+					vec![Position::new(0., 1.),
+					     Position::new(w2, 1.),
+					     Position::new(w2, 0.),
+					     Position::new(w2, -1.),
+					     Position::new(0., -1.),
+					     Position::new(-w2, -1.),
+					     Position::new(-w2, 0.),
+					     Position::new(-w2, 1.)]
+				}
+				&Shape::Poly { n, .. } => {
+					let upside_down = n < 0;
+					let phi = PI / n as f32;
+					let ratio1 = f32::cos(phi);
+					let ratio = &[1., if upside_down { 1. / ratio1 } else { ratio1 }];
+					(0..(2 * n.abs()))
+						.map(|i| {
+							let p = i as f32 * phi;
+							let r = ratio[i as usize % 2];
+							Position::new(xunit * r * f32::sin(p), r * f32::cos(p))
+						})
+						.collect()
+				}
+				&Shape::Star { n, ratio1, ratio2, .. } => {
+					let mut damp = 1.;
+					let ratio = &[ratio1, ratio2];
+					(0..(2 * n))
+						.map(|i| {
+							let p = i as f32 * (PI / n as f32);
+							let r = f32::max(damp, 0.01); // zero is bad!
+							damp *= ratio[i as usize % 2];
+							Position::new(xunit * r * f32::sin(p), r * f32::cos(p))
+						})
+						.collect()
+				}
+				&Shape::Triangle { angle1, angle2, .. } => {
+					vec![Position::new(0., 1.),
+					     Position::new(xunit * f32::sin(angle1), f32::cos(angle1)),
+					     Position::new(xunit * f32::sin(angle2), f32::cos(angle2))]
+				}
 			}
-			&Shape::Box { ratio, .. } => {
-				let w2 = xunit * ratio;
-				vec![Position::new(0., 1.),
-				     Position::new(w2, 1.),
-				     Position::new(w2, 0.),
-				     Position::new(w2, -1.),
-				     Position::new(0., -1.),
-				     Position::new(-w2, -1.),
-				     Position::new(-w2, 0.),
-				     Position::new(-w2, 1.)]
-			}
-			&Shape::Star { n, ratio1, ratio2, .. } => {
-				let mut damp = 1.;
-				let ratio = &[ratio1, ratio2];
-				(0..(2 * n))
-					.map(|i| {
-						let p = i as f32 * (PI / n as f32);
-						let r = f32::max(damp, 0.01); // zero is bad!
-						damp *= ratio[i as usize % 2];
-						Position::new(xunit * r * f32::sin(p), r * f32::cos(p))
-					})
-					.collect()
-			}
-			&Shape::Triangle { angle1, angle2, .. } => {
-				vec![Position::new(0., 1.),
-				     Position::new(xunit * f32::sin(angle1), f32::cos(angle1)),
-				     Position::new(xunit * f32::sin(angle2), f32::cos(angle2))]
-			}
-		}
-		.into_boxed_slice()
+			.into_boxed_slice()
 	}
 }
 
@@ -164,8 +184,6 @@ bitflags! {
 		const CW       = 0x1,
 		const CCW      = 0x2,
 		const CONVEX   = 0x4,
-		const POLY_IN  = 0x10,
-		const POLY_OUT = 0x20,
 	}
 }
 
@@ -188,20 +206,7 @@ impl Mesh {
 			CONVEX
 		} else {
 			let classifier = PolygonType::classify(vertices.as_ref());
-			if classifier.is_convex() {
-				CONVEX |
-				if classifier.has_flat_vertices() {
-					if classifier.first_nonflat() == 1 {
-						POLY_OUT
-					} else {
-						POLY_IN
-					}
-				} else {
-					MeshFlags::empty()
-				}
-			} else {
-				MeshFlags::empty()
-			}
+			if classifier.is_convex() { CONVEX } else { MeshFlags::empty() }
 		};
 		Mesh {
 			shape: shape,
@@ -216,25 +221,8 @@ impl Mesh {
 	}
 
 	#[inline]
-	pub fn first_nonflat_index(&self) -> usize {
-		if self.flags.contains(POLY_OUT) {
-			1
-		} else {
-			0
-		}
-	}
-
-	#[inline]
-	pub fn is_poly(&self) -> bool {
-		self.flags.intersects(POLY_IN | POLY_OUT)
-	}
-	#[inline]
 	pub fn winding(&self) -> Winding {
-		if self.flags.contains(CW) {
-			Winding::CW
-		} else {
-			Winding::CCW
-		}
+		if self.flags.contains(CW) { Winding::CW } else { Winding::CCW }
 	}
 }
 

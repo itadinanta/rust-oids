@@ -356,6 +356,9 @@ impl App {
 						obj::Shape::Star { .. } => {
 							renderer.draw_star(&transform, &mesh.vertices[..], segment.color());
 						}
+						obj::Shape::Poly { .. } => {
+							renderer.draw_star(&transform, &mesh.vertices[..], segment.color());
+						}
 						obj::Shape::Box { ratio, .. } => {
 							renderer.draw_quad(&transform, ratio, segment.color());
 						}
