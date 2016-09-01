@@ -46,13 +46,14 @@ impl Phenotype for Minion {
 		let arm_shape = gen.star();
 		let leg_shape = gen.star();
 		let head_shape = gen.iso_triangle();
+		let antenna_shape = gen.triangle();
 		let tail_shape = gen.vbar();
 		builder.addr(torso, 2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER)
 			.addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
 
 		let head = builder.add(torso, 0, &head_shape, HEAD | SENSOR).index();
-		builder.addr(head, 1, &head_shape, HEAD | ACTUATOR | RUDDER)
-			.addl(head, 2, &head_shape, HEAD | ACTUATOR | RUDDER);
+		builder.addr(head, 1, &antenna_shape, HEAD | ACTUATOR | RUDDER)
+			.addl(head, 2, &antenna_shape, HEAD | ACTUATOR | RUDDER);
 
 		let mut belly = torso;
 		let mut belly_mid = torso_shape.mid();
@@ -81,7 +82,7 @@ impl Phenotype for Spore {
 	fn develop(gen: &mut Genome, id: Id, transform: Transform, motion: Option<Motion>, charge: f32) -> agent::Agent {
 		let albedo = color::Hsl::new(gen.next_float(0., 1.), 0.5, 0.5);
 		let mut builder = AgentBuilder::new(id,
-		                                    Material { density: 0.2, ..Default::default() },
+		                                    Material { density: 0.5, ..Default::default() },
 		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                    gen.dna(),
 		                                    segment::State::with_charge(0., charge, charge));
