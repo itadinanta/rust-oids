@@ -15,7 +15,7 @@ pub trait Generator {
 		where T: rand::Rand + num::Integer + num::ToPrimitive + num::FromPrimitive + Copy;
 
 	fn ball(&mut self) -> Shape {
-		let radius: f32 = self.next_float(1.0, 2.0);
+		let radius: f32 = self.next_float(0.5, 0.75);
 		Shape::new_ball(radius)
 	}
 
@@ -68,11 +68,17 @@ pub trait Generator {
 	fn npoly(&mut self, n: AttachmentIndex, upside_down: bool) -> Shape {
 		let radius: f32 = self.next_float(1.0, 2.0);
 		let ratio1 = f32::cos(consts::PI / n as f32);
-		let ratio2 = 1. / ratio1;
-		if upside_down {
-			Shape::new_star(n, radius * ratio1, ratio2, ratio1)
+		let corrected_radius = if upside_down { radius * ratio1 } else { radius };
+
+		if n <= 8 {
+			Shape::new_poly(if upside_down { -1 } else { 1 } * n as i8, corrected_radius)
 		} else {
-			Shape::new_star(n, radius, ratio1, ratio2)
+			let ratio2 = 1. / ratio1;
+			if upside_down {
+				Shape::new_star(n, corrected_radius, ratio2, ratio1)
+			} else {
+				Shape::new_star(n, corrected_radius, ratio1, ratio2)
+			}
 		}
 	}
 }

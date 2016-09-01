@@ -23,13 +23,13 @@ impl Phenotype for Resource {
 	fn develop(gen: &mut Genome, id: Id, transform: Transform, motion: Option<Motion>, charge: f32) -> agent::Agent {
 
 		let albedo = color::YPbPr::new(0.5, gen.next_float(-0.5, 0.5), gen.next_float(-0.5, 0.5));
-		let ball = gen.ball();
+		let body = gen.eq_triangle();
 		let mut builder = AgentBuilder::new(id,
 		                                    Material { density: 1.0, ..Default::default() },
 		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                    gen.dna(),
 		                                    segment::State::with_charge(charge, 0., charge));
-		builder.start(Transform::with_position(transform.position), motion, &ball).build()
+		builder.start(Transform::with_position(transform.position), motion, &body).build()
 	}
 }
 
@@ -85,7 +85,7 @@ impl Phenotype for Spore {
 		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                    gen.dna(),
 		                                    segment::State::with_charge(0., charge, charge));
-		builder.start(transform, motion, &gen.eq_triangle()).build()
+		builder.start(transform, motion, &gen.ball()).build()
 	}
 }
 

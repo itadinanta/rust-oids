@@ -56,7 +56,7 @@ impl AlifeSystem {
 				if agent.state.lifespan().is_expired() || agent.state.power() <= 0. {
 					agent.state.die();
 				} else if agent.state.lifespan().left() < 5. && agent.state.consume(10.) {
-					spawns.push((agent.transform(), agent.dna().clone()));
+					spawns.push((agent.last_segment().transform(), agent.dna().clone()));
 				} else {
 					for segment in agent.segments.iter_mut() {
 						// some source of food, let's use the light for now

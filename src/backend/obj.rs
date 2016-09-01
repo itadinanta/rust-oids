@@ -112,6 +112,15 @@ impl Shape {
 		}
 	}
 
+	pub fn new_poly(n: i8, radius: f32) -> Self {
+		assert!(n > 2 || n < -2);
+
+		Shape::Poly {
+			radius: radius,
+			n: n,
+		}
+	}
+
 	pub fn new_triangle(radius: f32, angle1: f32, angle2: f32) -> Self {
 		Shape::Triangle {
 			radius: radius,

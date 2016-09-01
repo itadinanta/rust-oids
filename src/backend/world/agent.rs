@@ -200,6 +200,10 @@ impl Agent {
 		self.segments.get(index as usize)
 	}
 
+	pub fn last_segment(&self) -> &Segment {
+		self.segments.last().unwrap()
+	}
+
 	pub fn segment_mut(&mut self, index: SegmentIndex) -> Option<&mut Segment> {
 		self.segments.get_mut(index as usize)
 	}
