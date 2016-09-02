@@ -29,7 +29,6 @@ pub type DepthFormat = gfx::format::DepthStencil;
 pub type GFormat = Rgba;
 
 pub const BACKGROUND: Rgba = [0.01, 0.01, 0.01, 1.0];
-pub const BLACK: Rgba = [0.0, 0.0, 0.0, 1.0];
 
 const QUAD_VERTICES: [Vertex; 4] = [Vertex {
 	                                    pos: [-1.0, -1.0, 0.0],
@@ -86,17 +85,17 @@ impl Camera {
 	pub fn ortho(center: Position, scale: f32, ratio: f32) -> Camera {
 		Camera {
 			projection: {
-				            let hw = 0.5 * scale;
-				            let hh = hw / ratio;
-				            let near = 10.0;
-				            let far = -near;
-				            cgmath::ortho(-hw, hw, -hh, hh, near, far)
-				           }
-			            .into(),
+					let hw = 0.5 * scale;
+					let hh = hw / ratio;
+					let near = 10.0;
+					let far = -near;
+					cgmath::ortho(-hw, hw, -hh, hh, near, far)
+				}
+				.into(),
 			view: cgmath::Matrix4::look_at(cgmath::Point3::new(center.x, center.y, 1.0),
 			                               cgmath::Point3::new(center.x, center.y, 0.0),
 			                               cgmath::Vector3::unit_y())
-				      .into(),
+				.into(),
 		}
 	}
 }
@@ -133,9 +132,8 @@ trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 		                                   gfx::SHADER_RESOURCE | gfx::RENDER_TARGET,
 		                                   gfx::Usage::GpuOnly,
 		                                   Some(gfx::format::ChannelType::Float)));
-		let hdr_srv = try!(self.view_texture_as_shader_resource::<HDRColorFormat>(&tex,
-		                                                                          (0, 0),
-		                                                                          gfx::format::Swizzle::new()));
+		let hdr_srv =
+			try!(self.view_texture_as_shader_resource::<HDRColorFormat>(&tex, (0, 0), gfx::format::Swizzle::new()));
 		let hdr_color_buffer = try!(self.view_texture_as_render_target(&tex, 0, None));
 		Ok((tex, hdr_srv, hdr_color_buffer))
 	}
@@ -153,7 +151,11 @@ pub trait Draw {
 }
 
 pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>>: Draw {
-	fn setup_frame(&mut self, camera: &Camera, background_color: Rgba, light_color: Rgba, light_position: Position);
+	fn setup_frame(&mut self,
+	               camera: &Camera,
+	               background_color: Rgba,
+	               light_color: Rgba,
+	               light_position: &[Position]);
 	fn begin_frame(&mut self);
 	fn resolve_frame_buffer(&mut self);
 	fn end_frame<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D);
@@ -186,9 +188,8 @@ pub struct ForwardRenderer<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>,
 	pass_forward_lighting: forward::ForwardLighting<R, C>,
 	pass_effects: effects::PostLighting<R, C>,
 
-	background_color: Rgba,
-	light_color: Rgba,
-	light_position: Position,
+	background_color: Rgba, /* 	light_color: Rgba,
+	                         * 	light_position: Position, */
 }
 
 impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> ForwardRenderer<'e, R, C, F> {
@@ -206,8 +207,8 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 		let (_, hdr_srv, hdr_color_buffer) = try!(factory.create_msaa_render_target(w, h));
 
 		let res = resource::filesystem::ResourceLoaderBuilder::new()
-			          .add(path::Path::new("resources"))
-			          .build();
+			.add(path::Path::new("resources"))
+			.build();
 
 		let forward = try!(forward::ForwardLighting::new(factory, &res));
 		let effects = try!(effects::PostLighting::new(factory, &res, w, h));
@@ -228,9 +229,8 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 			base_indices: base_indices,
 			pass_forward_lighting: forward,
 			pass_effects: effects,
-			background_color: BACKGROUND,
-			light_color: BLACK,
-			light_position: cgmath::Vector2::new(0.0, 0.0),
+			background_color: BACKGROUND, /* 			light_color: BLACK,
+			                               * 			light_position: cgmath::Vector2::new(0.0, 0.0), */
 		})
 	}
 
@@ -265,15 +265,15 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for ForwardRenderer<'e, R, C, F> {
 	fn draw_star(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], color: Rgba) {
 		let mut v: Vec<_> = vertices.iter()
-		                            .map(|v| {
-			                            Vertex {
-				                            pos: [v.x, v.y, 0.0],
-				                            normal: [0.0, 0.0, 1.0],
-				                            tangent: [1.0, 0.0, 0.0],
-				                            tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
-			                            }
-			                           })
-		                            .collect();
+			.map(|v| {
+				Vertex {
+					pos: [v.x, v.y, 0.0],
+					normal: [0.0, 0.0, 1.0],
+					tangent: [1.0, 0.0, 0.0],
+					tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
+				}
+			})
+			.collect();
 		let n = v.len();
 		v.push(Vertex::default());
 
@@ -299,15 +299,15 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 
 	fn draw_lines(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], color: Rgba) {
 		let v: Vec<_> = vertices.iter()
-		                        .map(|v| {
-			                        Vertex {
-				                        pos: [v.x, v.y, 0.0],
-				                        normal: [0.0, 0.0, 1.0],
-				                        tangent: [1.0, 0.0, 0.0],
-				                        tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
-			                        }
-			                       })
-		                        .collect();
+			.map(|v| {
+				Vertex {
+					pos: [v.x, v.y, 0.0],
+					normal: [0.0, 0.0, 1.0],
+					tangent: [1.0, 0.0, 0.0],
+					tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
+				}
+			})
+			.collect();
 		let (vertex_buffer, index_buffer) = self.factory.create_vertex_buffer_with_slice(v.as_slice(), ());
 
 		self.pass_forward_lighting.draw_primitives(forward::Shader::Lines,
@@ -411,23 +411,28 @@ impl<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>> Render
                                                                                                              R,
                                                                                                              C,
                                                                                                              F> {
-	fn setup_frame(&mut self, camera: &Camera, background_color: Rgba, light_color: Rgba, light_position: Position) {
+	fn setup_frame(&mut self,
+	               camera: &Camera,
+	               background_color: Rgba,
+	               light_color: Rgba,
+	               light_position: &[Position]) {
 		self.background_color = background_color;
-		self.light_color = light_color;
-		self.light_position = light_position;
-		let lights: Vec<forward::PointLight> = vec![forward::PointLight {
-			                                            propagation: [0.3, 0.5, 0.4, 0.0],
-			                                            center: [-15.0, -5.0, 1.0, 1.0],
-			                                            color: [0.3, 0.0, 0.0, 1.0],
-		                                            },
-		                                            forward::PointLight {
-			                                            propagation: [0.2, 0.8, 0.1, 0.1],
-			                                            center: [self.light_position.x,
-			                                                     self.light_position.y,
-			                                                     2.0,
-			                                                     1.0],
-			                                            color: self.light_color,
-		                                            }];
+		// 		self.light_color = light_color;
+		// 		self.light_position = light_position;
+		let mut lights: Vec<forward::PointLight> = Vec::new();
+
+		lights.push(forward::PointLight {
+			propagation: [0.3, 0.5, 0.4, 0.0],
+			center: [-15.0, -5.0, 1.0, 1.0],
+			color: [0.3, 0.0, 0.0, 1.0],
+		});
+		for p in light_position {
+			lights.push(forward::PointLight {
+				propagation: [0.2, 0.8, 0.1, 0.1],
+				center: [p.x, p.y, 2.0, 1.0],
+				color: light_color,
+			});
+		}
 
 		self.pass_forward_lighting.setup(&mut self.encoder, camera.projection, camera.view, &lights);
 	}

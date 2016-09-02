@@ -20,8 +20,7 @@ pub struct Size {
 #[derive(Copy, Clone)]
 pub struct Transform {
 	pub position: Position,
-	pub angle: f32,
-	pub scale: f32,
+	pub angle: Angle,
 }
 
 #[derive(Copy, Clone)]
@@ -65,7 +64,6 @@ impl Default for Transform {
 		Transform {
 			position: Position::new(0., 0.),
 			angle: 0.,
-			scale: 1.,
 		}
 	}
 }
@@ -77,7 +75,7 @@ impl Transform {
 			..Transform::default()
 		}
 	}
-	pub fn with_position(position: Position) -> Self {
+	pub fn from_position(position: Position) -> Self {
 		Transform { position: position, ..Transform::default() }
 	}
 }

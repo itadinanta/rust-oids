@@ -60,10 +60,11 @@ pub fn main_loop() {
 
 		let environment = app.environment();
 
+		let light_positions = environment.light_positions.as_ref();
 		renderer.setup_frame(&camera,
-		                     environment.background,
-		                     environment.light,
-		                     environment.light_position);
+		                     environment.background_color,
+		                     environment.light_color,
+		                     light_positions);
 		// draw a frame
 		renderer.begin_frame();
 		// draw the scene

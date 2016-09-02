@@ -3,14 +3,12 @@ use backend::obj::Transformable;
 use backend::world;
 use backend::world::gen;
 use backend::world::agent;
-use backend::world::segment;
 use backend::world::WorldState;
-use cgmath::*;
 use core::geometry;
 
 pub struct AlifeSystem {
 	dt: f32,
-	source: geometry::Position,
+	source: Box<[world::Emitter]>,
 }
 
 impl Updateable for AlifeSystem {
@@ -20,11 +18,13 @@ impl Updateable for AlifeSystem {
 }
 
 impl System for AlifeSystem {
+	fn from_world(&mut self, world: &world::World) {
+		self.source = world.emitters().to_vec().into_boxed_slice();
+	}
+
 	fn to_world(&self, world: &mut world::World) {
 		Self::update_resources(self.dt, &mut world.agents_mut(agent::AgentType::Resource));
-		let spores = Self::update_minions(self.dt,
-		                                  &self.source,
-		                                  &mut world.agents_mut(agent::AgentType::Minion));
+		let spores = Self::update_minions(self.dt, &mut world.agents_mut(agent::AgentType::Minion));
 		let hatch = Self::update_spores(self.dt, &mut world.agents_mut(agent::AgentType::Spore));
 
 		for &(ref transform, ref dna) in spores.into_iter() {
@@ -40,16 +40,13 @@ impl Default for AlifeSystem {
 	fn default() -> Self {
 		AlifeSystem {
 			dt: 1. / 60.,
-			source: geometry::Position::zero(),
+			source: Box::new([]),
 		}
 	}
 }
 
 impl AlifeSystem {
-	fn update_minions(dt: f32,
-	                  source: &geometry::Position,
-	                  minions: &mut agent::AgentMap)
-	                  -> Box<[(geometry::Transform, gen::Dna)]> {
+	fn update_minions(dt: f32, minions: &mut agent::AgentMap) -> Box<[(geometry::Transform, gen::Dna)]> {
 		let mut spawns = Vec::new();
 		for (_, agent) in minions.iter_mut() {
 			if agent.state.is_active() {
@@ -60,11 +57,11 @@ impl AlifeSystem {
 				} else {
 					for segment in agent.segments.iter_mut() {
 						// some source of food, let's use the light for now
-						let d = (source - segment.transform.position).length();
-						if d > 1. && d < 50. && segment.flags.contains(segment::TORSO) {
-							let r = segment.mesh.shape.radius();
-							agent.state.absorb(dt * r * r / d * d);
-						}
+						// 						let d = (source - segment.transform.position).length();
+						// 						if d > 1. && d < 50. && segment.flags.contains(segment::TORSO) {
+						// 							let r = segment.mesh.shape.radius();
+						// 							agent.state.absorb(dt * r * r / d * d);
+						// 						}
 						agent.state.consume(dt * segment.state.get_charge());
 						segment.state.update(dt);
 					}
@@ -99,10 +96,5 @@ impl AlifeSystem {
 			}
 		}
 		spawns.into_boxed_slice()
-	}
-
-
-	pub fn source(&mut self, pos: geometry::Position) {
-		self.source = pos;
 	}
 }

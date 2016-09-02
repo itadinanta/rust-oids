@@ -11,15 +11,17 @@ use std::f32::consts;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use core::geometry::*;
+use core::clock::*;
 use backend::world::agent::Agent;
 use backend::world::agent::AgentType;
 use backend::world::agent::TypedAgent;
 use backend::world::swarm::*;
 
+
 pub struct World {
 	pub extent: Rect,
-	pub fence: obj::Mesh,
 	swarms: HashMap<AgentType, Swarm>,
+	emitters: Vec<Emitter>,
 	registered: HashSet<Id>,
 }
 
@@ -33,8 +35,31 @@ impl WorldState for World {
 	}
 }
 
-pub struct Sweep {
-	pub freed: Box<[Agent]>,
+#[derive(Clone)]
+pub struct Emitter {
+	position: Position,
+	rate: f32,
+}
+
+impl Emitter {
+	pub fn new(x: f32, y: f32, rate: f32) -> Self {
+		Emitter {
+			position: Position::new(x, y),
+			rate: rate,
+		}
+	}
+	pub fn rate(&self) -> f32 {
+		self.rate
+	}
+}
+
+impl Transformable for Emitter {
+	fn transform(&self) -> Transform {
+		Transform::from_position(self.position)
+	}
+	fn transform_to(&mut self, t: Transform) {
+		self.position = t.position;
+	}
 }
 
 impl World {
@@ -46,14 +71,17 @@ impl World {
 		}
 		World {
 			extent: Rect::new(-50., -50., 50., 50.),
-			fence: Mesh::from_shape(Shape::new_ball(50.), Winding::CW),
 			swarms: swarms,
+			emitters: vec![Emitter::new(-10., -10., 1.),
+			               Emitter::new(-10., 10., 1.),
+			               Emitter::new(10., 10., 1.),
+			               Emitter::new(10., -10., 1.)],
 			registered: HashSet::new(),
 		}
 	}
 
 	pub fn new_resource(&mut self, pos: Position, vel: Option<Motion>) -> obj::Id {
-		let id = self.swarm_mut(&AgentType::Resource).spawn::<phen::Resource>(Transform::with_position(pos), vel, 0.8);
+		let id = self.swarm_mut(&AgentType::Resource).spawn::<phen::Resource>(Transform::from_position(pos), vel, 0.8);
 		self.register(id)
 	}
 
@@ -101,15 +129,19 @@ impl World {
 		self.swarms.get_mut(&agent_type).unwrap()
 	}
 
+	pub fn emitters(&self) -> &[Emitter] {
+		self.emitters.as_slice()
+	}
+
 	pub fn swarms(&self) -> &SwarmMap {
 		&self.swarms
 	}
 
-	pub fn sweep(&mut self) -> Sweep {
+	pub fn sweep(&mut self) -> Box<[Agent]> {
 		let mut v = Vec::new();
 		for (_, agents) in self.swarms.iter_mut() {
 			agents.free_resources(&mut v);
 		}
-		Sweep { freed: v.into_boxed_slice() }
+		v.into_boxed_slice()
 	}
 }

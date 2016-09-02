@@ -39,6 +39,8 @@ pub enum Event {
 	AppQuit,
 
 	MoveLight(Position),
+
+	MoveEmitter(u8, Position),
 	NewMinion(Position),
 	NewResource(Position),
 }
@@ -121,19 +123,18 @@ pub struct App {
 	frame_smooth: math::MovingAverage<f32>,
 	is_running: bool,
 	//
-	light_position: Position,
 	camera: math::Inertial<f32>,
-	lights: Cycle<[f32; 4]>,
-	backgrounds: Cycle<[f32; 4]>,
+	lights: Cycle<Rgba>,
+	backgrounds: Cycle<Rgba>,
 	//
 	world: world::World,
 	systems: Systems,
 }
 
 pub struct Environment {
-	pub light: [f32; 4],
-	pub light_position: Position,
-	pub background: [f32; 4],
+	pub light_color: Rgba,
+	pub light_positions: Box<[Position]>,
+	pub background_color: Rgba,
 }
 
 pub struct Update {
@@ -152,7 +153,6 @@ impl App {
 			input_state: input::InputState::default(),
 
 			// testbed, will need a display/render subsystem
-			light_position: Position::new(10.0, 10.0),
 			camera: Self::init_camera(),
 			lights: Self::init_lights(),
 			backgrounds: Self::init_backgrounds(),
@@ -240,7 +240,8 @@ impl App {
 
 			Event::AppQuit => self.quit(),
 
-			Event::MoveLight(pos) => self.light_position = pos,
+			Event::MoveLight(pos) => {}
+			Event::MoveEmitter(i, pos) => {}
 			Event::NewMinion(pos) => self.new_minion(pos),
 			Event::NewResource(pos) => self.new_resource(pos),
 		}
@@ -378,13 +379,17 @@ impl App {
 		               extent.max,
 		               Position::new(extent.max.x, extent.min.y),
 		               extent.min];
-		let transform = Matrix4::identity();
-		renderer.draw_lines(&transform, points, self.lights.get());
+		renderer.draw_lines(&Matrix4::identity(), points, self.lights.get());
+		renderer.draw_quad(&Matrix4::from_scale(extent.max.x - extent.min.x),
+		                   1.,
+		                   self.backgrounds.get());
 	}
 
 	fn render_hud(&self, renderer: &mut render::Draw) {
-		let transform = Self::from_position(&self.light_position);
-		renderer.draw_ball(&transform, self.lights.get());
+		for e in self.world.emitters() {
+			let transform = Self::from_position(&e.transform().position);
+			renderer.draw_ball(&transform, self.lights.get());
+		}
 	}
 
 	pub fn render(&self, renderer: &mut render::Draw) {
@@ -395,9 +400,14 @@ impl App {
 
 	pub fn environment(&self) -> Environment {
 		Environment {
-			light: self.lights.get(),
-			light_position: self.light_position,
-			background: self.backgrounds.get(),
+			light_color: self.lights.get(),
+			background_color: self.backgrounds.get(),
+			light_positions: self.world
+				.emitters()
+				.iter()
+				.map(|e| e.transform().position)
+				.collect::<Vec<_>>()
+				.into_boxed_slice(),
 		}
 	}
 
@@ -410,16 +420,13 @@ impl App {
 	}
 
 	fn cleanup(&mut self) {
-		let freed = self.world.sweep().freed;
+		let freed = self.world.sweep();
 		self.systems.for_each(&|s| for freed_agent in freed.iter() {
 			s.unregister(freed_agent);
 		});
 	}
 
 	fn update_systems(&mut self, dt: f32) {
-		self.systems.ai.follow_me(self.light_position);
-		self.systems.alife.source(self.light_position);
-
 		self.systems.to_world(&mut self.world,
 		                      &|s, mut world| s.update_world(&mut world, dt));
 	}

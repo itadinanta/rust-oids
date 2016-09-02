@@ -1,4 +1,5 @@
 use super::*;
+use backend::obj::Transformable;
 use backend::world;
 use backend::world::agent;
 use backend::world::segment;
@@ -13,8 +14,16 @@ pub struct AiSystem {
 impl Updateable for AiSystem {}
 
 impl System for AiSystem {
+	fn from_world(&mut self, world: &world::World) {
+		let emitters = world.emitters();
+		if !emitters.is_empty() {
+			self.remote = emitters[0].transform().position;
+		}
+	}
+
 	fn to_world(&self, world: &mut world::World) {
-		Self::update_minions(&self.remote, &mut world.agents_mut(agent::AgentType::Minion))
+		Self::update_minions(&self.remote,
+		                     &mut world.agents_mut(agent::AgentType::Minion))
 	}
 }
 
@@ -61,9 +70,5 @@ impl AiSystem {
 				}
 			}
 		}
-	}
-
-	pub fn follow_me(&mut self, pos: Position) {
-		self.remote = pos;
 	}
 }
