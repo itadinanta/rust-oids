@@ -84,6 +84,12 @@ impl World {
 		self.register(id)
 	}
 
+	pub fn decay_to_resource(&mut self, transform: Transform, dna: &gen::Dna) -> obj::Id {
+		let id = self.swarm_mut(&AgentType::Resource)
+			.replicate::<phen::Resource>(&mut gen::Genome::new(dna), transform, None, 0.8);
+		self.register(id)
+	}
+
 	pub fn new_spore(&mut self, transform: Transform, dna: &gen::Dna) -> obj::Id {
 		let id = self.swarm_mut(&AgentType::Spore)
 			.replicate::<phen::Spore>(&mut gen::Genome::new(dna).mutate(&mut rand::thread_rng()),

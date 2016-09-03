@@ -49,25 +49,30 @@ impl AiSystem {
 	fn update_minions(targets: &IdPositionMap, minions: &mut agent::AgentMap) {
 		for (_, agent) in minions.iter_mut() {
 			let brain = agent.brain();
+			let head = agent.first_segment(segment::SENSOR);
+			if let Some(sensor) = head {
+				let p0 = sensor.transform.position;
+				let radar_range = sensor.mesh.shape.radius() * 10.;
+				let current_target = agent.state.target().clone();
+				let current_target_position = agent.state.target_position().clone();
 
-			let current_target = agent.state.target().clone();
-			let current_target_position = agent.state.target_position().clone();
+				let new_target: Option<(obj::Id, Position)> = match current_target {
+					None => {
+						targets.iter()
+							.find(|&(_, &p)| (p - p0).length() < radar_range)
+							.map(|(&id, &position)| (id, position))
+					}
+					Some(id) => targets.get(&id).map(|&position| (id, position)),
+				};
 
-			let new_target: Option<(obj::Id, Position)> = match current_target {
-				None => targets.iter().last().map(|(&id, &position)| (id, position)),
-				Some(id) => targets.get(&id).map(|&position| (id, position)),
-			};
+				match new_target {
+					None => agent.state.retarget(None, current_target_position),
+					Some((id, position)) => agent.state.retarget(Some(id), position),
+				};
 
-			match new_target {
-				None => agent.state.retarget(None, current_target_position),
-				Some((id, position)) => agent.state.retarget(Some(id), position),
-			};
+				let target_position = agent.state.target_position().clone();
 
-			let target_position = agent.state.target_position().clone();
-			let segments = &mut agent.segments_mut();
-			if let Some(sensor) = segments.iter()
-				.find(|segment| segment.flags.contains(segment::SENSOR))
-				.map(|sensor| sensor.clone()) {
+				let segments = &mut agent.segments_mut();
 				let t = target_position - sensor.transform.position;
 				let d = t.length();
 				for segment in segments.iter_mut() {

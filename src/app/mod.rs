@@ -152,7 +152,6 @@ impl App {
 			viewport: Viewport::rect(w, h, scale),
 			input_state: input::InputState::default(),
 
-			// testbed, will need a display/render subsystem
 			camera: Self::init_camera(),
 			lights: Self::init_lights(),
 			backgrounds: Self::init_backgrounds(),
@@ -389,6 +388,11 @@ impl App {
 		for e in self.world.emitters() {
 			let transform = Self::from_position(&e.transform().position);
 			renderer.draw_ball(&transform, self.lights.get());
+		}
+		for (_, agent) in self.world.agents(world::agent::AgentType::Minion).iter() {
+			let p0 = agent.transform().position;
+			let p1 = *agent.state.target_position();
+			renderer.draw_lines(&Matrix4::identity(), &[p0, p1], agent.segments[0].color());
 		}
 	}
 

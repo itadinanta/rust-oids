@@ -7,6 +7,7 @@ use core::clock::*;
 use backend::obj;
 use backend::obj::*;
 use backend::world::gen::Dna;
+use backend::world::segment;
 use backend::world::segment::Segment;
 
 #[repr(packed)]
@@ -253,6 +254,13 @@ impl Agent {
 		self.brain.clone()
 	}
 
+	pub fn first_segment(&self, flags: segment::Flags) -> Option<Segment> {
+		self.segments
+			.iter()
+			.find(|segment| segment.flags.contains(flags))
+			.map(|sensor| sensor.clone())
+	}
+
 	pub fn new(id: Id, d0: f32, order: f32, dna: &Dna, segments: Box<[Segment]>) -> Self {
 		Agent {
 			id: id,
@@ -261,7 +269,7 @@ impl Agent {
 				lifespan: Hourglass::new(5.),
 				power: 3. * order,
 				target: None,
-				target_position: Position::zero(),
+				target_position: segments[0].transform.position,
 			},
 			brain: Brain {
 				timidity: 2. * (12.0 - order),
@@ -272,7 +280,7 @@ impl Agent {
 				caution: d0 * 2.0,
 				focus: d0 * 1.5,
 				curiosity: d0 * 1.2,
-				fear: d0 * 0.5,
+				fear: d0 * 0.01,
 
 				rest: 0.1,
 				thrust: 0.5,
