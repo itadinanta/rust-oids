@@ -9,7 +9,7 @@ use serialize::base64::{self, ToBase64};
 
 pub type Dna = Box<[u8]>;
 
-
+const MAX_POLY_SIDES: u8 = 8; // in conformity with box2d?
 
 #[allow(dead_code)]
 pub trait Generator {
@@ -58,14 +58,16 @@ pub trait Generator {
 
 	fn star(&mut self) -> Shape {
 		let radius: f32 = self.next_float(1.0, 2.0);
-		let n = self.next_integer(3, 8);
+		// if pie slices are too small physics freaks out
+		let n = self.next_integer(3,
+		                          if radius > 1.5 { MAX_POLY_SIDES } else { MAX_POLY_SIDES - 2 });
 		let ratio1 = self.next_float(0.5, 1.0);
 		let ratio2 = self.next_float(0.7, 0.9) * (1. / ratio1);
 		Shape::new_star(n, radius, ratio1, ratio2)
 	}
 
 	fn poly(&mut self, upside_down: bool) -> Shape {
-		let n = self.next_integer(3, 8);
+		let n = self.next_integer(3, MAX_POLY_SIDES);
 		self.npoly(n, upside_down)
 	}
 
@@ -74,7 +76,7 @@ pub trait Generator {
 		let ratio1 = f32::cos(consts::PI / n as f32);
 		let corrected_radius = if upside_down { radius * ratio1 } else { radius };
 
-		if n <= 8 {
+		if n <= MAX_POLY_SIDES {
 			Shape::new_poly(if upside_down { -1 } else { 1 } * n as i8, corrected_radius)
 		} else {
 			let ratio2 = 1. / ratio1;
