@@ -1,4 +1,5 @@
 use std::time;
+use std::fmt;
 
 pub type SystemStopwatch = time::SystemTime;
 
@@ -23,6 +24,18 @@ pub struct Hourglass<T: Stopwatch> {
 	stopwatch: T,
 	capacity: f32,
 	timeout: f32,
+}
+
+impl<T: Stopwatch> fmt::Debug for Hourglass<T> {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{} ({}, {})", self.left(), self.timeout, self.capacity)
+	}
+}
+
+impl<T: Stopwatch> fmt::Display for Hourglass<T> {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{} ({}, {})", self.left(), self.timeout, self.capacity)
+	}
 }
 
 impl<T: Stopwatch> Hourglass<T> {

@@ -24,7 +24,7 @@ bitflags="*"
 bit-set="*"
 custom_derive="*"
 enum_derive="*"
-
+rustc-serialize="*"
 image = "*"
 piston = "*"
 wrapped2d = "*"

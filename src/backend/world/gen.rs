@@ -1,11 +1,15 @@
-use num;
+use std::fmt;
 use std::f32::consts;
 use std::u16;
+use num;
 use rand;
 use rand::Rng;
 use backend::obj::*;
+use serialize::base64::{self, ToBase64};
 
 pub type Dna = Box<[u8]>;
+
+
 
 #[allow(dead_code)]
 pub trait Generator {
@@ -33,14 +37,14 @@ pub trait Generator {
 
 	fn triangle(&mut self) -> Shape {
 		let radius = self.next_float(0.5, 1.0);
-		let alpha1 = self.next_float(consts::PI * 0.5, consts::PI * 0.9);
-		let alpha2 = consts::PI * 1.5 - self.next_float(0., consts::PI);
+		let alpha1 = self.next_float(consts::PI * 0.5, consts::PI * 0.8);
+		let alpha2 = self.next_float(consts::PI * 1.2, consts::PI * 1.5);
 		Shape::new_triangle(radius, alpha1, alpha2)
 	}
 
 	fn iso_triangle(&mut self) -> Shape {
 		let radius = self.next_float(0.5, 1.0);
-		let alpha1 = self.next_float(consts::PI * 0.5, consts::PI * 0.9);
+		let alpha1 = self.next_float(consts::PI * 0.5, consts::PI * 0.8);
 		let alpha2 = consts::PI * 2. - alpha1;
 		Shape::new_triangle(radius, alpha1, alpha2)
 	}
@@ -159,6 +163,12 @@ impl Genome {
 
 	pub fn dna(&self) -> &Box<[u8]> {
 		&self.dna
+	}
+}
+
+impl fmt::Display for Genome {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{}", self.dna.to_base64(base64::STANDARD))
 	}
 }
 

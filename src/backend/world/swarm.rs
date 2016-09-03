@@ -7,6 +7,7 @@ use backend::world::phen;
 use backend::world::agent;
 use backend::world::agent::Agent;
 use backend::world::agent::AgentType;
+use backend::world::agent::TypedAgent;
 use backend::world::gen::*;
 
 pub struct Swarm {
@@ -67,6 +68,10 @@ impl Swarm {
 	pub fn spawn<T>(&mut self, transform: Transform, motion: Option<Motion>, charge: f32) -> Id
 		where T: phen::Phenotype {
 		let id = self.next_id();
+		match id.type_of() {
+			t @ AgentType::Minion => println!("spawn: {} as {}", self.gen, t),
+			_ => {}
+		}
 		let entity = T::develop(&mut self.gen, id, transform, motion, charge);
 		self.mutate(&mut rand::thread_rng());
 		self.insert(entity)
@@ -79,7 +84,9 @@ impl Swarm {
 	                    charge: f32)
 	                    -> Id
 		where T: phen::Phenotype {
-		let entity = T::develop(genome, self.next_id(), transform, motion, charge);
+		let id = self.next_id();
+		println!("replicate: {} as {}", genome, id.type_of());
+		let entity = T::develop(genome, id, transform, motion, charge);
 		self.insert(entity)
 	}
 

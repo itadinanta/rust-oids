@@ -33,6 +33,7 @@ extern crate num;
 extern crate enum_primitive;
 extern crate gfx_text;
 
+extern crate rustc_serialize as serialize;
 
 fn main() {
 	app::run();

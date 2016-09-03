@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt;
 use num::FromPrimitive;
 use core::geometry::*;
 use core::clock::*;
@@ -81,6 +82,21 @@ enum_from_primitive! {
 	}
 }
 
+impl fmt::Display for AgentType {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		match self {
+			&AgentType::Minion => f.write_str("Minion"),
+			&AgentType::Spore => f.write_str("Spore"),
+			&AgentType::Player => f.write_str("Player"),
+			&AgentType::FriendlyBullet => f.write_str("FriendlyBullet"),
+			&AgentType::Enemy => f.write_str("Enemy"),
+			&AgentType::EnemyBullet => f.write_str("EnemyBullet"),
+			&AgentType::Resource => f.write_str("Resource"),
+			&AgentType::Prop => f.write_str("Prop"),
+		}
+	}
+}
+
 // TODO: is there a better way to derive this?
 const AGENT_TYPES: &'static [AgentType] = &[AgentType::Minion,
                                             AgentType::Spore,
@@ -117,7 +133,7 @@ bitflags! {
 	}
 }
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct State {
 	lifespan: Hourglass<SystemStopwatch>,
 	flags: Flags,
@@ -225,7 +241,7 @@ impl Agent {
 			state: State {
 				flags: ACTIVE,
 				lifespan: Hourglass::new(5.),
-				power: order * 2.,
+				power: 3. * order,
 			},
 			brain: Brain {
 				timidity: 2. * (12.0 - order),

@@ -83,7 +83,7 @@ impl AlifeSystem {
 	                  eaten: &EatenMap)
 	                  -> Box<[(geometry::Transform, gen::Dna)]> {
 		let mut spawns = Vec::new();
-		for (_, agent) in minions.iter_mut() {
+		for (key, agent) in minions.iter_mut() {
 			if agent.state.is_active() {
 				if agent.state.lifespan().is_expired() && agent.state.consume(10.) {
 					spawns.push((agent.last_segment().transform(), agent.dna().clone()));
@@ -95,6 +95,7 @@ impl AlifeSystem {
 						if let Some(id) = segment.state.last_touched {
 							if let Some(state) = eaten.get(&id.id()) {
 								agent.state.absorb(state.power());
+								println!("Agent {} state is {:?}", key, agent.state);
 							}
 						}
 					}

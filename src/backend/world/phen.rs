@@ -57,7 +57,7 @@ impl Phenotype for Minion {
 
 		let mut belly = torso;
 		let mut belly_mid = torso_shape.mid();
-		for _ in 0..gen.next_integer(0, 4) {
+		while gen.next_integer(0, 4) == 0 {
 			let belly_shape = gen.poly(true);
 
 			belly = builder.add(belly, belly_mid, &belly_shape, BELLY | JOINT).index();
