@@ -1,10 +1,9 @@
 use super::*;
+use std::f32::consts;
 use core::clock::*;
 use core::geometry::*;
 use backend::obj::Transformable;
 use backend::world;
-use cgmath::Vector;
-use std::f32::consts;
 
 pub struct GameSystem {
 	emitters: Vec<Emitter>,

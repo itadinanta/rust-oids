@@ -11,7 +11,6 @@ use std::f32::consts;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use core::geometry::*;
-use core::clock::*;
 use backend::world::agent::Agent;
 use backend::world::agent::AgentType;
 use backend::world::agent::TypedAgent;
@@ -117,8 +116,16 @@ impl World {
 		collection
 	}
 
+	pub fn agent(&self, id: obj::Id) -> Option<&Agent> {
+		self.swarms.get(&id.type_of()).and_then(|m| m.get(id))
+	}
+
 	pub fn agent_mut(&mut self, id: obj::Id) -> Option<&mut Agent> {
 		self.swarms.get_mut(&id.type_of()).and_then(|m| m.get_mut(id))
+	}
+
+	pub fn agents(&self, agent_type: AgentType) -> &agent::AgentMap {
+		self.swarms.get(&agent_type).unwrap().agents()
 	}
 
 	pub fn agents_mut(&mut self, agent_type: AgentType) -> &mut agent::AgentMap {

@@ -1,5 +1,4 @@
 use super::*;
-use backend::obj;
 use backend::obj::Identified;
 use backend::obj::Transformable;
 use backend::world;
@@ -25,9 +24,8 @@ impl System for AiSystem {
 	}
 
 	fn to_world(&self, world: &mut world::World) {
-		let eaten = Self::update_minions(&self.remote,
-		                                 &mut world.agents_mut(agent::AgentType::Minion));
-		Self::update_resources(&eaten, &mut world.agents_mut(agent::AgentType::Resource))
+		Self::update_minions(&self.remote,
+		                     &mut world.agents_mut(agent::AgentType::Minion));
 	}
 }
 
@@ -38,11 +36,9 @@ impl Default for AiSystem {
 }
 
 impl AiSystem {
-	fn update_minions(target: &Position, minions: &mut agent::AgentMap) -> Box<[obj::Id]> {
-		let mut eaten = Vec::new();
+	fn update_minions(target: &Position, minions: &mut agent::AgentMap) {
 		for (_, agent) in minions.iter_mut() {
 			let brain = agent.brain();
-			let mut absorb: f32 = 0.;
 			{
 				let segments = &mut agent.segments_mut();
 				if let Some(sensor) = segments.iter()
@@ -55,15 +51,9 @@ impl AiSystem {
 							let power = segment.state.get_charge() * segment.mesh.shape.radius().powi(2);
 							let f: Position = Matrix2::from_angle(rad(segment.transform.angle)) * Position::unit_y();
 							let proj = t.dot(f);
-							let intent = if let Some(refs) = segment.state.collision_detected {
+							let intent = if let Some(refs) = segment.state.last_touched {
 								match refs.id().type_of() {
-									agent::AgentType::Resource => {
-										if segment.flags.contains(segment::MOUTH) {
-											Intent::Eat(refs.id())
-										} else {
-											Intent::RunAway(f.normalize_to(power * brain.timidity))
-										}
-									}
+									agent::AgentType::Resource => Intent::Idle,
 									_ => Intent::RunAway(f.normalize_to(power * brain.timidity)),
 								}
 							} else if segment.flags.contains(segment::RUDDER) && proj > 0. &&
@@ -79,11 +69,6 @@ impl AiSystem {
 							};
 							match intent {
 								Intent::Idle => segment.state.set_target_charge(brain.rest),
-								Intent::Eat(id) => {
-									eaten.push(id);
-									absorb += 10.0;
-									segment.state.set_target_charge(brain.thrust);
-								}
 								Intent::Move(_) => segment.state.set_target_charge(brain.thrust),
 								Intent::RunAway(_) => segment.state.set_charge(brain.thrust),
 							}
@@ -91,19 +76,6 @@ impl AiSystem {
 						}
 					}
 				}
-			}
-			if absorb > 0. {
-				agent.state.absorb(absorb);
-			}
-		}
-		eaten.into_boxed_slice()
-	}
-
-	fn update_resources(ids: &[obj::Id], resources: &mut agent::AgentMap) {
-		// TODO: ai shouldn't change state here, this should be done in alife
-		for id in ids {
-			if let Some(resource) = resources.get_mut(id) {
-				resource.state.die();
 			}
 		}
 	}

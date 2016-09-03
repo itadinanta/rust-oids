@@ -117,6 +117,7 @@ bitflags! {
 	}
 }
 
+#[derive(Clone)]
 pub struct State {
 	lifespan: Hourglass<SystemStopwatch>,
 	flags: Flags,

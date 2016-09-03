@@ -1,19 +1,18 @@
+use super::*;
+use std::f32::consts;
+use std::collections::HashMap;
+use std::rc::Rc;
+use std::cell::RefCell;
 use wrapped2d::b2;
 use wrapped2d::user_data::*;
 use wrapped2d::dynamics::world::callbacks::ContactAccess;
+use core::geometry::*;
 use backend::obj;
 use backend::obj::*;
 use backend::world;
 use backend::world::agent;
 use backend::world::segment;
 use backend::world::segment::Intent;
-use std::collections::HashMap;
-use std::collections::HashSet;
-use std::f32::consts;
-use std::rc::Rc;
-use std::cell::RefCell;
-use core::geometry::*;
-use super::*;
 
 struct AgentData;
 
@@ -123,7 +122,7 @@ impl System for PhysicsSystem {
 						angle: angle,
 						..t
 					});
-					segment.state.collision_detected = self.touched.borrow().get(key).map(|r| *r);
+					segment.state.last_touched = self.touched.borrow().get(key).map(|r| *r);
 				}
 			}
 		}
@@ -254,18 +253,7 @@ impl PhysicsSystem {
 							obj::Winding::CW => (&p[0], &p[2], &p[1]),
 							obj::Winding::CCW => (&p[0], &p[1], &p[2]),
 						};
-						tri.set(&[b2::Vec2 {
-							          x: p1.x * radius,
-							          y: p1.y * radius,
-						          },
-						          b2::Vec2 {
-							          x: p2.x * radius,
-							          y: p2.y * radius,
-						          },
-						          b2::Vec2 {
-							          x: p3.x * radius,
-							          y: p3.y * radius,
-						          }]);
+						tri.set(&[Self::vec2(p1, radius), Self::vec2(p2, radius), Self::vec2(p3, radius)]);
 						world.body_mut(handle).create_fixture_with(&tri, &mut f_def, refs);
 					}
 				};

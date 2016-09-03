@@ -8,7 +8,6 @@ use core::geometry::*;
 #[derive(Clone)]
 pub enum Intent {
 	Idle,
-	Eat(Id),
 	Move(Position),
 	RunAway(Position),
 }
@@ -22,7 +21,7 @@ pub struct State {
 	recharge: f32,
 	smooth: math::Exponential<f32, f32>,
 	pub intent: Intent,
-	pub collision_detected: Option<agent::Key>,
+	pub last_touched: Option<agent::Key>,
 }
 
 impl Default for State {
@@ -35,7 +34,7 @@ impl Default for State {
 			recharge: 1.,
 			smooth: math::Exponential::new(1., 1., 2.),
 			intent: Intent::Idle,
-			collision_detected: None,
+			last_touched: None,
 		}
 	}
 }

@@ -18,6 +18,7 @@ pub trait Stopwatch: Sized {
 	}
 }
 
+#[derive(Clone)]
 pub struct Hourglass<T: Stopwatch> {
 	stopwatch: T,
 	capacity: f32,

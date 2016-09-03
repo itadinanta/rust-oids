@@ -1,14 +1,21 @@
 use super::*;
+use std::collections::HashMap;
+use core::geometry;
+use backend::obj;
 use backend::obj::Transformable;
+use backend::obj::Identified;
 use backend::world;
 use backend::world::gen;
 use backend::world::agent;
+use backend::world::segment;
 use backend::world::WorldState;
-use core::geometry;
+
+type EatenMap = HashMap<obj::Id, agent::State>;
 
 pub struct AlifeSystem {
 	dt: f32,
 	source: Box<[world::Emitter]>,
+	eaten: EatenMap,
 }
 
 impl Updateable for AlifeSystem {
@@ -20,11 +27,17 @@ impl Updateable for AlifeSystem {
 impl System for AlifeSystem {
 	fn from_world(&mut self, world: &world::World) {
 		self.source = world.emitters().to_vec().into_boxed_slice();
+		self.eaten = Self::find_eaten_resources(&world.agents(agent::AgentType::Minion),
+		                                        &world.agents(agent::AgentType::Resource));
 	}
 
 	fn to_world(&self, world: &mut world::World) {
-		Self::update_resources(self.dt, &mut world.agents_mut(agent::AgentType::Resource));
-		let spores = Self::update_minions(self.dt, &mut world.agents_mut(agent::AgentType::Minion));
+		Self::update_resources(self.dt,
+		                       &mut world.agents_mut(agent::AgentType::Resource),
+		                       &self.eaten);
+		let spores = Self::update_minions(self.dt,
+		                                  &mut world.agents_mut(agent::AgentType::Minion),
+		                                  &self.eaten);
 		let hatch = Self::update_spores(self.dt, &mut world.agents_mut(agent::AgentType::Spore));
 
 		for &(ref transform, ref dna) in spores.into_iter() {
@@ -41,12 +54,34 @@ impl Default for AlifeSystem {
 		AlifeSystem {
 			dt: 1. / 60.,
 			source: Box::new([]),
+			eaten: EatenMap::new(),
 		}
 	}
 }
 
 impl AlifeSystem {
-	fn update_minions(dt: f32, minions: &mut agent::AgentMap) -> Box<[(geometry::Transform, gen::Dna)]> {
+	fn find_eaten_resources(minions: &agent::AgentMap, resources: &agent::AgentMap) -> EatenMap {
+		let mut eaten = HashMap::new();
+		for (_, agent) in minions.iter() {
+			if agent.state.is_active() {
+				for segment in agent.segments.iter() {
+					if segment.flags.contains(segment::MOUTH) {
+						if let Some(key) = segment.state.last_touched {
+							if let Some(&agent::Agent { ref state, .. }) = resources.get(&key.id()) {
+								eaten.insert(key.id(), (*state).clone());
+							}
+						}
+					}
+				}
+			}
+		}
+		eaten
+	}
+
+	fn update_minions(dt: f32,
+	                  minions: &mut agent::AgentMap,
+	                  eaten: &EatenMap)
+	                  -> Box<[(geometry::Transform, gen::Dna)]> {
 		let mut spawns = Vec::new();
 		for (_, agent) in minions.iter_mut() {
 			if agent.state.is_active() {
@@ -54,7 +89,15 @@ impl AlifeSystem {
 					spawns.push((agent.last_segment().transform(), agent.dna().clone()));
 					agent.state.renew();
 				}
+
 				for segment in agent.segments.iter_mut() {
+					if segment.flags.contains(segment::MOUTH) {
+						if let Some(id) = segment.state.last_touched {
+							if let Some(state) = eaten.get(&id.id()) {
+								agent.state.absorb(state.power());
+							}
+						}
+					}
 					agent.state.consume(dt * segment.state.get_charge() * segment.mesh.shape.radius());
 					segment.state.update(dt);
 				}
@@ -66,9 +109,11 @@ impl AlifeSystem {
 		spawns.into_boxed_slice()
 	}
 
-	fn update_resources(dt: f32, resources: &mut agent::AgentMap) {
+	fn update_resources(dt: f32, resources: &mut agent::AgentMap, eaten: &EatenMap) {
 		for (_, agent) in resources.iter_mut() {
-			if agent.state.lifespan().is_expired() {
+			if eaten.get(&agent.id()).is_some() {
+				agent.state.die();
+			} else if agent.state.lifespan().is_expired() {
 				agent.state.die();
 			} else if agent.state.is_active() {
 				for segment in agent.segments.iter_mut() {
