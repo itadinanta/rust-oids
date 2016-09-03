@@ -22,7 +22,7 @@ pub struct State {
 	recharge: f32,
 	smooth: math::Exponential<f32, f32>,
 	pub intent: Intent,
-	pub collision_detected: Option<agent::AgentRefs>,
+	pub collision_detected: Option<agent::Key>,
 }
 
 impl Default for State {

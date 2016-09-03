@@ -18,16 +18,16 @@ use super::*;
 struct AgentData;
 
 impl UserDataTypes for AgentData {
-	type BodyData = agent::AgentRefs;
+	type BodyData = agent::Key;
 	type JointData = ();
-	type FixtureData = agent::AgentRefs;
+	type FixtureData = agent::Key;
 }
 
-type ContactSet = Rc<RefCell<HashMap<agent::AgentRefs, agent::AgentRefs>>>;
+type ContactSet = Rc<RefCell<HashMap<agent::Key, agent::Key>>>;
 
 pub struct PhysicsSystem {
 	world: b2::World<AgentData>,
-	handles: HashMap<agent::AgentRefs, b2::BodyHandle>,
+	handles: HashMap<agent::Key, b2::BodyHandle>,
 	touched: ContactSet,
 }
 
@@ -74,7 +74,7 @@ impl Updateable for PhysicsSystem {
 }
 
 struct JointRef<'a> {
-	refs: agent::AgentRefs,
+	refs: agent::Key,
 	handle: b2::BodyHandle,
 	mesh: &'a obj::Mesh,
 	flags: segment::Flags,
@@ -97,7 +97,7 @@ impl System for PhysicsSystem {
 		let object_id = agent.id();
 		let segments = agent.segments();
 		for segment in segments {
-			let refs = agent::AgentRefs::with_segment(object_id, segment.index);
+			let refs = agent::Key::with_segment(object_id, segment.index);
 			if let Some(handle) = self.handles.remove(&refs) {
 				self.world.destroy_body(handle);
 			}
@@ -155,7 +155,7 @@ impl PhysicsSystem {
 		let mut f_def = b2::FixtureDef::new();
 		let mut b_def = b2::BodyDef::new();
 		b_def.body_type = b2::BodyType::Static;
-		let refs = agent::AgentRefs::with_id(0xFFFFFFFFusize);
+		let refs = agent::Key::with_id(0xFFFFFFFFusize);
 		let handle = self.world.create_body_with(&b_def, refs);
 
 		let mut rect = b2::ChainShape::new();
@@ -197,7 +197,7 @@ impl PhysicsSystem {
 					b_def.linear_velocity = Self::vec2(&velocity, 1.);
 					b_def.angular_velocity = spin;
 				}
-				let refs = agent::AgentRefs::with_segment(object_id, segment_index as u8);
+				let refs = agent::Key::with_segment(object_id, segment_index as u8);
 				let handle = world.create_body_with(&b_def, refs);
 
 				let mesh = segment.mesh();
@@ -223,7 +223,7 @@ impl PhysicsSystem {
 							vertices.push(Self::vec2(&p[2 * i as usize + offset], radius));
 						}
 						poly.set(vertices.as_slice());
-						let refs = agent::AgentRefs::with_segment(object_id, segment_index as u8);
+						let refs = agent::Key::with_segment(object_id, segment_index as u8);
 						world.body_mut(handle).create_fixture_with(&poly, &mut f_def, refs);
 
 					}
@@ -242,7 +242,7 @@ impl PhysicsSystem {
 							           Self::vec2(&p1, radius),
 							           Self::vec2(&p2, radius),
 							           Self::vec2(&p3, radius)]);
-							let refs = agent::AgentRefs::with_bone(object_id, segment_index as u8, i as u8);
+							let refs = agent::Key::with_bone(object_id, segment_index as u8, i as u8);
 							world.body_mut(handle).create_fixture_with(&quad, &mut f_def, refs);
 						}
 
