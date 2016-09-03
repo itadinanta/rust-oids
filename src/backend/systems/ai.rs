@@ -49,8 +49,10 @@ impl AiSystem {
 	fn update_minions(targets: &IdPositionMap, minions: &mut agent::AgentMap) {
 		for (_, agent) in minions.iter_mut() {
 			let brain = agent.brain();
+
 			let current_target = agent.state.target().clone();
 			let current_target_position = agent.state.target_position().clone();
+
 			let new_target: Option<(obj::Id, Position)> = match current_target {
 				None => targets.iter().last().map(|(&id, &position)| (id, position)),
 				Some(id) => targets.get(&id).map(|&position| (id, position)),
