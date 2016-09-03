@@ -23,10 +23,12 @@ impl UserDataTypes for AgentData {
 	type FixtureData = agent::AgentRefs;
 }
 
+type ContactSet = Rc<RefCell<HashMap<agent::AgentRefs, agent::AgentRefs>>>;
+
 pub struct PhysicsSystem {
 	world: b2::World<AgentData>,
 	handles: HashMap<agent::AgentRefs, b2::BodyHandle>,
-	touched: Rc<RefCell<HashSet<agent::AgentRefs>>>,
+	touched: ContactSet,
 }
 
 impl Updateable for PhysicsSystem {
@@ -42,7 +44,7 @@ impl Updateable for PhysicsSystem {
 				match segment.state.intent {
 					Intent::Move(force) => forces.push((h, center, force)),
 					Intent::RunAway(impulse) => impulses.push((h, center, impulse)),
-					Intent::Idle => {}
+					_ => {}
 				}
 			}
 		}
@@ -121,7 +123,7 @@ impl System for PhysicsSystem {
 						angle: angle,
 						..t
 					});
-					segment.state.collision_detected = self.touched.borrow().contains(key);
+					segment.state.collision_detected = self.touched.borrow().get(key).map(|r| *r);
 				}
 			}
 		}
@@ -131,7 +133,7 @@ impl System for PhysicsSystem {
 
 impl Default for PhysicsSystem {
 	fn default() -> Self {
-		let touched = Rc::new(RefCell::new(HashSet::new()));
+		let touched = Rc::new(RefCell::new(HashMap::new()));
 		PhysicsSystem {
 			world: Self::new_world(touched.clone()),
 			handles: HashMap::new(),
@@ -314,7 +316,7 @@ impl PhysicsSystem {
 		}
 	}
 
-	fn new_world(touched: Rc<RefCell<HashSet<agent::AgentRefs>>>) -> b2::World<AgentData> {
+	fn new_world(touched: ContactSet) -> b2::World<AgentData> {
 		let mut world = b2::World::new(&b2::Vec2 { x: 0.0, y: 0.0 });
 		world.set_contact_listener(Box::new(ContactListener { touched: touched }));
 		world
@@ -322,7 +324,7 @@ impl PhysicsSystem {
 }
 
 struct ContactListener {
-	touched: Rc<RefCell<HashSet<agent::AgentRefs>>>,
+	touched: ContactSet,
 }
 
 impl b2::ContactListener<AgentData> for ContactListener {
@@ -330,8 +332,8 @@ impl b2::ContactListener<AgentData> for ContactListener {
 		let body_a = ca.fixture_a.user_data();
 		let body_b = ca.fixture_b.user_data();
 		if body_a.agent_id != body_b.agent_id {
-			self.touched.borrow_mut().insert(body_a.no_bone());
-			self.touched.borrow_mut().insert(body_b.no_bone());
+			self.touched.borrow_mut().insert(body_a.no_bone(), body_b.no_bone());
+			self.touched.borrow_mut().insert(body_b.no_bone(), body_a.no_bone());
 		}
 	}
 }

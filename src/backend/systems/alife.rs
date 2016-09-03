@@ -50,21 +50,16 @@ impl AlifeSystem {
 		let mut spawns = Vec::new();
 		for (_, agent) in minions.iter_mut() {
 			if agent.state.is_active() {
-				if agent.state.lifespan().is_expired() || agent.state.power() <= 0. {
-					agent.state.die();
-				} else if agent.state.lifespan().left() < 5. && agent.state.consume(10.) {
+				if agent.state.lifespan().is_expired() && agent.state.consume(10.) {
 					spawns.push((agent.last_segment().transform(), agent.dna().clone()));
-				} else {
-					for segment in agent.segments.iter_mut() {
-						// some source of food, let's use the light for now
-						// 						let d = (source - segment.transform.position).length();
-						// 						if d > 1. && d < 50. && segment.flags.contains(segment::TORSO) {
-						// 							let r = segment.mesh.shape.radius();
-						// 							agent.state.absorb(dt * r * r / d * d);
-						// 						}
-						agent.state.consume(dt * segment.state.get_charge());
-						segment.state.update(dt);
-					}
+					agent.state.renew();
+				}
+				for segment in agent.segments.iter_mut() {
+					agent.state.consume(dt * segment.state.get_charge() * segment.mesh.shape.radius());
+					segment.state.update(dt);
+				}
+				if agent.state.power() < 1. {
+					agent.state.die();
 				}
 			}
 		}

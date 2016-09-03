@@ -51,9 +51,9 @@ impl Phenotype for Minion {
 		builder.addr(torso, 2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER)
 			.addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
 
-		let head = builder.add(torso, 0, &head_shape, HEAD | SENSOR).index();
-		builder.addr(head, 1, &antenna_shape, HEAD | ACTUATOR | RUDDER)
-			.addl(head, 2, &antenna_shape, HEAD | ACTUATOR | RUDDER);
+		let head = builder.add(torso, 0, &head_shape, HEAD | MOUTH | SENSOR).index();
+		builder.addr(head, 1, &antenna_shape, HEAD | MOUTH | ACTUATOR | RUDDER)
+			.addl(head, 2, &antenna_shape, HEAD | MOUTH | ACTUATOR | RUDDER);
 
 		let mut belly = torso;
 		let mut belly_mid = torso_shape.mid();

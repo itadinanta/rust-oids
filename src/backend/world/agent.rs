@@ -15,6 +15,12 @@ pub struct AgentRefs {
 	pub bone_index: obj::BoneIndex,
 }
 
+impl Identified for AgentRefs {
+	fn id(&self) -> obj::Id {
+		self.agent_id
+	}
+}
+
 impl Default for AgentRefs {
 	fn default() -> AgentRefs {
 		AgentRefs {
@@ -217,8 +223,8 @@ impl Agent {
 			id: id,
 			state: State {
 				flags: ACTIVE,
-				lifespan: Hourglass::new(10.),
-				power: 20.,
+				lifespan: Hourglass::new(5.),
+				power: order * 2.,
 			},
 			brain: Brain {
 				timidity: 2. * (12.0 - order),

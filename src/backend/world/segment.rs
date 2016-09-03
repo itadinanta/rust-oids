@@ -1,5 +1,6 @@
 use backend::obj;
 use backend::obj::*;
+use backend::world::agent;
 use core::math;
 use core::math::Smooth;
 use core::geometry::*;
@@ -7,6 +8,7 @@ use core::geometry::*;
 #[derive(Clone)]
 pub enum Intent {
 	Idle,
+	Eat(Id),
 	Move(Position),
 	RunAway(Position),
 }
@@ -20,7 +22,7 @@ pub struct State {
 	recharge: f32,
 	smooth: math::Exponential<f32, f32>,
 	pub intent: Intent,
-	pub collision_detected: bool,
+	pub collision_detected: Option<agent::AgentRefs>,
 }
 
 impl Default for State {
@@ -33,7 +35,7 @@ impl Default for State {
 			recharge: 1.,
 			smooth: math::Exponential::new(1., 1., 2.),
 			intent: Intent::Idle,
-			collision_detected: false,
+			collision_detected: None,
 		}
 	}
 }
@@ -83,6 +85,7 @@ bitflags! {
 	pub flags Flags: u32 {
 		const SENSOR       = 0x1,
 		const JOINT        = 0x4,
+		const MOUTH		   = 0x8,
 		const HEAD		   = 0x10,
 		const LEG          = 0x20,
 		const ARM          = 0x40,
@@ -117,11 +120,7 @@ impl Segment {
 		let max = self.mesh.vertices.len() as AttachmentIndex;
 		Some(Attachment {
 			index: self.index,
-			attachment_point: if attachment_point < max {
-				attachment_point
-			} else {
-				max - 1
-			},
+			attachment_point: if attachment_point < max { attachment_point } else { max - 1 },
 		})
 	}
 }
