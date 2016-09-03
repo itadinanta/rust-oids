@@ -24,8 +24,7 @@ impl System for AiSystem {
 	}
 
 	fn to_world(&self, world: &mut world::World) {
-		Self::update_minions(&self.remote,
-		                     &mut world.agents_mut(agent::AgentType::Minion));
+		Self::update_minions(&mut world.agents_mut(agent::AgentType::Minion));
 	}
 }
 
@@ -36,14 +35,15 @@ impl Default for AiSystem {
 }
 
 impl AiSystem {
-	fn update_minions(target: &Position, minions: &mut agent::AgentMap) {
+	fn update_minions(minions: &mut agent::AgentMap) {
 		for (_, agent) in minions.iter_mut() {
 			let brain = agent.brain();
+			let target = agent.state.target_position().clone();
 			{
 				let segments = &mut agent.segments_mut();
 				if let Some(sensor) = segments.iter()
-					.find(|segment| segment.flags.contains(segment::SENSOR))
-					.map(|sensor| sensor.clone()) {
+				                              .find(|segment| segment.flags.contains(segment::SENSOR))
+				                              .map(|sensor| sensor.clone()) {
 					let t = target - sensor.transform.position;
 					let d = t.length();
 					for segment in segments.iter_mut() {

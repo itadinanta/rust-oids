@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt;
+use cgmath::Vector;
 use num::FromPrimitive;
 use core::geometry::*;
 use core::clock::*;
@@ -138,6 +139,8 @@ pub struct State {
 	lifespan: Hourglass<SystemStopwatch>,
 	flags: Flags,
 	power: f32,
+	target: Option<Id>,
+	target_position: Position,
 }
 
 impl State {
@@ -180,6 +183,10 @@ impl State {
 	#[inline]
 	pub fn is_active(&self) -> bool {
 		self.flags.contains(ACTIVE)
+	}
+
+	pub fn target_position(&self) -> &Position {
+		&self.target_position
 	}
 }
 
@@ -242,6 +249,8 @@ impl Agent {
 				flags: ACTIVE,
 				lifespan: Hourglass::new(5.),
 				power: 3. * order,
+				target: None,
+				target_position: Position::zero(),
 			},
 			brain: Brain {
 				timidity: 2. * (12.0 - order),
