@@ -83,18 +83,20 @@ enum_from_primitive! {
 	}
 }
 
+// TODO: sure there must be a better way?
 impl fmt::Display for AgentType {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		match self {
-			&AgentType::Minion => f.write_str("Minion"),
-			&AgentType::Spore => f.write_str("Spore"),
-			&AgentType::Player => f.write_str("Player"),
-			&AgentType::FriendlyBullet => f.write_str("FriendlyBullet"),
-			&AgentType::Enemy => f.write_str("Enemy"),
-			&AgentType::EnemyBullet => f.write_str("EnemyBullet"),
-			&AgentType::Resource => f.write_str("Resource"),
-			&AgentType::Prop => f.write_str("Prop"),
-		}
+		let text = match self {
+			&AgentType::Minion => "Minion",
+			&AgentType::Spore => "Spore",
+			&AgentType::Player => "Player",
+			&AgentType::FriendlyBullet => "FriendlyBullet",
+			&AgentType::Enemy => "Enemy",
+			&AgentType::EnemyBullet => "EnemyBullet",
+			&AgentType::Resource => "Resource",
+			&AgentType::Prop => "Prop",
+		};
+		f.write_str(text)
 	}
 }
 
@@ -187,6 +189,15 @@ impl State {
 
 	pub fn target_position(&self) -> &Position {
 		&self.target_position
+	}
+
+	pub fn target(&self) -> &Option<Id> {
+		&self.target
+	}
+
+	pub fn retarget(&mut self, target: Option<Id>, position: Position) {
+		self.target = target;
+		self.target_position = position;
 	}
 }
 
