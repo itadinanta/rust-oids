@@ -48,7 +48,7 @@ impl Default for AiSystem {
 impl AiSystem {
 	fn update_minions(targets: &IdPositionMap, minions: &mut agent::AgentMap) {
 		for (_, agent) in minions.iter_mut() {
-			let brain = agent.brain();
+			let brain = agent.brain().clone();
 			let head = agent.first_segment(segment::SENSOR);
 			if let Some(sensor) = head {
 				let p0 = sensor.transform.position;

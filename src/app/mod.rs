@@ -239,8 +239,8 @@ impl App {
 
 			Event::AppQuit => self.quit(),
 
-			Event::MoveLight(pos) => {}
-			Event::MoveEmitter(i, pos) => {}
+			Event::MoveLight(_pos) => {}
+			Event::MoveEmitter(_i, _pos) => {}
 			Event::NewMinion(pos) => self.new_minion(pos),
 			Event::NewResource(pos) => self.new_resource(pos),
 		}
@@ -342,7 +342,7 @@ impl App {
 	fn render_minions(&self, renderer: &mut render::Draw) {
 		for (_, swarm) in self.world.swarms().iter() {
 			for (_, agent) in swarm.agents().iter() {
-				let left = agent.state.lifespan().left() * agent.state.power();
+				let left = agent.state.energy_ratio();
 				for segment in agent.segments() {
 					let body_transform = Self::from_transform(&segment.transform());
 
@@ -351,7 +351,7 @@ impl App {
 					let transform = body_transform * fixture_scale;
 
 					fn fade(fade_level: f32, c: Rgba) -> Rgba {
-						let f = (fade_level / 20.0).min(1.0);
+						let f = (fade_level * 2.).min(1.0);
 						if f >= 1.0 { c } else { [c[0] * f, c[1] * f, c[2] * f, c[3] * f] }
 					}
 

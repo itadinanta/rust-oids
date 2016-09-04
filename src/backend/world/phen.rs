@@ -60,7 +60,7 @@ impl Phenotype for Minion {
 		while gen.next_integer(0, 4) == 0 {
 			let belly_shape = gen.poly(true);
 
-			belly = builder.add(belly, belly_mid, &belly_shape, BELLY | JOINT).index();
+			belly = builder.add(belly, belly_mid, &belly_shape, STORAGE | JOINT).index();
 			belly_mid = belly_shape.mid();
 			if gen.next_integer(0, 4) == 0 {
 				builder.addr(belly, 2, &arm_shape, ARM | ACTUATOR | RUDDER)
@@ -117,7 +117,7 @@ impl AgentBuilder {
 		                               transform,
 		                               initial_vel,
 		                               None,
-		                               segment::TORSO | segment::MIDDLE);
+		                               segment::CORE | segment::STORAGE | segment::MIDDLE);
 		self.segments.clear();
 		self.segments.push(segment);
 		self
@@ -218,13 +218,6 @@ impl AgentBuilder {
 	}
 
 	pub fn build(&self) -> Agent {
-		let order = self.segments.len() as f32;
-		let d0 = 2. * order;
-
-		Agent::new(self.id,
-		           d0,
-		           order,
-		           &self.dna,
-		           self.segments.clone().into_boxed_slice())
+		Agent::new(self.id, &self.dna, self.segments.clone().into_boxed_slice())
 	}
 }

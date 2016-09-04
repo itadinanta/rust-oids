@@ -91,11 +91,10 @@ impl AlifeSystem {
 		let mut corpses = Vec::new();
 		for (key, agent) in minions.iter_mut() {
 			if agent.state.is_active() {
-				if agent.state.lifespan().is_expired() && agent.state.consume(50.) {
+				if agent.state.lifecycle().is_expired() && agent.state.consume_ratio(0.75) {
 					spawns.push((agent.last_segment().transform(), agent.dna().clone()));
 					agent.state.renew();
 				}
-
 				for segment in agent.segments.iter_mut() {
 					let p = segment.transform().position;
 					if p.x < extent.min.x || p.x > extent.max.x || p.y < extent.min.y || p.y > extent.max.y {
@@ -103,8 +102,8 @@ impl AlifeSystem {
 					}
 					if segment.flags.contains(segment::MOUTH) {
 						if let Some(id) = segment.state.last_touched {
-							if let Some(state) = eaten.get(&id.id()) {
-								agent.state.absorb(5. * state.power());
+							if let Some(eaten_state) = eaten.get(&id.id()) {
+								agent.state.absorb(eaten_state.energy());
 								println!("Agent {} state is {:?}", key, agent.state);
 							}
 						}
@@ -113,8 +112,8 @@ impl AlifeSystem {
 					segment.state.update(dt);
 				}
 
-				if agent.state.power() < 1. {
-					for segment in agent.segments.iter().filter(|s| s.flags.contains(segment::MIDDLE)) {
+				if agent.state.energy() < 1. {
+					for segment in agent.segments.iter().filter(|s| s.flags.contains(segment::STORAGE)) {
 						corpses.push((segment.transform, agent.dna().clone()));
 					}
 					agent.state.die();
@@ -128,7 +127,9 @@ impl AlifeSystem {
 		for (_, agent) in resources.iter_mut() {
 			if eaten.get(&agent.id()).is_some() {
 				agent.state.die();
-			} else if agent.state.lifespan().is_expired() {
+			} else if agent.state.energy() <= 0. {
+				agent.state.die();
+			} else if agent.state.lifecycle().is_expired() {
 				agent.state.die();
 			} else if agent.state.is_active() {
 				for segment in agent.segments.iter_mut() {
@@ -141,7 +142,7 @@ impl AlifeSystem {
 	fn update_spores(dt: f32, resources: &mut agent::AgentMap) -> Box<[(geometry::Transform, gen::Dna)]> {
 		let mut spawns = Vec::new();
 		for (_, agent) in resources.iter_mut() {
-			if agent.state.lifespan().is_expired() {
+			if agent.state.lifecycle().is_expired() {
 				agent.state.die();
 				spawns.push((agent.transform(), agent.dna().clone()))
 			} else if agent.state.is_active() {

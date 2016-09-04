@@ -9,7 +9,7 @@ use backend::world::agent::Agent;
 use backend::world::agent::AgentType;
 use backend::world::agent::TypedAgent;
 use backend::world::gen::*;
-use serialize::base64::{self, FromBase64};
+use serialize::base64::FromBase64;
 
 pub struct Swarm {
 	seq: Id,

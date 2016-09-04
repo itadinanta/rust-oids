@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::fmt;
-use cgmath::Vector;
 use num::FromPrimitive;
 use core::geometry::*;
 use core::clock::*;
@@ -138,39 +137,55 @@ bitflags! {
 }
 
 #[derive(Clone,Debug)]
+pub struct Limits {
+	max_energy: f32,
+}
+
+#[derive(Clone,Debug)]
 pub struct State {
-	lifespan: Hourglass<SystemStopwatch>,
+	lifecycle: Hourglass<SystemStopwatch>,
 	flags: Flags,
-	power: f32,
+	energy: f32,
 	target: Option<Id>,
 	target_position: Position,
+	limits: Limits,
 }
 
 impl State {
 	#[inline]
-	pub fn lifespan(&self) -> &Hourglass<SystemStopwatch> {
-		&self.lifespan
+	pub fn lifecycle(&self) -> &Hourglass<SystemStopwatch> {
+		&self.lifecycle
 	}
 
 	pub fn renew(&mut self) {
-		self.lifespan.renew()
+		self.lifecycle.renew()
 	}
 
-	pub fn power(&self) -> f32 {
-		self.power
+	pub fn energy(&self) -> f32 {
+		self.energy
+	}
+
+	pub fn energy_ratio(&self) -> f32 {
+		self.energy / self.limits.max_energy
 	}
 
 	pub fn consume(&mut self, q: f32) -> bool {
-		if self.power >= q {
-			self.power -= q;
+		if self.energy >= q {
+			self.energy -= q;
 			true
 		} else {
 			false
 		}
 	}
 
+	pub fn consume_ratio(&mut self, ratio: f32) -> bool {
+		let max = self.limits.max_energy;
+		self.consume(max * ratio)
+	}
+
+
 	pub fn absorb(&mut self, q: f32) {
-		self.power += q;
+		self.energy = self.limits.max_energy.min(self.energy + q);
 	}
 
 	pub fn die(&mut self) {
@@ -205,8 +220,8 @@ impl State {
 pub struct Agent {
 	id: Id,
 	brain: Brain<f32>,
-	pub state: State,
 	dna: Dna,
+	pub state: State,
 	pub segments: Box<[Segment]>,
 }
 
@@ -250,8 +265,8 @@ impl Agent {
 		self.segments.get_mut(index as usize)
 	}
 
-	pub fn brain(&self) -> Brain<f32> {
-		self.brain.clone()
+	pub fn brain(&self) -> &Brain<f32> {
+		&self.brain
 	}
 
 	pub fn first_segment(&self, flags: segment::Flags) -> Option<Segment> {
@@ -261,15 +276,23 @@ impl Agent {
 			.map(|sensor| sensor.clone())
 	}
 
-	pub fn new(id: Id, d0: f32, order: f32, dna: &Dna, segments: Box<[Segment]>) -> Self {
+	pub fn new(id: Id, dna: &Dna, segments: Box<[Segment]>) -> Self {
+		let max_energy = 100. *
+		                 segments.iter()
+			.filter(|s| s.flags.contains(segment::STORAGE))
+			.fold(0., |a, s| a + s.mesh.shape.radius().powi(2));
+		let order = segments.len() as f32;
+		let d0 = 2. * order;
+
 		Agent {
 			id: id,
 			state: State {
 				flags: ACTIVE,
-				lifespan: Hourglass::new(5.),
-				power: 3. * order,
+				lifecycle: Hourglass::new(5.),
+				energy: max_energy * 0.5,
 				target: None,
 				target_position: segments[0].transform.position,
+				limits: Limits { max_energy: max_energy },
 			},
 			brain: Brain {
 				timidity: 2. * (12.0 - order),
