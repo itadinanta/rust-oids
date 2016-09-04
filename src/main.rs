@@ -6,6 +6,7 @@ mod backend;
 #[macro_use]
 extern crate log;
 extern crate simplelog;
+extern crate chrono;
 
 #[macro_use]
 extern crate custom_derive;

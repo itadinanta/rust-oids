@@ -7,12 +7,14 @@ pub mod phen;
 use backend::obj;
 use backend::obj::*;
 use rand;
+use chrono::*;
 use std::f32::consts;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::io;
 use std::io::Write;
 use std::fs;
+use serialize::base64::{self, ToBase64};
 
 use core::geometry::*;
 use backend::world::agent::Agent;
@@ -162,9 +164,18 @@ impl World {
 		v.into_boxed_slice()
 	}
 
-	pub fn dump(&self) -> io::Result<()> {
-		let mut f = try!(fs::File::create("foo.txt"));
-		try!(f.write_fmt(format_args!("{}", "Hello, world!")));
-		Ok(())
+	pub fn dump(&self) -> io::Result<String> {
+		let now: DateTime<UTC> = UTC::now();
+		let file_name = now.format("rust-oids_%Y%m%d_%H%M%S.log").to_string();
+		let mut f = try!(fs::File::create(&file_name));
+		for (_, swarm) in self.swarms.iter() {
+			try!(f.write_fmt(format_args!("[{}]\n", swarm.type_of())));
+			for (_, agent) in swarm.agents().iter() {
+				try!(f.write_fmt(format_args!("{}\t{}\n",
+				                              agent.id(),
+				                              agent.dna().to_base64(base64::STANDARD))));
+			}
+		}
+		Ok(file_name)
 	}
 }

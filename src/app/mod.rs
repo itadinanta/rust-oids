@@ -253,7 +253,10 @@ impl App {
 			Event::AppQuit => self.quit(),
 
 			Event::DumpToFile => {
-				self.world.dump();
+				match self.world.dump() {
+					Err(_) => println!("Failed to dump log"),
+					Ok(name) => println!("Saved {}", name),
+				}
 			}
 			Event::MoveLight(_pos) => {}
 			Event::MoveEmitter(_i, _pos) => {}
