@@ -106,15 +106,16 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		let nearest_sampler = factory.create_sampler(gfx::tex::SamplerInfo::new(gfx::tex::FilterMethod::Scale,
 		                                                                        gfx::tex::WrapMode::Clamp));
 
-		let linear_sampler = factory.create_sampler(gfx::tex::SamplerInfo::new(gfx::tex::FilterMethod::Bilinear,
-		                                                                       gfx::tex::WrapMode::Clamp));
+		let linear_sampler =
+			factory.create_sampler(gfx::tex::SamplerInfo::new(gfx::tex::FilterMethod::Bilinear,
+			                                                  gfx::tex::WrapMode::Clamp));
 
 		let tone_map_vertex_args = factory.create_constant_buffer(1);
 		let smooth_fragment_args = factory.create_constant_buffer(1);
 
 		macro_rules! load_pipeline_simple {
 			($v:expr, $f:expr, $s:ident) => { factory.create_pipeline_simple(
-					&try!(res.load(concat!("shaders/effects/", $v, ".vert"))), 
+					&try!(res.load(concat!("shaders/effects/", $v, ".vert"))),
 					&try!(res.load(concat!("shaders/effects/", $f, ".frag"))),
 					$s::new())}
 		};
@@ -247,8 +248,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		             &self.tone_map_pso,
 		             &tone_map::Data {
 			             vbuf: self.vertex_buffer.clone(),
-			             vertex_luminance: (self.luminance_smooth.1.clone(),
-			                                self.nearest_sampler.clone()),
+			             vertex_luminance: (self.luminance_smooth.1.clone(), self.nearest_sampler.clone()),
 			             vertex_args: self.tone_map_vertex_args.clone(),
 			             src: (self.resolved.1.clone(), self.nearest_sampler.clone()),
 			             dst: ping_pong_full[0].2.clone(),

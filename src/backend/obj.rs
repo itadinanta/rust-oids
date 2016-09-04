@@ -12,23 +12,15 @@ pub type PhysicsHandle = Id;
 
 #[derive(Clone)]
 pub enum Shape {
-	Ball {
-		radius: f32,
-	},
-	Box {
-		radius: f32,
-		ratio: f32,
-	},
+	Ball { radius: f32 },
+	Box { radius: f32, ratio: f32 },
 	Star {
 		radius: f32,
 		n: u8,
 		ratio1: f32,
 		ratio2: f32,
 	},
-	Poly {
-		radius: f32,
-		n: i8,
-	},
+	Poly { radius: f32, n: i8 },
 	Triangle {
 		radius: f32,
 		angle1: f32,

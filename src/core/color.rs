@@ -107,22 +107,13 @@ impl FromRgb<f32> for Hsl<f32> {
 			let d = max - min;
 			Hsl {
 				h: if max == r {
-					(g - b) / d +
-					if g < b {
-						6.
-					} else {
-						0.
-					}
+					(g - b) / d + if g < b { 6. } else { 0. }
 				} else if max == g {
 					(b - r) / d + 2.
 				} else {
 					(r - g) / d + 4.
 				} / 6.,
-				s: if b > 0.5 {
-					d / (2. - max - min)
-				} else {
-					d / (max + min)
-				},
+				s: if b > 0.5 { d / (2. - max - min) } else { d / (max + min) },
 				l: m,
 			}
 		}
@@ -163,11 +154,7 @@ impl ToRgb<f32> for Hsl<f32> {
 		match self {
 			&Hsl { h: 0., l, .. } => [l, l, l],
 			&Hsl { h, s, l } => {
-				let q = if l < 0.5 {
-					l * (1. + s)
-				} else {
-					l + s - l * s
-				};
+				let q = if l < 0.5 { l * (1. + s) } else { l + s - l * s };
 				let p = 2. * l - q;
 				let r = hue2rgb(p, q, h + 1. / 3.);
 				let g = hue2rgb(p, q, h);

@@ -52,14 +52,14 @@ pub mod filesystem {
 
 			// look for the first file which exists
 			match &self.roots
-			           .iter()
-			           .map(|ref r| {
-				           // try all roots in order, if some has it
-				           let mut path = path::PathBuf::from(r);
-				           path.push(key);
-				           path
-				          })
-			           .find(|path| path.exists() && path.is_file()) {
+				.iter()
+				.map(|ref r| {
+					// try all roots in order, if some has it
+					let mut path = path::PathBuf::from(r);
+					path.push(key);
+					path
+				})
+				.find(|path| path.exists() && path.is_file()) {
 				// and then either read it
 				&Some(ref p) => load_from_path(p.as_path()),
 				// or give up

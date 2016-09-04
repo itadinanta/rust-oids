@@ -117,10 +117,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 		let solid_shaders = try!(load_shaders!("lighting", "lighting_poly"));
 		let ball_shaders = try!(load_shaders!("point_ball", "lighting", "lighting_ball"));
 
-		let solid_rasterizer = gfx::state::Rasterizer {
-			samples: Some(gfx::state::MultiSample),
-			..gfx::state::Rasterizer::new_fill()
-		};
+		let solid_rasterizer =
+			gfx::state::Rasterizer { samples: Some(gfx::state::MultiSample), ..gfx::state::Rasterizer::new_fill() };
 
 		let line_rasterizer = gfx::state::Rasterizer { method: gfx::state::RasterMethod::Line(2), ..solid_rasterizer };
 
