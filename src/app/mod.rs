@@ -35,6 +35,7 @@ pub enum Event {
 	PrevBackground,
 
 	Reload,
+	DumpToFile,
 	ToggleDebug,
 
 	AppQuit,
@@ -251,6 +252,9 @@ impl App {
 
 			Event::AppQuit => self.quit(),
 
+			Event::DumpToFile => {
+				self.world.dump();
+			}
 			Event::MoveLight(_pos) => {}
 			Event::MoveEmitter(_i, _pos) => {}
 			Event::NewMinion(pos) => self.new_minion(pos),
@@ -297,6 +301,7 @@ impl App {
 			N0 -> CamReset,
 			Home -> CamReset,
 			KpHome -> CamReset,
+			F6 -> DumpToFile,
 			D -> ToggleDebug,
 			L -> NextLight,
 			B -> NextBackground,

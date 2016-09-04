@@ -2,6 +2,7 @@ use std::fmt;
 use std::f32::consts;
 use std::u16;
 use num;
+use std::cmp;
 use rand;
 use rand::Rng;
 use backend::obj::*;
@@ -17,6 +18,10 @@ pub trait Generator {
 
 	fn next_integer<T>(&mut self, min: T, max: T) -> T
 		where T: rand::Rand + num::Integer + num::ToPrimitive + num::FromPrimitive + Copy;
+
+	fn next_bool(&mut self) -> bool {
+		self.next_integer::<u8>(0, 1) == 1
+	}
 
 	fn ball(&mut self) -> Shape {
 		let radius: f32 = self.next_float(0.5, 0.75);
@@ -68,6 +73,12 @@ pub trait Generator {
 
 	fn poly(&mut self, upside_down: bool) -> Shape {
 		let n = self.next_integer(3, MAX_POLY_SIDES);
+		self.npoly(n, upside_down)
+	}
+
+	fn any_poly(&mut self) -> Shape {
+		let n = self.next_integer(3, MAX_POLY_SIDES);
+		let upside_down = self.next_bool();
 		self.npoly(n, upside_down)
 	}
 
@@ -148,6 +159,31 @@ impl Genome {
 				}
 			}
 			min
+		}
+	}
+
+	pub fn crossover<R: rand::Rng>(&self, rng: &mut R, other: &Self) -> Self {
+		let len = cmp::min(self.dna.len(), other.dna.len());
+		let p: usize = rng.gen::<usize>() % (len * 8);
+		let byte = p / 8;
+		let bit = p % 8;
+		let flip_mask = if rng.gen::<bool>() { 0xffu8 } else { 0x0u8 };
+		let mut new_genes = self.dna.to_vec();
+		for i in 0..len {
+			let a = new_genes[i];
+			let b = other.dna[i];
+			let mask = if i < byte {
+				0x00u8
+			} else if i > byte {
+				0xffu8
+			} else {
+				(-(1 << bit)) as u8
+			} ^ flip_mask;
+			new_genes[i] = (mask & a) | (!mask & b);
+		}
+		Genome {
+			ptr: 0,
+			dna: new_genes.into_boxed_slice(),
 		}
 	}
 

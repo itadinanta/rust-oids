@@ -10,6 +10,10 @@ use rand;
 use std::f32::consts;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::io;
+use std::io::Write;
+use std::fs;
+
 use core::geometry::*;
 use backend::world::agent::Agent;
 use backend::world::agent::AgentType;
@@ -156,5 +160,11 @@ impl World {
 			agents.free_resources(&mut v);
 		}
 		v.into_boxed_slice()
+	}
+
+	pub fn dump(&self) -> io::Result<()> {
+		let mut f = try!(fs::File::create("foo.txt"));
+		try!(f.write_fmt(format_args!("{}", "Hello, world!")));
+		Ok(())
 	}
 }

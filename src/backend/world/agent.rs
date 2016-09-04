@@ -149,6 +149,7 @@ pub struct State {
 	target: Option<Id>,
 	target_position: Position,
 	limits: Limits,
+	foreign_dna: Option<Dna>,
 }
 
 impl State {
@@ -293,6 +294,7 @@ impl Agent {
 				target: None,
 				target_position: segments[0].transform.position,
 				limits: Limits { max_energy: max_energy },
+				foreign_dna: None,
 			},
 			brain: Brain {
 				timidity: 2. * (12.0 - order),

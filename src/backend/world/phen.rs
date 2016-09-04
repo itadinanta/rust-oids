@@ -1,5 +1,6 @@
 use backend::obj::*;
 use std::f32::consts;
+use num::Integer;
 use core::color;
 use core::color::ToRgb;
 use core::geometry::*;
@@ -41,15 +42,16 @@ impl Phenotype for Minion {
 		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                    gen.dna(),
 		                                    segment::State::with_charge(0., charge, charge));
-		let torso_shape = gen.npoly(5, true);
+		let torso_shape = gen.any_poly();
 		let torso = builder.start(transform, motion, &torso_shape).index();
 		let arm_shape = gen.star();
 		let leg_shape = gen.star();
 		let head_shape = gen.iso_triangle();
 		let antenna_shape = gen.triangle();
 		let tail_shape = gen.vbar();
-		builder.addr(torso, 2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER)
-			.addl(torso, -2, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
+		let i = ::std::cmp::max((torso_shape.length() as isize / 5), 1);
+		builder.addr(torso, i, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER)
+			.addl(torso, -i, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
 
 		let head = builder.add(torso, 0, &head_shape, HEAD | MOUTH | SENSOR).index();
 		builder.addr(head, 1, &antenna_shape, HEAD | MOUTH | ACTUATOR | RUDDER)
