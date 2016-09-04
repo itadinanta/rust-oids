@@ -1,6 +1,5 @@
 use backend::obj::*;
 use std::f32::consts;
-use num::Integer;
 use core::color;
 use core::color::ToRgb;
 use core::geometry::*;
