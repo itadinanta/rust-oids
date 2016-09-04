@@ -29,6 +29,8 @@ extern crate piston;
 
 extern crate rand;
 extern crate num;
+extern crate itertools;
+
 #[macro_use]
 extern crate enum_primitive;
 extern crate gfx_text;

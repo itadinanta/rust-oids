@@ -71,10 +71,10 @@ impl World {
 		World {
 			extent: Rect::new(-50., -50., 50., 50.),
 			swarms: swarms,
-			emitters: vec![Emitter::new(-10., -10., 0.3),
-			               Emitter::new(-10., 10., 0.4),
-			               Emitter::new(10., 10., 0.5),
-			               Emitter::new(10., -10., 0.6)],
+			emitters: vec![Emitter::new(-20., -20., 0.4),
+			               Emitter::new(-20., 20., 0.8),
+			               Emitter::new(20., 20., 1.2),
+			               Emitter::new(20., -20., 2.0)],
 			registered: HashSet::new(),
 		}
 	}

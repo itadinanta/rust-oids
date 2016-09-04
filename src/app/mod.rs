@@ -35,6 +35,7 @@ pub enum Event {
 	PrevBackground,
 
 	Reload,
+	ToggleDebug,
 
 	AppQuit,
 
@@ -113,6 +114,13 @@ impl Systems {
 	}
 }
 
+bitflags! {
+	pub flags DebugFlags: u32 {
+		const DEBUG_TARGETS = 0x1,
+	}
+}
+
+
 pub struct App {
 	pub viewport: Viewport,
 	input_state: input::InputState,
@@ -129,6 +137,8 @@ pub struct App {
 	//
 	world: world::World,
 	systems: Systems,
+	//
+	debug_flags: DebugFlags,
 }
 
 pub struct Environment {
@@ -166,6 +176,8 @@ impl App {
 			wall_clock_start: SystemStopwatch::new(),
 			frame_smooth: math::MovingAverage::new(120),
 			is_running: true,
+			// debug
+			debug_flags: DebugFlags::empty(),
 		}
 	}
 
@@ -234,7 +246,7 @@ impl App {
 			Event::PrevBackground => {
 				self.backgrounds.prev();
 			}
-
+			Event::ToggleDebug => self.debug_flags.toggle(DEBUG_TARGETS),
 			Event::Reload => {}
 
 			Event::AppQuit => self.quit(),
@@ -285,6 +297,7 @@ impl App {
 			N0 -> CamReset,
 			Home -> CamReset,
 			KpHome -> CamReset,
+			D -> ToggleDebug,
 			L -> NextLight,
 			B -> NextBackground,
 			K -> PrevLight,
@@ -397,13 +410,13 @@ impl App {
 			let transform = Self::from_position(&e.transform().position);
 			renderer.draw_ball(&transform, self.lights.get());
 		}
-		// TODO: enable/disable this with a key
-		// for (_, agent) in self.world.agents(world::agent::AgentType::Minion).iter() {
-		// let p0 = agent.transform().position;
-		// let p1 = *agent.state.target_position();
-		// renderer.draw_lines(&Matrix4::identity(), &[p0, p1], agent.segments[0].color());
-		// }
-		//
+		if self.debug_flags.contains(DEBUG_TARGETS) {
+			for (_, agent) in self.world.agents(world::agent::AgentType::Minion).iter() {
+				let p0 = agent.transform().position;
+				let p1 = *agent.state.target_position();
+				renderer.draw_lines(&Matrix4::identity(), &[p0, p1], agent.segments[0].color());
+			}
+		}
 	}
 
 	pub fn render(&self, renderer: &mut render::Draw) {

@@ -10,11 +10,12 @@ use backend::world::segment;
 use backend::world::segment::Intent;
 use cgmath::*;
 use core::geometry::Position;
+use itertools::Itertools;
 
 type IdPositionMap = HashMap<obj::Id, Position>;
 
 pub struct AiSystem {
-	remote: Box<[Position]>,
+	beacons: Box<[Position]>,
 	targets: IdPositionMap,
 }
 
@@ -22,7 +23,7 @@ impl Updateable for AiSystem {}
 
 impl System for AiSystem {
 	fn from_world(&mut self, world: &world::World) {
-		self.remote = world.emitters().iter().map(|e| e.transform().position).collect::<Vec<_>>().into_boxed_slice();
+		self.beacons = world.emitters().iter().map(|e| e.transform().position).collect::<Vec<_>>().into_boxed_slice();
 		self.targets = world.agents(agent::AgentType::Resource)
 			.iter()
 			.filter(|&(_, ref v)| v.state.is_active())
@@ -32,6 +33,7 @@ impl System for AiSystem {
 
 	fn to_world(&self, world: &mut world::World) {
 		Self::update_minions(&self.targets,
+		                     &self.beacons,
 		                     &mut world.agents_mut(agent::AgentType::Minion));
 	}
 }
@@ -39,14 +41,21 @@ impl System for AiSystem {
 impl Default for AiSystem {
 	fn default() -> Self {
 		AiSystem {
-			remote: Box::new([]),
+			beacons: Box::new([]),
 			targets: HashMap::new(),
 		}
 	}
 }
 
 impl AiSystem {
-	fn update_minions(targets: &IdPositionMap, minions: &mut agent::AgentMap) {
+	fn update_minions(targets: &IdPositionMap, beacons: &[Position], minions: &mut agent::AgentMap) {
+
+		fn nearest_beacon<'a>(beacons: &'a [Position], p: &'a Position) -> &'a Position {
+			beacons.iter()
+				.fold1(|n, b| if (p - n).length2() < (p - b).length2() { n } else { b })
+				.unwrap_or(p)
+		}
+
 		for (_, agent) in minions.iter_mut() {
 			let brain = agent.brain().clone();
 			let head = agent.first_segment(segment::SENSOR);
@@ -66,7 +75,7 @@ impl AiSystem {
 				};
 
 				match new_target {
-					None => agent.state.retarget(None, current_target_position),
+					None => agent.state.retarget(None, *nearest_beacon(beacons, &current_target_position)),
 					Some((id, position)) => agent.state.retarget(Some(id), position),
 				};
 
