@@ -110,12 +110,13 @@ impl AlifeSystem {
 				}
 
 				if agent.state.power() < 1. {
-					corpses.push((agent.last_segment().transform(), agent.dna().clone()));
+					for segment in agent.segments.iter().filter(|s| s.flags.contains(segment::MIDDLE)) {
+						corpses.push((segment.transform, agent.dna().clone()));
+					}
 					agent.state.die();
 				} else {
 					let p = agent.transform().position;
 					if p.x < extent.min.x || p.x > extent.max.x || p.y < extent.min.y || p.y > extent.max.y {
-						corpses.push((agent.last_segment().transform(), agent.dna().clone()));
 						agent.state.die();
 					}
 				}
