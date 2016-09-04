@@ -97,6 +97,10 @@ impl AlifeSystem {
 				}
 
 				for segment in agent.segments.iter_mut() {
+					let p = segment.transform().position;
+					if p.x < extent.min.x || p.x > extent.max.x || p.y < extent.min.y || p.y > extent.max.y {
+						agent.state.die();
+					}
 					if segment.flags.contains(segment::MOUTH) {
 						if let Some(id) = segment.state.last_touched {
 							if let Some(state) = eaten.get(&id.id()) {
@@ -114,11 +118,6 @@ impl AlifeSystem {
 						corpses.push((segment.transform, agent.dna().clone()));
 					}
 					agent.state.die();
-				} else {
-					let p = agent.transform().position;
-					if p.x < extent.min.x || p.x > extent.max.x || p.y < extent.min.y || p.y > extent.max.y {
-						agent.state.die();
-					}
 				}
 			}
 		}

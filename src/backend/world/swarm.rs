@@ -9,6 +9,7 @@ use backend::world::agent::Agent;
 use backend::world::agent::AgentType;
 use backend::world::agent::TypedAgent;
 use backend::world::gen::*;
+use serialize::base64::{self, FromBase64};
 
 pub struct Swarm {
 	seq: Id,
@@ -22,7 +23,7 @@ impl Swarm {
 		Swarm {
 			seq: 0,
 			agent_type: agent_type,
-			gen: Genome::new(b"Rust-Oids are cool!"),
+			gen: Genome::new(b"GyA21QVyM00sSAk7jwaPiDjf4w==".from_base64().unwrap().as_ref()),
 			agents: HashMap::new(),
 		}
 	}

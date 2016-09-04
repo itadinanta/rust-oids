@@ -29,7 +29,7 @@ impl Phenotype for Resource {
 		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                    gen.dna(),
 		                                    segment::State::with_charge(charge, 0., charge));
-		builder.start(Transform::from_position(transform.position), motion, &body).build()
+		builder.start(transform, motion, &body).build()
 	}
 }
 
