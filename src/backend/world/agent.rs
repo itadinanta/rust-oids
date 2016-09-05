@@ -246,10 +246,10 @@ impl Identified for Agent {
 }
 
 impl Transformable for Agent {
-	fn transform(&self) -> Transform {
+	fn transform(&self) -> &Transform {
 		self.segments.first().unwrap().transform()
 	}
-	fn transform_to(&mut self, t: Transform) {
+	fn transform_to(&mut self, t: &Transform) {
 		self.segments.first_mut().unwrap().transform_to(t);
 	}
 }

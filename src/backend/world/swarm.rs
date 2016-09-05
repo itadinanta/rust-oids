@@ -66,7 +66,7 @@ impl Swarm {
 		}
 	}
 
-	pub fn spawn<T>(&mut self, transform: Transform, motion: Option<Motion>, charge: f32) -> Id
+	pub fn spawn<T>(&mut self, transform: &Transform, motion: Option<&Motion>, charge: f32) -> Id
 		where T: phen::Phenotype {
 		let id = self.next_id();
 		match id.type_of() {
@@ -78,11 +78,7 @@ impl Swarm {
 		self.insert(entity)
 	}
 
-	pub fn replicate<T>(&mut self,
-	                    genome: &mut Genome,
-	                    transform: Transform,
-	                    motion: Option<Motion>,
-	                    charge: f32)
+	pub fn replicate<T>(&mut self, genome: &mut Genome, transform: &Transform, motion: Option<&Motion>, charge: f32)
 	                    -> Id
 		where T: phen::Phenotype {
 		let id = self.next_id();

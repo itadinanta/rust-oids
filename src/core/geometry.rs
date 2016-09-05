@@ -17,13 +17,13 @@ pub struct Size {
 	pub height: f32,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct Transform {
 	pub position: Position,
 	pub angle: Angle,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct Motion {
 	pub velocity: Velocity,
 	pub spin: Spin,

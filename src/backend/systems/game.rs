@@ -64,8 +64,8 @@ impl System for GameSystem {
 		for e in &self.emitters {
 			for i in e.spawned..e.to_spawn {
 				let r = e.angle * i as f32;
-				world.new_resource(e.position,
-				                   Some(Motion {
+				world.new_resource(&Transform::new(e.position, r),
+				                   Some(&Motion {
 					                   velocity: Velocity::new(r.cos(), r.sin()) * e.velocity,
 					                   spin: e.spin,
 				                   }));

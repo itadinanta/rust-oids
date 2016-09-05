@@ -50,13 +50,13 @@ impl System for AlifeSystem {
 		                                &self.touched);
 
 		for &(ref transform, ref dna) in spores.into_iter() {
-			world.new_spore(*transform, dna);
+			world.new_spore(transform, dna);
 		}
 		for &(ref transform, ref dna) in hatch.into_iter() {
-			world.hatch_spore(*transform, dna);
+			world.hatch_spore(transform, dna);
 		}
 		for &(ref transform, ref dna) in corpses.into_iter() {
-			world.decay_to_resource(*transform, dna);
+			world.decay_to_resource(transform, dna);
 		}
 	}
 }
@@ -110,7 +110,7 @@ impl AlifeSystem {
 		for (_, agent) in minions.iter_mut() {
 			if agent.state.is_active() {
 				if agent.state.lifecycle().is_expired() && agent.state.consume_ratio(0.75) {
-					spawns.push((agent.last_segment().transform(), agent.dna().clone()));
+					spawns.push((agent.last_segment().transform().clone(), agent.dna().clone()));
 					agent.state.renew();
 				}
 				for segment in agent.segments.iter_mut() {
@@ -131,7 +131,7 @@ impl AlifeSystem {
 
 				if agent.state.energy() < 1. {
 					for segment in agent.segments.iter().filter(|s| s.flags.contains(segment::STORAGE)) {
-						corpses.push((segment.transform, agent.dna().clone()));
+						corpses.push((segment.transform.clone(), agent.dna().clone()));
 					}
 					agent.state.die();
 				}
@@ -170,7 +170,7 @@ impl AlifeSystem {
 		for (_, spore) in spores.iter_mut() {
 			if spore.state.lifecycle().is_expired() {
 				spore.state.die();
-				spawns.push((spore.transform(), Self::crossover(spore.dna(), spore.state.foreign_dna())))
+				spawns.push((spore.transform().clone(), Self::crossover(spore.dna(), spore.state.foreign_dna())))
 			} else if spore.state.is_active() {
 				for segment in spore.segments.iter_mut() {
 					if let Some(key) = segment.state.last_touched {

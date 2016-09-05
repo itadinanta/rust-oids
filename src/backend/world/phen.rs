@@ -12,7 +12,7 @@ use cgmath;
 use cgmath::EuclideanVector;
 
 pub trait Phenotype {
-	fn develop(gen: &mut Genome, id: Id, transform: Transform, motion: Option<Motion>, charge: f32) -> agent::Agent;
+	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32) -> agent::Agent;
 }
 
 pub struct Resource {}
@@ -20,7 +20,7 @@ pub struct Minion {}
 pub struct Spore {}
 
 impl Phenotype for Resource {
-	fn develop(gen: &mut Genome, id: Id, transform: Transform, motion: Option<Motion>, charge: f32) -> agent::Agent {
+	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32) -> agent::Agent {
 
 		let albedo = color::YPbPr::new(0.5, gen.next_float(-0.5, 0.5), gen.next_float(-0.5, 0.5));
 		let body = gen.eq_triangle();
@@ -34,7 +34,7 @@ impl Phenotype for Resource {
 }
 
 impl Phenotype for Minion {
-	fn develop(gen: &mut Genome, id: Id, transform: Transform, motion: Option<Motion>, charge: f32) -> agent::Agent {
+	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32) -> agent::Agent {
 		let albedo = color::Hsl::new(gen.next_float(0., 1.), 0.5, 0.5);
 		let mut builder = AgentBuilder::new(id,
 		                                    Material { density: 0.2, ..Default::default() },
@@ -80,7 +80,7 @@ impl Phenotype for Minion {
 }
 
 impl Phenotype for Spore {
-	fn develop(gen: &mut Genome, id: Id, transform: Transform, motion: Option<Motion>, charge: f32) -> agent::Agent {
+	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32) -> agent::Agent {
 		let albedo = color::Hsl::new(gen.next_float(0., 1.), 0.5, 0.5);
 		let mut builder = AgentBuilder::new(id,
 		                                    Material { density: 0.5, ..Default::default() },
@@ -114,11 +114,11 @@ impl AgentBuilder {
 		}
 	}
 
-	pub fn start(&mut self, transform: Transform, initial_vel: Option<Motion>, shape: &Shape) -> &mut Self {
+	pub fn start(&mut self, transform: &Transform, motion: Option<&Motion>, shape: &Shape) -> &mut Self {
 		let segment = self.new_segment(shape,
 		                               Winding::CW,
 		                               transform,
-		                               initial_vel,
+		                               motion,
 		                               None,
 		                               segment::CORE | segment::STORAGE | segment::MIDDLE);
 		self.segments.clear();
@@ -178,8 +178,8 @@ impl AgentBuilder {
 		let r1 = shape.radius();
 		let segment = self.new_segment(shape,
 		                               winding,
-		                               Transform::new(parent_pos + (p0.normalize_to(r0 + r1)),
-		                                              consts::PI / 2. + angle),
+		                               &Transform::new(parent_pos + (p0.normalize_to(r0 + r1)),
+		                                               consts::PI / 2. + angle),
 		                               None,
 		                               parent.new_attachment(attachment_index as AttachmentIndex),
 		                               flags);
@@ -194,13 +194,13 @@ impl AgentBuilder {
 		}
 	}
 
-	fn new_segment(&mut self, shape: &Shape, winding: Winding, transform: Transform, motion: Option<Motion>,
+	fn new_segment(&mut self, shape: &Shape, winding: Winding, transform: &Transform, motion: Option<&Motion>,
 	               attachment: Option<segment::Attachment>, flags: segment::Flags)
 	               -> segment::Segment {
 		segment::Segment {
 			index: self.segments.len() as SegmentIndex,
-			transform: transform,
-			motion: motion,
+			transform: transform.clone(),
+			motion: motion.map(|m| m.clone()),
 			mesh: Mesh::from_shape(shape.clone(), winding),
 			material: self.material.clone(),
 			livery: self.livery.clone(),

@@ -210,7 +210,7 @@ impl App {
 	}
 
 	fn new_resource(&mut self, pos: Position) {
-		self.world.new_resource(pos, None);
+		self.world.new_resource(&Transform::from_position(pos), None);
 	}
 
 	fn new_minion(&mut self, pos: Position) {

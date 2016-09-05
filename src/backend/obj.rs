@@ -231,18 +231,18 @@ pub trait Identified {
 }
 
 pub trait Transformable {
-	fn transform(&self) -> Transform;
-	fn transform_to(&mut self, t: Transform);
+	fn transform(&self) -> &Transform;
+	fn transform_to(&mut self, t: &Transform);
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct Material {
 	pub density: f32,
 	pub restitution: f32,
 	pub friction: f32,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct Livery {
 	pub albedo: Rgba,
 	pub frequency: f32,
@@ -274,8 +274,8 @@ impl Default for Livery {
 }
 
 pub trait Solid {
-	fn material(&self) -> Material;
-	fn livery(&self) -> Livery;
+	fn material(&self) -> &Material;
+	fn livery(&self) -> &Livery;
 }
 
 pub trait Geometry {

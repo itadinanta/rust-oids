@@ -42,14 +42,14 @@ impl WorldState for World {
 
 #[derive(Clone)]
 pub struct Emitter {
-	position: Position,
+	transform: Transform,
 	rate: f32,
 }
 
 impl Emitter {
 	pub fn new(x: f32, y: f32, rate: f32) -> Self {
 		Emitter {
-			position: Position::new(x, y),
+			transform: Transform::from_position(Position::new(x, y)),
 			rate: rate,
 		}
 	}
@@ -59,11 +59,12 @@ impl Emitter {
 }
 
 impl Transformable for Emitter {
-	fn transform(&self) -> Transform {
-		Transform::from_position(self.position)
+	fn transform(&self) -> &Transform {
+		&self.transform
 	}
-	fn transform_to(&mut self, t: Transform) {
-		self.position = t.position;
+	fn transform_to(&mut self, t: &Transform) {
+		self.transform.position = t.position;
+		self.transform.angle = t.angle;
 	}
 }
 
@@ -85,18 +86,18 @@ impl World {
 		}
 	}
 
-	pub fn new_resource(&mut self, pos: Position, vel: Option<Motion>) -> obj::Id {
-		let id = self.swarm_mut(&AgentType::Resource).spawn::<phen::Resource>(Transform::from_position(pos), vel, 0.8);
+	pub fn new_resource(&mut self, transform: &Transform, motion: Option<&Motion>) -> obj::Id {
+		let id = self.swarm_mut(&AgentType::Resource).spawn::<phen::Resource>(transform, motion, 0.8);
 		self.register(id)
 	}
 
-	pub fn decay_to_resource(&mut self, transform: Transform, dna: &gen::Dna) -> obj::Id {
+	pub fn decay_to_resource(&mut self, transform: &Transform, dna: &gen::Dna) -> obj::Id {
 		let id = self.swarm_mut(&AgentType::Resource)
 			.replicate::<phen::Resource>(&mut gen::Genome::new(dna), transform, None, 0.8);
 		self.register(id)
 	}
 
-	pub fn new_spore(&mut self, transform: Transform, dna: &gen::Dna) -> obj::Id {
+	pub fn new_spore(&mut self, transform: &Transform, dna: &gen::Dna) -> obj::Id {
 		let id = self.swarm_mut(&AgentType::Spore)
 			.replicate::<phen::Spore>(&mut gen::Genome::new(dna).mutate(&mut rand::thread_rng()),
 			                          transform,
@@ -105,15 +106,15 @@ impl World {
 		self.register(id)
 	}
 
-	pub fn hatch_spore(&mut self, transform: Transform, dna: &gen::Dna) -> obj::Id {
+	pub fn hatch_spore(&mut self, transform: &Transform, dna: &gen::Dna) -> obj::Id {
 		let id = self.swarm_mut(&AgentType::Minion)
 			.replicate::<phen::Minion>(&mut gen::Genome::new(dna), transform, None, 0.3);
 		self.register(id)
 	}
 
-	pub fn new_minion(&mut self, pos: Position, vel: Option<Motion>) -> obj::Id {
+	pub fn new_minion(&mut self, pos: Position, motion: Option<&Motion>) -> obj::Id {
 		let angle = consts::PI / 2. + f32::atan2(pos.y, pos.x);
-		let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Minion>(Transform::new(pos, angle), vel, 0.3);
+		let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Minion>(&Transform::new(pos, angle), motion, 0.3);
 		self.register(id)
 	}
 
