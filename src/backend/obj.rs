@@ -146,10 +146,9 @@ impl Shape {
 					     Position::new(-w2, 1.)]
 				}
 				&Shape::Poly { n, .. } => {
-					let upside_down = n < 0;
-					let phi = PI / n as f32;
+					let phi = PI / n.abs() as f32;
 					let ratio1 = f32::cos(phi);
-					let ratio = &[1., if upside_down { 1. / ratio1 } else { ratio1 }];
+					let ratio = &[1., ratio1.powi(n.signum() as i32)];
 					(0..(2 * n.abs()))
 						.map(|i| {
 							let p = i as f32 * phi;

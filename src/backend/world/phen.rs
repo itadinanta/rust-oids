@@ -95,6 +95,7 @@ pub struct AgentBuilder {
 	id: Id,
 	material: Material,
 	livery: Livery,
+	gender: u8,
 	dna: Dna,
 	state: segment::State,
 	segments: Vec<Segment>,
@@ -107,6 +108,7 @@ impl AgentBuilder {
 			material: material,
 			livery: livery,
 			state: state,
+			gender: 0u8,
 			dna: dna.clone(),
 			segments: Vec::new(),
 		}
@@ -121,6 +123,12 @@ impl AgentBuilder {
 		                               segment::CORE | segment::STORAGE | segment::MIDDLE);
 		self.segments.clear();
 		self.segments.push(segment);
+		self
+	}
+
+	#[inline]
+	pub fn gender(&mut self, gender: u8) -> &mut Self {
+		self.gender = gender;
 		self
 	}
 
@@ -163,13 +171,15 @@ impl AgentBuilder {
 		let parent_angle = parent.transform.angle;
 		let parent_length = parent.mesh.shape.length() as isize;
 		let attachment_index = ((attachment_index_offset + parent_length) % parent_length) as usize;
-		let p0 = cgmath::Matrix2::from_angle(cgmath::rad(parent_angle)) * parent.mesh.vertices[attachment_index];
+		let spoke = parent.mesh.vertices[attachment_index];
+		let p0 = cgmath::Matrix2::from_angle(cgmath::rad(parent_angle)) * spoke;
 		let angle = f32::atan2(p0.y, p0.x);
-		let r0 = p0.length() * parent.mesh.shape.radius();
+		let r0 = spoke.length() * parent.mesh.shape.radius();
 		let r1 = shape.radius();
 		let segment = self.new_segment(shape,
 		                               winding,
-		                               Transform::new(parent_pos + (p0 * (r0 + r1)), consts::PI / 2. + angle),
+		                               Transform::new(parent_pos + (p0.normalize_to(r0 + r1)),
+		                                              consts::PI / 2. + angle),
 		                               None,
 		                               parent.new_attachment(attachment_index as AttachmentIndex),
 		                               flags);
@@ -201,6 +211,9 @@ impl AgentBuilder {
 	}
 
 	pub fn build(&self) -> Agent {
-		Agent::new(self.id, &self.dna, self.segments.clone().into_boxed_slice())
+		Agent::new(self.id,
+		           self.gender,
+		           &self.dna,
+		           self.segments.clone().into_boxed_slice())
 	}
 }

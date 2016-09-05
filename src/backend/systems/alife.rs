@@ -93,7 +93,9 @@ impl AlifeSystem {
 			for segment in spore.segments.iter() {
 				if let Some(key) = segment.state.last_touched {
 					if let Some(ref agent) = minions.get(&key.id()) {
-						touched.insert(key.id(), agent.dna().clone());
+						if agent.gender() != spore.gender() {
+							touched.insert(key.id(), agent.dna().clone());
+						}
 					}
 				}
 			}

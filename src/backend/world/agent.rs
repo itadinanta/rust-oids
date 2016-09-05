@@ -234,6 +234,7 @@ pub struct Agent {
 	id: Id,
 	brain: Brain<f32>,
 	dna: Dna,
+	gender: u8,
 	pub state: State,
 	pub segments: Box<[Segment]>,
 }
@@ -254,14 +255,22 @@ impl Transformable for Agent {
 }
 
 impl Agent {
+	#[inline]
 	pub fn dna(&self) -> &Dna {
 		&self.dna
 	}
 
+	#[inline]
+	pub fn gender(&self) -> u8 {
+		self.gender
+	}
+
+	#[inline]
 	pub fn segments(&self) -> &[Segment] {
 		&self.segments
 	}
 
+	#[inline]
 	pub fn segments_mut(&mut self) -> &mut [Segment] {
 		&mut self.segments
 	}
@@ -289,14 +298,13 @@ impl Agent {
 			.map(|sensor| sensor.clone())
 	}
 
-	pub fn new(id: Id, dna: &Dna, segments: Box<[Segment]>) -> Self {
+	pub fn new(id: Id, gender: u8, dna: &Dna, segments: Box<[Segment]>) -> Self {
 		let max_energy = 100. *
 		                 segments.iter()
 			.filter(|s| s.flags.contains(segment::STORAGE))
 			.fold(0., |a, s| a + s.mesh.shape.radius().powi(2));
 		let order = segments.len() as f32;
 		let d0 = 2. * order;
-
 		Agent {
 			id: id,
 			state: State {
@@ -322,6 +330,7 @@ impl Agent {
 				rest: 0.1,
 				thrust: 0.5,
 			},
+			gender: gender,
 			dna: dna.clone(),
 			segments: segments,
 		}
