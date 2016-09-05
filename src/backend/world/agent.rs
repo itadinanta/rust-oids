@@ -184,9 +184,21 @@ impl State {
 		self.consume(max * ratio)
 	}
 
-
 	pub fn absorb(&mut self, q: f32) {
 		self.energy = self.limits.max_energy.min(self.energy + q);
+	}
+
+	pub fn is_fertilised(&self) -> bool {
+		self.foreign_dna.is_some()
+	}
+
+	pub fn fertilise(&mut self, dna: &Dna) {
+		assert!(self.foreign_dna.is_none());
+		self.foreign_dna = Some(dna.clone());
+	}
+
+	pub fn foreign_dna(&self) -> &Option<Dna> {
+		&self.foreign_dna
 	}
 
 	pub fn die(&mut self) {

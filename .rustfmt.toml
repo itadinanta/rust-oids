@@ -4,6 +4,6 @@ max_width = 120
 remove_trailing_whitespace = true
 multiline_style = "PreferSingle"
 struct_lit_style = "Block"
-density = "Compressed"
 single_line_if_else_max_width = 80
+fn_args_density = "Compressed"
 

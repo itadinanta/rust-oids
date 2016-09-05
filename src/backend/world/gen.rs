@@ -162,8 +162,8 @@ impl Genome {
 		}
 	}
 
-	pub fn crossover<R: rand::Rng>(&self, rng: &mut R, other: &Self) -> Self {
-		let len = cmp::min(self.dna.len(), other.dna.len());
+	pub fn crossover<R: rand::Rng>(&self, rng: &mut R, other: &Dna) -> Self {
+		let len = cmp::min(self.dna.len(), other.len());
 		let p: usize = rng.gen::<usize>() % (len * 8);
 		let byte = p / 8;
 		let bit = p % 8;
@@ -171,16 +171,23 @@ impl Genome {
 		let mut new_genes = self.dna.to_vec();
 		for i in 0..len {
 			let a = new_genes[i];
-			let b = other.dna[i];
-			let mask = if i < byte {
+			let b = other[i];
+			let mask = if i < byte || (bit == 0 && i == byte) {
 				0x00u8
 			} else if i > byte {
 				0xffu8
 			} else {
-				(-(1 << bit)) as u8
+				(0xffu8 >> (8 - bit)) as u8
 			} ^ flip_mask;
 			new_genes[i] = (mask & a) | (!mask & b);
 		}
+
+		println!("crossover at {}!\n{}\n{}\n{}",
+		         p,
+		         new_genes.to_base64(base64::STANDARD),
+		         self.dna.to_base64(base64::STANDARD),
+		         other.to_base64(base64::STANDARD));
+
 		Genome {
 			ptr: 0,
 			dna: new_genes.into_boxed_slice(),

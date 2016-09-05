@@ -1,5 +1,6 @@
 use super::*;
 use std::collections::HashMap;
+use rand;
 use core::geometry;
 use backend::obj;
 use backend::obj::Transformable;
@@ -10,12 +11,14 @@ use backend::world::agent;
 use backend::world::segment;
 use backend::world::WorldState;
 
-type EatenMap = HashMap<obj::Id, agent::State>;
+type StateMap = HashMap<obj::Id, agent::State>;
+type GeneMap = HashMap<obj::Id, gen::Dna>;
 
 pub struct AlifeSystem {
 	dt: f32,
 	source: Box<[world::Emitter]>,
-	eaten: EatenMap,
+	eaten: StateMap,
+	touched: GeneMap,
 }
 
 impl Updateable for AlifeSystem {
@@ -29,17 +32,22 @@ impl System for AlifeSystem {
 		self.source = world.emitters().to_vec().into_boxed_slice();
 		self.eaten = Self::find_eaten_resources(&world.agents(agent::AgentType::Minion),
 		                                        &world.agents(agent::AgentType::Resource));
+		self.touched = Self::find_touched_spores(&world.agents(agent::AgentType::Minion),
+		                                         &world.agents(agent::AgentType::Spore));
 	}
 
 	fn to_world(&self, world: &mut world::World) {
 		Self::update_resources(self.dt,
 		                       &mut world.agents_mut(agent::AgentType::Resource),
 		                       &self.eaten);
+
 		let (spores, corpses) = Self::update_minions(self.dt,
 		                                             &world.extent.clone(),
 		                                             &mut world.agents_mut(agent::AgentType::Minion),
 		                                             &self.eaten);
-		let hatch = Self::update_spores(self.dt, &mut world.agents_mut(agent::AgentType::Spore));
+		let hatch = Self::update_spores(self.dt,
+		                                &mut world.agents_mut(agent::AgentType::Spore),
+		                                &self.touched);
 
 		for &(ref transform, ref dna) in spores.into_iter() {
 			world.new_spore(*transform, dna);
@@ -58,23 +66,20 @@ impl Default for AlifeSystem {
 		AlifeSystem {
 			dt: 1. / 60.,
 			source: Box::new([]),
-			eaten: EatenMap::new(),
+			eaten: StateMap::new(),
+			touched: GeneMap::new(),
 		}
 	}
 }
 
 impl AlifeSystem {
-	fn find_eaten_resources(minions: &agent::AgentMap, resources: &agent::AgentMap) -> EatenMap {
+	fn find_eaten_resources(minions: &agent::AgentMap, resources: &agent::AgentMap) -> StateMap {
 		let mut eaten = HashMap::new();
-		for (_, agent) in minions.iter() {
-			if agent.state.is_active() {
-				for segment in agent.segments.iter() {
-					if segment.flags.contains(segment::MOUTH) {
-						if let Some(key) = segment.state.last_touched {
-							if let Some(&agent::Agent { ref state, .. }) = resources.get(&key.id()) {
-								eaten.insert(key.id(), (*state).clone());
-							}
-						}
+		for (_, agent) in minions.iter().filter(|&(_, a)| a.state.is_active()) {
+			for segment in agent.segments.iter().filter(|&s| s.flags.contains(segment::MOUTH)) {
+				if let Some(key) = segment.state.last_touched {
+					if let Some(&agent::Agent { ref state, .. }) = resources.get(&key.id()) {
+						eaten.insert(key.id(), (*state).clone());
 					}
 				}
 			}
@@ -82,14 +87,25 @@ impl AlifeSystem {
 		eaten
 	}
 
-	fn update_minions(dt: f32,
-	                  extent: &geometry::Rect,
-	                  minions: &mut agent::AgentMap,
-	                  eaten: &EatenMap)
+	fn find_touched_spores(minions: &agent::AgentMap, spores: &agent::AgentMap) -> GeneMap {
+		let mut touched = HashMap::new();
+		for (_, spore) in spores.iter().filter(|&(_, a)| a.state.is_active() && !a.state.is_fertilised()) {
+			for segment in spore.segments.iter() {
+				if let Some(key) = segment.state.last_touched {
+					if let Some(ref agent) = minions.get(&key.id()) {
+						touched.insert(key.id(), agent.dna().clone());
+					}
+				}
+			}
+		}
+		touched
+	}
+
+	fn update_minions(dt: f32, extent: &geometry::Rect, minions: &mut agent::AgentMap, eaten: &StateMap)
 	                  -> (Box<[(geometry::Transform, gen::Dna)]>, Box<[(geometry::Transform, gen::Dna)]>) {
 		let mut spawns = Vec::new();
 		let mut corpses = Vec::new();
-		for (key, agent) in minions.iter_mut() {
+		for (_, agent) in minions.iter_mut() {
 			if agent.state.is_active() {
 				if agent.state.lifecycle().is_expired() && agent.state.consume_ratio(0.75) {
 					spawns.push((agent.last_segment().transform(), agent.dna().clone()));
@@ -104,7 +120,6 @@ impl AlifeSystem {
 						if let Some(id) = segment.state.last_touched {
 							if let Some(eaten_state) = eaten.get(&id.id()) {
 								agent.state.absorb(eaten_state.energy());
-								println!("Agent {} state is {:?}", key, agent.state);
 							}
 						}
 					}
@@ -123,7 +138,7 @@ impl AlifeSystem {
 		(spawns.into_boxed_slice(), corpses.into_boxed_slice())
 	}
 
-	fn update_resources(dt: f32, resources: &mut agent::AgentMap, eaten: &EatenMap) {
+	fn update_resources(dt: f32, resources: &mut agent::AgentMap, eaten: &StateMap) {
 		for (_, agent) in resources.iter_mut() {
 			if eaten.get(&agent.id()).is_some() {
 				agent.state.die();
@@ -139,14 +154,30 @@ impl AlifeSystem {
 		}
 	}
 
-	fn update_spores(dt: f32, resources: &mut agent::AgentMap) -> Box<[(geometry::Transform, gen::Dna)]> {
+	fn crossover(dna: &gen::Dna, foreign_dna: &Option<gen::Dna>) -> gen::Dna {
+		match foreign_dna {
+			&Some(ref foreign) => gen::Genome::new(&foreign).crossover(&mut rand::thread_rng(), dna).dna().clone(),
+			&None => dna.clone(),
+		}
+	}
+
+
+	fn update_spores(dt: f32, spores: &mut agent::AgentMap, touched: &GeneMap)
+	                 -> Box<[(geometry::Transform, gen::Dna)]> {
 		let mut spawns = Vec::new();
-		for (_, agent) in resources.iter_mut() {
-			if agent.state.lifecycle().is_expired() {
-				agent.state.die();
-				spawns.push((agent.transform(), agent.dna().clone()))
-			} else if agent.state.is_active() {
-				for segment in agent.segments.iter_mut() {
+		for (_, spore) in spores.iter_mut() {
+			if spore.state.lifecycle().is_expired() {
+				spore.state.die();
+				spawns.push((spore.transform(), Self::crossover(spore.dna(), spore.state.foreign_dna())))
+			} else if spore.state.is_active() {
+				for segment in spore.segments.iter_mut() {
+					if let Some(key) = segment.state.last_touched {
+						if let Some(touched_dna) = touched.get(&key.id()) {
+							spore.state.fertilise(touched_dna);
+						}
+					}
+				}
+				for segment in spore.segments.iter_mut() {
 					segment.state.update(dt)
 				}
 			}

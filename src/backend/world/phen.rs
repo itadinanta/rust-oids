@@ -52,7 +52,7 @@ impl Phenotype for Minion {
 		builder.addr(torso, i, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER)
 			.addl(torso, -i, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
 
-		let head = builder.add(torso, 0, &head_shape, HEAD | MOUTH | SENSOR).index();
+		let head = builder.add(torso, 0, &head_shape, HEAD | SENSOR).index();
 		builder.addr(head, 1, &antenna_shape, HEAD | MOUTH | ACTUATOR | RUDDER)
 			.addl(head, 2, &antenna_shape, HEAD | MOUTH | ACTUATOR | RUDDER);
 
@@ -125,10 +125,7 @@ impl AgentBuilder {
 	}
 
 	#[inline]
-	pub fn add(&mut self,
-	           parent_index: SegmentIndex,
-	           attachment_index_offset: isize,
-	           shape: &Shape,
+	pub fn add(&mut self, parent_index: SegmentIndex, attachment_index_offset: isize, shape: &Shape,
 	           flags: segment::Flags)
 	           -> &mut Self {
 		self.addw(parent_index,
@@ -138,10 +135,7 @@ impl AgentBuilder {
 		          flags | segment::MIDDLE)
 	}
 	#[inline]
-	pub fn addl(&mut self,
-	            parent_index: SegmentIndex,
-	            attachment_index_offset: isize,
-	            shape: &Shape,
+	pub fn addl(&mut self, parent_index: SegmentIndex, attachment_index_offset: isize, shape: &Shape,
 	            flags: segment::Flags)
 	            -> &mut Self {
 		self.addw(parent_index,
@@ -151,10 +145,7 @@ impl AgentBuilder {
 		          flags | segment::LEFT)
 	}
 	#[inline]
-	pub fn addr(&mut self,
-	            parent_index: SegmentIndex,
-	            attachment_index_offset: isize,
-	            shape: &Shape,
+	pub fn addr(&mut self, parent_index: SegmentIndex, attachment_index_offset: isize, shape: &Shape,
 	            flags: segment::Flags)
 	            -> &mut Self {
 		self.addw(parent_index,
@@ -164,12 +155,8 @@ impl AgentBuilder {
 		          flags | segment::RIGHT)
 	}
 
-	pub fn addw(&mut self,
-	            parent_index: SegmentIndex,
-	            attachment_index_offset: isize,
-	            shape: &Shape,
-	            winding: Winding,
-	            flags: segment::Flags)
+	pub fn addw(&mut self, parent_index: SegmentIndex, attachment_index_offset: isize, shape: &Shape,
+	            winding: Winding, flags: segment::Flags)
 	            -> &mut Self {
 		let parent = self.segments[parent_index as usize].clone();//urgh!;
 		let parent_pos = parent.transform.position;
@@ -197,13 +184,8 @@ impl AgentBuilder {
 		}
 	}
 
-	fn new_segment(&mut self,
-	               shape: &Shape,
-	               winding: Winding,
-	               transform: Transform,
-	               motion: Option<Motion>,
-	               attachment: Option<segment::Attachment>,
-	               flags: segment::Flags)
+	fn new_segment(&mut self, shape: &Shape, winding: Winding, transform: Transform, motion: Option<Motion>,
+	               attachment: Option<segment::Attachment>, flags: segment::Flags)
 	               -> segment::Segment {
 		segment::Segment {
 			index: self.segments.len() as SegmentIndex,
