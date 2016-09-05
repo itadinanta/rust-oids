@@ -10,6 +10,7 @@ use backend::world::gen;
 use backend::world::agent;
 use backend::world::segment;
 use backend::world::WorldState;
+use serialize::base64::{self, ToBase64};
 
 type StateMap = HashMap<obj::Id, agent::State>;
 type GeneMap = HashMap<obj::Id, gen::Dna>;
@@ -163,11 +164,10 @@ impl AlifeSystem {
 		}
 	}
 
-
 	fn update_spores(dt: f32, spores: &mut agent::AgentMap, touched: &GeneMap)
 	                 -> Box<[(geometry::Transform, gen::Dna)]> {
 		let mut spawns = Vec::new();
-		for (_, spore) in spores.iter_mut() {
+		for (spore_id, spore) in spores.iter_mut() {
 			if spore.state.lifecycle().is_expired() {
 				spore.state.die();
 				spawns.push((spore.transform().clone(), Self::crossover(spore.dna(), spore.state.foreign_dna())))
@@ -175,6 +175,10 @@ impl AlifeSystem {
 				for segment in spore.segments.iter_mut() {
 					if let Some(key) = segment.state.last_touched {
 						if let Some(touched_dna) = touched.get(&key.id()) {
+							println!("fertilised: {} by {} as {}",
+							         spore_id,
+							         key.id(),
+							         touched_dna.to_base64(base64::STANDARD));
 							spore.state.fertilise(touched_dna);
 						}
 					}

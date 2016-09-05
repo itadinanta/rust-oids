@@ -182,11 +182,11 @@ impl Genome {
 			new_genes[i] = (mask & a) | (!mask & b);
 		}
 
-		println!("crossover at {}!\n{}\n{}\n{}",
+		println!("crossover at {}: {} * {} -> {}",
 		         p,
-		         new_genes.to_base64(base64::STANDARD),
 		         self.dna.to_base64(base64::STANDARD),
-		         other.to_base64(base64::STANDARD));
+		         other.to_base64(base64::STANDARD),
+		         new_genes.to_base64(base64::STANDARD));
 
 		Genome {
 			ptr: 0,

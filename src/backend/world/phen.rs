@@ -35,12 +35,15 @@ impl Phenotype for Resource {
 
 impl Phenotype for Minion {
 	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32) -> agent::Agent {
-		let albedo = color::Hsl::new(gen.next_float(0., 1.), 0.5, 0.5);
+		let gender = gen.next_integer::<u8>(0, 3);
+		let tint = gen.next_float(0., 1.);
+		let albedo = color::Hsl::new(tint, 0.5, 0.5);
 		let mut builder = AgentBuilder::new(id,
 		                                    Material { density: 0.2, ..Default::default() },
 		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                    gen.dna(),
 		                                    segment::State::with_charge(0., charge, charge));
+		builder.gender(gender);
 		let torso_shape = gen.any_poly();
 		let torso = builder.start(transform, motion, &torso_shape).index();
 		let arm_shape = gen.star();
@@ -81,13 +84,16 @@ impl Phenotype for Minion {
 
 impl Phenotype for Spore {
 	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32) -> agent::Agent {
-		let albedo = color::Hsl::new(gen.next_float(0., 1.), 0.5, 0.5);
+		let gender = gen.next_integer::<u8>(0, 3);
+		let tint = gen.next_float(0., 1.);
+		let albedo = color::Hsl::new(tint, 0.5, 0.5);
+
 		let mut builder = AgentBuilder::new(id,
 		                                    Material { density: 0.5, ..Default::default() },
 		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                    gen.dna(),
 		                                    segment::State::with_charge(0., charge, charge));
-		builder.start(transform, motion, &gen.ball()).build()
+		builder.gender(gender).start(transform, motion, &gen.ball()).build()
 	}
 }
 

@@ -193,7 +193,6 @@ impl State {
 	}
 
 	pub fn fertilise(&mut self, dna: &Dna) {
-		assert!(self.foreign_dna.is_none());
 		self.foreign_dna = Some(dna.clone());
 	}
 
