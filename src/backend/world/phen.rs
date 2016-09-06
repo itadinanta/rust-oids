@@ -21,7 +21,7 @@ pub struct Spore {}
 
 impl Phenotype for Resource {
 	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32) -> agent::Agent {
-
+		gen.next_integer::<u8>(0, 3);
 		let albedo = color::YPbPr::new(0.5, gen.next_float(-0.5, 0.5), gen.next_float(-0.5, 0.5));
 		let body = gen.eq_triangle();
 		let mut builder = AgentBuilder::new(id,

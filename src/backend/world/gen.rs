@@ -1,16 +1,59 @@
 use std::fmt;
 use std::f32::consts;
-use std::u16;
 use num;
 use std::cmp;
 use rand;
 use rand::Rng;
 use backend::obj::*;
-use serialize::base64::{self, ToBase64};
+use serialize::base64::{self, ToBase64, FromBase64};
 
 pub type Dna = Box<[u8]>;
 
 const MAX_POLY_SIDES: u8 = 8; // in conformity with box2d?
+
+fn bit_count(p: usize) -> usize {
+	p << 3
+}
+
+fn split_bit(p: usize) -> (usize, u8) {
+	(p >> 3, (p & 0x7) as u8)
+}
+
+pub struct GenePool {
+	gene_pool: Box<[Dna]>,
+	round_robin: usize,
+}
+
+impl GenePool {
+	pub fn parse_from_base64(base64: &[&str]) -> Self {
+		GenePool {
+			gene_pool: base64.iter()
+				.map(|s| {
+					s.from_base64()
+						.unwrap()
+						.into_boxed_slice()
+				})
+				.collect::<Vec<_>>()
+				.into_boxed_slice(),
+			round_robin: 0,
+		}
+	}
+
+	pub fn new(gene_pool: &[Dna]) -> Self {
+		GenePool {
+			gene_pool: gene_pool.to_vec().into_boxed_slice(),
+			round_robin: 0,
+		}
+	}
+
+	pub fn next(&mut self) -> Genome {
+		let gen = Genome::new(&self.gene_pool[self.round_robin].clone());
+		let mutated = gen.mutate(&mut rand::thread_rng());
+		self.gene_pool[self.round_robin] = mutated.dna().clone();
+		self.round_robin = (self.round_robin + 1) % self.gene_pool.len();
+		gen
+	}
+}
 
 #[allow(dead_code)]
 pub trait Generator {
@@ -124,28 +167,39 @@ impl Generator for Randomizer {
 	}
 }
 
+#[derive(Clone)]
 pub struct Genome {
 	dna: Box<[u8]>,
 	ptr: usize,
+	bit_count: usize,
 }
 
 impl Genome {
 	pub fn new(dna: &[u8]) -> Self {
 		Genome {
 			ptr: 0,
+			bit_count: bit_count(dna.len()),
 			dna: dna.to_owned().into_boxed_slice(),
 		}
 	}
 
-	fn next_byte(&mut self) -> u8 {
-		let next = self.dna[self.ptr];
-		self.ptr = (self.ptr + 1) % self.dna.len();
+	#[inline]
+	fn next_bit(&mut self) -> u8 {
+		let (byte, bit) = split_bit(self.ptr);
+		let next = (self.dna[byte] & (1 << bit)) >> bit;
+		self.ptr = (self.ptr + 1) % self.bit_count;
 		next
 	}
 
-	fn next_bytes(&mut self, n: u8) -> i64 {
-		let bytes = (0..n).fold(0, |a, _| a << 8 | self.next_byte() as i64);
+	#[inline]
+	fn next_bits(&mut self, n: u8) -> i64 {
+		let bytes = (0..n).fold(0, |a, _| a << 1 | self.next_bit() as i64);
 		bytes
+	}
+
+	#[inline]
+	fn count_bits(d: u64) -> u8 {
+		(64 - d.leading_zeros()) as u8
 	}
 
 	fn next_i32(&mut self, min: i32, max: i32) -> i32 {
@@ -153,23 +207,16 @@ impl Genome {
 		if diff <= 0 {
 			min
 		} else {
-			for i in 1..4 {
-				if diff < (1 << (i * 8)) {
-					return (self.next_bytes(i) % diff + min as i64) as i32;
-				}
-			}
-			min
+			return (self.next_bits(Self::count_bits(diff as u64)) % diff + min as i64) as i32;
 		}
 	}
 
 	pub fn crossover<R: rand::Rng>(&self, rng: &mut R, other: &Dna) -> Self {
-		let len = cmp::min(self.dna.len(), other.len());
-		let p: usize = rng.gen::<usize>() % (len * 8);
-		let byte = p / 8;
-		let bit = p % 8;
+		let len = cmp::min(self.bit_count, bit_count(other.len()));
+		let (byte, bit) = split_bit(rng.gen::<usize>() % len);
 		let flip_mask = if rng.gen::<bool>() { 0xffu8 } else { 0x0u8 };
 		let mut new_genes = self.dna.to_vec();
-		for i in 0..len {
+		for i in 0..self.dna.len() {
 			let a = new_genes[i];
 			let b = other[i];
 			let mask = if i < byte || (bit == 0 && i == byte) {
@@ -182,28 +229,21 @@ impl Genome {
 			new_genes[i] = (mask & a) | (!mask & b);
 		}
 
-		println!("crossover at {}: {} * {} -> {}",
-		         p,
+		println!("crossover at {}/{}: {} * {} -> {}",
+		         byte,
+		         bit,
 		         self.dna.to_base64(base64::STANDARD),
 		         other.to_base64(base64::STANDARD),
 		         new_genes.to_base64(base64::STANDARD));
 
-		Genome {
-			ptr: 0,
-			dna: new_genes.into_boxed_slice(),
-		}
+		Genome::new(&new_genes)
 	}
 
 	pub fn mutate<R: rand::Rng>(&self, rng: &mut R) -> Self {
-		let p: usize = rng.gen::<usize>() % (self.dna.len() * 8);
+		let (byte, bit) = split_bit(rng.gen::<usize>() % self.bit_count);
 		let mut new_genes = self.dna.to_vec();
-		let byte = p / 8;
-		let bit = p % 8;
 		new_genes[byte] ^= 1 << bit;
-		Genome {
-			ptr: 0,
-			dna: new_genes.into_boxed_slice(),
-		}
+		Genome::new(&new_genes)
 	}
 
 	pub fn dna(&self) -> &Box<[u8]> {
@@ -217,11 +257,13 @@ impl fmt::Display for Genome {
 	}
 }
 
+const BITS_FOR_FLOAT: u8 = 10;
+
 impl Generator for Genome {
 	fn next_float<T>(&mut self, min: T, max: T) -> T
 		where T: rand::Rand + num::Float {
-		let u0 = self.next_bytes(2) as u16;
-		let n: T = T::from(u0).unwrap() / T::from(u16::MAX).unwrap();
+		let u0 = self.next_bits(BITS_FOR_FLOAT);
+		let n: T = T::from(u0).unwrap() / T::from(1 << BITS_FOR_FLOAT).unwrap();
 		n * (max - min) + min
 	}
 
@@ -233,3 +275,6 @@ impl Generator for Genome {
 			.unwrap_or(min)
 	}
 }
+
+#[cfg(test)]
+mod tests {}

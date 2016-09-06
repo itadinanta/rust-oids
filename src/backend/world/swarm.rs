@@ -1,7 +1,6 @@
 use backend::obj::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use rand;
 use core::geometry::*;
 use backend::world::phen;
 use backend::world::agent;
@@ -9,12 +8,10 @@ use backend::world::agent::Agent;
 use backend::world::agent::AgentType;
 use backend::world::agent::TypedAgent;
 use backend::world::gen::*;
-use serialize::base64::FromBase64;
 
 pub struct Swarm {
 	seq: Id,
 	agent_type: AgentType,
-	gen: Genome,
 	agents: agent::AgentMap,
 }
 
@@ -23,7 +20,6 @@ impl Swarm {
 		Swarm {
 			seq: 0,
 			agent_type: agent_type,
-			gen: Genome::new(b"GyA21QVyM00sSAk7jwaPiDjf4w==".from_base64().unwrap().as_ref()),
 			agents: HashMap::new(),
 		}
 	}
@@ -39,10 +35,6 @@ impl Swarm {
 
 	pub fn get_mut(&mut self, id: Id) -> Option<&mut agent::Agent> {
 		self.agents.get_mut(&id)
-	}
-
-	pub fn mutate<R: rand::Rng>(&mut self, rng: &mut R) {
-		self.gen = self.gen.mutate(rng);
 	}
 
 	pub fn next_id(&mut self) -> Id {
@@ -66,23 +58,10 @@ impl Swarm {
 		}
 	}
 
-	pub fn spawn<T>(&mut self, transform: &Transform, motion: Option<&Motion>, charge: f32) -> Id
+	pub fn spawn<T>(&mut self, genome: &mut Genome, transform: &Transform, motion: Option<&Motion>, charge: f32) -> Id
 		where T: phen::Phenotype {
 		let id = self.next_id();
-		match id.type_of() {
-			t @ AgentType::Minion => println!("spawn: {} as {}", self.gen, t),
-			_ => {}
-		}
-		let entity = T::develop(&mut self.gen, id, transform, motion, charge);
-		self.mutate(&mut rand::thread_rng());
-		self.insert(entity)
-	}
-
-	pub fn replicate<T>(&mut self, genome: &mut Genome, transform: &Transform, motion: Option<&Motion>, charge: f32)
-	                    -> Id
-		where T: phen::Phenotype {
-		let id = self.next_id();
-		println!("replicate: {} as {}", genome, id.type_of());
+		println!("spawn: {} as {}", genome, id.type_of());
 		let entity = T::develop(genome, id, transform, motion, charge);
 		self.insert(entity)
 	}

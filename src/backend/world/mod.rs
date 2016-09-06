@@ -14,20 +14,21 @@ use std::collections::HashSet;
 use std::io;
 use std::io::Write;
 use std::fs;
-use serialize::base64::{self, ToBase64};
 
 use core::geometry::*;
 use backend::world::agent::Agent;
 use backend::world::agent::AgentType;
 use backend::world::agent::TypedAgent;
 use backend::world::swarm::*;
-
+use serialize::base64::{self, ToBase64};
 
 pub struct World {
 	pub extent: Rect,
 	swarms: HashMap<AgentType, Swarm>,
 	emitters: Vec<Emitter>,
 	registered: HashSet<Id>,
+	minion_gene_pool: gen::GenePool,
+	resource_gene_pool: gen::GenePool,
 }
 
 pub trait WorldState {
@@ -82,39 +83,47 @@ impl World {
 			               Emitter::new(-20., 20., 0.8),
 			               Emitter::new(20., 20., 1.2),
 			               Emitter::new(20., -20., 2.0)],
+			minion_gene_pool: gen::GenePool::parse_from_base64(&["GyA21QVyM00sSAk7jwaDjf4wM0aZ",
+			                                                     "CiE2xwVzn7eMSSk/iyaPCDjZ4Qrr",
+			                                                     "DyA21exys00oQAk5jwaPiDjfow/8"]),
+			resource_gene_pool: gen::GenePool::parse_from_base64(&["GyA21QoQ", "M00sWS0M"]),
 			registered: HashSet::new(),
 		}
 	}
 
 	pub fn new_resource(&mut self, transform: &Transform, motion: Option<&Motion>) -> obj::Id {
-		let id = self.swarm_mut(&AgentType::Resource).spawn::<phen::Resource>(transform, motion, 0.8);
+		let mut gen = &mut self.resource_gene_pool.next();
+		let id = self.swarm_mut(&AgentType::Resource)
+			.spawn::<phen::Resource>(&mut gen, transform, motion, 0.8);
 		self.register(id)
 	}
 
 	pub fn decay_to_resource(&mut self, transform: &Transform, dna: &gen::Dna) -> obj::Id {
 		let id = self.swarm_mut(&AgentType::Resource)
-			.replicate::<phen::Resource>(&mut gen::Genome::new(dna), transform, None, 0.8);
+			.spawn::<phen::Resource>(&mut gen::Genome::new(dna), transform, None, 0.8);
 		self.register(id)
 	}
 
 	pub fn new_spore(&mut self, transform: &Transform, dna: &gen::Dna) -> obj::Id {
 		let id = self.swarm_mut(&AgentType::Spore)
-			.replicate::<phen::Spore>(&mut gen::Genome::new(dna).mutate(&mut rand::thread_rng()),
-			                          transform,
-			                          None,
-			                          0.8);
+			.spawn::<phen::Spore>(&mut gen::Genome::new(dna).mutate(&mut rand::thread_rng()),
+			                      transform,
+			                      None,
+			                      0.8);
 		self.register(id)
 	}
 
 	pub fn hatch_spore(&mut self, transform: &Transform, dna: &gen::Dna) -> obj::Id {
 		let id = self.swarm_mut(&AgentType::Minion)
-			.replicate::<phen::Minion>(&mut gen::Genome::new(dna), transform, None, 0.3);
+			.spawn::<phen::Minion>(&mut gen::Genome::new(dna), transform, None, 0.3);
 		self.register(id)
 	}
 
 	pub fn new_minion(&mut self, pos: Position, motion: Option<&Motion>) -> obj::Id {
 		let angle = consts::PI / 2. + f32::atan2(pos.y, pos.x);
-		let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Minion>(&Transform::new(pos, angle), motion, 0.3);
+		let mut gen = self.minion_gene_pool.next();
+		let id = self.swarm_mut(&AgentType::Minion)
+			.spawn::<phen::Minion>(&mut gen, &Transform::new(pos, angle), motion, 0.3);
 		self.register(id)
 	}
 
