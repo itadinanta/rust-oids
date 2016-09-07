@@ -21,6 +21,7 @@ layout (std140) uniform u_Lights {
 
 layout (std140) uniform cb_MaterialArgs {
 	uniform vec4 u_Emissive;
+	uniform vec4 u_Phase;
 };
 
 in VertexData {

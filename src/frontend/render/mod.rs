@@ -22,6 +22,21 @@ use gfx_text;
 
 pub type Rgba = color::Rgba<f32>;
 
+pub struct Appearance {
+	color: Rgba,
+	effect: [f32; 4],
+}
+
+impl Appearance {
+	pub fn rgba(color: Rgba) -> Self {
+		Appearance {
+			color: color,
+			effect: [0., 0., 0., 0.],
+		}
+	}
+}
+
+
 pub type HDRColorFormat = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
 pub type ColorFormat = gfx::format::Srgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
@@ -114,10 +129,7 @@ impl<T: fmt::Display> convert::From<T> for RenderError {
 }
 
 trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
-	fn create_shader_set_with_geometry(&mut self,
-	                                   gs_code: &[u8],
-	                                   vs_code: &[u8],
-	                                   ps_code: &[u8])
+	fn create_shader_set_with_geometry(&mut self, gs_code: &[u8], vs_code: &[u8], ps_code: &[u8])
 	                                   -> Result<gfx::ShaderSet<R>> {
 		let gs = try!(self.create_shader_geometry(gs_code));
 		let vs = try!(self.create_shader_vertex(vs_code));
@@ -142,20 +154,16 @@ trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 impl<R: gfx::Resources, E: gfx::traits::FactoryExt<R>> RenderFactoryExt<R> for E {}
 
 pub trait Draw {
-	fn draw_triangle(&mut self, transform: &cgmath::Matrix4<f32>, p: &[Position], color: Rgba);
-	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>, ratio: f32, color: Rgba);
-	fn draw_star(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], color: Rgba);
-	fn draw_lines(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], color: Rgba);
-	fn draw_ball(&mut self, transform: &cgmath::Matrix4<f32>, color: Rgba);
+	fn draw_triangle(&mut self, transform: &cgmath::Matrix4<f32>, p: &[Position], appearance: &Appearance);
+	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>, ratio: f32, appearance: &Appearance);
+	fn draw_star(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], appearance: &Appearance);
+	fn draw_lines(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], appearance: &Appearance);
+	fn draw_ball(&mut self, transform: &cgmath::Matrix4<f32>, appearance: &Appearance);
 	fn draw_text(&mut self, text: &str, screen_position: [i32; 2], text_color: Rgba);
 }
 
 pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>>: Draw {
-	fn setup_frame(&mut self,
-	               camera: &Camera,
-	               background_color: Rgba,
-	               light_color: Rgba,
-	               light_position: &[Position]);
+	fn setup_frame(&mut self, camera: &Camera, background_color: Rgba, light_color: Rgba, light_position: &[Position]);
 	fn begin_frame(&mut self);
 	fn resolve_frame_buffer(&mut self);
 	fn end_frame<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D);
@@ -193,8 +201,7 @@ pub struct ForwardRenderer<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>,
 }
 
 impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> ForwardRenderer<'e, R, C, F> {
-	pub fn new(factory: &mut F,
-	           encoder: &'e mut gfx::Encoder<R, C>,
+	pub fn new(factory: &mut F, encoder: &'e mut gfx::Encoder<R, C>,
 	           frame_buffer: &gfx::handle::RenderTargetView<R, ColorFormat>,
 	           depth: &gfx::handle::DepthStencilView<R, DepthFormat>)
 	           -> Result<ForwardRenderer<'e, R, C, F>> {
@@ -245,8 +252,7 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 		Ok(())
 	}
 
-	pub fn resize_to(&mut self,
-	                 frame_buffer: &gfx::handle::RenderTargetView<R, ColorFormat>,
+	pub fn resize_to(&mut self, frame_buffer: &gfx::handle::RenderTargetView<R, ColorFormat>,
 	                 depth: &gfx::handle::DepthStencilView<R, DepthFormat>)
 	                 -> Result<()> {
 		// TODO: this thing leaks?
@@ -263,7 +269,7 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone> For
 }
 
 impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for ForwardRenderer<'e, R, C, F> {
-	fn draw_star(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], color: Rgba) {
+	fn draw_star(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], appearance: &Appearance) {
 		let mut v: Vec<_> = vertices.iter()
 			.map(|v| {
 				Vertex {
@@ -292,12 +298,13 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 		                                           vertex_buffer,
 		                                           &index_buffer,
 		                                           &transform,
-		                                           color,
+		                                           appearance.color,
+		                                           appearance.effect,
 		                                           &mut self.hdr_color,
 		                                           &mut self.depth);
 	}
 
-	fn draw_lines(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], color: Rgba) {
+	fn draw_lines(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], appearance: &Appearance) {
 		let v: Vec<_> = vertices.iter()
 			.map(|v| {
 				Vertex {
@@ -315,24 +322,26 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 		                                           vertex_buffer,
 		                                           &index_buffer,
 		                                           &transform,
-		                                           color,
+		                                           appearance.color,
+		                                           appearance.effect,
 		                                           &mut self.hdr_color,
 		                                           &mut self.depth);
 	}
 
 
-	fn draw_ball(&mut self, transform: &cgmath::Matrix4<f32>, color: Rgba) {
+	fn draw_ball(&mut self, transform: &cgmath::Matrix4<f32>, appearance: &Appearance) {
 		self.pass_forward_lighting.draw_primitives(forward::Shader::Ball,
 		                                           &mut self.encoder,
 		                                           self.base_vertices.clone(),
 		                                           &self.base_indices,
 		                                           &transform,
-		                                           color,
+		                                           appearance.color,
+		                                           appearance.effect,
 		                                           &mut self.hdr_color,
 		                                           &mut self.depth);
 	}
 
-	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>, ratio: f32, color: Rgba) {
+	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>, ratio: f32, appearance: &Appearance) {
 		let v = &[Vertex {
 			          pos: [-ratio, -1.0, 0.0],
 			          normal: [0.0, 0.0, 1.0],
@@ -365,12 +374,13 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 		                                           vertex_buffer,
 		                                           &self.quad_indices,
 		                                           &transform,
-		                                           color,
+		                                           appearance.color,
+		                                           appearance.effect,
 		                                           &mut self.hdr_color,
 		                                           &mut self.depth);
 	}
 
-	fn draw_triangle(&mut self, transform: &cgmath::Matrix4<f32>, p: &[Position], color: Rgba) {
+	fn draw_triangle(&mut self, transform: &cgmath::Matrix4<f32>, p: &[Position], appearance: &Appearance) {
 		if p.len() >= 3 {
 			let v = &[Vertex {
 				          pos: [p[0].x, p[0].y, 0.0],
@@ -395,7 +405,8 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 			                                           vertices,
 			                                           &indices,
 			                                           transform,
-			                                           color,
+			                                           appearance.color,
+			                                           appearance.effect,
 			                                           &mut self.hdr_color,
 			                                           &mut self.depth);
 		}
@@ -411,11 +422,7 @@ impl<'e, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>> Render
                                                                                                              R,
                                                                                                              C,
                                                                                                              F> {
-	fn setup_frame(&mut self,
-	               camera: &Camera,
-	               background_color: Rgba,
-	               light_color: Rgba,
-	               light_position: &[Position]) {
+	fn setup_frame(&mut self, camera: &Camera, background_color: Rgba, light_color: Rgba, light_position: &[Position]) {
 		self.background_color = background_color;
 		// 		self.light_color = light_color;
 		// 		self.light_position = light_position;

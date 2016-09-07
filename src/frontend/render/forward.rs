@@ -59,6 +59,7 @@ gfx_defines!(
 
 	constant MaterialArgs {
 		emissive: [f32; 4] = "u_Emissive",
+		effect: [f32; 4] = "u_Effect",
 	}
 
     pipeline shaded {
@@ -149,19 +150,14 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 		})
 	}
 
-	fn new_pso<F>(factory: &mut F,
-	              shaders: &gfx::ShaderSet<R>,
-	              primitive: gfx::Primitive,
+	fn new_pso<F>(factory: &mut F, shaders: &gfx::ShaderSet<R>, primitive: gfx::Primitive,
 	              rasterizer: gfx::state::Rasterizer)
 	              -> result::Result<gfx::pso::PipelineState<R, shaded::Meta>, gfx::PipelineStateError>
 		where F: gfx::Factory<R> {
 		factory.create_pipeline_state(&shaders, primitive, rasterizer, shaded::new())
 	}
 
-	pub fn setup(&self,
-	             encoder: &mut gfx::Encoder<R, C>,
-	             camera_projection: M44,
-	             camera_view: M44,
+	pub fn setup(&self, encoder: &mut gfx::Encoder<R, C>, camera_projection: M44, camera_view: M44,
 	             lights: &Vec<PointLight>) {
 
 		let mut lights_buf = lights.clone();
@@ -185,17 +181,17 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 		}
 	}
 
-	pub fn draw_primitives(&self,
-	                       shader: Shader,
-	                       encoder: &mut gfx::Encoder<R, C>,
-	                       vertices: gfx::handle::Buffer<R, VertexPosNormal>,
-	                       indices: &gfx::Slice<R>,
-	                       transform: &M44,
-	                       color: [f32; 4],
+	pub fn draw_primitives(&self, shader: Shader, encoder: &mut gfx::Encoder<R, C>,
+	                       vertices: gfx::handle::Buffer<R, VertexPosNormal>, indices: &gfx::Slice<R>,
+	                       transform: &M44, color: [f32; 4], effect: [f32; 4],
 	                       color_buffer: &gfx::handle::RenderTargetView<R, HDRColorFormat>,
 	                       depth_buffer: &gfx::handle::DepthStencilView<R, DepthFormat>) {
 		encoder.update_constant_buffer(&self.model, &ModelArgs { model: (*transform).into() });
-		encoder.update_constant_buffer(&self.material, &MaterialArgs { emissive: color });
+		encoder.update_constant_buffer(&self.material,
+		                               &MaterialArgs {
+			                               emissive: color,
+			                               effect: effect,
+		                               });
 		encoder.draw(indices,
 		             &self.pso[shader as usize],
 		             &shaded::Data {

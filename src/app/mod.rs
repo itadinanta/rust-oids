@@ -371,28 +371,28 @@ impl App {
 					let fixture_scale = Matrix4::from_scale(mesh.shape.radius());
 					let transform = body_transform * fixture_scale;
 
-					fn fade(fade_level: f32, c: Rgba) -> Rgba {
+					fn fade(fade_level: f32, c: Rgba) -> render::Appearance {
 						let f = (fade_level * 2.).min(1.0);
-						if f >= 1.0 { c } else { [c[0] * f, c[1] * f, c[2] * f, c[3] * f] }
+						render::Appearance::rgba(if f >= 1.0 { c } else { [c[0] * f, c[1] * f, c[2] * f, c[3] * f] })
 					}
 
 					match mesh.shape {
 						obj::Shape::Ball { .. } => {
-							renderer.draw_ball(&transform, fade(left, segment.color()));
+							renderer.draw_ball(&transform, &fade(left, segment.color()));
 						}
 						obj::Shape::Star { .. } => {
-							renderer.draw_star(&transform, &mesh.vertices[..], fade(left, segment.color()));
+							renderer.draw_star(&transform, &mesh.vertices[..], &fade(left, segment.color()));
 						}
 						obj::Shape::Poly { .. } => {
-							renderer.draw_star(&transform, &mesh.vertices[..], fade(left, segment.color()));
+							renderer.draw_star(&transform, &mesh.vertices[..], &fade(left, segment.color()));
 						}
 						obj::Shape::Box { ratio, .. } => {
-							renderer.draw_quad(&transform, ratio, fade(left, segment.color()));
+							renderer.draw_quad(&transform, ratio, &fade(left, segment.color()));
 						}
 						obj::Shape::Triangle { .. } => {
 							renderer.draw_triangle(&transform,
 							                       &mesh.vertices[0..3],
-							                       fade(left, segment.color()));
+							                       &fade(left, segment.color()));
 						}
 					}
 				}
@@ -407,22 +407,26 @@ impl App {
 		               extent.max,
 		               Position::new(extent.max.x, extent.min.y),
 		               extent.min];
-		renderer.draw_lines(&Matrix4::identity(), points, self.lights.get());
+		renderer.draw_lines(&Matrix4::identity(),
+		                    points,
+		                    &render::Appearance::rgba(self.lights.get()));
 		renderer.draw_quad(&Matrix4::from_scale(extent.max.x - extent.min.x),
 		                   1.,
-		                   self.backgrounds.get());
+		                   &render::Appearance::rgba(self.backgrounds.get()));
 	}
 
 	fn render_hud(&self, renderer: &mut render::Draw) {
 		for e in self.world.emitters() {
 			let transform = Self::from_position(&e.transform().position);
-			renderer.draw_ball(&transform, self.lights.get());
+			renderer.draw_ball(&transform, &render::Appearance::rgba(self.lights.get()));
 		}
 		if self.debug_flags.contains(DEBUG_TARGETS) {
 			for (_, agent) in self.world.agents(world::agent::AgentType::Minion).iter() {
 				let p0 = agent.transform().position;
 				let p1 = *agent.state.target_position();
-				renderer.draw_lines(&Matrix4::identity(), &[p0, p1], agent.segments[0].color());
+				renderer.draw_lines(&Matrix4::identity(),
+				                    &[p0, p1],
+				                    &render::Appearance::rgba(agent.segments[0].color()));
 			}
 		}
 	}
