@@ -59,6 +59,10 @@ impl<T: Stopwatch> Hourglass<T> {
 		left
 	}
 
+	pub fn seconds(&self) -> f32 {
+		self.stopwatch.seconds()
+	}
+
 	pub fn left(&self) -> f32 {
 		let dt = self.timeout - self.stopwatch.seconds();
 		f32::max(0., dt)

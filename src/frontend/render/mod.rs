@@ -28,10 +28,17 @@ pub struct Appearance {
 }
 
 impl Appearance {
+	pub fn new(color: Rgba, effect: [f32; 4]) -> Self {
+		Appearance {
+			color: color,
+			effect: effect,
+		}
+	}
+
 	pub fn rgba(color: Rgba) -> Self {
 		Appearance {
 			color: color,
-			effect: [0., 0., 0., 0.],
+			effect: [1., 0., 0., 0.],
 		}
 	}
 }
@@ -311,7 +318,7 @@ impl<'e, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>> Draw for Fo
 					pos: [v.x, v.y, 0.0],
 					normal: [0.0, 0.0, 1.0],
 					tangent: [1.0, 0.0, 0.0],
-					tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
+					tex_coord: [0.5, 0.5],
 				}
 			})
 			.collect();

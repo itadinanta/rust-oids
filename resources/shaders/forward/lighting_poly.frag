@@ -38,11 +38,14 @@ void main() {
 	vec4 ks = vec4(1.0, 1.0, 1.0, 1.0);
 	vec4 kp = vec4(64.0, 32.0, 64.0, 1.0);
 
-	vec4 color = u_Emissive;
-
-	float dx = 2 * v_In.TexCoord.x - 1;
-	float dy = 2 * v_In.TexCoord.y - 1;
+	float dx = 2 * clamp(v_In.TexCoord.x, 0, 1) - 1;
+	float dy = 2 * clamp(v_In.TexCoord.y, 0, 1) - 1;
 	float r = min(1, dx * dx + dy * dy);
+
+	float f = clamp(u_Effect.x * 2, 0, 1);
+	float e = clamp(abs(cos(r - u_Effect.y) + sin(dy - 2 * u_Effect.y)), 0, 1);
+
+	vec4 color = u_Emissive * e * f;
 
 	vec3 normal = v_In.TBN * vec3(dx, dy, sqrt(1 - r));
 
@@ -53,7 +56,6 @@ void main() {
 		vec4 light_to_point_normal = delta * inv_dist;
 		float intensity = dot(light[i].propagation.xyz,
 				vec3(1., inv_dist, inv_dist * inv_dist));
-
 		float lambert = max(0, dot(light_to_point_normal, vec4(normal, 0.0)));
 
 		vec4 specular;

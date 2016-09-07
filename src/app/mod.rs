@@ -11,6 +11,7 @@ use core::math::Smooth;
 use backend::obj;
 use backend::obj::*;
 use backend::world;
+use backend::world::segment;
 use backend::systems;
 use backend::systems::System;
 
@@ -363,7 +364,8 @@ impl App {
 	fn render_minions(&self, renderer: &mut render::Draw) {
 		for (_, swarm) in self.world.swarms().iter() {
 			for (_, agent) in swarm.agents().iter() {
-				let left = agent.state.energy_ratio();
+				let energy_left = agent.state.energy_ratio();
+				let age = agent.state.lifecycle().seconds();
 				for segment in agent.segments() {
 					let body_transform = Self::from_transform(&segment.transform());
 
@@ -371,28 +373,23 @@ impl App {
 					let fixture_scale = Matrix4::from_scale(mesh.shape.radius());
 					let transform = body_transform * fixture_scale;
 
-					fn fade(fade_level: f32, c: Rgba) -> render::Appearance {
-						let f = (fade_level * 2.).min(1.0);
-						render::Appearance::rgba(if f >= 1.0 { c } else { [c[0] * f, c[1] * f, c[2] * f, c[3] * f] })
-					}
+					let appearance = render::Appearance::new(segment.color(), [energy_left, age, 0., 0.]);
 
 					match mesh.shape {
 						obj::Shape::Ball { .. } => {
-							renderer.draw_ball(&transform, &fade(left, segment.color()));
+							renderer.draw_ball(&transform, &appearance);
 						}
 						obj::Shape::Star { .. } => {
-							renderer.draw_star(&transform, &mesh.vertices[..], &fade(left, segment.color()));
+							renderer.draw_star(&transform, &mesh.vertices[..], &appearance);
 						}
 						obj::Shape::Poly { .. } => {
-							renderer.draw_star(&transform, &mesh.vertices[..], &fade(left, segment.color()));
+							renderer.draw_star(&transform, &mesh.vertices[..], &appearance);
 						}
 						obj::Shape::Box { ratio, .. } => {
-							renderer.draw_quad(&transform, ratio, &fade(left, segment.color()));
+							renderer.draw_quad(&transform, ratio, &appearance);
 						}
 						obj::Shape::Triangle { .. } => {
-							renderer.draw_triangle(&transform,
-							                       &mesh.vertices[0..3],
-							                       &fade(left, segment.color()));
+							renderer.draw_triangle(&transform, &mesh.vertices[0..3], &appearance);
 						}
 					}
 				}
@@ -422,7 +419,7 @@ impl App {
 		}
 		if self.debug_flags.contains(DEBUG_TARGETS) {
 			for (_, agent) in self.world.agents(world::agent::AgentType::Minion).iter() {
-				let p0 = agent.transform().position;
+				let p0 = agent.first_segment(segment::HEAD).unwrap().transform().position;
 				let p1 = *agent.state.target_position();
 				renderer.draw_lines(&Matrix4::identity(),
 				                    &[p0, p1],
