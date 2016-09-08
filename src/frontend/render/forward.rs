@@ -115,8 +115,9 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 				 }
 		};
 
+		let flat_shaders = try!(load_shaders!("lighting", "lighting_flat"));
 		let solid_shaders = try!(load_shaders!("lighting", "lighting_poly"));
-		let ball_shaders = try!(load_shaders!("point_ball", "lighting", "lighting_ball"));
+		let ball_shaders = try!(load_shaders!("point_ball", "lighting", "lighting_poly"));
 
 		let solid_rasterizer =
 			gfx::state::Rasterizer { samples: Some(gfx::state::MultiSample), ..gfx::state::Rasterizer::new_fill() };
@@ -136,7 +137,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 		                                       gfx::Primitive::TriangleList,
 		                                       line_rasterizer));
 		let lines_pso = try!(Self::new_pso(factory,
-		                                   &solid_shaders,
+		                                   &flat_shaders,
 		                                   gfx::Primitive::LineStrip,
 		                                   line_rasterizer));
 		Ok(ForwardLighting {
