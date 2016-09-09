@@ -7,6 +7,7 @@ use backend::world::segment;
 use backend::world::segment::*;
 use backend::world::agent;
 use backend::world::agent::Agent;
+use backend::world::agent::GBrain;
 use backend::world::gen::*;
 use cgmath;
 use cgmath::EuclideanVector;
@@ -102,6 +103,7 @@ pub struct AgentBuilder {
 	material: Material,
 	livery: Livery,
 	gender: u8,
+	brain: GBrain<i8>,
 	dna: Dna,
 	state: segment::State,
 	segments: Vec<Segment>,
@@ -115,6 +117,7 @@ impl AgentBuilder {
 			livery: livery,
 			state: state,
 			gender: 0u8,
+			brain: GBrain::default(),
 			dna: dna.clone(),
 			segments: Vec::new(),
 		}
@@ -219,6 +222,7 @@ impl AgentBuilder {
 	pub fn build(&self) -> Agent {
 		Agent::new(self.id,
 		           self.gender,
+		           &self.brain,
 		           &self.dna,
 		           self.segments.clone().into_boxed_slice())
 	}

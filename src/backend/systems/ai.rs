@@ -5,6 +5,7 @@ use backend::obj::Identified;
 use backend::obj::Transformable;
 use backend::world;
 use backend::world::agent;
+use backend::world::agent::Brain;
 use backend::world::agent::TypedAgent;
 use backend::world::segment;
 use backend::world::segment::Intent;
@@ -93,22 +94,22 @@ impl AiSystem {
 							if let Some(refs) = segment.state.last_touched {
 								match refs.id().type_of() {
 									agent::AgentType::Resource => Intent::Idle,
-									_ => Intent::RunAway(f.normalize_to(power * brain.timidity)),
+									_ => Intent::RunAway(f.normalize_to(power * brain.timidity())),
 								}
-							} else if segment.flags.contains(segment::RUDDER) && proj > 0. && d > brain.focus &&
-							          d < brain.caution {
-								Intent::Move(f.normalize_to(power * brain.hunger))
-							} else if segment.flags.contains(segment::THRUSTER) && proj > 0. && d > brain.curiosity {
-								Intent::Move(f.normalize_to(power * brain.haste))
-							} else if segment.flags.contains(segment::BRAKE) && (proj < 0. || d < brain.fear) {
-								Intent::Move(f.normalize_to(-power * brain.prudence))
+							} else if segment.flags.contains(segment::RUDDER) && proj > 0. && d > brain.focus() &&
+							          d < brain.caution() {
+								Intent::Move(f.normalize_to(power * brain.hunger()))
+							} else if segment.flags.contains(segment::THRUSTER) && proj > 0. && d > brain.curiosity() {
+								Intent::Move(f.normalize_to(power * brain.haste()))
+							} else if segment.flags.contains(segment::BRAKE) && (proj < 0. || d < brain.fear()) {
+								Intent::Move(f.normalize_to(-power * brain.prudence()))
 							} else {
 								Intent::Idle
 							};
 						match intent {
-							Intent::Idle => segment.state.set_target_charge(brain.rest),
-							Intent::Move(_) => segment.state.set_target_charge(brain.thrust),
-							Intent::RunAway(_) => segment.state.set_charge(brain.thrust),
+							Intent::Idle => segment.state.set_target_charge(brain.rest()),
+							Intent::Move(_) => segment.state.set_target_charge(brain.thrust()),
+							Intent::RunAway(_) => segment.state.set_charge(brain.thrust()),
 						}
 						segment.state.intent = intent;
 					}

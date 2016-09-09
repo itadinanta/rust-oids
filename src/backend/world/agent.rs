@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fmt;
 use num::FromPrimitive;
+use num::ToPrimitive;
 use core::geometry::*;
 use core::clock::*;
 use backend::obj;
@@ -115,8 +116,8 @@ impl AgentType {
 	}
 }
 
-#[derive(Clone)]
-pub struct Brain<T> {
+#[derive(Clone,Default)]
+pub struct GBrain<T: Copy + Default> {
 	pub timidity: T,
 	pub caution: T,
 	pub curiosity: T,
@@ -127,7 +128,70 @@ pub struct Brain<T> {
 	pub prudence: T,
 	pub rest: T,
 	pub thrust: T,
+	pub weights_in: [[T; 4]; 4],
+	pub weights_hidden: [[T; 4]; 4],
+	pub weights_out: [[T; 4]; 4],
 }
+
+pub trait Brain {
+	fn timidity(&self) -> f32;
+	fn hunger(&self) -> f32;
+	fn haste(&self) -> f32;
+	fn prudence(&self) -> f32;
+	fn caution(&self) -> f32;
+	fn focus(&self) -> f32;
+	fn curiosity(&self) -> f32;
+	fn fear(&self) -> f32;
+	fn rest(&self) -> f32;
+	fn thrust(&self) -> f32;
+}
+
+pub trait ScaledCoefficient<T>
+	where T: ToPrimitive
+{
+	fn scale(i: T) -> f32 {
+		i.to_f32().unwrap() / 127.0
+	}
+}
+
+impl<T> ScaledCoefficient<T> for GBrain<T> where T: Copy + Default + ToPrimitive {}
+
+impl<T> Brain for GBrain<T>
+    where T: Copy + Default + ToPrimitive
+{
+	fn timidity(&self) -> f32 {
+		Self::scale(self.timidity)
+	}
+	fn hunger(&self) -> f32 {
+		Self::scale(self.hunger)
+	}
+	fn haste(&self) -> f32 {
+		Self::scale(self.haste)
+	}
+	fn prudence(&self) -> f32 {
+		Self::scale(self.prudence)
+	}
+	fn caution(&self) -> f32 {
+		Self::scale(self.caution)
+	}
+	fn focus(&self) -> f32 {
+		Self::scale(self.focus)
+	}
+	fn curiosity(&self) -> f32 {
+		Self::scale(self.curiosity)
+	}
+	fn fear(&self) -> f32 {
+		Self::scale(self.fear)
+	}
+	fn rest(&self) -> f32 {
+		Self::scale(self.rest)
+	}
+	fn thrust(&self) -> f32 {
+		Self::scale(self.thrust)
+	}
+}
+
+
 
 bitflags! {
 	pub flags Flags: u32 {
@@ -231,7 +295,7 @@ impl State {
 
 pub struct Agent {
 	id: Id,
-	brain: Brain<f32>,
+	brain: GBrain<i8>,
 	dna: Dna,
 	gender: u8,
 	pub state: State,
@@ -286,7 +350,7 @@ impl Agent {
 		self.segments.get_mut(index as usize)
 	}
 
-	pub fn brain(&self) -> &Brain<f32> {
+	pub fn brain(&self) -> &GBrain<i8> {
 		&self.brain
 	}
 
@@ -297,13 +361,11 @@ impl Agent {
 			.map(|sensor| sensor.clone())
 	}
 
-	pub fn new(id: Id, gender: u8, dna: &Dna, segments: Box<[Segment]>) -> Self {
+	pub fn new(id: Id, gender: u8, brain: &GBrain<i8>, dna: &Dna, segments: Box<[Segment]>) -> Self {
 		let max_energy = 100. *
 		                 segments.iter()
 			.filter(|s| s.flags.contains(segment::STORAGE))
 			.fold(0., |a, s| a + s.mesh.shape.radius().powi(2));
-		let order = segments.len() as f32;
-		let d0 = 2. * order;
 		Agent {
 			id: id,
 			state: State {
@@ -315,20 +377,7 @@ impl Agent {
 				limits: Limits { max_energy: max_energy },
 				foreign_dna: None,
 			},
-			brain: Brain {
-				timidity: 2. * (12.0 - order),
-				hunger: 4. * order,
-				haste: 2. * order,
-				prudence: 3. * order,
-
-				caution: d0 * 2.0,
-				focus: d0 * 1.5,
-				curiosity: d0 * 1.2,
-				fear: d0 * 0.01,
-
-				rest: 0.1,
-				thrust: 0.5,
-			},
+			brain: brain.clone(),
 			gender: gender,
 			dna: dna.clone(),
 			segments: segments,
