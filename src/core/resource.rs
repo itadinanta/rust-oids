@@ -11,6 +11,7 @@ pub mod filesystem {
 	use std::fs;
 	use std::path;
 
+	#[derive(Clone)]
 	pub struct ResourceLoader {
 		roots: Box<[path::PathBuf]>,
 	}

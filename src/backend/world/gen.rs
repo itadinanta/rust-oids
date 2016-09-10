@@ -1,6 +1,7 @@
 use std::fmt;
 use std::f32::consts;
 use num;
+use csv;
 use std::cmp;
 use rand;
 use rand::Rng;
@@ -39,11 +40,33 @@ impl GenePool {
 		}
 	}
 
+	pub fn parse_from_resource(data: &[u8]) -> Self {
+		let mut gene_pool = Vec::new();
+		let mut csv = csv::Reader::from_bytes(data).has_headers(false);
+		for row in csv.records() {
+			let fields = row.unwrap();
+			gene_pool.push(fields[0].from_base64().unwrap().into_boxed_slice());
+		}
+		GenePool {
+			gene_pool: gene_pool.to_vec().into_boxed_slice(),
+			round_robin: 0,
+		}
+	}
+
+	pub fn len(&self) -> usize {
+		self.gene_pool.len()
+	}
+
 	pub fn new(gene_pool: &[Dna]) -> Self {
 		GenePool {
 			gene_pool: gene_pool.to_vec().into_boxed_slice(),
 			round_robin: 0,
 		}
+	}
+
+	pub fn randomize(&mut self) {
+		let mut rnd = Randomizer::new();
+		self.gene_pool[self.round_robin] = rnd.seed().dna().clone();
 	}
 
 	pub fn next(&mut self) -> Genome {
@@ -151,10 +174,8 @@ pub struct Randomizer<R>
 }
 
 #[allow(dead_code)]
-impl<R> Randomizer<R>
-    where R: rand::Rng
-{
-	pub fn new_thread_rng() -> Randomizer<rand::ThreadRng> {
+impl Randomizer<rand::ThreadRng> {
+	pub fn new() -> Randomizer<rand::ThreadRng> {
 		Randomizer { rng: rand::thread_rng() }
 	}
 }
@@ -179,7 +200,7 @@ impl<R> Seeder for Randomizer<R>
     where R: rand::Rng
 {
 	fn seed(&mut self) -> Genome {
-		let mut dna = vec![0u8, 64];
+		let mut dna = vec![0u8; 72];
 		let mut r = dna.as_mut_slice();
 		self.rng.fill_bytes(r);
 		Genome::new(r)
@@ -235,7 +256,7 @@ impl Genome {
 		let (byte, bit) = split_bit(rng.gen::<usize>() % len);
 		let flip_mask = if rng.gen::<bool>() { 0xffu8 } else { 0x0u8 };
 		let mut new_genes = self.dna.to_vec();
-		for i in 0..self.dna.len() {
+		for i in 0..len / 8 {
 			let a = new_genes[i];
 			let b = other[i];
 			let mask = if i < byte || (bit == 0 && i == byte) {
@@ -248,7 +269,7 @@ impl Genome {
 			new_genes[i] = (mask & a) | (!mask & b);
 		}
 
-		println!("crossover at {}/{}: {} * {} -> {}",
+		info!("crossover at {}/{}: {} * {} -> {}",
 		         byte,
 		         bit,
 		         self.dna.to_base64(base64::STANDARD),
@@ -259,9 +280,11 @@ impl Genome {
 	}
 
 	pub fn mutate<R: rand::Rng>(&self, rng: &mut R) -> Self {
-		let (byte, bit) = split_bit(rng.gen::<usize>() % self.bit_count);
 		let mut new_genes = self.dna.to_vec();
-		new_genes[byte] ^= 1 << bit;
+		for _ in 0..(new_genes.len() / 8 + 1) {
+			let (byte, bit) = split_bit(rng.gen::<usize>() % self.bit_count);
+			new_genes[byte] ^= 1 << bit;
+		}
 		Genome::new(&new_genes)
 	}
 

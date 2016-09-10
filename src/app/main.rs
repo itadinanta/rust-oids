@@ -1,7 +1,9 @@
+use std::path;
 use frontend::render;
 use frontend::input::EventMapper;
 use frontend::render::Draw;
 use frontend::render::Renderer;
+use core::resource::filesystem::ResourceLoaderBuilder;
 use core::math::Directional;
 use app;
 use app::ev::GlutinEventMapper;
@@ -24,10 +26,19 @@ pub fn main_loop() {
 
 	let mut encoder = factory.create_command_buffer().into();
 
-	let renderer = &mut render::ForwardRenderer::new(&mut factory, &mut encoder, &frame_buffer, &depth_buffer).unwrap();
+	let res = ResourceLoaderBuilder::new()
+		.add(path::Path::new("resources"))
+		.build();
+
+	let renderer = &mut render::ForwardRenderer::new(&mut factory,
+	                                                 &mut encoder,
+	                                                 &res,
+	                                                 &frame_buffer,
+	                                                 &depth_buffer)
+		.unwrap();
 	let mapper = GlutinEventMapper::new();
 	// Create a new game and run it.
-	let mut app = app::App::new(w as u32, h as u32, 100.0);
+	let mut app = app::App::new(w as u32, h as u32, 100.0, &res);
 
 	app.init();
 

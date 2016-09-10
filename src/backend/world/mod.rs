@@ -16,6 +16,7 @@ use std::io::Write;
 use std::fs;
 
 use core::geometry::*;
+use core::resource::ResourceLoader;
 use backend::world::agent::Agent;
 use backend::world::agent::AgentType;
 use backend::world::agent::TypedAgent;
@@ -70,12 +71,21 @@ impl Transformable for Emitter {
 }
 
 impl World {
-	pub fn new() -> Self {
+	pub fn new<R>(res: &R) -> Self
+		where R: ResourceLoader<u8> {
 		let mut swarms = HashMap::new();
 		let types = AgentType::all();
 		for t in types {
 			swarms.insert(*t, Swarm::new(*t));
 		}
+		fn default_gene_pool(_: io::Error) -> gen::GenePool {
+			gen::GenePool::parse_from_base64(&["GzA21QVwM00sXAk5gwajjf4wM0aZ",
+			                                   "GzB2lQdwM10vQEu5zwaPgDhfq2v8",
+			                                   "GzB2lQVwM00tTAm5gwajjf4wc0a5",
+			                                   "GzB2lQVwM00tTAm5gwajjf4wc0a5GzB2lQVwM00tTAm5gwajjf4wc0a5",
+			                                   "GzB2lQdwM10vQEu5zwaPgDhfq2v8GzB2lQdwM10vQEu5zwaPgDhfq2v8"])
+		}
+
 		World {
 			extent: Rect::new(-50., -50., 50., 50.),
 			swarms: swarms,
@@ -83,11 +93,10 @@ impl World {
 			               Emitter::new(-20., 20., 0.8),
 			               Emitter::new(20., 20., 1.2),
 			               Emitter::new(20., -20., 2.0)],
-			minion_gene_pool: gen::GenePool::parse_from_base64(&["GzA21QVwM00sXAk5gwajjf4wM0aZ",
-			                                                     "GzB2lQdwM10vQEu5zwaPgDhfq2v8",
-			                                                     "GzB2lQVwM00tTAm5gwajjf4wc0a5",
-			                                                     "GzB2lQVwM00tTAm5gwajjf4wc0a5GzB2lQVwM00tTAm5gwajjf4wc0a5",
-			                                                     "GzB2lQdwM10vQEu5zwaPgDhfq2v8GzB2lQdwM10vQEu5zwaPgDhfq2v8"]),
+
+			minion_gene_pool: res.load("minion_gene_pool.csv")
+				.map(|data| gen::GenePool::parse_from_resource(&data))
+				.unwrap_or_else(default_gene_pool),
 			resource_gene_pool: gen::GenePool::parse_from_base64(&["GyA21QoQ", "M00sWS0M"]),
 			registered: HashSet::new(),
 		}
@@ -119,6 +128,27 @@ impl World {
 		let id = self.swarm_mut(&AgentType::Minion)
 			.spawn::<phen::Minion>(&mut gen::Genome::new(dna), transform, None, 0.3);
 		self.register(id)
+	}
+
+	pub fn randomize_minion(&mut self, pos: Position, motion: Option<&Motion>) -> obj::Id {
+		self.minion_gene_pool.randomize();
+		self.new_minion(pos, motion)
+	}
+
+	pub fn init_minions(&mut self) {
+		let n = self.minion_gene_pool.len();
+		let r = self.extent.top_right().x * 0.5;
+		for i in 0..n {
+			let angle = i as f32 * consts::PI * 2. / n as f32;
+			let pos = Position::new(r * angle.cos(), r * angle.sin());
+			let mut gen = self.minion_gene_pool.next();
+			let id = self.swarm_mut(&AgentType::Minion)
+				.spawn::<phen::Minion>(&mut gen, &Transform::new(pos, angle), None, 0.3);
+			self.register(id);
+		}
+		for _ in 0..n {
+			self.minion_gene_pool.randomize();
+		}
 	}
 
 	pub fn new_minion(&mut self, pos: Position, motion: Option<&Motion>) -> obj::Id {
@@ -180,12 +210,13 @@ impl World {
 		let now: DateTime<UTC> = UTC::now();
 		let file_name = now.format("rust-oids_%Y%m%d_%H%M%S.log").to_string();
 		let mut f = try!(fs::File::create(&file_name));
-		for (_, swarm) in self.swarms.iter() {
+		for (_, swarm) in self.swarms.iter().filter(|&(_, s)| !s.is_empty()) {
 			try!(f.write_fmt(format_args!("[{}]\n", swarm.type_of())));
 			for (_, agent) in swarm.agents().iter() {
-				try!(f.write_fmt(format_args!("{}\t{}\n",
-				                              agent.id(),
-				                              agent.dna().to_base64(base64::STANDARD))));
+				info!("{}: {}",
+				      swarm.type_of(),
+				      agent.dna().to_base64(base64::STANDARD));
+				try!(f.write_fmt(format_args!("{}\n", agent.dna().to_base64(base64::STANDARD))));
 			}
 		}
 		Ok(file_name)

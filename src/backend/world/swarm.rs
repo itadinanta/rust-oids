@@ -61,7 +61,10 @@ impl Swarm {
 	pub fn spawn<T>(&mut self, genome: &mut Genome, transform: &Transform, motion: Option<&Motion>, charge: f32) -> Id
 		where T: phen::Phenotype {
 		let id = self.next_id();
-		println!("spawn: {} as {}", genome, id.type_of());
+		match id.type_of() {
+			AgentType::Minion | AgentType::Spore => info!("spawn: {} as {}", genome, id.type_of()),
+			_ => {}
+		}
 		let entity = T::develop(genome, id, transform, motion, charge);
 		self.insert(entity)
 	}
@@ -70,6 +73,10 @@ impl Swarm {
 		let id = agent.id();
 		self.agents.insert(id, agent);
 		id
+	}
+
+	pub fn is_empty(&self) -> bool {
+		self.agents.is_empty()
 	}
 
 	pub fn agents(&self) -> &HashMap<Id, Agent> {

@@ -1,12 +1,16 @@
 mod main;
 mod ev;
 
+use log::*;
+
 use core::util::Cycle;
 use core::geometry::*;
 use core::clock::*;
 use core::math;
 use core::math::Directional;
 use core::math::Smooth;
+
+use core::resource::ResourceLoader;
 
 use backend::obj;
 use backend::obj::*;
@@ -45,6 +49,7 @@ pub enum Event {
 
 	MoveEmitter(u8, Position),
 	NewMinion(Position),
+	RandomizeMinion(Position),
 	NewResource(Position),
 }
 
@@ -159,7 +164,8 @@ pub struct Update {
 }
 
 impl App {
-	pub fn new(w: u32, h: u32, scale: f32) -> App {
+	pub fn new<R>(w: u32, h: u32, scale: f32, res: &R) -> Self
+		where R: ResourceLoader<u8> {
 		App {
 			viewport: Viewport::rect(w, h, scale),
 			input_state: input::InputState::default(),
@@ -168,7 +174,7 @@ impl App {
 			lights: Self::init_lights(),
 			backgrounds: Self::init_backgrounds(),
 
-			world: world::World::new(),
+			world: world::World::new(res),
 			// subsystems
 			systems: Systems::default(),
 			// runtime and timing
@@ -214,6 +220,10 @@ impl App {
 		self.world.new_resource(&Transform::from_position(pos), None);
 	}
 
+	fn randomize_minion(&mut self, pos: Position) {
+		self.world.randomize_minion(pos, None);
+	}
+
 	fn new_minion(&mut self, pos: Position) {
 		self.world.new_minion(pos, None);
 	}
@@ -255,13 +265,14 @@ impl App {
 
 			Event::DumpToFile => {
 				match self.world.dump() {
-					Err(_) => println!("Failed to dump log"),
-					Ok(name) => println!("Saved {}", name),
+					Err(_) => error!("Failed to dump log"),
+					Ok(name) => info!("Saved {}", name),
 				}
 			}
 			Event::MoveLight(_pos) => {}
 			Event::MoveEmitter(_i, _pos) => {}
 			Event::NewMinion(pos) => self.new_minion(pos),
+			Event::RandomizeMinion(pos) => self.randomize_minion(pos),
 			Event::NewResource(pos) => self.new_resource(pos),
 		}
 	}
@@ -320,7 +331,7 @@ impl App {
 
 		if self.input_state.key_once(input::Key::MouseRight) {
 			if self.input_state.any_ctrl_pressed() {
-				events.push(Event::NewResource(world_pos));
+				events.push(Event::RandomizeMinion(world_pos));
 			} else {
 				events.push(Event::NewMinion(world_pos));
 			}

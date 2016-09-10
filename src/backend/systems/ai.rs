@@ -99,7 +99,7 @@ impl AiSystem {
 						let intent = if let Some(refs) = segment.state.last_touched {
 							match refs.id().type_of() {
 								agent::AgentType::Resource => Intent::Idle,
-								_ => Intent::RunAway(f),
+								_ => Intent::RunAway(f * 0.05),
 							}
 						} else if segment.flags.intersects(segment::RUDDER | segment::LEFT) &&
 						                       r[0] > brain.hunger() {

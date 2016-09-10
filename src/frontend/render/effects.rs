@@ -145,7 +145,6 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		while w2 > 1 || h2 > 1 {
 			w2 = (w2 + 1) / 2;
 			h2 = (h2 + 1) / 2;
-			// println!("{}x{}", w2, h2);
 			mips.push(try!(factory.create_render_target::<HDR>(w2, h2)));
 		}
 
@@ -186,9 +185,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		})
 	}
 
-	fn full_screen_pass(&self,
-	                    encoder: &mut gfx::Encoder<R, C>,
-	                    pso: &gfx::pso::PipelineState<R, postprocess::Meta>,
+	fn full_screen_pass(&self, encoder: &mut gfx::Encoder<R, C>, pso: &gfx::pso::PipelineState<R, postprocess::Meta>,
 	                    src: &gfx::handle::ShaderResourceView<R, [f32; 4]>,
 	                    dst: &gfx::handle::RenderTargetView<R, HDR>) {
 		encoder.draw(&self.index_buffer_slice,
@@ -200,8 +197,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		             });
 	}
 
-	pub fn apply_all(&mut self,
-	                 encoder: &mut gfx::Encoder<R, C>,
+	pub fn apply_all(&mut self, encoder: &mut gfx::Encoder<R, C>,
 	                 raw_hdr_src: gfx::handle::ShaderResourceView<R, [f32; 4]>,
 	                 color_target: gfx::handle::RenderTargetView<R, LDR>) {
 

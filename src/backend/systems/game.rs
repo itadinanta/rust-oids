@@ -4,6 +4,7 @@ use core::clock::*;
 use core::geometry::*;
 use backend::obj::Transformable;
 use backend::world;
+use backend::world::agent;
 
 pub struct GameSystem {
 	emitters: Vec<Emitter>,
@@ -70,6 +71,10 @@ impl System for GameSystem {
 					                   spin: e.spin,
 				                   }));
 			}
+		}
+		// if there are no minions, spawn some
+		if world.agents(agent::AgentType::Minion).is_empty() {
+			world.init_minions();
 		}
 	}
 }
