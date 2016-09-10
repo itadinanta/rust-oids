@@ -7,7 +7,8 @@ use backend::world::segment;
 use backend::world::segment::*;
 use backend::world::agent;
 use backend::world::agent::Agent;
-use backend::world::agent::GBrain;
+use backend::world::agent::Brain;
+use backend::world::agent::TypedBrain;
 use backend::world::gen::*;
 use cgmath;
 use cgmath::EuclideanVector;
@@ -44,7 +45,28 @@ impl Phenotype for Minion {
 		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                    gen.dna(),
 		                                    segment::State::with_charge(0., charge, charge));
-		builder.gender(gender);
+
+		let mut weights_in = [[0.; 4]; 4];
+		let mut weights_hidden = [[0.; 4]; 4];
+		let mut weights_out = [[0.; 4]; 4];
+		for i in 0..4 {
+			for j in 0..4 {
+				weights_in[i][j] = gen.next_float(-4., 4.);
+				weights_hidden[i][j] = gen.next_float(-4., 4.);
+				weights_out[i][j] = gen.next_float(-4., 4.);
+			}
+		}
+
+		builder.gender(gender)
+			.hunger(&gen.next_float(0., 1.))
+			.haste(&gen.next_float(0., 1.))
+			.prudence(&gen.next_float(0., 1.))
+			.rest(&gen.next_float(0.2, 1.))
+			.thrust(&gen.next_float(0.2, 1.))
+			.weights_in(&weights_in)
+			.weights_hidden(&weights_hidden)
+			.weights_out(&weights_out);
+
 		let torso_shape = gen.any_poly();
 		let torso = builder.start(transform, motion, &torso_shape).index();
 		let arm_shape = gen.star();
@@ -103,7 +125,7 @@ pub struct AgentBuilder {
 	material: Material,
 	livery: Livery,
 	gender: u8,
-	brain: GBrain<i8>,
+	brain: Brain,
 	dna: Dna,
 	state: segment::State,
 	segments: Vec<Segment>,
@@ -117,7 +139,7 @@ impl AgentBuilder {
 			livery: livery,
 			state: state,
 			gender: 0u8,
-			brain: GBrain::default(),
+			brain: Brain::default(),
 			dna: dna.clone(),
 			segments: Vec::new(),
 		}
@@ -201,6 +223,46 @@ impl AgentBuilder {
 			0 => 0,
 			n => (n - 1) as SegmentIndex,
 		}
+	}
+
+	pub fn hunger(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
+		self.brain.hunger = value.clone();
+		self
+	}
+
+	pub fn haste(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
+		self.brain.haste = value.clone();
+		self
+	}
+
+	pub fn prudence(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
+		self.brain.prudence = value.clone();
+		self
+	}
+
+	pub fn rest(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
+		self.brain.rest = value.clone();
+		self
+	}
+
+	pub fn thrust(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
+		self.brain.thrust = value.clone();
+		self
+	}
+
+	pub fn weights_in(&mut self, weights_in: &<Brain as TypedBrain>::WeightMatrix) -> &mut Self {
+		self.brain.weights_in = weights_in.clone();
+		self
+	}
+
+	pub fn weights_hidden(&mut self, weights_hidden: &<Brain as TypedBrain>::WeightMatrix) -> &mut Self {
+		self.brain.weights_hidden = weights_hidden.clone();
+		self
+	}
+
+	pub fn weights_out(&mut self, weights_out: &<Brain as TypedBrain>::WeightMatrix) -> &mut Self {
+		self.brain.weights_out = weights_out.clone();
+		self
 	}
 
 	fn new_segment(&mut self, shape: &Shape, winding: Winding, transform: &Transform, motion: Option<&Motion>,

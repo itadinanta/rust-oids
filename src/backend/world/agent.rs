@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::fmt;
+use std::f32;
+use num::Float;
 use num::FromPrimitive;
-use num::ToPrimitive;
 use core::geometry::*;
 use core::clock::*;
 use backend::obj;
@@ -116,81 +117,112 @@ impl AgentType {
 	}
 }
 
+// for simplicity, inputs = intermediate = output
+pub const N_WEIGHTS: usize = 4;
+
+pub type InputVector<S> where S: Copy + Default + Float = [S; N_WEIGHTS];
+pub type OutputVector<S> where S: Copy + Default + Float = [S; N_WEIGHTS];
+
+pub type WeightVector<T> where T: Copy + Default = [T; N_WEIGHTS];
+pub type WeightMatrix<T> where T: Copy + Default = [WeightVector<T>; N_WEIGHTS];
+
 #[derive(Clone,Default)]
 pub struct GBrain<T: Copy + Default> {
-	pub timidity: T,
-	pub caution: T,
-	pub curiosity: T,
 	pub hunger: T,
-	pub focus: T,
 	pub haste: T,
-	pub fear: T,
 	pub prudence: T,
+	pub fear: T,
 	pub rest: T,
 	pub thrust: T,
-	pub weights_in: [[T; 4]; 4],
-	pub weights_hidden: [[T; 4]; 4],
-	pub weights_out: [[T; 4]; 4],
+	pub weights_in: WeightMatrix<T>,
+	pub weights_hidden: WeightMatrix<T>,
+	pub weights_out: WeightMatrix<T>,
 }
 
-pub trait Brain {
-	fn timidity(&self) -> f32;
-	fn hunger(&self) -> f32;
-	fn haste(&self) -> f32;
-	fn prudence(&self) -> f32;
-	fn caution(&self) -> f32;
-	fn focus(&self) -> f32;
-	fn curiosity(&self) -> f32;
-	fn fear(&self) -> f32;
-	fn rest(&self) -> f32;
-	fn thrust(&self) -> f32;
+pub trait TypedBrain {
+	type Parameter: Float;
+	type WeightVector;
+	type WeightMatrix;
 }
 
-pub trait ScaledCoefficient<T>
-	where T: ToPrimitive
+pub trait Personality<S>
+	where S: Copy + Float
 {
-	fn scale(i: T) -> f32 {
-		i.to_f32().unwrap() / 127.0
-	}
+	fn hunger(&self) -> S;
+	fn haste(&self) -> S;
+	fn prudence(&self) -> S;
+	fn fear(&self) -> S;
+	fn rest(&self) -> S;
+	fn thrust(&self) -> S;
+	fn response(&self, input: &InputVector<S>) -> OutputVector<S>;
 }
 
-impl<T> ScaledCoefficient<T> for GBrain<T> where T: Copy + Default + ToPrimitive {}
-
-impl<T> Brain for GBrain<T>
-    where T: Copy + Default + ToPrimitive
+pub trait Layer<S, T>
+	where T: Copy,
+	      S: Float + From<T>
 {
-	fn timidity(&self) -> f32 {
-		Self::scale(self.timidity)
+	fn activation(x: S) -> S {
+		x / (S::one() + x.abs())
 	}
-	fn hunger(&self) -> f32 {
-		Self::scale(self.hunger)
-	}
-	fn haste(&self) -> f32 {
-		Self::scale(self.haste)
-	}
-	fn prudence(&self) -> f32 {
-		Self::scale(self.prudence)
-	}
-	fn caution(&self) -> f32 {
-		Self::scale(self.caution)
-	}
-	fn focus(&self) -> f32 {
-		Self::scale(self.focus)
-	}
-	fn curiosity(&self) -> f32 {
-		Self::scale(self.curiosity)
-	}
-	fn fear(&self) -> f32 {
-		Self::scale(self.fear)
-	}
-	fn rest(&self) -> f32 {
-		Self::scale(self.rest)
-	}
-	fn thrust(&self) -> f32 {
-		Self::scale(self.thrust)
+
+	fn layer(inputs: &[S], weights: &[WeightVector<T>]) -> OutputVector<S> {
+		let mut outputs = [S::zero(); N_WEIGHTS];
+		for i in 0..outputs.len() {
+			for j in 0..inputs.len() {
+				outputs[i] = outputs[i] + inputs[j] * weights[i][j].into();
+			}
+			outputs[i] = Self::activation(outputs[i])
+		}
+		outputs
 	}
 }
 
+impl<S, T> Layer<S, T> for GBrain<T>
+	where T: Copy + Default,
+	      S: Float + From<T>
+{
+}
+
+impl<T, S> Personality<S> for GBrain<T>
+	where T: Copy + Default,
+	      S: Copy + Float + From<T>
+{
+	fn hunger(&self) -> S {
+		self.hunger.into()
+	}
+	fn haste(&self) -> S {
+		self.haste.into()
+	}
+	fn prudence(&self) -> S {
+		self.prudence.into()
+	}
+	fn fear(&self) -> S {
+		self.fear.into()
+	}
+	fn rest(&self) -> S {
+		self.rest.into()
+	}
+	fn thrust(&self) -> S {
+		self.thrust.into()
+	}
+
+	fn response(&self, input: &InputVector<S>) -> OutputVector<S> {
+		let output_in = Self::layer(input, &self.weights_in);
+		let output_hidden = Self::layer(&output_in, &self.weights_hidden);
+		let output_out = Self::layer(&output_hidden, &self.weights_out);
+		output_out
+	}
+}
+
+impl<T> TypedBrain for GBrain<T>
+    where T: Default + Copy + Float
+{
+	type Parameter = T;
+	type WeightVector = WeightVector<Self::Parameter>;
+	type WeightMatrix = WeightMatrix<Self::Parameter>;
+}
+
+pub type Brain = GBrain<f32>;
 
 
 bitflags! {
@@ -295,7 +327,7 @@ impl State {
 
 pub struct Agent {
 	id: Id,
-	brain: GBrain<i8>,
+	brain: Brain,
 	dna: Dna,
 	gender: u8,
 	pub state: State,
@@ -350,7 +382,7 @@ impl Agent {
 		self.segments.get_mut(index as usize)
 	}
 
-	pub fn brain(&self) -> &GBrain<i8> {
+	pub fn brain(&self) -> &Brain {
 		&self.brain
 	}
 
@@ -361,8 +393,9 @@ impl Agent {
 			.map(|sensor| sensor.clone())
 	}
 
-	pub fn new(id: Id, gender: u8, brain: &GBrain<i8>, dna: &Dna, segments: Box<[Segment]>) -> Self {
-		let max_energy = 100. *
+	pub fn new(id: Id, gender: u8, brain: &Brain, dna: &Dna, segments: Box<[Segment]>) -> Self {
+		const SCALE: f32 = 100.;
+		let max_energy = SCALE *
 		                 segments.iter()
 			.filter(|s| s.flags.contains(segment::STORAGE))
 			.fold(0., |a, s| a + s.mesh.shape.radius().powi(2));

@@ -144,18 +144,22 @@ pub trait Generator {
 }
 
 #[allow(dead_code)]
-pub struct Randomizer {
-	rng: rand::ThreadRng,
+pub struct Randomizer<R>
+	where R: rand::Rng
+{
+	rng: R,
 }
 
 #[allow(dead_code)]
-impl Randomizer {
-	pub fn new() -> Self {
+impl<R> Randomizer<R>
+    where R: rand::Rng
+{
+	pub fn new_thread_rng() -> Randomizer<rand::ThreadRng> {
 		Randomizer { rng: rand::thread_rng() }
 	}
 }
 
-impl Generator for Randomizer {
+impl Generator for Randomizer<rand::ThreadRng> {
 	fn next_float<T>(&mut self, min: T, max: T) -> T
 		where T: rand::Rand + num::Float {
 		self.rng.gen::<T>() * (max - min) + min
@@ -164,6 +168,21 @@ impl Generator for Randomizer {
 	fn next_integer<T>(&mut self, min: T, max: T) -> T
 		where T: rand::Rand + num::Integer + Copy {
 		self.rng.gen::<T>() % (max - min + T::one()) + min
+	}
+}
+
+trait Seeder {
+	fn seed(&mut self) -> Genome;
+}
+
+impl<R> Seeder for Randomizer<R>
+    where R: rand::Rng
+{
+	fn seed(&mut self) -> Genome {
+		let mut dna = vec![0u8, 64];
+		let mut r = dna.as_mut_slice();
+		self.rng.fill_bytes(r);
+		Genome::new(r)
 	}
 }
 
