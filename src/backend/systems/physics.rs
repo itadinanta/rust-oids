@@ -50,7 +50,7 @@ impl Updateable for PhysicsSystem {
 							forces.push((h, center, force));
 						}
 					}
-					Intent::RunAway(impulse) => impulses.push((h, center, impulse)),
+					Intent::RunAway(impulse) => impulses.push((h, center, impulse * dt)),
 					_ => {}
 				}
 			}

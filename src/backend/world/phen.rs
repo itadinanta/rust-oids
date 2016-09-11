@@ -45,8 +45,10 @@ impl Phenotype for Minion {
 		                                    Material { density: 0.2, ..Default::default() },
 		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                    gen.dna(),
-		                                    segment::State::with_charge(0., charge, charge));
+		                                    segment::State::with_charge(0., charge, charge))
+			.gender(gender);
 
+		// personality parameters
 		let mut weights_in = [[0.; N_WEIGHTS]; N_WEIGHTS];
 		let mut weights_hidden = [[0.; N_WEIGHTS]; N_WEIGHTS];
 		let mut weights_out = [[0.; N_WEIGHTS]; N_WEIGHTS];
@@ -57,18 +59,16 @@ impl Phenotype for Minion {
 				weights_out[i][j] = gen.next_float(-4., 4.);
 			}
 		}
-
-		builder.gender(gender)
-			.hunger(&gen.next_float(0., 1.))
-			.haste(&gen.next_float(0., 1.))
-			.prudence(&gen.next_float(0., 1.))
-			.fear(&gen.next_float(0., 1.))
+		builder.hunger(&gen.next_float(0., 0.9))
+			.haste(&gen.next_float(0., 0.9))
+			.prudence(&gen.next_float(0., 0.9))
+			.fear(&gen.next_float(0.1, 5.))
 			.rest(&gen.next_float(0.2, 1.))
 			.thrust(&gen.next_float(0.2, 1.))
 			.weights_in(&weights_in)
 			.weights_hidden(&weights_hidden)
 			.weights_out(&weights_out);
-
+		// body plan and shape
 		let torso_shape = gen.any_poly();
 		let torso = builder.start(transform, motion, &torso_shape).index();
 		let arm_shape = gen.star();
