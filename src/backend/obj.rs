@@ -216,6 +216,7 @@ impl Mesh {
 	}
 
 	#[inline]
+	#[allow(dead_code)]
 	pub fn is_convex(&self) -> bool {
 		self.flags.contains(CONVEX)
 	}

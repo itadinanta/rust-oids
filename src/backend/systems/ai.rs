@@ -1,4 +1,5 @@
 use super::*;
+use std::f32::consts;
 use std::collections::HashMap;
 use backend::obj;
 use backend::obj::Identified;
@@ -88,7 +89,7 @@ impl AiSystem {
 				// direction in which the head is pointing, normalized
 				let s = Matrix2::from_angle(rad(sensor.transform.angle)) * (-Position::unit_y());
 				// some proprioception, feeding back the angle betweent the neck and the first torso
-				let neck_angle = sensor.transform.angle -
+				let neck_angle = consts::PI + sensor.transform.angle -
 				                 torso.map(|t| t.transform.angle).unwrap_or(sensor.transform.angle);
 				// we pass the relative position of the target decomposed in our frame of reference to the neural network
 				// expecting four components we can use as thresholds
@@ -99,7 +100,6 @@ impl AiSystem {
 				for segment in segments.iter_mut() {
 					let flags = &segment.flags;
 					if flags.contains(segment::ACTUATOR) {
-						info!("Actuator flags set {:?}", flags);
 						let power = segment.state.get_charge() * segment.mesh.shape.radius().powi(2) * POWER_BOOST;
 						let f = Matrix2::from_angle(rad(segment.transform.angle)) * Position::unit_y() * power;
 						let intent =

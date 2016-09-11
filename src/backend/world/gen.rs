@@ -57,6 +57,7 @@ impl GenePool {
 		self.gene_pool.len()
 	}
 
+	#[allow(dead_code)]
 	pub fn new(gene_pool: &[Dna]) -> Self {
 		GenePool {
 			gene_pool: gene_pool.to_vec().into_boxed_slice(),
@@ -270,11 +271,11 @@ impl Genome {
 		}
 
 		info!("crossover at {}/{}: {} * {} -> {}",
-		         byte,
-		         bit,
-		         self.dna.to_base64(base64::STANDARD),
-		         other.to_base64(base64::STANDARD),
-		         new_genes.to_base64(base64::STANDARD));
+		      byte,
+		      bit,
+		      self.dna.to_base64(base64::STANDARD),
+		      other.to_base64(base64::STANDARD),
+		      new_genes.to_base64(base64::STANDARD));
 
 		Genome::new(&new_genes)
 	}

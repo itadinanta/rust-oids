@@ -43,12 +43,8 @@ pub enum Event {
 
 	AppQuit,
 
-	MoveLight(Position),
-
-	MoveEmitter(u8, Position),
 	NewMinion(Position),
 	RandomizeMinion(Position),
-	NewResource(Position),
 }
 
 pub fn run() {
@@ -214,10 +210,6 @@ impl App {
 		             [0.01, 0.01, 0.01, 1.0]])
 	}
 
-	fn new_resource(&mut self, pos: Position) {
-		self.world.new_resource(&Transform::from_position(pos), None);
-	}
-
 	fn randomize_minion(&mut self, pos: Position) {
 		self.world.randomize_minion(pos, None);
 	}
@@ -267,11 +259,8 @@ impl App {
 					Ok(name) => info!("Saved {}", name),
 				}
 			}
-			Event::MoveLight(_pos) => {}
-			Event::MoveEmitter(_i, _pos) => {}
 			Event::NewMinion(pos) => self.new_minion(pos),
 			Event::RandomizeMinion(pos) => self.randomize_minion(pos),
-			Event::NewResource(pos) => self.new_resource(pos),
 		}
 	}
 
@@ -333,10 +322,6 @@ impl App {
 			} else {
 				events.push(Event::NewMinion(world_pos));
 			}
-		}
-
-		if self.input_state.key_pressed(input::Key::MouseLeft) {
-			events.push(Event::MoveLight(world_pos));
 		}
 
 		for e in events {

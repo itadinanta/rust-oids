@@ -170,6 +170,7 @@ impl World {
 		collection
 	}
 
+	#[allow(dead_code)]
 	pub fn agent(&self, id: obj::Id) -> Option<&Agent> {
 		self.swarms.get(&id.type_of()).and_then(|m| m.get(id))
 	}

@@ -123,10 +123,12 @@ impl PolygonType {
 		self.count[VertexType::Plus as usize] == 0 || self.count[VertexType::Minus as usize] == 0
 	}
 
+	#[allow(dead_code)]
 	pub fn is_concave(&self) -> bool {
 		self.count[VertexType::Plus as usize] > 0 && self.count[VertexType::Minus as usize] > 0
 	}
 
+	#[allow(dead_code)]
 	pub fn has_flat_vertices(&self) -> bool {
 		self.count[VertexType::Flat as usize] > 0
 	}
