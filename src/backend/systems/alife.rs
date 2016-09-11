@@ -176,9 +176,9 @@ impl AlifeSystem {
 					if let Some(key) = segment.state.last_touched {
 						if let Some(touched_dna) = touched.get(&key.id()) {
 							info!("fertilised: {} by {} as {}",
-							         spore_id,
-							         key.id(),
-							         touched_dna.to_base64(base64::STANDARD));
+							      spore_id,
+							      key.id(),
+							      touched_dna.to_base64(base64::STANDARD));
 							spore.state.fertilise(touched_dna);
 						}
 					}

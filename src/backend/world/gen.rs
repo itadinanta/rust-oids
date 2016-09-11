@@ -281,7 +281,8 @@ impl Genome {
 
 	pub fn mutate<R: rand::Rng>(&self, rng: &mut R) -> Self {
 		let mut new_genes = self.dna.to_vec();
-		for _ in 0..(new_genes.len() / 8 + 1) {
+		let n_mutations = rng.gen::<usize>() % (new_genes.len() / 8 + 1);
+		for _ in 0..n_mutations {
 			let (byte, bit) = split_bit(rng.gen::<usize>() % self.bit_count);
 			new_genes[byte] ^= 1 << bit;
 		}
