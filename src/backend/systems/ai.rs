@@ -112,13 +112,13 @@ impl AiSystem {
 									}
 								}
 							} else if flags.contains(segment::RUDDER | segment::LEFT) && r[0] > brain.hunger() {
-								Intent::Move(f)
+								Intent::Move(-f)
 							} else if flags.contains(segment::RUDDER | segment::RIGHT) && r[1] > brain.hunger() {
-								Intent::Move(f)
+								Intent::Move(-f)
 							} else if flags.contains(segment::THRUSTER) && r[2] > brain.haste() {
 								Intent::Move(f)
 							} else if flags.contains(segment::BRAKE) && r[3] > brain.prudence() {
-								Intent::Brake(f)
+								Intent::Brake(-f)
 							} else {
 								Intent::Idle
 							};

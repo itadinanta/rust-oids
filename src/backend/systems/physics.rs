@@ -7,6 +7,7 @@ use wrapped2d::b2;
 use wrapped2d::user_data::*;
 use wrapped2d::dynamics::world::callbacks::ContactAccess;
 use core::geometry::*;
+use cgmath::Vector;
 use backend::obj;
 use backend::obj::*;
 use backend::world;
@@ -43,8 +44,11 @@ impl Updateable for PhysicsSystem {
 				match segment.state.intent {
 					Intent::Move(force) => forces.push((h, center, force)),
 					Intent::Brake(force) => {
-						let linear_velocity = (*body).linear_velocity();
-						forces.push((h, center, -force * linear_velocity.norm().min(1.)));
+						let linear_velocity = PhysicsSystem::from_vec2((*body).linear_velocity());
+						let comp = force.dot(linear_velocity);
+						if comp < 0. {
+							forces.push((h, center, force));
+						}
 					}
 					Intent::RunAway(impulse) => impulses.push((h, center, impulse)),
 					_ => {}
@@ -292,7 +296,7 @@ impl PhysicsSystem {
 	}
 
 	fn new_world(touched: ContactSet) -> b2::World<AgentData> {
-		let mut world = b2::World::new(&b2::Vec2 { x: 0.0, y: 0.0 });
+		let mut world = b2::World::new(&b2::Vec2 { x: 0.0, y: -0.5 });
 		world.set_contact_listener(Box::new(ContactListener { touched: touched }));
 		world
 	}

@@ -443,7 +443,7 @@ impl App {
 					match segment.state.intent {
 						segment::Intent::Brake(v) => {
 							let p0 = segment.transform.position;
-							let p1 = p0 + v * -0.05;
+							let p1 = p0 + v * 0.05;
 							renderer.draw_debug_lines(&Matrix4::identity(),
 							                          &[p0, p1],
 							                          &render::Appearance::rgba([2., 0., 0., 1.]));
