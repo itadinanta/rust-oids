@@ -1,8 +1,6 @@
 mod main;
 mod ev;
 
-use log::*;
-
 use core::util::Cycle;
 use core::geometry::*;
 use core::clock::*;
@@ -429,12 +427,48 @@ impl App {
 			renderer.draw_ball(&transform, &render::Appearance::rgba(self.lights.get()));
 		}
 		if self.debug_flags.contains(DEBUG_TARGETS) {
+			use cgmath::*;
 			for (_, agent) in self.world.agents(world::agent::AgentType::Minion).iter() {
-				let p0 = agent.first_segment(segment::HEAD).unwrap().transform().position;
+				let sensor = agent.first_segment(segment::HEAD).unwrap();
+				let p0 = sensor.transform.position;
+				let a0 = sensor.transform.angle;
+				let radar_range = sensor.mesh.shape.radius() * 10.;
 				let p1 = *agent.state.target_position();
 				renderer.draw_lines(&Matrix4::identity(),
 				                    &[p0, p1],
-				                    &render::Appearance::rgba(agent.segments[0].color()));
+				                    &render::Appearance::rgba([1., 1., 0., 1.]));
+
+				let t0 = p1 - p0;
+				let t = t0.normalize_to(t0.length().min(radar_range));
+				let m = Matrix2::from_angle(rad(a0));
+
+				let v = m * (-Position::unit_y());
+				let p2 = p0 + v.normalize_to(t.dot(v));
+				renderer.draw_lines(&Matrix4::identity(),
+				                    &[p0, p2],
+				                    &render::Appearance::rgba([0., 1., 0., 1.]));
+
+				let u = m * (-Position::unit_x());
+				let p3 = p0 + u.normalize_to(t.perp_dot(v));
+				renderer.draw_lines(&Matrix4::identity(),
+				                    &[p0, p3],
+				                    &render::Appearance::rgba([0., 1., 0., 1.]));
+
+				for segment in agent.segments().iter() {
+					match segment.state.intent {
+						segment::Intent::Idle => {}
+						segment::Intent::Move(v) => {
+							let p0 = segment.transform.position;
+							// let a0 = segment.transform.angle;
+							// let s = Matrix2::from_angle(rad(a0)) * Position::unit_y();
+							let p1 = p0 + v * 0.01;
+							renderer.draw_lines(&Matrix4::identity(),
+							                    &[p0, p1],
+							                    &render::Appearance::rgba([2., 0., 0., 1.]));
+						}
+						segment::Intent::RunAway(_) => {}
+					}
+				}
 			}
 		}
 	}

@@ -126,7 +126,7 @@ pub type OutputVector<S> where S: Copy + Default + Float = [S; N_WEIGHTS];
 pub type WeightVector<T> where T: Copy + Default = [T; N_WEIGHTS];
 pub type WeightMatrix<T> where T: Copy + Default = [WeightVector<T>; N_WEIGHTS];
 
-#[derive(Clone,Default)]
+#[derive(Clone,Default,Debug)]
 pub struct GBrain<T: Copy + Default> {
 	pub hunger: T,
 	pub haste: T,

@@ -82,12 +82,13 @@ impl AiSystem {
 				// where oid's target is in the world
 				let target_position = agent.state.target_position().clone();
 				// where oid's target is compared to the oid's head
-				let t = target_position - sensor.transform.position;
+				let t0 = target_position - sensor.transform.position;
+				let t = t0.normalize_to(t0.length().min(radar_range));
 				// direction in which the head is pointing, normalized
 				let s = Matrix2::from_angle(rad(sensor.transform.angle)) * (-Position::unit_y());
 				// we pass the relative position of the target decomposed in our frame of reference to the neural network
 				// expecting four components we can use as thresholds
-				let r = agent.brain().response(&[0., s.dot(t), s.perp_dot(t), 0.]);
+				let r = agent.brain().response(&[0., t.dot(s), t.perp_dot(s), 0.]);
 				const POWER_BOOST: f32 = 100.;
 
 				let segments = &mut agent.segments_mut();
@@ -95,16 +96,16 @@ impl AiSystem {
 					if segment.flags.intersects(segment::ACTUATOR) {
 						let power = segment.state.get_charge() * segment.mesh.shape.radius().powi(2) * POWER_BOOST;
 						let f = Matrix2::from_angle(rad(segment.transform.angle)) * Position::unit_y() * power;
-
 						let intent = if let Some(refs) = segment.state.last_touched {
+							let fear: f32 = brain.fear();
 							match refs.id().type_of() {
 								agent::AgentType::Resource => Intent::Idle,
-								_ => Intent::RunAway(f * 0.05),
+								_ => Intent::RunAway(f * fear),
 							}
-						} else if segment.flags.intersects(segment::RUDDER | segment::LEFT) &&
+						} else if segment.flags.contains(segment::RUDDER | segment::LEFT) &&
 						                       r[0] > brain.hunger() {
 							Intent::Move(f)
-						} else if segment.flags.intersects(segment::RUDDER | segment::RIGHT) &&
+						} else if segment.flags.contains(segment::RUDDER | segment::RIGHT) &&
 						                       r[1] > brain.hunger() {
 							Intent::Move(f)
 						} else if segment.flags.contains(segment::THRUSTER) && r[2] > brain.haste() {

@@ -6,6 +6,7 @@ use core::geometry::*;
 use backend::world::segment;
 use backend::world::segment::*;
 use backend::world::agent;
+use backend::world::agent::N_WEIGHTS;
 use backend::world::agent::Agent;
 use backend::world::agent::Brain;
 use backend::world::agent::TypedBrain;
@@ -46,11 +47,11 @@ impl Phenotype for Minion {
 		                                    gen.dna(),
 		                                    segment::State::with_charge(0., charge, charge));
 
-		let mut weights_in = [[0.; 4]; 4];
-		let mut weights_hidden = [[0.; 4]; 4];
-		let mut weights_out = [[0.; 4]; 4];
-		for i in 0..4 {
-			for j in 0..4 {
+		let mut weights_in = [[0.; N_WEIGHTS]; N_WEIGHTS];
+		let mut weights_hidden = [[0.; N_WEIGHTS]; N_WEIGHTS];
+		let mut weights_out = [[0.; N_WEIGHTS]; N_WEIGHTS];
+		for i in 0..N_WEIGHTS {
+			for j in 0..N_WEIGHTS {
 				weights_in[i][j] = gen.next_float(-4., 4.);
 				weights_hidden[i][j] = gen.next_float(-4., 4.);
 				weights_out[i][j] = gen.next_float(-4., 4.);
@@ -61,6 +62,7 @@ impl Phenotype for Minion {
 			.hunger(&gen.next_float(0., 1.))
 			.haste(&gen.next_float(0., 1.))
 			.prudence(&gen.next_float(0., 1.))
+			.fear(&gen.next_float(0., 1.))
 			.rest(&gen.next_float(0.2, 1.))
 			.thrust(&gen.next_float(0.2, 1.))
 			.weights_in(&weights_in)
@@ -240,6 +242,11 @@ impl AgentBuilder {
 		self
 	}
 
+	pub fn fear(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
+		self.brain.fear = value.clone();
+		self
+	}
+
 	pub fn rest(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
 		self.brain.rest = value.clone();
 		self
@@ -282,6 +289,7 @@ impl AgentBuilder {
 	}
 
 	pub fn build(&self) -> Agent {
+		trace!("Agent {:?} has brain {:?}", self.id, self.brain);
 		Agent::new(self.id,
 		           self.gender,
 		           &self.brain,

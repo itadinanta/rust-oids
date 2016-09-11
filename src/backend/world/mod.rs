@@ -143,11 +143,11 @@ impl World {
 			let pos = Position::new(r * angle.cos(), r * angle.sin());
 			let mut gen = self.minion_gene_pool.next();
 			let id = self.swarm_mut(&AgentType::Minion)
-				.spawn::<phen::Minion>(&mut gen, &Transform::new(pos, angle), None, 0.3);
+				.spawn::<phen::Minion>(&mut gen,
+				                       &Transform::new(pos, angle + consts::PI / 2.),
+				                       None,
+				                       0.3);
 			self.register(id);
-		}
-		for _ in 0..n {
-			self.minion_gene_pool.randomize();
 		}
 	}
 
