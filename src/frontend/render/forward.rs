@@ -81,7 +81,8 @@ pub enum Shader {
 	Flat = 1,
 	Wireframe = 2,
 	Lines = 3,
-	Count = 4,
+	DebugLines = 4,
+	Count = 5,
 }
 
 pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
@@ -123,6 +124,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 			gfx::state::Rasterizer { samples: Some(gfx::state::MultiSample), ..gfx::state::Rasterizer::new_fill() };
 
 		let line_rasterizer = gfx::state::Rasterizer { method: gfx::state::RasterMethod::Line(2), ..solid_rasterizer };
+		let debug_line_rasterizer =
+			gfx::state::Rasterizer { method: gfx::state::RasterMethod::Line(1), ..solid_rasterizer };
 
 		let ball_pso = try!(Self::new_pso(factory,
 		                                  &ball_shaders,
@@ -140,13 +143,17 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 		                                   &flat_shaders,
 		                                   gfx::Primitive::LineStrip,
 		                                   line_rasterizer));
+		let debug_lines_pso = try!(Self::new_pso(factory,
+		                                         &flat_shaders,
+		                                         gfx::Primitive::LineStrip,
+		                                         debug_line_rasterizer));
 		Ok(ForwardLighting {
 			camera: camera,
 			model: model,
 			fragment: fragment,
 			material: material,
 			lights: lights,
-			pso: [ball_pso, poly_pso, wireframe_pso, lines_pso],
+			pso: [ball_pso, poly_pso, wireframe_pso, lines_pso, debug_lines_pso],
 			_buffer: PhantomData,
 		})
 	}

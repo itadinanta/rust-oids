@@ -434,9 +434,9 @@ impl App {
 				let a0 = sensor.transform.angle;
 				let radar_range = sensor.mesh.shape.radius() * 10.;
 				let p1 = *agent.state.target_position();
-				renderer.draw_lines(&Matrix4::identity(),
-				                    &[p0, p1],
-				                    &render::Appearance::rgba([1., 1., 0., 1.]));
+				renderer.draw_debug_lines(&Matrix4::identity(),
+				                          &[p0, p1],
+				                          &render::Appearance::rgba([1., 1., 0., 1.]));
 
 				let t0 = p1 - p0;
 				let t = t0.normalize_to(t0.length().min(radar_range));
@@ -444,28 +444,33 @@ impl App {
 
 				let v = m * (-Position::unit_y());
 				let p2 = p0 + v.normalize_to(t.dot(v));
-				renderer.draw_lines(&Matrix4::identity(),
-				                    &[p0, p2],
-				                    &render::Appearance::rgba([0., 1., 0., 1.]));
+				renderer.draw_debug_lines(&Matrix4::identity(),
+				                          &[p0, p2],
+				                          &render::Appearance::rgba([0., 1., 0., 1.]));
 
 				let u = m * (-Position::unit_x());
 				let p3 = p0 + u.normalize_to(t.perp_dot(v));
-				renderer.draw_lines(&Matrix4::identity(),
-				                    &[p0, p3],
-				                    &render::Appearance::rgba([0., 1., 0., 1.]));
+				renderer.draw_debug_lines(&Matrix4::identity(),
+				                          &[p0, p3],
+				                          &render::Appearance::rgba([0., 1., 0., 1.]));
 
 				for segment in agent.segments().iter() {
 					match segment.state.intent {
-						segment::Intent::Idle => {}
+						segment::Intent::Brake(v) => {
+							let p0 = segment.transform.position;
+							let p1 = p0 + v * -0.05;
+							renderer.draw_debug_lines(&Matrix4::identity(),
+							                          &[p0, p1],
+							                          &render::Appearance::rgba([2., 0., 0., 1.]));
+						}
 						segment::Intent::Move(v) => {
 							let p0 = segment.transform.position;
-							// let a0 = segment.transform.angle;
-							// let s = Matrix2::from_angle(rad(a0)) * Position::unit_y();
-							let p1 = p0 + v * 0.01;
-							renderer.draw_lines(&Matrix4::identity(),
-							                    &[p0, p1],
-							                    &render::Appearance::rgba([2., 0., 0., 1.]));
+							let p1 = p0 + v * 0.05;
+							renderer.draw_debug_lines(&Matrix4::identity(),
+							                          &[p0, p1],
+							                          &render::Appearance::rgba([0., 0., 2., 1.]));
 						}
+						segment::Intent::Idle => {}
 						segment::Intent::RunAway(_) => {}
 					}
 				}

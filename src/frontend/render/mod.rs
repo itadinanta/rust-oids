@@ -164,6 +164,7 @@ pub trait Draw {
 	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>, ratio: f32, appearance: &Appearance);
 	fn draw_star(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], appearance: &Appearance);
 	fn draw_lines(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], appearance: &Appearance);
+	fn draw_debug_lines(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], appearance: &Appearance);
 	fn draw_ball(&mut self, transform: &cgmath::Matrix4<f32>, appearance: &Appearance);
 	fn draw_text(&mut self, text: &str, screen_position: [i32; 2], text_color: Rgba);
 }
@@ -333,6 +334,29 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 		                                           &mut self.depth);
 	}
 
+	fn draw_debug_lines(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], appearance: &Appearance) {
+		let v: Vec<_> = vertices.iter()
+			.map(|v| {
+				Vertex {
+					pos: [v.x, v.y, 0.0],
+					normal: [0.0, 0.0, 1.0],
+					tangent: [1.0, 0.0, 0.0],
+					tex_coord: [0.5, 0.5],
+				}
+			})
+			.collect();
+		let (vertex_buffer, index_buffer) = self.factory.create_vertex_buffer_with_slice(v.as_slice(), ());
+
+		self.pass_forward_lighting.draw_primitives(forward::Shader::DebugLines,
+		                                           &mut self.encoder,
+		                                           vertex_buffer,
+		                                           &index_buffer,
+		                                           &transform,
+		                                           appearance.color,
+		                                           appearance.effect,
+		                                           &mut self.hdr_color,
+		                                           &mut self.depth);
+	}
 
 	fn draw_ball(&mut self, transform: &cgmath::Matrix4<f32>, appearance: &Appearance) {
 		self.pass_forward_lighting.draw_primitives(forward::Shader::Ball,
