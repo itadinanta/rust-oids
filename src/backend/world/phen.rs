@@ -88,11 +88,13 @@ impl Phenotype for Minion {
 
 			belly = builder.add(belly, belly_mid, &belly_shape, STORAGE | JOINT).index();
 			belly_mid = belly_shape.mid();
-			if gen.next_integer(0, 1) == 0 {
-				builder.addr(belly, 2, &gen.star(), ARM | ACTUATOR | RUDDER);
-			}
-			if gen.next_integer(0, 1) == 0 {
-				builder.addl(belly, -2, &gen.star(), ARM | ACTUATOR | RUDDER);
+			if belly_shape.length() > 6 {
+				if gen.next_integer(0, 1) == 0 {
+					builder.addr(belly, 2, &gen.star(), ARM | ACTUATOR | RUDDER);
+				}
+				if gen.next_integer(0, 1) == 0 {
+					builder.addl(belly, -2, &gen.star(), ARM | ACTUATOR | RUDDER);
+				}
 			}
 		}
 		let leg_shape = gen.star();
