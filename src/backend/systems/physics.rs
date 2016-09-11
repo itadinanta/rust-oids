@@ -42,6 +42,10 @@ impl Updateable for PhysicsSystem {
 			if let Some(segment) = state.agent(key.agent_id).and_then(|c| c.segment(key.segment_index)) {
 				match segment.state.intent {
 					Intent::Move(force) => forces.push((h, center, force)),
+					Intent::Brake(force) => {
+						let linear_velocity = (*body).linear_velocity();
+						forces.push((h, center, -force * linear_velocity.norm().min(1.)));
+					}
 					Intent::RunAway(impulse) => impulses.push((h, center, impulse)),
 					_ => {}
 				}
@@ -49,25 +53,13 @@ impl Updateable for PhysicsSystem {
 		}
 		for (h, center, force) in forces {
 			let b = &mut self.world.body_mut(h);
-			b.apply_force(&b2::Vec2 {
-				              x: force.x,
-				              y: force.y,
-			              },
-			              &center,
-			              true);
+			b.apply_force(&PhysicsSystem::to_vec2(&force), &center, true);
 		}
 
 		for (h, center, impulse) in impulses {
 			let b = &mut self.world.body_mut(h);
-			b.apply_linear_impulse(&b2::Vec2 {
-				                       x: impulse.x,
-				                       y: impulse.y,
-			                       },
-			                       &center,
-			                       true);
+			b.apply_linear_impulse(&PhysicsSystem::to_vec2(&impulse), &center, true);
 		}
-
-
 		self.world.step(dt, 8, 3);
 	}
 }

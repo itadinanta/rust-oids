@@ -9,6 +9,7 @@ use core::geometry::*;
 pub enum Intent {
 	Idle,
 	Move(Position),
+	Brake(Position),
 	RunAway(Position),
 }
 
@@ -82,22 +83,22 @@ pub struct Attachment {
 
 bitflags! {
 	pub flags Flags: u32 {
-		const SENSOR       = 0x1,
-		const JOINT        = 0x4,
-		const MOUTH		   = 0x8,
-		const HEAD		   = 0x10,
-		const LEG          = 0x20,
-		const ARM          = 0x40,
-		const CORE         = 0x100,
-		const STORAGE      = 0x200,
-		const TAIL         = 0x400,
-		const LEFT         = 0x1000,
-		const RIGHT        = 0x2000,
-		const MIDDLE       = 0x4000,
-		const THRUSTER     = 0x10000,
-		const RUDDER       = 0x20000,
-		const BRAKE        = 0x40000,
-		const ACTUATOR     = THRUSTER.bits | RUDDER.bits | BRAKE.bits,
+		const SENSOR       = 0x00001u32,
+		const ACTUATOR     = 0x00002u32,
+		const JOINT        = 0x00004u32,
+		const MOUTH		   = 0x00008u32,
+		const HEAD		   = 0x00010u32,
+		const LEG          = 0x00020u32,
+		const ARM          = 0x00040u32,
+		const CORE         = 0x00100u32,
+		const STORAGE      = 0x00200u32,
+		const TAIL         = 0x00400u32,
+		const LEFT         = 0x01000u32,
+		const RIGHT        = 0x02000u32,
+		const MIDDLE       = 0x04000u32,
+		const THRUSTER     = 0x10000u32,
+		const RUDDER       = 0x20000u32,
+		const BRAKE        = 0x40000u32,
 	}
 }
 
