@@ -60,7 +60,7 @@ impl AiSystem {
 
 		for (_, agent) in minions.iter_mut() {
 			let brain = agent.brain().clone();
-			let torso = agent.first_segment(segment::STORAGE);
+			let core = agent.first_segment(segment::CORE);
 			let head = agent.first_segment(segment::SENSOR);
 			if let Some(sensor) = head {
 				let p0 = sensor.transform.position;
@@ -90,7 +90,7 @@ impl AiSystem {
 				let s = Matrix2::from_angle(rad(sensor.transform.angle)) * (-Position::unit_y());
 				// some proprioception, feeding back the angle betweent the neck and the first torso
 				let neck_angle = consts::PI + sensor.transform.angle -
-				                 torso.map(|t| t.transform.angle).unwrap_or(sensor.transform.angle);
+				                 core.map(|t| t.transform.angle).unwrap_or(sensor.transform.angle);
 				// we pass the relative position of the target decomposed in our frame of reference to the neural network
 				// expecting four components we can use as thresholds
 				let r = agent.brain().response(&[neck_angle, t.dot(s), t.perp_dot(s), 0.]);

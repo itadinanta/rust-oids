@@ -45,8 +45,8 @@ impl Phenotype for Minion {
 		                                    Material { density: 0.2, ..Default::default() },
 		                                    Livery { albedo: albedo.to_rgba(), ..Default::default() },
 		                                    gen.dna(),
-		                                    segment::State::with_charge(0., charge, charge))
-			.gender(gender);
+		                                    segment::State::with_charge(0., charge, charge));
+		builder.gender(gender);
 
 		// personality parameters
 		let mut weights_in = [[0.; N_WEIGHTS]; N_WEIGHTS];
@@ -71,37 +71,33 @@ impl Phenotype for Minion {
 		// body plan and shape
 		let torso_shape = gen.any_poly();
 		let torso = builder.start(transform, motion, &torso_shape).index();
-		let arm_shape = gen.star();
-		let leg_shape = gen.star();
 		let head_shape = gen.iso_triangle();
-		let antenna_shape = gen.triangle();
 		let tail_shape = gen.vbar();
 		let i = ::std::cmp::max((torso_shape.length() as isize / 5), 1);
-		builder.addr(torso, i, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER)
-			.addl(torso, -i, &arm_shape, ARM | JOINT | ACTUATOR | RUDDER);
+		builder.addr(torso, i, &gen.star(), ARM | JOINT | ACTUATOR | RUDDER)
+			.addl(torso, -i, &gen.star(), ARM | JOINT | ACTUATOR | RUDDER);
 
 		let head = builder.add(torso, 0, &head_shape, HEAD | SENSOR).index();
-		builder.addr(head, 1, &antenna_shape, HEAD | MOUTH | ACTUATOR | RUDDER)
-			.addl(head, 2, &antenna_shape, HEAD | MOUTH | ACTUATOR | RUDDER);
+		builder.addr(head, 1, &gen.triangle(), HEAD | MOUTH | ACTUATOR | RUDDER)
+			.addl(head, -1, &gen.triangle(), HEAD | MOUTH | ACTUATOR | RUDDER);
 
 		let mut belly = torso;
 		let mut belly_mid = torso_shape.mid();
-		while gen.next_integer(0, 4) == 0 {
-			let belly_shape = gen.poly(true);
+		while gen.next_integer(0, 3) == 0 {
+			let belly_shape = gen.any_poly();
 
 			belly = builder.add(belly, belly_mid, &belly_shape, STORAGE | JOINT).index();
 			belly_mid = belly_shape.mid();
-			if gen.next_integer(0, 4) == 0 {
-				builder.addr(belly, 2, &arm_shape, ARM | ACTUATOR | RUDDER)
-					.addl(belly, -2, &arm_shape, ARM | ACTUATOR | RUDDER);
+			if gen.next_integer(0, 1) == 0 {
+				builder.addr(belly, 2, &gen.star(), ARM | ACTUATOR | RUDDER);
+			}
+			if gen.next_integer(0, 1) == 0 {
+				builder.addl(belly, -2, &gen.star(), ARM | ACTUATOR | RUDDER);
 			}
 		}
-
+		let leg_shape = gen.star();
 		builder.addr(belly, belly_mid - 1, &leg_shape, LEG | ACTUATOR | THRUSTER)
-			.addl(belly,
-			      -(belly_mid - 1),
-			      &leg_shape,
-			      LEG | ACTUATOR | THRUSTER)
+			.addl(belly, 1 - belly_mid, &leg_shape, LEG | ACTUATOR | THRUSTER)
 			.add(belly, belly_mid, &tail_shape, TAIL | ACTUATOR | BRAKE)
 			.build()
 	}
