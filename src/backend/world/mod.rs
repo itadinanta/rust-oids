@@ -71,7 +71,7 @@ impl Transformable for Emitter {
 }
 
 impl World {
-	pub fn new<R>(res: &R) -> Self
+	pub fn new<R>(res: &R, minion_gene_pool: &str) -> Self
 		where R: ResourceLoader<u8> {
 		let mut swarms = HashMap::new();
 		let types = AgentType::all();
@@ -79,22 +79,20 @@ impl World {
 			swarms.insert(*t, Swarm::new(*t));
 		}
 		fn default_gene_pool(_: io::Error) -> gen::GenePool {
-			gen::GenePool::parse_from_base64(&["GzA21QVwM00sXAk5gwajjf4wM0aZ",
-			                                   "GzB2lQdwM10vQEu5zwaPgDhfq2v8",
-			                                   "GzB2lQVwM00tTAm5gwajjf4wc0a5",
+			gen::GenePool::parse_from_base64(&["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+			                                   "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 			                                   "GzB2lQVwM00tTAm5gwajjf4wc0a5GzB2lQVwM00tTAm5gwajjf4wc0a5",
 			                                   "GzB2lQdwM10vQEu5zwaPgDhfq2v8GzB2lQdwM10vQEu5zwaPgDhfq2v8"])
 		}
 
 		World {
-			extent: Rect::new(-50., -50., 50., 50.),
+			extent: Rect::new(-80., -80., 80., 80.),
 			swarms: swarms,
 			emitters: vec![Emitter::new(-20., -20., 0.4),
-			               Emitter::new(-20., 20., 0.8),
-			               Emitter::new(20., 20., 1.2),
-			               Emitter::new(20., -20., 2.0)],
-
-			minion_gene_pool: res.load("minion_gene_pool.csv")
+			               Emitter::new(-20., 20., 0.4),
+			               Emitter::new(20., 20., 0.4),
+			               Emitter::new(20., -20., 0.4)],
+			minion_gene_pool: res.load(minion_gene_pool)
 				.map(|data| gen::GenePool::parse_from_resource(&data))
 				.unwrap_or_else(default_gene_pool),
 			resource_gene_pool: gen::GenePool::parse_from_base64(&["GyA21QoQ", "M00sWS0M"]),

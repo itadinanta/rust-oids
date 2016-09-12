@@ -47,8 +47,9 @@ pub enum Event {
 	RandomizeMinion(Position),
 }
 
-pub fn run() {
-	main::main_loop();
+pub fn run(args: &[String]) {
+	let pool_file_name = args.get(1).map(|n| n.as_str()).unwrap_or("minion_gene_pool.csv");
+	main::main_loop(pool_file_name);
 }
 
 pub struct Viewport {
@@ -158,7 +159,7 @@ pub struct Update {
 }
 
 impl App {
-	pub fn new<R>(w: u32, h: u32, scale: f32, res: &R) -> Self
+	pub fn new<R>(w: u32, h: u32, scale: f32, res: &R, minion_gene_pool: &str) -> Self
 		where R: ResourceLoader<u8> {
 		App {
 			viewport: Viewport::rect(w, h, scale),
@@ -168,7 +169,7 @@ impl App {
 			lights: Self::init_lights(),
 			backgrounds: Self::init_backgrounds(),
 
-			world: world::World::new(res),
+			world: world::World::new(res, minion_gene_pool),
 			// subsystems
 			systems: Systems::default(),
 			// runtime and timing

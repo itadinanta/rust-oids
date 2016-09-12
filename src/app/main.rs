@@ -10,9 +10,9 @@ use app::ev::GlutinEventMapper;
 use glutin;
 use gfx_window_glutin;
 
-pub fn main_loop() {
-	const WIDTH: u32 = 1280;
-	const HEIGHT: u32 = 720;
+pub fn main_loop(minion_gene_pool: &str) {
+	const WIDTH: u32 = 1024;
+	const HEIGHT: u32 = 1024;
 
 	let builder = glutin::WindowBuilder::new()
 		.with_title("Box2d + GFX".to_string())
@@ -38,7 +38,7 @@ pub fn main_loop() {
 		.unwrap();
 	let mapper = GlutinEventMapper::new();
 	// Create a new game and run it.
-	let mut app = app::App::new(w as u32, h as u32, 100.0, &res);
+	let mut app = app::App::new(w as u32, h as u32, 100.0, &res, minion_gene_pool);
 
 	app.init();
 

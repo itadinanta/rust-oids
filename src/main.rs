@@ -42,7 +42,9 @@ extern crate rustc_serialize as serialize;
 fn main() {
 	use log4rs::config::*;
 	use log4rs::append::console::*;
-
+	use std::env;
+	let args = env::args().collect::<Vec<_>>();
+	
 	let config = Config::builder()
 		.appender(Appender::builder().build("stdout".to_string(),
 		                                    Box::new(ConsoleAppender::builder().build())))
@@ -50,5 +52,5 @@ fn main() {
 		.logger(Logger::builder().build("rust_oids".to_string(), log::LogLevelFilter::Info))
 		.build(Root::builder().appender("stdout".to_string()).build(log::LogLevelFilter::Info));
 	log4rs::init_config(config.unwrap()).unwrap();
-	app::run();
+	app::run(&args);
 }
