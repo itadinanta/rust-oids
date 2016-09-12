@@ -1,5 +1,7 @@
 use super::*;
 use std::f32::consts;
+use rand;
+use rand::Rng;
 use core::clock::*;
 use core::geometry::*;
 use backend::obj::Transformable;
@@ -29,7 +31,7 @@ impl Emitter {
 			spawned: 0,
 			angle: consts::PI / 12.,
 			spin: consts::PI,
-			velocity: 10.,
+			velocity: 5.,
 		}
 	}
 }
@@ -62,9 +64,11 @@ impl System for GameSystem {
 	}
 
 	fn to_world(&self, world: &mut world::World) {
+		let mut rng = &mut rand::thread_rng();
 		for e in &self.emitters {
 			for i in e.spawned..e.to_spawn {
-				let r = e.angle * i as f32;
+				// let r = e.angle * i as f32;
+				let r = rng.next_f32() * 2. * consts::PI;
 				world.new_resource(&Transform::new(e.position, r),
 				                   Some(&Motion {
 					                   velocity: Velocity::new(r.cos(), r.sin()) * e.velocity,

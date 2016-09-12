@@ -96,6 +96,9 @@ impl Phenotype for Minion {
 					builder.addl(belly, -2, &gen.star(), ARM | ACTUATOR | RUDDER);
 				}
 			}
+			if belly > 20 {
+				break;
+			}
 		}
 		let leg_shape = gen.star();
 		builder.addr(belly, belly_mid - 1, &leg_shape, LEG | ACTUATOR | THRUSTER)
