@@ -210,16 +210,11 @@ impl World {
 
 	pub fn dump(&self) -> io::Result<String> {
 		let now: DateTime<UTC> = UTC::now();
-		let file_name = now.format("rust-oids_%Y%m%d_%H%M%S.log").to_string();
+		let file_name = now.format("resources/%Y%m%d_%H%M%S.csv").to_string();
 		let mut f = try!(fs::File::create(&file_name));
-		for (_, swarm) in self.swarms.iter().filter(|&(_, s)| !s.is_empty()) {
-			try!(f.write_fmt(format_args!("[{}]\n", swarm.type_of())));
-			for (_, agent) in swarm.agents().iter() {
-				info!("{}: {}",
-				      swarm.type_of(),
-				      agent.dna().to_base64(base64::STANDARD));
-				try!(f.write_fmt(format_args!("{}\n", agent.dna().to_base64(base64::STANDARD))));
-			}
+		for (_, agent) in self.agents(agent::AgentType::Minion).iter() {
+			info!("{}", agent.dna().to_base64(base64::STANDARD));
+			try!(f.write_fmt(format_args!("{}\n", agent.dna().to_base64(base64::STANDARD))));
 		}
 		Ok(file_name)
 	}
