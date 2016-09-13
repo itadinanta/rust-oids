@@ -135,9 +135,10 @@ impl World {
 
 	pub fn init_minions(&mut self) {
 		let n = self.minion_gene_pool.len();
-		let r = self.extent.top_right().x * 0.5;
-		for i in 0..n {
-			let angle = i as f32 * consts::PI * 2. / n as f32;
+		let mut r = self.extent.top_right().x * 0.25;
+		let mut angle = 0.0f32;
+		let angle_delta = consts::PI * 2. / 16. as f32;
+		for _ in 0..n {
 			let pos = Position::new(r * angle.cos(), r * angle.sin());
 			let mut gen = self.minion_gene_pool.next();
 			let id = self.swarm_mut(&AgentType::Minion)
@@ -146,6 +147,8 @@ impl World {
 				                       None,
 				                       0.3);
 			self.register(id);
+			angle += angle_delta;
+			r += 1.;
 		}
 	}
 
