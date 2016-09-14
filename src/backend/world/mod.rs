@@ -28,6 +28,7 @@ pub struct World {
 	swarms: HashMap<AgentType, Swarm>,
 	emitters: Vec<Emitter>,
 	registered: HashSet<Id>,
+	extinctions: usize,
 	minion_gene_pool: gen::GenePool,
 	resource_gene_pool: gen::GenePool,
 }
@@ -43,20 +44,32 @@ impl WorldState for World {
 }
 
 #[derive(Clone)]
+pub enum Emission {
+	CW(Angle),
+	CCW(Angle),
+	Random,
+}
+
+#[derive(Clone)]
 pub struct Emitter {
 	transform: Transform,
 	rate: f32,
+	emission: Emission,
 }
 
 impl Emitter {
-	pub fn new(x: f32, y: f32, rate: f32) -> Self {
+	pub fn new(x: f32, y: f32, rate: f32, emission: Emission) -> Self {
 		Emitter {
 			transform: Transform::from_position(Position::new(x, y)),
 			rate: rate,
+			emission: emission,
 		}
 	}
 	pub fn rate(&self) -> f32 {
 		self.rate
+	}
+	pub fn emission(&self) -> Emission {
+		self.emission.clone()
 	}
 }
 
@@ -88,16 +101,21 @@ impl World {
 		World {
 			extent: Rect::new(-80., -80., 80., 80.),
 			swarms: swarms,
-			emitters: vec![Emitter::new(-20., -20., 0.4),
-			               Emitter::new(-20., 20., 0.4),
-			               Emitter::new(20., 20., 0.4),
-			               Emitter::new(20., -20., 0.4)],
+			emitters: vec![Emitter::new(-20., -20., 0.4, Emission::CW(consts::PI / 12.)),
+			               Emitter::new(-20., 20., 0.4, Emission::Random),
+			               Emitter::new(20., 20., 0.4, Emission::CCW(consts::PI / 12.)),
+			               Emitter::new(20., -20., 0.4, Emission::Random)],
 			minion_gene_pool: res.load(minion_gene_pool)
 				.map(|data| gen::GenePool::parse_from_resource(&data))
 				.unwrap_or_else(default_gene_pool),
 			resource_gene_pool: gen::GenePool::parse_from_base64(&["GyA21QoQ", "M00sWS0M"]),
 			registered: HashSet::new(),
+			extinctions: 0usize,
 		}
+	}
+
+	pub fn extinctions(&self) -> usize {
+		self.extinctions
 	}
 
 	pub fn new_resource(&mut self, transform: &Transform, motion: Option<&Motion>) -> obj::Id {
@@ -134,6 +152,7 @@ impl World {
 	}
 
 	pub fn init_minions(&mut self) {
+		self.extinctions += 1;
 		let n = self.minion_gene_pool.len();
 		let mut r = self.extent.top_right().x * 0.25;
 		let mut angle = 0.0f32;

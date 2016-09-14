@@ -85,12 +85,14 @@ pub fn main_loop(minion_gene_pool: &str) {
 
 		let r = update_result;
 		// draw some debug text on screen
-		renderer.draw_text(&format!("F: {} E: {:.3} FT: {:.2} SFT: {:.2} FPS: {:.1}",
+		renderer.draw_text(&format!("F: {} E: {:.3} FT: {:.2} SFT: {:.2} FPS: {:.1} P: {} E: {}",
 		                            r.frame_count,
 		                            r.frame_elapsed,
 		                            r.frame_time * 1000.0,
 		                            r.frame_time_smooth * 1000.0,
-		                            r.fps),
+		                            r.fps,
+		                            r.population,
+		                            r.extinctions),
 		                   [10, 10],
 		                   [1.0; 4]);
 

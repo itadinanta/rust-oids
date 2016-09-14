@@ -74,7 +74,8 @@ impl Swarm {
 		self.agents.insert(id, agent);
 		id
 	}
-
+	
+	#[allow(dead_code)]
 	pub fn is_empty(&self) -> bool {
 		self.agents.is_empty()
 	}

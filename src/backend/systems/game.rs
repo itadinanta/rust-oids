@@ -7,6 +7,7 @@ use core::geometry::*;
 use backend::obj::Transformable;
 use backend::world;
 use backend::world::agent;
+use backend::world::Emission;
 
 pub struct GameSystem {
 	emitters: Vec<Emitter>,
@@ -17,19 +18,19 @@ struct Emitter {
 	hourglass: Hourglass<SystemStopwatch>,
 	to_spawn: usize,
 	spawned: usize,
-	angle: Angle,
+	emission: Emission,
 	spin: Spin,
 	velocity: f32,
 }
 
 impl Emitter {
-	fn new(position: Position, rate: f32) -> Self {
+	fn new(position: Position, rate: f32, emission: Emission) -> Self {
 		Emitter {
 			position: position,
 			hourglass: Hourglass::new(rate),
 			to_spawn: 0,
 			spawned: 0,
-			angle: consts::PI / 12.,
+			emission: emission,
 			spin: consts::PI,
 			velocity: 5.,
 		}
@@ -56,7 +57,7 @@ impl System for GameSystem {
 		// Add missing emitters - deletion not supported
 		for i in self.emitters.len()..source.len() {
 			let s = &source[i];
-			self.emitters.push(Emitter::new(s.transform().position, s.rate()));
+			self.emitters.push(Emitter::new(s.transform().position, s.rate(), s.emission()));
 		}
 		for (i, mut d) in self.emitters.iter_mut().enumerate() {
 			d.position = source[i].transform().position;
@@ -67,8 +68,11 @@ impl System for GameSystem {
 		let mut rng = &mut rand::thread_rng();
 		for e in &self.emitters {
 			for i in e.spawned..e.to_spawn {
-				// let r = e.angle * i as f32;
-				let r = rng.next_f32() * 2. * consts::PI;
+				let r = match e.emission {
+					Emission::Random => rng.next_f32() * 2. * consts::PI,
+					Emission::CCW(angle) => angle * i as f32,
+					Emission::CW(angle) => -angle * i as f32,
+				};
 				world.new_resource(&Transform::new(e.position, r),
 				                   Some(&Motion {
 					                   velocity: Velocity::new(r.cos(), r.sin()) * e.velocity,

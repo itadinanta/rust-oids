@@ -14,6 +14,7 @@ use backend::obj;
 use backend::obj::*;
 use backend::world;
 use backend::world::segment;
+use backend::world::agent;
 use backend::systems;
 use backend::systems::System;
 
@@ -156,6 +157,8 @@ pub struct Update {
 	pub frame_time: f32,
 	pub frame_time_smooth: f32,
 	pub fps: f32,
+	pub population: usize,
+	pub extinctions: usize,
 }
 
 impl App {
@@ -526,6 +529,8 @@ impl App {
 			frame_time: frame_time,
 			frame_time_smooth: frame_time_smooth,
 			fps: 1.0 / frame_time_smooth,
+			population: self.world.agents(agent::AgentType::Minion).len(),
+			extinctions: self.world.extinctions(),
 		}
 	}
 }
