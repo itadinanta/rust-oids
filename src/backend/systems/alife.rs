@@ -136,6 +136,10 @@ impl AlifeSystem {
 					}
 					agent.state.die();
 				}
+
+				if let Some(segment) = agent.first_segment(segment::CORE) {
+					agent.state.track_position(&segment.transform.position);
+				}
 			}
 		}
 		(spawns.into_boxed_slice(), corpses.into_boxed_slice())

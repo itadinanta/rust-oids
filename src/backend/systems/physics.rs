@@ -112,7 +112,7 @@ impl System for PhysicsSystem {
 
 			if let Some(agent) = world.agent_mut(key.agent_id) {
 				if let Some(segment) = agent.segment_mut(key.segment_index) {
-					segment.transform_to(&Transform::new(PhysicsSystem::from_vec2(&position), angle));
+					segment.transform_to(&Transform::new(PhysicsSystem::from_vec2(&position), angle));					
 					segment.state.last_touched = self.touched.borrow().get(key).map(|r| *r);
 				}
 			}

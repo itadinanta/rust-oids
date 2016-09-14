@@ -5,6 +5,7 @@ use num::Float;
 use num::FromPrimitive;
 use core::geometry::*;
 use core::clock::*;
+use core::util;
 use backend::obj;
 use backend::obj::*;
 use backend::world::gen::Dna;
@@ -246,6 +247,7 @@ pub struct State {
 	target_position: Position,
 	limits: Limits,
 	foreign_dna: Option<Dna>,
+	trajectory: util::History<Position>,
 }
 
 impl State {
@@ -322,6 +324,10 @@ impl State {
 	pub fn retarget(&mut self, target: Option<Id>, position: Position) {
 		self.target = target;
 		self.target_position = position;
+	}
+
+	pub fn track_position(&mut self, position: &Position) {
+		self.trajectory.push(position.clone())
 	}
 }
 
@@ -409,6 +415,7 @@ impl Agent {
 				target_position: segments[0].transform.position,
 				limits: Limits { max_energy: max_energy },
 				foreign_dna: None,
+				trajectory: util::History::new(600),
 			},
 			brain: brain.clone(),
 			gender: gender,
