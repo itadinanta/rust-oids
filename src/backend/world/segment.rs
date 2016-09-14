@@ -93,6 +93,7 @@ bitflags! {
 		const CORE         = 0x00100u32,
 		const STORAGE      = 0x00200u32,
 		const TAIL         = 0x00400u32,
+		const TRACKER	   = 0x00800u32,
 		const LEFT         = 0x01000u32,
 		const RIGHT        = 0x02000u32,
 		const MIDDLE       = 0x04000u32,

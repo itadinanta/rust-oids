@@ -154,7 +154,7 @@ impl AgentBuilder {
 		                               transform,
 		                               motion,
 		                               None,
-		                               segment::CORE | segment::STORAGE | segment::MIDDLE);
+		                               segment::CORE | segment::STORAGE | segment::MIDDLE | segment::TRACKER);
 		self.segments.clear();
 		self.segments.push(segment);
 		self

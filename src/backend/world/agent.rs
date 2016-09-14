@@ -329,6 +329,10 @@ impl State {
 	pub fn track_position(&mut self, position: &Position) {
 		self.trajectory.push(position.clone())
 	}
+
+	pub fn trajectory(&self) -> Box<[Position]> {
+		self.trajectory.into_iter().collect::<Vec<_>>().into_boxed_slice()
+	}
 }
 
 pub struct Agent {

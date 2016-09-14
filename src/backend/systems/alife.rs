@@ -137,7 +137,7 @@ impl AlifeSystem {
 					agent.state.die();
 				}
 
-				if let Some(segment) = agent.first_segment(segment::CORE) {
+				if let Some(segment) = agent.first_segment(segment::TRACKER) {
 					agent.state.track_position(&segment.transform.position);
 				}
 			}

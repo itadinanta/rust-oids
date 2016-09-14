@@ -26,7 +26,7 @@ impl<T> History<T>
 			self.count = self.count + 1;
 		}
 		self.values[self.ptr] = value;
-		self.ptr = ((self.ptr + 1) % len) as usize;
+		self.ptr = (self.ptr + 1) % len;
 	}
 }
 
@@ -60,8 +60,8 @@ impl<'a, T> Iterator for HistoryIntoIterator<'a, T>
 		if self.index >= self.history.count {
 			None
 		} else {
-			let item = self.history.values[(self.index + self.history.ptr - self.history.count - 1) %
-			                               self.history.count].clone();
+			let len = self.history.values.len();
+			let item = self.history.values[(len + self.history.ptr - 1 - self.index) % len].clone();
 			self.index += 1;
 			Some(item)
 		}

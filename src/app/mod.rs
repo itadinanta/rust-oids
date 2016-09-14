@@ -443,6 +443,10 @@ impl App {
 				                          &[p0, p3],
 				                          &render::Appearance::rgba([0., 1., 0., 1.]));
 
+				let trajectory = agent.state.trajectory();
+				let appearance = render::Appearance::new(sensor.color(), [1.0, 0.5, 0., 0.]);
+				renderer.draw_debug_lines(&Matrix4::identity(), &trajectory, &appearance);
+
 				for segment in agent.segments().iter() {
 					match segment.state.intent {
 						segment::Intent::Brake(v) => {
