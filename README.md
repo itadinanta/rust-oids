@@ -31,7 +31,9 @@ The intriguing bit about all of this is that AI, body shape and brain are **bred
 
 Eventually I plan to plug in some sort of gameplay and release as a free game. Strictly evening/weekend toy project: don't hold your breath.
 
-Feedback welcome, feel free to post issues.
+## Feedback
+- feel free to post [issues on GitHub](https://github.com/itadinanta/rust-oids/issues)
+- also send me interesting gene pools (F6 to get snapshots, see instructions below)
 
 ## Acknowledgements
 
