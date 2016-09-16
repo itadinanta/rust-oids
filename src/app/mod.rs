@@ -50,7 +50,7 @@ pub enum Event {
 
 	BeginDrag(Position, Position),
 	Drag(Position, Position),
-	EndDrag(Position, Position),
+	EndDrag(Position, Position, Velocity),
 }
 
 pub fn run(args: &[String]) {
@@ -194,7 +194,7 @@ impl App {
 
 
 	fn init_camera() -> math::Inertial<f32> {
-		math::Inertial::new(10.0, 1. / 180., 0.5)
+		math::Inertial::new(10.0, 0.5, 0.5)
 	}
 
 	fn init_lights() -> Cycle<[f32; 4]> {
@@ -268,14 +268,15 @@ impl App {
 					Ok(name) => info!("Saved {}", name),
 				}
 			}
-			Event::BeginDrag(start, end) => {
+			Event::BeginDrag(_, _) => {
 				self.camera.zero();
 			}
 			Event::Drag(start, end) => {
 				self.camera.set_relative(start - end);
 			}
-			Event::EndDrag(start, end) => {
+			Event::EndDrag(start, end, vel) => {
 				self.camera.set_relative(start - end);
+				self.camera.velocity(vel);
 			}
 
 			Event::NewMinion(pos) => self.new_minion(pos),
@@ -295,7 +296,7 @@ impl App {
 		self.input_state.event(e);
 	}
 
-	fn update_input(&mut self, _: f32) {
+	fn update_input(&mut self, dt: f32) {
 		let mut events = Vec::new();
 
 		macro_rules! on_key_held {
@@ -341,14 +342,11 @@ impl App {
 				events.push(Event::BeginDrag(from, from));
 			}
 			input::Dragging::Dragging(_, from, to) => {
-				let from = self.to_world(&from);
-				let to = self.to_world(&to);
-				events.push(Event::Drag(from, to));
+				events.push(Event::Drag(self.to_world(&from), self.to_world(&to)));
 			}
-			input::Dragging::End(_, from, to) => {
-				let from = self.to_world(&from);
-				let to = self.to_world(&to);
-				events.push(Event::EndDrag(from, to));
+			input::Dragging::End(_, from, to, prev) => {
+				let mouse_vel = (self.to_view(&prev) - to) / dt;
+				events.push(Event::EndDrag(self.to_world(&from), self.to_world(&to), mouse_vel));
 			}
 			_ => {}
 		}

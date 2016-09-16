@@ -15,7 +15,7 @@ pub enum Dragging {
 	Nothing,
 	Begin(Key, Position),
 	Dragging(Key, Position, Position),
-	End(Key, Position, Position),
+	End(Key, Position, Position, Position),
 }
 
 pub struct InputState {
@@ -223,7 +223,7 @@ impl InputState {
 	}
 
 	pub fn mouse_at(&mut self, pos: Position) {
-		self.mouse_history.push(pos);
+		self.mouse_history.push(self.mouse_position);
 		self.mouse_position = pos;
 	}
 
@@ -240,7 +240,8 @@ impl InputState {
 				if self.key_pressed(key) {
 					(DragState::Hold(key, start), Dragging::Dragging(key, start, pos))
 				} else {
-					(DragState::Nothing, Dragging::End(key, start, pos))
+					let prev = self.mouse_history.into_iter().next().unwrap_or(self.mouse_position);
+					(DragState::Nothing, Dragging::End(key, start, pos, prev))
 				}
 			}
 			_ => (self.drag_state.clone(), Dragging::Nothing),

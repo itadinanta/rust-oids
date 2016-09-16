@@ -186,12 +186,16 @@ impl<T> Inertial<T>
 		self.position = position;
 	}
 
+	pub fn velocity(&mut self, velocity: cgmath::Vector2<T>) {
+		self.velocity = velocity;
+	}
+
 	pub fn stop(&mut self) {
 		self.velocity = cgmath::Vector::zero();
 	}
 
 	pub fn update(&mut self, dt: T) {
 		self.position = self.position + self.velocity * dt;
-		self.velocity = self.velocity - self.velocity * T::exp(-dt / self.inertia);
+		self.velocity = self.velocity * T::exp(-dt / self.inertia);
 	}
 }
