@@ -6,6 +6,7 @@ use core::geometry::*;
 use core::clock::*;
 use core::math;
 use core::math::Directional;
+use core::math::Relative;
 use core::math::Smooth;
 
 use core::resource::ResourceLoader;
@@ -46,6 +47,10 @@ pub enum Event {
 
 	NewMinion(Position),
 	RandomizeMinion(Position),
+
+	BeginDrag(Position, Position),
+	Drag(Position, Position),
+	EndDrag(Position, Position),
 }
 
 pub fn run(args: &[String]) {
@@ -263,6 +268,16 @@ impl App {
 					Ok(name) => info!("Saved {}", name),
 				}
 			}
+			Event::BeginDrag(start, end) => {
+				self.camera.zero();
+			}
+			Event::Drag(start, end) => {
+				self.camera.set_relative(start - end);
+			}
+			Event::EndDrag(start, end) => {
+				self.camera.set_relative(start - end);
+			}
+
 			Event::NewMinion(pos) => self.new_minion(pos),
 			Event::RandomizeMinion(pos) => self.randomize_minion(pos),
 		}
@@ -319,6 +334,24 @@ impl App {
 		let mouse_pos = self.input_state.mouse_position();
 		let view_pos = self.to_view(&mouse_pos);
 		let world_pos = self.to_world(&view_pos);
+
+		match self.input_state.dragging(input::Key::MouseLeft, view_pos) {
+			input::Dragging::Begin(_, from) => {
+				let from = self.to_world(&from);
+				events.push(Event::BeginDrag(from, from));
+			}
+			input::Dragging::Dragging(_, from, to) => {
+				let from = self.to_world(&from);
+				let to = self.to_world(&to);
+				events.push(Event::Drag(from, to));
+			}
+			input::Dragging::End(_, from, to) => {
+				let from = self.to_world(&from);
+				let to = self.to_world(&to);
+				events.push(Event::EndDrag(from, to));
+			}
+			_ => {}
+		}
 
 		if self.input_state.key_once(input::Key::MouseRight) {
 			if self.input_state.any_ctrl_pressed() {

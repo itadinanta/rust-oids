@@ -1,12 +1,28 @@
 //! Input state, including current mouse position and button click
 //! TODO: add keyboard presses
 use core::geometry;
+use core::util::History;
 use core::geometry::Position;
 use bit_set::BitSet;
+
+#[derive(Clone)]
+enum DragState {
+	Nothing,
+	Hold(Key, Position),
+}
+
+pub enum Dragging {
+	Nothing,
+	Begin(Key, Position),
+	Dragging(Key, Position, Position),
+	End(Key, Position, Position),
+}
 
 pub struct InputState {
 	key_pressed: BitSet,
 	key_ack: BitSet,
+	drag_state: DragState,
+	mouse_history: History<Position>,
 	mouse_position: Position,
 }
 
@@ -15,6 +31,8 @@ impl Default for InputState {
 		InputState {
 			key_pressed: BitSet::new(),
 			key_ack: BitSet::new(),
+			drag_state: DragState::Nothing,
+			mouse_history: History::new(60),
 			mouse_position: geometry::origin(),
 		}
 	}
@@ -27,7 +45,7 @@ pub enum State {
 }
 
 #[allow(dead_code)]
-#[derive(Copy,Clone)]
+#[derive(Copy,Clone,Eq,PartialEq)]
 pub enum Key {
 	A,
 	B,
@@ -181,7 +199,6 @@ impl InputState {
 	pub fn chord_pressed(&self, b: &[Key]) -> bool {
 		let other: BitSet = b.into_iter().map(|k| *k as usize).collect();
 		self.key_pressed.is_superset(&other)
-
 	}
 
 	pub fn key_once(&mut self, b: Key) -> bool {
@@ -206,7 +223,30 @@ impl InputState {
 	}
 
 	pub fn mouse_at(&mut self, pos: Position) {
+		self.mouse_history.push(pos);
 		self.mouse_position = pos;
+	}
+
+	pub fn dragging(&mut self, key: Key, pos: Position) -> Dragging {
+		let (drag_state, displacement) = match &self.drag_state {
+			&DragState::Nothing => {
+				if self.key_pressed(key) {
+					(DragState::Hold(key, pos), Dragging::Begin(key, pos))
+				} else {
+					(DragState::Nothing, Dragging::Nothing)
+				}
+			}
+			&DragState::Hold(held, start) if held == key => {
+				if self.key_pressed(key) {
+					(DragState::Hold(key, start), Dragging::Dragging(key, start, pos))
+				} else {
+					(DragState::Nothing, Dragging::End(key, start, pos))
+				}
+			}
+			_ => (self.drag_state.clone(), Dragging::Nothing),
+		};
+		self.drag_state = drag_state;
+		displacement
 	}
 }
 
