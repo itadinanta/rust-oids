@@ -73,4 +73,18 @@ Aside from the full Rust toolchain, the following packages are required:
 - 0, Home: reset camera pan
 - Arrows: camera pan
 
-Keywords: rust rustlang testbed ai alife ann neural network genetic algorithm gfx box2d wrapper2d hdr msaa alpha tonemapping shader fragment pixel vertex geometry pso gamedev
+## Status line indicators
+
+The status line at the top of the screen contains the following runtime stats: 
+
+- F: Frame #
+- E: Elapsed time since start in seconds
+- FT: Last frame duration in milliseconds
+- SFT: Average frame duration of the last 120 frames (step)
+- FPS: Average fps of the last 120 frames
+- P: Population size
+- E: Extinction index - increased every time the whole population dies off
+
+## Keywords
+
+rust rustlang testbed ai alife ann neural network genetic algorithm gfx box2d wrapper2d hdr msaa alpha tonemapping shader fragment pixel vertex geometry pso gamedev
