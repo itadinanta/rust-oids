@@ -195,7 +195,8 @@ impl World {
 		self.swarms.get(&id.type_of()).and_then(|m| m.get(id))
 	}
 
-	pub fn for_all_agents(&mut self, callback: &mut FnMut(&mut Agent)) {
+	pub fn for_all_agents<F>(&mut self, callback: &mut F)
+		where F: FnMut(&mut Agent) {
 		for (_, swarm) in self.swarms.iter_mut() {
 			for (_, mut agent) in swarm.agents_mut().iter_mut() {
 				callback(&mut agent)
