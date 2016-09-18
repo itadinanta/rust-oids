@@ -66,8 +66,10 @@ Aside from the full Rust toolchain, the following packages are required:
 
 - Right mouse click: new rustoid from current gene pool.
 - Ctrl + Right mouse click: new random rustoid.
+- Left mouse clik: select minion for tracing
 - Left mouse click/drag: pan.
-- D: enable debug tracing of target and trajectories (framerate drops considerably)
+- Z: deselect minion for tracing
+- D: disable tracing of target and trajectories
 - F6: snapshot current gene pool into the **resources** folder
 - F5: reload shaders
 - V,B: set background tone
