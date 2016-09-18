@@ -112,7 +112,7 @@ impl System for PhysicsSystem {
 
 			if let Some(agent) = world.agent_mut(key.agent_id) {
 				if let Some(segment) = agent.segment_mut(key.segment_index) {
-					segment.transform_to(&Transform::new(PhysicsSystem::from_vec2(&position), angle));					
+					segment.transform_to(&Transform::new(PhysicsSystem::from_vec2(&position), angle));
 					segment.state.last_touched = self.touched.borrow().get(key).map(|r| *r);
 				}
 			}
@@ -299,6 +299,36 @@ impl PhysicsSystem {
 		let mut world = b2::World::new(&b2::Vec2 { x: 0.0, y: -0.5 });
 		world.set_contact_listener(Box::new(ContactListener { touched: touched }));
 		world
+	}
+
+	pub fn pick(&self, pos: Position) -> Option<Id> {
+		let point = Self::to_vec2(&pos);
+		let eps = 0.001f32;
+		let aabb = b2::AABB {
+			lower: b2::Vec2 {
+				x: pos.x - eps,
+				y: pos.y - eps,
+			},
+			upper: b2::Vec2 {
+				x: pos.x + eps,
+				y: pos.y + eps,
+			},
+		};
+		let mut result = None;
+		{
+			let mut callback = |body_h: b2::BodyHandle, fixture_h: b2::FixtureHandle| {
+				let body = self.world.body(body_h);
+				let fixture = body.fixture(fixture_h);
+				if fixture.test_point(&point) {
+					result = Some(body.user_data().id());
+					false
+				} else {
+					true
+				}
+			};
+			self.world.query_aabb(&mut callback, &aabb);
+		}
+		result
 	}
 }
 

@@ -48,6 +48,9 @@ pub enum Event {
 	NewMinion(Position),
 	RandomizeMinion(Position),
 
+	SelectMinion(Position, Id),
+	DeselectAll,
+
 	BeginDrag(Position, Position),
 	Drag(Position, Position),
 	EndDrag(Position, Position, Velocity),
@@ -167,7 +170,7 @@ pub struct Update {
 }
 
 impl App {
-	pub fn new<R>(w: u32, h: u32, scale: f32, res: &R, minion_gene_pool: &str) -> Self
+	pub fn new<R>(w: u32, h: u32, scale: f32, resource_loader: &R, minion_gene_pool: &str) -> Self
 		where R: ResourceLoader<u8> {
 		App {
 			viewport: Viewport::rect(w, h, scale),
@@ -177,7 +180,7 @@ impl App {
 			lights: Self::init_lights(),
 			backgrounds: Self::init_backgrounds(),
 
-			world: world::World::new(res, minion_gene_pool),
+			world: world::World::new(resource_loader, minion_gene_pool),
 			// subsystems
 			systems: Systems::default(),
 			// runtime and timing
@@ -191,7 +194,6 @@ impl App {
 			debug_flags: DebugFlags::empty(),
 		}
 	}
-
 
 	fn init_camera() -> math::Inertial<f32> {
 		math::Inertial::new(10.0, 0.5, 0.5)
@@ -219,12 +221,25 @@ impl App {
 		             [0.01, 0.01, 0.01, 1.0]])
 	}
 
+	pub fn pick_minion(&self, pos: Position) -> Option<Id> {
+		self.systems.physics.pick(pos)
+	}
+
 	fn randomize_minion(&mut self, pos: Position) {
 		self.world.randomize_minion(pos, None);
 	}
 
 	fn new_minion(&mut self, pos: Position) {
 		self.world.new_minion(pos, None);
+	}
+
+	fn deselect_all(&mut self) {
+		self.world.for_all_agents(&mut |agent| agent.state.deselect());
+	}
+
+	fn select_minion(&mut self, id: Id) {
+		self.debug_flags |= DEBUG_TARGETS;
+		self.world.agent_mut(id).map(|a| a.state.toggle_selection());
 	}
 
 	fn register_all(&mut self) {
@@ -278,7 +293,8 @@ impl App {
 				self.camera.set_relative(start - end);
 				self.camera.velocity(vel);
 			}
-
+			Event::SelectMinion(pos, id) => self.select_minion(id),
+			Event::DeselectAll => self.deselect_all(),
 			Event::NewMinion(pos) => self.new_minion(pos),
 			Event::RandomizeMinion(pos) => self.randomize_minion(pos),
 		}
@@ -325,6 +341,7 @@ impl App {
 			KpHome -> CamReset,
 			F6 -> DumpToFile,
 			D -> ToggleDebug,
+			Z -> DeselectAll,
 			L -> NextLight,
 			B -> NextBackground,
 			K -> PrevLight,
@@ -332,32 +349,43 @@ impl App {
 			Esc -> AppQuit
 		];
 
-		let mouse_pos = self.input_state.mouse_position();
-		let view_pos = self.to_view(&mouse_pos);
-		let world_pos = self.to_world(&view_pos);
+		let mouse_window_pos = self.input_state.mouse_position();
+		let mouse_view_pos = self.to_view(&mouse_window_pos);
+		let mouse_world_pos = self.to_world(&mouse_view_pos);
 
-		match self.input_state.dragging(input::Key::MouseLeft, view_pos) {
-			input::Dragging::Begin(_, from) => {
-				let from = self.to_world(&from);
-				events.push(Event::BeginDrag(from, from));
-			}
-			input::Dragging::Dragging(_, from, to) => {
-				events.push(Event::Drag(self.to_world(&from), self.to_world(&to)));
-			}
-			input::Dragging::End(_, from, to, prev) => {
-				let mouse_vel = (self.to_view(&prev) - to) / dt;
-				events.push(Event::EndDrag(self.to_world(&from), self.to_world(&to), mouse_vel));
-			}
-			_ => {}
-		}
+		let picked_id = if self.input_state.key_once(input::Key::MouseLeft) {
+			self.pick_minion(mouse_world_pos)
+		} else {
+			None
+		};
 
 		if self.input_state.key_once(input::Key::MouseRight) {
 			if self.input_state.any_ctrl_pressed() {
-				events.push(Event::RandomizeMinion(world_pos));
+				events.push(Event::RandomizeMinion(mouse_world_pos));
 			} else {
-				events.push(Event::NewMinion(world_pos));
+				events.push(Event::NewMinion(mouse_world_pos));
 			}
 		}
+
+		if let Some(picked) = picked_id {
+			events.push(Event::SelectMinion(mouse_world_pos, picked));
+		} else {
+			match self.input_state.dragging(input::Key::MouseLeft, mouse_view_pos) {
+				input::Dragging::Begin(_, from) => {
+					let from = self.to_world(&from);
+					events.push(Event::BeginDrag(from, from));
+				}
+				input::Dragging::Dragging(_, from, to) => {
+					events.push(Event::Drag(self.to_world(&from), self.to_world(&to)));
+				}
+				input::Dragging::End(_, from, to, prev) => {
+					let mouse_vel = (self.to_view(&prev) - to) / dt;
+					events.push(Event::EndDrag(self.to_world(&from), self.to_world(&to), mouse_vel));
+				}
+				_ => {}
+			}
+		}
+
 
 		for e in events {
 			self.on_app_event(e)
@@ -449,53 +477,55 @@ impl App {
 		if self.debug_flags.contains(DEBUG_TARGETS) {
 			use cgmath::*;
 			for (_, agent) in self.world.agents(world::agent::AgentType::Minion).iter() {
-				let sensor = agent.first_segment(segment::HEAD).unwrap();
-				let p0 = sensor.transform.position;
-				let a0 = sensor.transform.angle;
-				let radar_range = sensor.mesh.shape.radius() * 10.;
-				let p1 = *agent.state.target_position();
-				renderer.draw_debug_lines(&Matrix4::identity(),
-				                          &[p0, p1],
-				                          &render::Appearance::rgba([1., 1., 0., 1.]));
+				if agent.state.selected() {
+					let sensor = agent.first_segment(segment::HEAD).unwrap();
+					let p0 = sensor.transform.position;
+					let a0 = sensor.transform.angle;
+					let radar_range = sensor.mesh.shape.radius() * 10.;
+					let p1 = *agent.state.target_position();
+					renderer.draw_debug_lines(&Matrix4::identity(),
+					                          &[p0, p1],
+					                          &render::Appearance::rgba([1., 1., 0., 1.]));
 
-				let t0 = p1 - p0;
-				let t = t0.normalize_to(t0.length().min(radar_range));
-				let m = Matrix2::from_angle(rad(a0));
+					let t0 = p1 - p0;
+					let t = t0.normalize_to(t0.length().min(radar_range));
+					let m = Matrix2::from_angle(rad(a0));
 
-				let v = m * (-Position::unit_y());
-				let p2 = p0 + v.normalize_to(t.dot(v));
-				renderer.draw_debug_lines(&Matrix4::identity(),
-				                          &[p0, p2],
-				                          &render::Appearance::rgba([0., 1., 0., 1.]));
+					let v = m * (-Position::unit_y());
+					let p2 = p0 + v.normalize_to(t.dot(v));
+					renderer.draw_debug_lines(&Matrix4::identity(),
+					                          &[p0, p2],
+					                          &render::Appearance::rgba([0., 1., 0., 1.]));
 
-				let u = m * (-Position::unit_x());
-				let p3 = p0 + u.normalize_to(t.perp_dot(v));
-				renderer.draw_debug_lines(&Matrix4::identity(),
-				                          &[p0, p3],
-				                          &render::Appearance::rgba([0., 1., 0., 1.]));
+					let u = m * (-Position::unit_x());
+					let p3 = p0 + u.normalize_to(t.perp_dot(v));
+					renderer.draw_debug_lines(&Matrix4::identity(),
+					                          &[p0, p3],
+					                          &render::Appearance::rgba([0., 1., 0., 1.]));
 
-				let trajectory = agent.state.trajectory();
-				let appearance = render::Appearance::new(sensor.color(), [1.0, 0.5, 0., 0.]);
-				renderer.draw_debug_lines(&Matrix4::identity(), &trajectory, &appearance);
+					let trajectory = agent.state.trajectory();
+					let appearance = render::Appearance::new(sensor.color(), [2.0, 1.0, 0., 0.]);
+					renderer.draw_debug_lines(&Matrix4::identity(), &trajectory, &appearance);
 
-				for segment in agent.segments().iter() {
-					match segment.state.intent {
-						segment::Intent::Brake(v) => {
-							let p0 = segment.transform.position;
-							let p1 = p0 + v * 0.05;
-							renderer.draw_debug_lines(&Matrix4::identity(),
-							                          &[p0, p1],
-							                          &render::Appearance::rgba([2., 0., 0., 1.]));
+					for segment in agent.segments().iter() {
+						match segment.state.intent {
+							segment::Intent::Brake(v) => {
+								let p0 = segment.transform.position;
+								let p1 = p0 + v * 0.05;
+								renderer.draw_debug_lines(&Matrix4::identity(),
+								                          &[p0, p1],
+								                          &render::Appearance::rgba([2., 0., 0., 1.]));
+							}
+							segment::Intent::Move(v) => {
+								let p0 = segment.transform.position;
+								let p1 = p0 + v * 0.05;
+								renderer.draw_debug_lines(&Matrix4::identity(),
+								                          &[p0, p1],
+								                          &render::Appearance::rgba([0., 0., 2., 1.]));
+							}
+							segment::Intent::Idle => {}
+							segment::Intent::RunAway(_) => {}
 						}
-						segment::Intent::Move(v) => {
-							let p0 = segment.transform.position;
-							let p1 = p0 + v * 0.05;
-							renderer.draw_debug_lines(&Matrix4::identity(),
-							                          &[p0, p1],
-							                          &render::Appearance::rgba([0., 0., 2., 1.]));
-						}
-						segment::Intent::Idle => {}
-						segment::Intent::RunAway(_) => {}
 					}
 				}
 			}

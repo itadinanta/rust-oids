@@ -230,6 +230,7 @@ bitflags! {
 	pub flags Flags: u32 {
 		const DEAD       = 0x1,
 		const ACTIVE     = 0x2,
+		const SELECTED   = 0x1000,
 	}
 }
 
@@ -296,6 +297,22 @@ impl State {
 
 	pub fn foreign_dna(&self) -> &Option<Dna> {
 		&self.foreign_dna
+	}
+
+	pub fn toggle_selection(&mut self) {
+		self.flags ^= SELECTED;
+	}
+
+	pub fn select(&mut self) {
+		self.flags |= SELECTED;
+	}
+
+	pub fn deselect(&mut self) {
+		self.flags -= SELECTED;
+	}
+
+	pub fn selected(&self) -> bool {
+		self.flags.contains(SELECTED)
 	}
 
 	pub fn die(&mut self) {
