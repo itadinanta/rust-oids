@@ -77,9 +77,9 @@ impl Phenotype for Minion {
 		builder.addr(torso, i, &gen.star(), ARM | JOINT | ACTUATOR | RUDDER)
 			.addl(torso, -i, &gen.star(), ARM | JOINT | ACTUATOR | RUDDER);
 
-		let head = builder.add(torso, 0, &head_shape, HEAD | SENSOR).index();
-		builder.addr(head, 1, &gen.triangle(), HEAD | MOUTH | ACTUATOR | RUDDER)
-			.addl(head, -1, &gen.triangle(), HEAD | MOUTH | ACTUATOR | RUDDER);
+		let head = builder.add(torso, 0, &head_shape, HEAD | MOUTH | SENSOR | TRACKER).index();
+		builder.addr(head, 1, &gen.triangle(), HEAD | ACTUATOR | RUDDER)
+			.addl(head, -1, &gen.triangle(), HEAD | ACTUATOR | RUDDER);
 
 		let mut belly = torso;
 		let mut belly_mid = torso_shape.mid();
@@ -154,7 +154,7 @@ impl AgentBuilder {
 		                               transform,
 		                               motion,
 		                               None,
-		                               segment::CORE | segment::STORAGE | segment::MIDDLE | segment::TRACKER);
+		                               segment::CORE | segment::STORAGE | segment::MIDDLE);
 		self.segments.clear();
 		self.segments.push(segment);
 		self

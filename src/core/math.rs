@@ -106,11 +106,17 @@ pub trait Directional<T: cgmath::BaseFloat> {
 	}
 }
 
+pub trait Relative<T: cgmath::BaseFloat> {
+	fn zero(&mut self);
+	fn set_relative(&mut self, p: cgmath::Vector2<T>);
+}
+
 #[derive(Clone)]
 pub struct Inertial<T: cgmath::BaseNum + ops::Neg + Copy> {
 	impulse: T,
 	inertia: T,
 	limit: T,
+	zero: cgmath::Vector2<T>,
 	position: cgmath::Vector2<T>,
 	velocity: cgmath::Vector2<T>,
 }
@@ -123,6 +129,7 @@ impl<T> Default for Inertial<T>
 			impulse: T::one(),
 			inertia: T::one(),
 			limit: T::one(),
+			zero: cgmath::Vector::zero(),
 			position: cgmath::Vector::zero(),
 			velocity: cgmath::Vector::zero(),
 		}
@@ -144,6 +151,19 @@ impl<T> Directional<T> for Inertial<T>
 	}
 }
 
+impl<T> Relative<T> for Inertial<T>
+    where T: cgmath::BaseFloat
+{
+	fn zero(&mut self) {
+		self.zero = self.position;
+	}
+	fn set_relative(&mut self, p: cgmath::Vector2<T>) {
+		let zero = self.zero;
+		self.set(zero + p);
+	}
+}
+
+
 #[allow(dead_code)]
 impl<T> Inertial<T>
     where T: cgmath::BaseFloat
@@ -162,8 +182,12 @@ impl<T> Inertial<T>
 		self.velocity = cgmath::Vector::zero();
 	}
 
-	pub fn set(&mut self, position: cgmath::Point2<T>) {
-		self.position = cgmath::Point::to_vec(position);
+	pub fn set(&mut self, position: cgmath::Vector2<T>) {
+		self.position = position;
+	}
+
+	pub fn velocity(&mut self, velocity: cgmath::Vector2<T>) {
+		self.velocity = velocity;
 	}
 
 	pub fn stop(&mut self) {
@@ -172,6 +196,6 @@ impl<T> Inertial<T>
 
 	pub fn update(&mut self, dt: T) {
 		self.position = self.position + self.velocity * dt;
-		self.velocity = self.velocity - self.velocity * T::exp(-dt / self.inertia);
+		self.velocity = self.velocity * T::exp(-dt / self.inertia);
 	}
 }
