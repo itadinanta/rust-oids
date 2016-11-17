@@ -26,7 +26,6 @@ extern crate gfx;
 extern crate gfx_device_gl;
 extern crate gfx_window_glutin;
 extern crate glutin;
-extern crate genmesh;
 extern crate piston;
 
 extern crate rand;
