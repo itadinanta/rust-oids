@@ -25,6 +25,7 @@ extern crate wrapped2d;
 extern crate gfx;
 extern crate gfx_device_gl;
 extern crate gfx_window_glutin;
+extern crate winit;
 extern crate glutin;
 extern crate piston;
 
@@ -43,13 +44,25 @@ fn main() {
 	use log4rs::append::console::*;
 	use std::env;
 	let args = env::args().collect::<Vec<_>>();
-	
+
 	let config = Config::builder()
-		.appender(Appender::builder().build("stdout".to_string(),
-		                                    Box::new(ConsoleAppender::builder().build())))
-		.logger(Logger::builder().build("gfx_device_gl".to_string(), log::LogLevelFilter::Error))
-		.logger(Logger::builder().build("rust_oids".to_string(), log::LogLevelFilter::Info))
-		.build(Root::builder().appender("stdout".to_string()).build(log::LogLevelFilter::Info));
+		.appender(Appender::builder().build(
+			"stdout".to_string(),
+			Box::new(
+				ConsoleAppender::builder().build(),
+			),
+		))
+		.logger(Logger::builder().build(
+			"gfx_device_gl".to_string(),
+			log::LogLevelFilter::Error,
+		))
+		.logger(Logger::builder().build(
+			"rust_oids".to_string(),
+			log::LogLevelFilter::Info,
+		))
+		.build(Root::builder().appender("stdout".to_string()).build(
+			log::LogLevelFilter::Info,
+		));
 	log4rs::init_config(config.unwrap()).unwrap();
 	app::run(&args);
 }

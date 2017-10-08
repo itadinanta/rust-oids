@@ -1,4 +1,8 @@
 use glutin;
+use glutin::WindowEvent;
+use glutin::VirtualKeyCode;
+use glutin::KeyboardInput;
+use glutin::MouseCursor;
 use frontend::input;
 use frontend::input::Key;
 use core::geometry::Position;
@@ -11,8 +15,8 @@ impl GlutinEventMapper {
 	}
 }
 
-impl input::EventMapper<glutin::Event> for GlutinEventMapper {
-	fn translate(&self, e: &glutin::Event) -> Option<input::Event> {
+impl input::EventMapper<glutin::WindowEvent> for GlutinEventMapper {
+	fn translate(&self, e: &glutin::WindowEvent) -> Option<input::Event> {
 		fn keymap(vk: glutin::VirtualKeyCode) -> Option<input::Key> {
 			macro_rules! glutin_map (
 				[$($gkey:ident -> $ekey:ident),*] => (
@@ -23,7 +27,7 @@ impl input::EventMapper<glutin::Event> for GlutinEventMapper {
 					}
 				)
 			);
-			glutin_map! [
+			glutin_map![
 				Key0 -> N0,
 				Key1 -> N1,
 				Key2 -> N2,
@@ -105,13 +109,26 @@ impl input::EventMapper<glutin::Event> for GlutinEventMapper {
 			}
 		}
 		match e {
-			&glutin::Event::KeyboardInput(element_state, _, vk) => {
-				vk.and_then(|vk| keymap(vk)).and_then(|key| Some(input::Event::Key(state_map(element_state), key)))
+			&WindowEvent::KeyboardInput {
+				input: KeyboardInput {
+					state: element_state,
+					virtual_keycode: vk,
+					..
+				},
+				..
+			} => {
+				vk.and_then(|vk| keymap(vk)).and_then(|key| {
+					Some(input::Event::Key(state_map(element_state), key))
+				})
 			}
-			&glutin::Event::MouseInput(element_state, button) => {
-				mousemap(button).and_then(|key| Some(input::Event::Key(state_map(element_state), key)))
-			}
-			&glutin::Event::MouseMoved(x, y) => Some(input::Event::Mouse(Position::new(x as f32, y as f32))),
+			&WindowEvent::MouseInput {
+				state: element_state,
+				button,
+				..
+			} => mousemap(button).and_then(|key| Some(input::Event::Key(state_map(element_state), key))),
+			&WindowEvent::MouseMoved { position: (x, y), .. } => Some(
+				input::Event::Mouse(Position::new(x as f32, y as f32)),
+			),
 			_ => None,
 		}
 	}

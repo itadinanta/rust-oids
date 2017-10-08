@@ -1,6 +1,7 @@
 use cgmath;
 use cgmath::Vector2;
-use cgmath::ApproxEq;
+#[macro_use]
+use cgmath::*;
 use core::util::Initial;
 
 pub type Position = Vector2<f32>;
@@ -74,6 +75,7 @@ impl Default for Transform {
 		}
 	}
 }
+
 impl Transform {
 	pub fn new(position: Position, angle: f32) -> Self {
 		Transform {
@@ -83,7 +85,10 @@ impl Transform {
 		}
 	}
 	pub fn from_position(position: Position) -> Self {
-		Transform { position: position, ..Transform::default() }
+		Transform {
+			position: position,
+			..Transform::default()
+		}
 	}
 }
 
@@ -104,8 +109,8 @@ pub struct PolygonType {
 
 impl PolygonType {
 	fn classify_vertex(v0: &Position, v1: &Position, v2: &Position) -> VertexType {
-		let x = (v1 - v0).perp_dot(v2 - v0);
-		if x.approx_eq(&0.) {
+		let x: f32 = (v1 - v0).perp_dot(v2 - v0);
+		if relative_eq!(x, 0.0f32) {
 			VertexType::Flat
 		} else if x > 0. {
 			VertexType::Plus
