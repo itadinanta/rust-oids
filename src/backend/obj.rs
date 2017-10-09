@@ -9,7 +9,7 @@ pub type Id = usize;
 pub type SegmentIndex = u8;
 pub type BoneIndex = u8;
 pub type AttachmentIndex = u8;
-pub type PhysicsHandle = Id;
+// pub type PhysicsHandle = Id;
 
 #[derive(Clone)]
 pub enum Shape {

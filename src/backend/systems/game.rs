@@ -60,13 +60,13 @@ impl System for GameSystem {
             let s = &source[i];
             self.emitters.push(Emitter::new(s.transform().position, s.rate(), s.emission()));
         }
-        for (i, mut d) in self.emitters.iter_mut().enumerate() {
+        for (i, d) in self.emitters.iter_mut().enumerate() {
             d.position = source[i].transform().position;
         }
     }
 
     fn to_world(&self, world: &mut world::World) {
-        let mut rng = &mut rand::thread_rng();
+        let rng = &mut rand::thread_rng();
         for e in &self.emitters {
             for i in e.spawned..e.to_spawn {
                 let r = match e.emission {

@@ -28,12 +28,12 @@ impl Default for VertexPosNormal {
 
 pub type Vertex = VertexPosNormal;
 pub type HDRColorFormat = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
-pub type ColorFormat = gfx::format::Rgba8;
+// pub type ColorFormat = gfx::format::Rgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
 
 const MAX_NUM_TOTAL_LIGHTS: usize = 16;
 
-pub type GFormat = [f32; 4];
+// pub type GFormat = [f32; 4];
 
 pub type M44 = cgmath::Matrix4<f32>;
 

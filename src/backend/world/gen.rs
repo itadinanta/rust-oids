@@ -202,7 +202,7 @@ impl<R> Seeder for Randomizer<R>
 {
     fn seed(&mut self) -> Genome {
         let mut dna = vec![0u8; 72];
-        let mut r = dna.as_mut_slice();
+        let r = dna.as_mut_slice();
         self.rng.fill_bytes(r);
         Genome::new(r)
     }

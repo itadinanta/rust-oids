@@ -47,7 +47,7 @@ pub type HDRColorFormat = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
 pub type ColorFormat = gfx::format::Srgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
 
-pub type GFormat = Rgba;
+// pub type GFormat = Rgba;
 
 pub const BACKGROUND: Rgba = [0.01, 0.01, 0.01, 1.0];
 

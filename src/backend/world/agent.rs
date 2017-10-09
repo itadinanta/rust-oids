@@ -303,7 +303,7 @@ impl State {
     pub fn toggle_selection(&mut self) {
         self.flags ^= Flags::SELECTED;
     }
-
+    #[allow(unused)]
     pub fn select(&mut self) {
         self.flags |= Flags::SELECTED;
     }

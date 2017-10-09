@@ -1,6 +1,5 @@
 use cgmath;
 use cgmath::InnerSpace;
-use cgmath::Zero;
 use num;
 use std::ops;
 

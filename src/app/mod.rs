@@ -294,7 +294,7 @@ impl App {
                 self.camera.set_relative(start - end);
                 self.camera.velocity(vel);
             }
-            Event::SelectMinion(pos, id) => self.select_minion(id),
+            Event::SelectMinion(_, id) => self.select_minion(id),
             Event::DeselectAll => self.deselect_all(),
             Event::NewMinion(pos) => self.new_minion(pos),
             Event::RandomizeMinion(pos) => self.randomize_minion(pos),

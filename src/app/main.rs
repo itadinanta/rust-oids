@@ -11,7 +11,6 @@ use glutin;
 use glutin::WindowEvent;
 use glutin::VirtualKeyCode;
 use glutin::KeyboardInput;
-use glutin::MouseCursor;
 use glutin::GlContext;
 use gfx_window_glutin;
 
@@ -24,7 +23,8 @@ pub fn main_loop(minion_gene_pool: &str) {
 		.with_dimensions(WIDTH, HEIGHT);
 
 	let context_builder = glutin::ContextBuilder::new()
-		.with_srgb(true)
+		.with_srgb(false)
+		.with_multisampling(0)
 		.with_pixel_format(24u8, 0u8)
 		.with_vsync(false);
 

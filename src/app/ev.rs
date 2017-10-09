@@ -1,8 +1,6 @@
 use glutin;
 use glutin::WindowEvent;
-use glutin::VirtualKeyCode;
 use glutin::KeyboardInput;
-use glutin::MouseCursor;
 use frontend::input;
 use frontend::input::Key;
 use core::geometry::Position;

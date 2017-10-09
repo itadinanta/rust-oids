@@ -10,11 +10,6 @@ extern crate chrono;
 extern crate csv;
 
 #[macro_use]
-extern crate custom_derive;
-#[macro_use]
-extern crate enum_derive;
-
-#[macro_use]
 extern crate bitflags;
 extern crate bit_set;
 extern crate cgmath;
@@ -27,7 +22,6 @@ extern crate gfx_device_gl;
 extern crate gfx_window_glutin;
 extern crate winit;
 extern crate glutin;
-extern crate piston;
 
 extern crate rand;
 extern crate num;
