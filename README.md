@@ -1,6 +1,14 @@
+
 ## Rust-oids
 
-It's starting to get interesting. In the last few weeks the little critters have acquired some digital *genetic code* and simple ANN-based *brains*.
+UPDATE 10/10/2017:
+  code ported to Rust 1.22.0-nightly with *all* libraries updated to latest version available.
+
+  Runs only in release mode (I'm tracking a debug_assert! in gfx).
+
+  ```cargo run --release``` is required. Also gamma correction is iffy due to a quick-and-dirty workaround.
+
+  Tested on Devuan Ceres latest.
 
 ## Simulation
 

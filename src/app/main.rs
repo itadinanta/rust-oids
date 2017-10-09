@@ -25,11 +25,11 @@ pub fn main_loop(minion_gene_pool: &str) {
 		.with_dimensions(WIDTH, HEIGHT);
 
 	let context_builder = glutin::ContextBuilder::new()
-		//.with_srgb(true)
+		//.with_srgb(true) <--- does not work
 		.with_gl(glutin::GlRequest::Latest)
 		.with_gl_robustness(glutin::Robustness::TryRobustNoResetNotification)
 		.with_gl_profile(glutin::GlProfile::Core)
-		//  .with_multisampling(1)
+		.with_multisampling(1)
 		.with_depth_buffer(24u8)
 		.with_stencil_buffer(8u8)
 		.with_pixel_format(24u8, 0u8)

@@ -1,6 +1,6 @@
 [root]
 name = "rust-oids"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "bit-set 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -17,7 +17,7 @@ dependencies = [
  "gfx_window_glutin 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "itertools 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "itertools 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log4rs 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -539,7 +539,7 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.6.5"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "either 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1344,7 +1344,7 @@ dependencies = [
 "checksum inflate 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "10ec05638adf7c5c788bc0cfa608cd479a13572beda20feb4898fe1d85d2c64b"
 "checksum instrument 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "35488cca6fb8c15756ccbd410ba65cf4c68dc07f6ea1dac0e63c0902ed69eed1"
 "checksum itertools 0.5.10 (registry+https://github.com/rust-lang/crates.io-index)" = "4833d6978da405305126af4ac88569b5d71ff758581ce5a987dbfa3755f694fc"
-"checksum itertools 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)" = "d3f2be4da1690a039e9ae5fd575f706a63ad5a2120f161b1d653c9da3930dd21"
+"checksum itertools 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3efe47b80cf55f2ea23a1e29350794bfebf5b0061a1f2dfc01307c0164fda894"
 "checksum itoa 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)" = "8324a32baf01e2ae060e9de58ed0bc2320c9a2833491ee36cd3b4c414de4db8c"
 "checksum jpeg-decoder 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)" = "2805ccb10ffe4d10e06ef68a158ff94c255211ecbae848fbde2146b098f93ce7"
 "checksum kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7507624b29483431c0ba2d82aece8ca6cdba9382bff4ddd0f7490560c056098d"
