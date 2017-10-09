@@ -123,11 +123,11 @@ impl AgentType {
 // for simplicity, inputs = intermediate = output
 pub const N_WEIGHTS: usize = 4;
 
-pub type InputVector<S> where S: Copy + Default + Float = [S; N_WEIGHTS];
-pub type OutputVector<S> where S: Copy + Default + Float = [S; N_WEIGHTS];
+pub type InputVector<S> = [S; N_WEIGHTS];
+pub type OutputVector<S>  = [S; N_WEIGHTS];
 
-pub type WeightVector<T> where T: Copy + Default = [T; N_WEIGHTS];
-pub type WeightMatrix<T> where T: Copy + Default = [WeightVector<T>; N_WEIGHTS];
+pub type WeightVector<T> = [T; N_WEIGHTS];
+pub type WeightMatrix<T> = [WeightVector<T>; N_WEIGHTS];
 
 #[derive(Clone, Default, Debug)]
 pub struct GBrain<T: Copy + Default> {

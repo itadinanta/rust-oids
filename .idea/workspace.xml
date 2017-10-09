@@ -3,20 +3,9 @@
   <component name="ChangeListManager">
     <list default="true" id="ca92c472-6b68-4d0f-b0cd-03083823e34e" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Cargo.lock" afterPath="$PROJECT_DIR$/Cargo.lock" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Cargo.toml" afterPath="$PROJECT_DIR$/Cargo.toml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/app/ev.rs" afterPath="$PROJECT_DIR$/src/app/ev.rs" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/app/main.rs" afterPath="$PROJECT_DIR$/src/app/main.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/app/mod.rs" afterPath="$PROJECT_DIR$/src/app/mod.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/backend/obj.rs" afterPath="$PROJECT_DIR$/src/backend/obj.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/backend/systems/game.rs" afterPath="$PROJECT_DIR$/src/backend/systems/game.rs" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/backend/world/agent.rs" afterPath="$PROJECT_DIR$/src/backend/world/agent.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/backend/world/gen.rs" afterPath="$PROJECT_DIR$/src/backend/world/gen.rs" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/core/geometry.rs" afterPath="$PROJECT_DIR$/src/core/geometry.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/core/math.rs" afterPath="$PROJECT_DIR$/src/core/math.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/frontend/render/forward.rs" afterPath="$PROJECT_DIR$/src/frontend/render/forward.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/frontend/render/mod.rs" afterPath="$PROJECT_DIR$/src/frontend/render/mod.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main.rs" afterPath="$PROJECT_DIR$/src/main.rs" />
     </list>
     <ignored path="$PROJECT_DIR$/target/" />
     <ignored path="$PROJECT_DIR$/out/" />
@@ -35,26 +24,6 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="ev.rs" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/app/ev.rs">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="57">
-              <caret line="3" column="0" lean-forward="false" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="mod.rs" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/frontend/render/mod.rs">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="253">
-              <caret line="264" column="11" lean-forward="false" selection-start-line="264" selection-start-column="11" selection-end-line="264" selection-end-column="11" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="forward.rs" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/frontend/render/forward.rs">
           <provider selected="true" editor-type-id="text-editor">
@@ -68,18 +37,38 @@
       <file leaf-file-name="agent.rs" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/backend/world/agent.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-2547">
-              <caret line="129" column="0" lean-forward="false" selection-start-line="129" selection-start-column="0" selection-end-line="129" selection-end-column="0" />
+            <state relative-caret-position="170">
+              <caret line="125" column="24" lean-forward="false" selection-start-line="125" selection-start-column="24" selection-end-line="125" selection-end-column="24" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="main.rs" pinned="false" current-in-tab="true">
+      <file leaf-file-name="main.rs" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/app/main.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="627">
-              <caret line="33" column="0" lean-forward="false" selection-start-line="33" selection-start-column="0" selection-end-line="33" selection-end-column="0" />
+            <state relative-caret-position="475">
+              <caret line="25" column="23" lean-forward="false" selection-start-line="25" selection-start-column="23" selection-end-line="25" selection-end-column="23" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="geometry.rs" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/core/geometry.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="38">
+              <caret line="2" column="33" lean-forward="false" selection-start-line="2" selection-start-column="33" selection-end-line="2" selection-end-column="33" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="lib.rs" pinned="false" current-in-tab="false">
+        <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/glutin-0.10.0/src/lib.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="398">
+              <caret line="229" column="29" lean-forward="false" selection-start-line="229" selection-start-column="11" selection-end-line="229" selection-end-column="29" />
               <folding />
             </state>
           </provider>
@@ -152,6 +141,11 @@
     </dirStrings>
   </component>
   <component name="Git.Settings">
+    <option name="PREVIOUS_COMMIT_AUTHORS">
+      <list>
+        <option value="Nico Orru &lt;nigu.orru@gmail.com&gt;" />
+      </list>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="IdeDocumentHistory">
@@ -166,7 +160,6 @@
         <option value="$PROJECT_DIR$/src/backend/systems/physics.rs" />
         <option value="$PROJECT_DIR$/src/backend/world/segment.rs" />
         <option value="$PROJECT_DIR$/src/backend/world/swarm.rs" />
-        <option value="$PROJECT_DIR$/src/app/main.rs" />
         <option value="$PROJECT_DIR$/src/backend/systems/game.rs" />
         <option value="$PROJECT_DIR$/src/backend/world/gen.rs" />
         <option value="$PROJECT_DIR$/src/backend/obj.rs" />
@@ -175,10 +168,11 @@
         <option value="$PROJECT_DIR$/src/app/mod.rs" />
         <option value="$PROJECT_DIR$/src/core/math.rs" />
         <option value="$PROJECT_DIR$/src/app/ev.rs" />
-        <option value="$PROJECT_DIR$/src/backend/world/agent.rs" />
-        <option value="$PROJECT_DIR$/src/core/geometry.rs" />
         <option value="$PROJECT_DIR$/Cargo.toml" />
         <option value="$PROJECT_DIR$/src/main.rs" />
+        <option value="$PROJECT_DIR$/src/app/main.rs" />
+        <option value="$PROJECT_DIR$/src/backend/world/agent.rs" />
+        <option value="$PROJECT_DIR$/src/core/geometry.rs" />
       </list>
     </option>
   </component>
@@ -395,7 +389,7 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="settings.editor.selected.configurable" value="reference.settingsdialog.IDE.editor.colors.File Status" />
+    <property name="settings.editor.selected.configurable" value="org.rust.cargo.project.configurable.RustProjectConfigurable" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="SearchEverywhereHistoryKey" value="debug_flags&#9;null&#9;null&#10;DebugFlags&#9;null&#9;null&#10;refresh cargo&#9;ACTION&#9;Rust.RefreshCargoProject" />
     <property name="project.structure.last.edited" value="Project" />
@@ -511,6 +505,14 @@
       <option name="presentableId" value="Default" />
       <updated>1507060349978</updated>
     </task>
+    <task id="LOCAL-00001" summary="Tidied up warnings, still not starting.">
+      <created>1507580062092</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1507580062092</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TodoView" selected-index="3">
@@ -526,7 +528,7 @@
     <frame x="-3" y="31" width="2566" height="1363" extended-state="6" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32782823" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Cargo" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.33651552" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Cargo" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33651552" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Palette&#9;" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.13762927" sideWeight="0.5132409" order="4" side_tool="true" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3297724" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -535,7 +537,7 @@
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3290735" sideWeight="0.4968603" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.13762927" sideWeight="0.48675916" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="Problems" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.328654" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Problems" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32782823" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Dynamic Properties" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3297724" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24988389" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -578,6 +580,12 @@
   <component name="VcsContentAnnotationSettings">
     <option name="myLimit" value="2678400000" />
   </component>
+  <component name="VcsManagerConfiguration">
+    <option name="CHECK_CODE_SMELLS_BEFORE_PROJECT_COMMIT" value="false" />
+    <option name="CHECK_NEW_TODO" value="false" />
+    <MESSAGE value="Tidied up warnings, still not starting." />
+    <option name="LAST_COMMIT_MESSAGE" value="Tidied up warnings, still not starting." />
+  </component>
   <component name="XDebuggerManager">
     <breakpoint-manager />
     <watches-manager />
@@ -587,13 +595,6 @@
     <option name="FILTER_TARGETS" value="false" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/resources/shaders/effects/clip_luminance.frag">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="221">
-          <caret line="13" column="37" lean-forward="false" selection-start-line="13" selection-start-column="37" selection-end-line="13" selection-end-column="37" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/.idea/misc.xml">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -859,14 +860,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/core/geometry.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="38">
-          <caret line="2" column="0" lean-forward="false" selection-start-line="2" selection-start-column="0" selection-end-line="2" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/core/math.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="38">
@@ -895,14 +888,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="57">
           <caret line="3" column="0" lean-forward="false" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/backend/world/agent.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-2547">
-          <caret line="129" column="0" lean-forward="false" selection-start-line="129" selection-start-column="0" selection-end-line="129" selection-end-column="0" />
           <folding />
         </state>
       </provider>
@@ -955,10 +940,34 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/glutin-0.10.0/src/lib.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="398">
+          <caret line="229" column="29" lean-forward="false" selection-start-line="229" selection-start-column="11" selection-end-line="229" selection-end-column="29" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/app/main.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="627">
-          <caret line="33" column="0" lean-forward="false" selection-start-line="33" selection-start-column="0" selection-end-line="33" selection-end-column="0" />
+        <state relative-caret-position="475">
+          <caret line="25" column="23" lean-forward="false" selection-start-line="25" selection-start-column="23" selection-end-line="25" selection-end-column="23" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/backend/world/agent.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="170">
+          <caret line="125" column="24" lean-forward="false" selection-start-line="125" selection-start-column="24" selection-end-line="125" selection-end-column="24" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/core/geometry.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="38">
+          <caret line="2" column="33" lean-forward="false" selection-start-line="2" selection-start-column="33" selection-end-line="2" selection-end-column="33" />
           <folding />
         </state>
       </provider>
