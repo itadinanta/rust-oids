@@ -5,7 +5,7 @@ use core::resource;
 use frontend::render::Result;
 
 pub type HDR = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
-pub type LDR = gfx::format::Srgba8;
+pub type LDR = gfx::format::Rgba8;
 
 gfx_defines! {
 	vertex BlitVertex {

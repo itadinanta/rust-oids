@@ -44,7 +44,7 @@ impl Appearance {
 
 
 pub type HDRColorFormat = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
-pub type ColorFormat = gfx::format::Srgba8;
+pub type ColorFormat = gfx::format::Rgba8; // Srgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
 
 // pub type GFormat = Rgba;

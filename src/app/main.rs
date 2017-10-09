@@ -18,25 +18,28 @@ pub fn main_loop(minion_gene_pool: &str) {
 	const WIDTH: u32 = 1024;
 	const HEIGHT: u32 = 1024;
 
+	let mut events_loop = glutin::EventsLoop::new();
+
 	let builder = glutin::WindowBuilder::new()
 		.with_title("Box2d + GFX".to_string())
 		.with_dimensions(WIDTH, HEIGHT);
 
 	let context_builder = glutin::ContextBuilder::new()
-		.with_srgb(true)
+		//.with_srgb(true)
 		.with_gl(glutin::GlRequest::Latest)
 		.with_gl_robustness(glutin::Robustness::TryRobustNoResetNotification)
 		.with_gl_profile(glutin::GlProfile::Core)
-		.with_multisampling(1)
+		//  .with_multisampling(1)
 		.with_depth_buffer(24u8)
 		.with_stencil_buffer(8u8)
 		.with_pixel_format(24u8, 0u8)
 		.with_vsync(true);
 
-	let mut events_loop = glutin::EventsLoop::new();
 
-	let (window, mut device, mut factory, mut frame_buffer, mut depth_buffer) =
-		gfx_window_glutin::init::<render::ColorFormat, render::DepthFormat>(builder, context_builder, &mut events_loop);
+	let window = glutin::GlWindow::new(builder, context_builder, &events_loop).unwrap();
+
+	let (mut device, mut factory, mut frame_buffer, mut depth_buffer) =
+		gfx_window_glutin::init_existing::<render::ColorFormat, render::DepthFormat>(&window);
 
 	let (w, h, _, _) = frame_buffer.get_dimensions();
 
