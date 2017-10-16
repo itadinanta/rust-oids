@@ -26,20 +26,20 @@ pub fn main_loop(minion_gene_pool: &str) {
 
 	let context_builder = glutin::ContextBuilder::new()
 		//.with_srgb(true) <--- does not work
-		.with_gl(glutin::GlRequest::Latest)
-		.with_gl_robustness(glutin::Robustness::TryRobustNoResetNotification)
-		.with_gl_profile(glutin::GlProfile::Core)
-		.with_multisampling(1)
-		.with_depth_buffer(24u8)
-		.with_stencil_buffer(8u8)
-		.with_pixel_format(24u8, 0u8)
+		//.with_gl(glutin::GlRequest::Latest)
+		//.with_gl_robustness(glutin::Robustness::TryRobustNoResetNotification)
+		//.with_gl_profile(glutin::GlProfile::Core)
+		//.with_multisampling(4)
+		//.with_depth_buffer(24u8)
+		//.with_stencil_buffer(8u8)
+		//.with_pixel_format(24u8, 0u8)
 		.with_vsync(true);
 
 
-	let window = glutin::GlWindow::new(builder, context_builder, &events_loop).unwrap();
+//	let window = glutin::GlWindow::new(builder, context_builder, &events_loop).unwrap();
 
-	let (mut device, mut factory, mut frame_buffer, mut depth_buffer) =
-		gfx_window_glutin::init_existing::<render::ColorFormat, render::DepthFormat>(&window);
+	let (window, mut device, mut factory, mut frame_buffer, mut depth_buffer) =
+		gfx_window_glutin::init::<render::ColorFormat, render::DepthFormat>(builder, context_builder, &events_loop);
 
 	let (w, h, _, _) = frame_buffer.get_dimensions();
 

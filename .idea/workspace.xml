@@ -9,8 +9,13 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ca92c472-6b68-4d0f-b0cd-03083823e34e" name="Default" comment="">
+    <list default="true" id="ca92c472-6b68-4d0f-b0cd-03083823e34e" name="Default" comment="Evaluating CLion, added CLion project files">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Cargo.lock" afterPath="$PROJECT_DIR$/Cargo.lock" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Cargo.toml" afterPath="$PROJECT_DIR$/Cargo.toml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/app/main.rs" afterPath="$PROJECT_DIR$/src/app/main.rs" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/frontend/render/forward.rs" afterPath="$PROJECT_DIR$/src/frontend/render/forward.rs" />
     </list>
     <ignored path="$PROJECT_DIR$/target/" />
     <ignored path="$PROJECT_DIR$/out/" />
@@ -32,91 +37,84 @@
       <file leaf-file-name="main.rs" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/app/main.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="442">
-              <caret line="26" column="0" lean-forward="false" selection-start-line="26" selection-start-column="0" selection-end-line="26" selection-end-column="0" />
+            <state relative-caret-position="256">
+              <caret line="41" column="67" lean-forward="false" selection-start-line="41" selection-start-column="67" selection-end-line="41" selection-end-column="67" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="pso.rs" pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_core-0.7.2/src/pso.rs">
+      <file leaf-file-name="lib.rs" pinned="false" current-in-tab="false">
+        <entry file="file:///u01/home/nico/Projects/3rdParty/gfx/src/window/glutin/src/lib.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="379">
-              <caret line="292" column="0" lean-forward="false" selection-start-line="292" selection-start-column="0" selection-end-line="292" selection-end-column="0" />
+            <state relative-caret-position="272">
+              <caret line="16" column="16" lean-forward="false" selection-start-line="16" selection-start-column="16" selection-end-line="16" selection-end-column="16" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="lib.rs" pinned="false" current-in-tab="false">
+        <entry file="file:///u01/home/nico/Projects/3rdParty/gfx/src/core/src/lib.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="0">
+              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="encoder.rs" pinned="false" current-in-tab="false">
+        <entry file="file:///u01/home/nico/Projects/3rdParty/gfx/src/render/src/encoder.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="442">
+              <caret line="71" column="19" lean-forward="false" selection-start-line="71" selection-start-column="19" selection-end-line="71" selection-end-column="19" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="Cargo.toml" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/Cargo.toml">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="629">
+              <caret line="37" column="75" lean-forward="false" selection-start-line="37" selection-start-column="75" selection-end-line="37" selection-end-column="90" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="factory.rs" pinned="false" current-in-tab="false">
+        <entry file="file://$USER_HOME$/.cargo/git/checkouts/gfx-d4df7e1d332a6110/0d20421/src/core/src/factory.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="264">
+              <caret line="428" column="113" lean-forward="false" selection-start-line="428" selection-start-column="113" selection-end-line="428" selection-end-column="113" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="texture.rs" pinned="false" current-in-tab="false">
+        <entry file="file://$USER_HOME$/.cargo/git/checkouts/gfx-d4df7e1d332a6110/0d20421/src/core/src/texture.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="264">
+              <caret line="327" column="9" lean-forward="false" selection-start-line="327" selection-start-column="9" selection-end-line="327" selection-end-column="9" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
       <file leaf-file-name="target.rs" pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx-0.16.1/src/pso/target.rs">
+        <entry file="file:///u01/home/nico/Projects/3rdParty/gfx/src/render/src/pso/target.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="233">
-              <caret line="156" column="0" lean-forward="false" selection-start-line="156" selection-start-column="0" selection-end-line="156" selection-end-column="0" />
+            <state relative-caret-position="2749">
+              <caret line="182" column="1" lean-forward="false" selection-start-line="182" selection-start-column="1" selection-end-line="182" selection-end-column="1" />
               <folding>
-                <element signature="e#5094#5095#0" expanded="true" />
+                <marker date="1508027128467" expanded="false" signature="9229:9240" ph=" { " />
+                <marker date="1508027128467" expanded="false" signature="9260:9266" ph=" }" />
+                <marker date="1508027128467" expanded="false" signature="9663:9674" ph=" { " />
+                <marker date="1508027128467" expanded="false" signature="9703:9709" ph=" }" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="encoder.rs" pinned="false" current-in-tab="true">
-        <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx-0.16.1/src/encoder.rs">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2193">
-              <caret line="129" column="0" lean-forward="true" selection-start-line="129" selection-start-column="0" selection-end-line="129" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="CMakeLists.txt" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/CMakeLists.txt">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="323">
-              <caret line="19" column="27" lean-forward="false" selection-start-line="19" selection-start-column="27" selection-end-line="19" selection-end-column="27" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="lighting.vert" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/resources/shaders/forward/lighting.vert">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="391">
-              <caret line="23" column="0" lean-forward="false" selection-start-line="23" selection-start-column="0" selection-end-line="23" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="lighting_flat.frag" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/resources/shaders/forward/lighting_flat.frag">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="0">
-              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="lighting_poly.frag" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/resources/shaders/forward/lighting_poly.frag">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="0">
-              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="forward.rs" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/frontend/render/forward.rs">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="345">
-              <caret line="201" column="0" lean-forward="false" selection-start-line="201" selection-start-column="0" selection-end-line="201" selection-end-column="0" />
-              <folding />
             </state>
           </provider>
         </entry>
@@ -124,8 +122,18 @@
       <file leaf-file-name="mod.rs" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/frontend/render/mod.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="233">
-              <caret line="303" column="0" lean-forward="false" selection-start-line="303" selection-start-column="0" selection-end-line="303" selection-end-column="0" />
+            <state relative-caret-position="239">
+              <caret line="46" column="38" lean-forward="false" selection-start-line="46" selection-start-column="38" selection-end-line="46" selection-end-column="38" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="Cargo.lock" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/Cargo.lock">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-563">
+              <caret line="402" column="9" lean-forward="false" selection-start-line="402" selection-start-column="9" selection-end-line="402" selection-end-column="9" />
               <folding />
             </state>
           </provider>
@@ -142,6 +150,14 @@
       <find>utc</find>
       <find>approx_</find>
       <find>piston</find>
+      <find>bitflags</find>
+      <find>gfx_render</find>
+      <find>gfx_core</find>
+      <find>Dimensions</find>
+      <find>DepthFom</find>
+      <find>Kind</find>
+      <find>3rdP</find>
+      <find>0.16.1</find>
     </findStrings>
     <dirStrings>
       <dir>$PROJECT_DIR$/src</dir>
@@ -169,19 +185,23 @@
         <option value="$PROJECT_DIR$/src/backend/systems/game.rs" />
         <option value="$PROJECT_DIR$/src/backend/world/gen.rs" />
         <option value="$PROJECT_DIR$/src/backend/obj.rs" />
-        <option value="$PROJECT_DIR$/src/frontend/render/forward.rs" />
         <option value="$PROJECT_DIR$/src/app/mod.rs" />
         <option value="$PROJECT_DIR$/src/core/math.rs" />
         <option value="$PROJECT_DIR$/src/app/ev.rs" />
         <option value="$PROJECT_DIR$/src/main.rs" />
         <option value="$PROJECT_DIR$/src/backend/world/agent.rs" />
         <option value="$PROJECT_DIR$/src/core/geometry.rs" />
-        <option value="$PROJECT_DIR$/src/frontend/render/mod.rs" />
         <option value="$PROJECT_DIR$/src/frontend/render/effects.rs" />
         <option value="$PROJECT_DIR$/resources/shaders/effects/exposure_tone_map.frag" />
-        <option value="$PROJECT_DIR$/Cargo.toml" />
         <option value="$PROJECT_DIR$/README.md" />
         <option value="$PROJECT_DIR$/src/app/main.rs" />
+        <option value="$PROJECT_DIR$/src/frontend/render/mod.rs" />
+        <option value="$PROJECT_DIR$/src/frontend/render/forward.rs" />
+        <option value="/u01/home/nico/Projects/3rdParty/gfx/src/core/src/texture.rs" />
+        <option value="/u01/home/nico/Projects/3rdParty/gfx/src/core/src/pso.rs" />
+        <option value="/u01/home/nico/Projects/3rdParty/gfx/src/render/src/pso/target.rs" />
+        <option value="$PROJECT_DIR$/Cargo.lock" />
+        <option value="$PROJECT_DIR$/Cargo.toml" />
       </list>
     </option>
   </component>
@@ -193,7 +213,7 @@
   </component>
   <component name="ProjectFrameBounds" extendedState="4">
     <option name="y" value="31" />
-    <option name="width" value="1276" />
+    <option name="width" value="1280" />
     <option name="height" value="1360" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
@@ -360,24 +380,7 @@
             <path>
               <item name="rust-oids" type="dad4c3:CidrFilesViewHelper$MyProjectTreeStructure$1" />
               <item name="rust-oids" type="462c0819:PsiDirectoryNode" />
-              <item name="resources" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="rust-oids" type="dad4c3:CidrFilesViewHelper$MyProjectTreeStructure$1" />
-              <item name="rust-oids" type="462c0819:PsiDirectoryNode" />
-              <item name="resources" type="462c0819:PsiDirectoryNode" />
-              <item name="shaders" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="rust-oids" type="dad4c3:CidrFilesViewHelper$MyProjectTreeStructure$1" />
-              <item name="rust-oids" type="462c0819:PsiDirectoryNode" />
-              <item name="resources" type="462c0819:PsiDirectoryNode" />
-              <item name="shaders" type="462c0819:PsiDirectoryNode" />
-              <item name="forward" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="rust-oids" type="dad4c3:CidrFilesViewHelper$MyProjectTreeStructure$1" />
-              <item name="External Libraries" type="cb654da1:ExternalLibrariesNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -387,9 +390,9 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="settings.editor.selected.configurable" value="org.rust.cargo.project.configurable.RustProjectConfigurable" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
-    <property name="SearchEverywhereHistoryKey" value="debug_flags&#9;null&#9;null&#10;DebugFlags&#9;null&#9;null&#10;refresh cargo&#9;ACTION&#9;Rust.RefreshCargoProject" />
+    <property name="settings.editor.selected.configurable" value="CPPToolchains" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../../3rdParty/gfx" />
+    <property name="SearchEverywhereHistoryKey" value="create_texture_i&#9;null&#9;null&#10;AaMode&#9;null&#9;null&#10;debug_flags&#9;null&#9;null&#10;DebugFlags&#9;null&#9;null&#10;refresh cargo&#9;ACTION&#9;Rust.RefreshCargoProject" />
     <property name="project.structure.last.edited" value="Project" />
     <property name="project.structure.proportion" value="0.0" />
     <property name="project.structure.side.proportion" value="0.2" />
@@ -408,7 +411,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Cargo Command.Run rust-oids">
+  <component name="RunManager" selected="Cargo Command.check">
     <configuration name="Run rust-oids" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="channel" value="DEFAULT" />
       <option name="command" value="run --bin rust-oids" />
@@ -482,10 +485,12 @@
       <item index="2" class="java.lang.String" itemvalue="Cargo Command.clippy" />
     </list>
     <recent_temporary>
-      <list size="3">
+      <list size="5">
         <item index="0" class="java.lang.String" itemvalue="Cargo Command.Run rust-oids" />
         <item index="1" class="java.lang.String" itemvalue="Cargo Command.clippy" />
         <item index="2" class="java.lang.String" itemvalue="Cargo Command.clippy" />
+        <item index="3" class="java.lang.String" itemvalue="Cargo Command.clippy" />
+        <item index="4" class="java.lang.String" itemvalue="Cargo Command.clippy" />
       </list>
     </recent_temporary>
   </component>
@@ -532,18 +537,19 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="31" width="1276" height="1360" extended-state="4" />
+    <frame x="0" y="31" width="1280" height="1360" extended-state="4" />
     <editor active="true" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.28110236" sideWeight="0.48675916" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2802198" sideWeight="0.48675916" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32782823" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Cargo" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33651552" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Cargo" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.16808511" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.13762927" sideWeight="0.5132409" order="4" side_tool="true" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3434505" sideWeight="0.48744112" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32781458" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3434505" sideWeight="0.48744112" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32747602" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24988389" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3290735" sideWeight="0.4968603" order="8" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.399361" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.399361" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.28246754" sideWeight="0.50428396" order="3" side_tool="true" content_ui="tabs" />
       <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
@@ -555,10 +561,19 @@
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Problems" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32782823" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Dynamic Properties" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3297724" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24941942" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
+  </component>
+  <component name="Vcs.Log.History.Properties">
+    <option name="COLUMN_ORDER">
+      <list>
+        <option value="0" />
+        <option value="2" />
+        <option value="3" />
+        <option value="1" />
+      </list>
+    </option>
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
@@ -594,7 +609,8 @@
     <option name="CHECK_NEW_TODO" value="false" />
     <MESSAGE value="Tidied up warnings, still not starting." />
     <MESSAGE value="No warnings, still fail to create window." />
-    <option name="LAST_COMMIT_MESSAGE" value="No warnings, still fail to create window." />
+    <MESSAGE value="Evaluating CLion, added CLion project files" />
+    <option name="LAST_COMMIT_MESSAGE" value="Evaluating CLion, added CLion project files" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -604,12 +620,56 @@
           <line>292</line>
           <option name="timeStamp" value="3" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" type="org.rust.debugger.RsLineBreakpointType">
+          <url>file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_core-0.7.2/src/pso.rs</url>
+          <line>272</line>
+          <option name="timeStamp" value="7" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="org.rust.debugger.RsLineBreakpointType">
+          <url>file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_core-0.7.2/src/pso.rs</url>
+          <line>282</line>
+          <option name="timeStamp" value="8" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="org.rust.debugger.RsLineBreakpointType">
+          <url>file:///u01/home/nico/Projects/3rdParty/gfx/src/core/src/factory.rs</url>
+          <line>500</line>
+          <option name="timeStamp" value="41" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="org.rust.debugger.RsLineBreakpointType">
+          <url>file://$PROJECT_DIR$/src/frontend/render/mod.rs</url>
+          <line>223</line>
+          <option name="timeStamp" value="46" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="org.rust.debugger.RsLineBreakpointType">
+          <url>file:///u01/home/nico/Projects/3rdParty/gfx/src/core/src/texture.rs</url>
+          <line>300</line>
+          <option name="timeStamp" value="50" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="org.rust.debugger.RsLineBreakpointType">
+          <url>file:///u01/home/nico/Projects/3rdParty/gfx/src/core/src/texture.rs</url>
+          <line>302</line>
+          <option name="timeStamp" value="51" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="org.rust.debugger.RsLineBreakpointType">
+          <url>file:///u01/home/nico/Projects/3rdParty/gfx/src/core/src/texture.rs</url>
+          <line>283</line>
+          <option name="timeStamp" value="53" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="org.rust.debugger.RsLineBreakpointType">
+          <url>file:///u01/home/nico/Projects/3rdParty/gfx/src/backend/gl/src/factory.rs</url>
+          <line>482</line>
+          <option name="timeStamp" value="54" />
+        </line-breakpoint>
       </breakpoints>
-      <option name="time" value="4" />
+      <option name="time" value="55" />
     </breakpoint-manager>
     <watches-manager>
       <configuration name="CargoCommandRunConfiguration">
+        <watch expression="data" language="Rust" />
+        <watch expression="dim" language="Rust" />
         <watch expression="self" language="Rust" />
+        <watch expression="d" language="Rust" />
+        <watch expression="depth_buffer" language="Rust" />
       </configuration>
     </watches-manager>
   </component>
@@ -618,125 +678,6 @@
     <option name="FILTER_TARGETS" value="false" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/src/core/color.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2926">
-          <caret line="154" column="41" lean-forward="false" selection-start-line="154" selection-start-column="41" selection-end-line="154" selection-end-column="41" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/glutin-0.8.1/src/lib.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2280">
-          <caret line="120" column="11" lean-forward="false" selection-start-line="120" selection-start-column="11" selection-end-line="120" selection-end-column="11" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_core-0.7.1/src/memory.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="22" column="9" lean-forward="false" selection-start-line="22" selection-start-column="9" selection-end-line="22" selection-end-column="9" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/.rustfmt.toml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_window_glutin-0.16.0/src/lib.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="874">
-          <caret line="46" column="78" lean-forward="false" selection-start-line="46" selection-start-column="78" selection-end-line="46" selection-end-column="78" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/core/util.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1228">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/cgmath-0.15.0/src/angle.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="268">
-          <caret line="37" column="11" lean-forward="false" selection-start-line="37" selection-start-column="11" selection-end-line="37" selection-end-column="11" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/frontend/input/mod.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-2129">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/backend/systems/alife.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="260">
-          <caret line="79" column="94" lean-forward="false" selection-start-line="79" selection-start-column="94" selection-end-line="79" selection-end-column="94" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/approx-0.1.1/src/lib.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-6392">
-          <caret line="48" column="11" lean-forward="true" selection-start-line="48" selection-start-column="11" selection-end-line="48" selection-end-column="11" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/winit-0.8.2/src/events.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="437">
-          <caret line="23" column="23" lean-forward="true" selection-start-line="23" selection-start-column="23" selection-end-line="23" selection-end-column="23" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/backend/systems/ai.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="247">
-          <caret line="13" column="0" lean-forward="false" selection-start-line="13" selection-start-column="0" selection-end-line="13" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/backend/world/mod.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="361">
-          <caret line="19" column="30" lean-forward="false" selection-start-line="19" selection-start-column="30" selection-end-line="19" selection-end-column="30" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/backend/world/phen.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="76">
-          <caret line="4" column="13" lean-forward="false" selection-start-line="4" selection-start-column="13" selection-end-line="4" selection-end-column="13" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/backend/systems/physics.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="171">
-          <caret line="9" column="30" lean-forward="false" selection-start-line="9" selection-start-column="30" selection-end-line="9" selection-end-column="30" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/backend/world/segment.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="114">
-          <caret line="6" column="29" lean-forward="false" selection-start-line="6" selection-start-column="29" selection-end-line="6" selection-end-column="29" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/backend/world/swarm.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="76">
-          <caret line="4" column="30" lean-forward="false" selection-start-line="4" selection-start-column="30" selection-end-line="4" selection-end-column="30" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/backend/systems/game.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="246">
@@ -772,13 +713,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Cargo.lock">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-8040">
-          <caret line="826" column="14" lean-forward="false" selection-start-line="826" selection-start-column="14" selection-end-line="826" selection-end-column="14" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/frontend/mod.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -808,41 +742,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_core-0.7.2/src/format.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="260">
-          <caret line="359" column="9" lean-forward="false" selection-start-line="359" selection-start-column="9" selection-end-line="359" selection-end-column="9" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/backend/world/agent.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="170">
           <caret line="125" column="24" lean-forward="false" selection-start-line="125" selection-start-column="24" selection-end-line="125" selection-end-column="24" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/frontend/render/effects.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="95">
-          <caret line="5" column="0" lean-forward="true" selection-start-line="5" selection-start-column="0" selection-end-line="5" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="379">
-          <caret line="46" column="14" lean-forward="true" selection-start-line="46" selection-start-column="14" selection-end-line="46" selection-end-column="14" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/src/libstd/sys_common/backtrace.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="254">
-          <caret line="65" column="0" lean-forward="false" selection-start-line="65" selection-start-column="0" selection-end-line="65" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -886,14 +789,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Cargo.toml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="51">
-          <caret line="3" column="14" lean-forward="false" selection-start-line="3" selection-start-column="14" selection-end-line="3" selection-end-column="14" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/README.md">
       <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
         <state split_layout="SPLIT">
@@ -923,48 +818,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="274">
           <caret line="277" column="33" lean-forward="true" selection-start-line="277" selection-start-column="33" selection-end-line="277" selection-end-column="33" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/app/main.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="442">
-          <caret line="26" column="0" lean-forward="false" selection-start-line="26" selection-start-column="0" selection-end-line="26" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_core-0.7.2/src/pso.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="379">
-          <caret line="292" column="0" lean-forward="false" selection-start-line="292" selection-start-column="0" selection-end-line="292" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx-0.16.1/src/pso/target.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="233">
-          <caret line="156" column="0" lean-forward="false" selection-start-line="156" selection-start-column="0" selection-end-line="156" selection-end-column="0" />
-          <folding>
-            <element signature="e#5094#5095#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/frontend/render/forward.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="345">
-          <caret line="201" column="0" lean-forward="false" selection-start-line="201" selection-start-column="0" selection-end-line="201" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/frontend/render/mod.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="233">
-          <caret line="303" column="0" lean-forward="false" selection-start-line="303" selection-start-column="0" selection-end-line="303" selection-end-column="0" />
           <folding />
         </state>
       </provider>
@@ -1001,10 +854,378 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/main.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="379">
+          <caret line="46" column="14" lean-forward="false" selection-start-line="46" selection-start-column="14" selection-end-line="46" selection-end-column="14" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/src/libstd/sys_common/backtrace.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="264">
+          <caret line="63" column="0" lean-forward="false" selection-start-line="63" selection-start-column="0" selection-end-line="63" selection-end-column="0" />
+          <folding>
+            <marker date="1507757605319" expanded="true" signature="467:571" ph="/* ... */" />
+            <marker date="1507757605319" expanded="true" signature="647:663" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="675:687" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="746:842" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="985:1080" ph="/* ... */" />
+            <marker date="1507757605319" expanded="true" signature="1128:1308" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="1134:1176" ph="/* ... */" />
+            <marker date="1507757605319" expanded="true" signature="1226:1264" ph="/* ... */" />
+            <marker date="1507757605319" expanded="true" signature="1310:1344" ph="/* ... */" />
+            <marker date="1507757605319" expanded="true" signature="1380:1413" ph="/* ... */" />
+            <marker date="1507757605319" expanded="true" signature="1481:1776" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="1674:1774" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="1842:2900" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="1872:1950" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="2178:2321" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="2507:2886" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="2551:2616" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="2708:2770" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="2814:2880" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="2902:3031" ph="/* ... */" />
+            <marker date="1507757605319" expanded="true" signature="3168:3961" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="3205:3235" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="3336:3757" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="3423:3722" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="3480:3693" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="3622:3679" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="3839:3922" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="3964:4032" ph="/* ... */" />
+            <marker date="1507757605319" expanded="false" signature="4167:4174" ph=" { " />
+            <marker date="1507757605319" expanded="false" signature="4177:4179" ph=" }" />
+            <marker date="1507757605319" expanded="true" signature="4181:4231" ph="/* ... */" />
+            <marker date="1507757605319" expanded="true" signature="4298:4440" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="4304:4357" ph="/* ... */" />
+            <marker date="1507757605319" expanded="true" signature="4376:4423" ph="/* ... */" />
+            <marker date="1507757605319" expanded="true" signature="4644:5311" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="4758:4928" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="4773:4775" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="4980:5194" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="5014:5042" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="5064:5111" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="5117:5165" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="5224:5281" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="5313:5489" ph="/* ... */" />
+            <marker date="1507757605319" expanded="true" signature="5611:6235" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="5734:5764" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="5782:6092" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="6105:6210" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="6237:6326" ph="/* ... */" />
+            <marker date="1507757605319" expanded="true" signature="6475:7445" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="6557:6805" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="7004:7341" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="7050:7335" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="7115:7325" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="7168:7311" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="8408:13197" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="8743:8875" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="8939:8984" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="8990:9020" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="9035:9564" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="9096:9558" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="9161:9341" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="9197:9276" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="9282:9327" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="9364:9449" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="9502:9548" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="9611:9659" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="9665:13183" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="9782:10235" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="9928:10225" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="9968:10186" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="10093:10168" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="10299:13177" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="10323:10380" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="10386:10432" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="10527:10577" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="10761:10811" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="10847:13167" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="10890:11211" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="10956:11072" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="11078:11193" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="11242:12819" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="11286:11790" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="12825:13153" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="12920:13030" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="13222:14829" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="13585:13734" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="13774:14022" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="14067:14191" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="14231:14385" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="14452:14625" ph="{...}" />
+            <marker date="1507757605319" expanded="true" signature="14669:14827" ph="{...}" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx-0.16.1/src/encoder.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2193">
-          <caret line="129" column="0" lean-forward="true" selection-start-line="129" selection-start-column="0" selection-end-line="129" selection-end-column="0" />
+        <state relative-caret-position="233">
+          <caret line="471" column="0" lean-forward="false" selection-start-line="471" selection-start-column="0" selection-end-line="471" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx-0.16.1/src/pso/target.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="233">
+          <caret line="157" column="0" lean-forward="false" selection-start-line="157" selection-start-column="0" selection-end-line="157" selection-end-column="0" />
+          <folding>
+            <element signature="e#5035#5036#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_core-0.7.2/src/pso.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="379">
+          <caret line="292" column="0" lean-forward="false" selection-start-line="292" selection-start-column="0" selection-end-line="292" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx-0.16.1/src/lib.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_core-0.7.2/Cargo.toml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_core-0.7.2/src/buffer.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="221">
+          <caret line="13" column="0" lean-forward="false" selection-start-line="13" selection-start-column="0" selection-end-line="13" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../../3rdParty/gfx/src/render/src/pso.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="637">
+          <caret line="289" column="43" lean-forward="false" selection-start-line="289" selection-start-column="43" selection-end-line="289" selection-end-column="43" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/frontend/render/effects.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="233">
+          <caret line="174" column="0" lean-forward="false" selection-start-line="174" selection-start-column="0" selection-end-line="174" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///u01/home/nico/Projects/3rdParty/gfx/src/core/src/format.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="240">
+          <caret line="359" column="9" lean-forward="false" selection-start-line="359" selection-start-column="9" selection-end-line="359" selection-end-column="9" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///u01/home/nico/Projects/3rdParty/gfx/src/core/src/handle.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="267">
+          <caret line="182" column="0" lean-forward="false" selection-start-line="182" selection-start-column="0" selection-end-line="182" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///u01/home/nico/Projects/3rdParty/gfx/src/backend/gl/src/factory.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="325">
+          <caret line="481" column="57" lean-forward="false" selection-start-line="481" selection-start-column="57" selection-end-line="481" selection-end-column="57" />
+          <folding>
+            <marker date="1508027135659" expanded="true" signature="19460:19471" ph="{...}" />
+            <marker date="1508027135659" expanded="true" signature="19460:19797" ph="{...}" />
+            <marker date="1508027135659" expanded="true" signature="19460:21584" ph="{...}" />
+            <marker date="1508027135659" expanded="true" signature="19477:19502" ph="{...}" />
+            <marker date="1508027135659" expanded="true" signature="19533:19602" ph="{...}" />
+            <marker date="1508027135659" expanded="true" signature="19649:19727" ph="{...}" />
+            <marker date="1508027135659" expanded="true" signature="20026:20684" ph="{...}" />
+            <marker date="1508027135659" expanded="true" signature="20081:20678" ph="{...}" />
+            <marker date="1508027135659" expanded="true" signature="20149:20667" ph="{...}" />
+            <marker date="1508027135659" expanded="true" signature="20916:21582" ph="{...}" />
+            <marker date="1508027135659" expanded="true" signature="20971:21576" ph="{...}" />
+            <marker date="1508027135659" expanded="true" signature="21040:21565" ph="{...}" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///u01/home/nico/Projects/3rdParty/gfx/src/render/src/pso/mod.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="264">
+          <caret line="265" column="7" lean-forward="false" selection-start-line="265" selection-start-column="7" selection-end-line="265" selection-end-column="7" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/frontend/render/forward.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="398">
+          <caret line="202" column="19" lean-forward="false" selection-start-line="202" selection-start-column="19" selection-end-line="202" selection-end-column="19" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///u01/home/nico/Projects/3rdParty/gfx/src/core/src/texture.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="4573">
+          <caret line="273" column="41" lean-forward="false" selection-start-line="273" selection-start-column="41" selection-end-line="273" selection-end-column="41" />
+          <folding>
+            <marker date="1508105905683" expanded="true" signature="2205:2699" ph="{...}" />
+            <marker date="1508105905683" expanded="true" signature="16451:16470" ph="{...}" />
+            <marker date="1508105905683" expanded="true" signature="16451:16488" ph="{...}" />
+            <marker date="1508105905683" expanded="true" signature="16451:16490" ph="{...}" />
+            <marker date="1508105905683" expanded="true" signature="16492:16535" ph="/* ... */" />
+            <marker date="1508105905683" expanded="true" signature="16732:17449" ph="{...}" />
+            <marker date="1508105905683" expanded="true" signature="16738:16763" ph="/* ... */" />
+            <marker date="1508105905683" expanded="true" signature="16798:16887" ph="/* ... */" />
+            <marker date="1508105905683" expanded="true" signature="16943:17122" ph="/* ... */" />
+            <marker date="1508105905683" expanded="true" signature="17150:17210" ph="/* ... */" />
+            <marker date="1508105905683" expanded="true" signature="17246:17297" ph="/* ... */" />
+            <marker date="1508105905683" expanded="true" signature="17349:17418" ph="/* ... */" />
+            <marker date="1508105905683" expanded="true" signature="17468:17917" ph="{...}" />
+            <marker date="1508105905683" expanded="true" signature="17474:17592" ph="/* ... */" />
+            <marker date="1508105905683" expanded="true" signature="17661:17915" ph="{...}" />
+            <marker date="1508105905683" expanded="true" signature="17683:17909" ph="{...}" />
+            <marker date="1508105905683" expanded="true" signature="17919:17950" ph="/* ... */" />
+            <marker date="1508105905683" expanded="true" signature="18125:18250" ph="{...}" />
+            <marker date="1508105905683" expanded="true" signature="18262:18937" ph="{...}" />
+            <marker date="1508105905683" expanded="true" signature="18268:18303" ph="/* ... */" />
+            <marker date="1508105905683" expanded="true" signature="18364:18659" ph="{...}" />
+            <marker date="1508105905683" expanded="true" signature="18454:18653" ph="{...}" />
+            <marker date="1508105905683" expanded="true" signature="18665:18727" ph="/* ... */" />
+            <marker date="1508105905683" expanded="true" signature="18939:18976" ph="/* ... */" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///u01/home/nico/Projects/3rdParty/gfx/src/core/src/factory.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="7786">
+          <caret line="511" column="35" lean-forward="false" selection-start-line="511" selection-start-column="35" selection-end-line="511" selection-end-column="35" />
+          <folding>
+            <marker date="1508027135667" expanded="true" signature="600:604" ph="/* ... */" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///u01/home/nico/Projects/3rdParty/gfx/src/core/src/pso.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="4862">
+          <caret line="292" column="8" lean-forward="false" selection-start-line="292" selection-start-column="8" selection-end-line="292" selection-end-column="8" />
+          <folding>
+            <marker date="1508027128467" expanded="true" signature="8983:10482" ph="{...}" />
+            <marker date="1508027128467" expanded="true" signature="10103:10221" ph="{...}" />
+            <marker date="1508027128467" expanded="true" signature="10227:10274" ph="/* ... */" />
+            <marker date="1508027128467" expanded="true" signature="10321:10480" ph="{...}" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///u01/home/nico/Projects/3rdParty/gfx/src/render/src/encoder.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="442">
+          <caret line="71" column="19" lean-forward="false" selection-start-line="71" selection-start-column="19" selection-end-line="71" selection-end-column="19" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///u01/home/nico/Projects/3rdParty/gfx/src/core/src/lib.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///u01/home/nico/Projects/3rdParty/gfx/src/window/glutin/src/lib.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="272">
+          <caret line="16" column="16" lean-forward="false" selection-start-line="16" selection-start-column="16" selection-end-line="16" selection-end-column="16" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/app/main.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="256">
+          <caret line="41" column="67" lean-forward="false" selection-start-line="41" selection-start-column="67" selection-end-line="41" selection-end-column="67" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/gfx_core-0.7.2/src/format.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="264">
+          <caret line="344" column="9" lean-forward="false" selection-start-line="344" selection-start-column="9" selection-end-line="344" selection-end-column="9" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/frontend/render/mod.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="239">
+          <caret line="46" column="38" lean-forward="false" selection-start-line="46" selection-start-column="38" selection-end-line="46" selection-end-column="38" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Cargo.lock">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-563">
+          <caret line="402" column="9" lean-forward="false" selection-start-line="402" selection-start-column="9" selection-end-line="402" selection-end-column="9" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///u01/home/nico/Projects/3rdParty/gfx/src/render/src/pso/target.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2749">
+          <caret line="182" column="1" lean-forward="false" selection-start-line="182" selection-start-column="1" selection-end-line="182" selection-end-column="1" />
+          <folding>
+            <marker date="1508027128467" expanded="false" signature="9229:9240" ph=" { " />
+            <marker date="1508027128467" expanded="false" signature="9260:9266" ph=" }" />
+            <marker date="1508027128467" expanded="false" signature="9663:9674" ph=" { " />
+            <marker date="1508027128467" expanded="false" signature="9703:9709" ph=" }" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.cargo/git/checkouts/gfx-d4df7e1d332a6110/0d20421/src/core/src/factory.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="264">
+          <caret line="428" column="113" lean-forward="false" selection-start-line="428" selection-start-column="113" selection-end-line="428" selection-end-column="113" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.cargo/git/checkouts/gfx-d4df7e1d332a6110/0d20421/src/core/src/texture.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="264">
+          <caret line="327" column="9" lean-forward="false" selection-start-line="327" selection-start-column="9" selection-end-line="327" selection-end-column="9" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Cargo.toml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="629">
+          <caret line="37" column="75" lean-forward="false" selection-start-line="37" selection-start-column="75" selection-end-line="37" selection-end-column="90" />
           <folding />
         </state>
       </provider>

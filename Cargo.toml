@@ -22,17 +22,29 @@ enum_primitive="*"
 bitflags="*"
 bit-set="*"
 csv = "*"
-custom_derive="*"
-enum_derive="*"
+#custom_derive="*"
+#enum_derive="*"
 rustc-serialize="*"
 image = "*"
 wrapped2d = "*"
 glutin = "*"
 winit = "*"
-gfx = "*"
-gfx_core = "*"
-gfx_device_gl = "*"
-gfx_window_glutin = "*"
-gfx_text = "*"
+#gfx = { git = "https://github.com/gfx-rs/gfx.git", commit = "516d455f0bd2e1ed72feaea9e473d6b5a09c5d18" }
+gfx = { git = "https://github.com/itadinanta/gfx.git", branch = "rust-oids-0_4_0", version="0.16.1"}
+gfx_core = { git = "https://github.com/itadinanta/gfx.git", branch = "rust-oids-0_4_0" }
+gfx_corell = { git = "https://github.com/itadinanta/gfx.git", branch = "rust-oids-0_4_0" }
+gfx_device_gl = { git = "https://github.com/itadinanta/gfx.git", branch = "rust-oids-0_4_0" }
+gfx_window_glutin = { git = "https://github.com/itadinanta/gfx.git", branch = "rust-oids-0_4_0" }
+gfx_text = { git = "https://github.com/itadinanta/gfx_text.git", branch = "rust-oids-0_4_0" }
 
 sampler="*"
+
+#[patch.crates-io]
+#gfx = { path = "../../3rdParty/gfx/src/render" }
+#gfx_core = { path = "../../3rdParty/gfx/src/core" }
+#gfx_corell = { path = "../../3rdParty/gfx/src/corell" }
+#gfx_device_gl = { path = "../../3rdParty/gfx/src/backend/gl" }
+#gfx_window_glutin = { path = "../../3rdParty/gfx/src/window/glutin" }
+
+#gfx_core = { path = "../../3rdParty/gfx/src/core" }
+#gfx_render = { path = "../../3rdParty/gfx/src/render" }

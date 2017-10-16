@@ -29,6 +29,7 @@ impl Default for VertexPosNormal {
 pub type Vertex = VertexPosNormal;
 pub type HDRColorFormat = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
 // pub type ColorFormat = gfx::format::Rgba8;
+//pub type DepthFormat = gfx::format::DepthStencil;
 pub type DepthFormat = gfx::format::DepthStencil;
 
 const MAX_NUM_TOTAL_LIGHTS: usize = 16;
@@ -70,7 +71,7 @@ gfx_defines!(
         material_args: gfx::ConstantBuffer<MaterialArgs> = "cb_MaterialArgs",
         lights: gfx::ConstantBuffer<PointLight> = "u_Lights",
         color_target: gfx::BlendTarget<HDRColorFormat> = ("o_Color", gfx::state::MASK_ALL, gfx::preset::blend::ADD),
-        depth_target: gfx::DepthTarget<gfx::format::DepthStencil> = gfx::preset::depth::LESS_EQUAL_WRITE,
+        depth_target: gfx::DepthTarget<DepthFormat> = gfx::preset::depth::LESS_EQUAL_WRITE,
     }
 );
 
