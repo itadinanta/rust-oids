@@ -24,19 +24,7 @@ pub fn main_loop(minion_gene_pool: &str) {
 		.with_title("Box2d + GFX".to_string())
 		.with_dimensions(WIDTH, HEIGHT);
 
-	let context_builder = glutin::ContextBuilder::new()
-		//.with_srgb(true) <--- does not work
-		//.with_gl(glutin::GlRequest::Latest)
-		//.with_gl_robustness(glutin::Robustness::TryRobustNoResetNotification)
-		//.with_gl_profile(glutin::GlProfile::Core)
-		//.with_multisampling(4)
-		//.with_depth_buffer(24u8)
-		//.with_stencil_buffer(8u8)
-		//.with_pixel_format(24u8, 0u8)
-		.with_vsync(true);
-
-
-//	let window = glutin::GlWindow::new(builder, context_builder, &events_loop).unwrap();
+	let context_builder = glutin::ContextBuilder::new();
 
 	let (window, mut device, mut factory, mut frame_buffer, mut depth_buffer) =
 		gfx_window_glutin::init::<render::ColorFormat, render::DepthFormat>(builder, context_builder, &events_loop);
@@ -53,8 +41,7 @@ pub fn main_loop(minion_gene_pool: &str) {
 		&mut factory,
 		&mut encoder,
 		&res,
-		&frame_buffer,
-		&depth_buffer,
+		&frame_buffer
 	).unwrap();
 	let mapper = GlutinEventMapper::new();
 	// Create a new game and run it.
@@ -68,7 +55,7 @@ pub fn main_loop(minion_gene_pool: &str) {
 				match event {
 					WindowEvent::Resized(new_width, new_height) => {
 						gfx_window_glutin::update_views(&window, &mut frame_buffer, &mut depth_buffer);
-						renderer.resize_to(&frame_buffer, &depth_buffer).unwrap();
+						renderer.resize_to(&frame_buffer).unwrap();
 						app.on_resize(new_width, new_height);
 					}
 					WindowEvent::Closed => app.quit(),
@@ -108,7 +95,7 @@ pub fn main_loop(minion_gene_pool: &str) {
 		// draw a frame
 		renderer.begin_frame();
 		// draw the scene
-		app.render(renderer);
+		// app.render(renderer);
 		// post-render effects and tone mapping
 		renderer.resolve_frame_buffer();
 
