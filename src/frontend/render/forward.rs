@@ -3,6 +3,7 @@ use gfx::traits::FactoryExt;
 use std::result;
 use frontend::render::Result;
 use frontend::render::RenderFactoryExt;
+use frontend::render::formats;
 use core::resource;
 
 extern crate cgmath;
@@ -27,16 +28,9 @@ impl Default for VertexPosNormal {
 }
 
 pub type Vertex = VertexPosNormal;
-pub type HDRColorFormat = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
-// pub type ColorFormat = gfx::format::Rgba8;
-//pub type DepthFormat = gfx::format::DepthStencil;
-pub type DepthFormat = gfx::format::DepthStencil;
+pub type M44 = cgmath::Matrix4<f32>;
 
 const MAX_NUM_TOTAL_LIGHTS: usize = 16;
-
-// pub type GFormat = [f32; 4];
-
-pub type M44 = cgmath::Matrix4<f32>;
 
 gfx_defines!(
     constant PointLight {
@@ -70,8 +64,8 @@ gfx_defines!(
         fragment_args: gfx::ConstantBuffer<FragmentArgs> = "cb_FragmentArgs",
         material_args: gfx::ConstantBuffer<MaterialArgs> = "cb_MaterialArgs",
         lights: gfx::ConstantBuffer<PointLight> = "u_Lights",
-        color_target: gfx::BlendTarget<HDRColorFormat> = ("o_Color", gfx::state::MASK_ALL, gfx::preset::blend::ADD),
-        depth_target: gfx::DepthTarget<DepthFormat> = gfx::preset::depth::LESS_EQUAL_WRITE,
+        color_target: gfx::BlendTarget<formats::HdrColorFormat> = ("o_Color", gfx::state::MASK_ALL, gfx::preset::blend::ADD),
+        depth_target: gfx::DepthTarget<formats::DepthFormat> = gfx::preset::depth::LESS_EQUAL_WRITE,
     }
 );
 
@@ -192,8 +186,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
     pub fn draw_primitives(&self, shader: Shader, encoder: &mut gfx::Encoder<R, C>,
                            vertices: gfx::handle::Buffer<R, VertexPosNormal>, indices: &gfx::Slice<R>,
                            transform: &M44, color: [f32; 4], effect: [f32; 4],
-                           color_buffer: &gfx::handle::RenderTargetView<R, HDRColorFormat>,
-                           depth_buffer: &gfx::handle::DepthStencilView<R, DepthFormat>) {
+                           color_buffer: &gfx::handle::RenderTargetView<R, formats::HdrColorFormat>,
+                           depth_buffer: &gfx::handle::DepthStencilView<R, formats::DepthFormat>) {
         encoder.update_constant_buffer(&self.model, &ModelArgs { model: (*transform).into() });
         encoder.update_constant_buffer(&self.material,
                                        &MaterialArgs {

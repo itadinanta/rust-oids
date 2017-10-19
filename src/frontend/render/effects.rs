@@ -2,6 +2,7 @@ use gfx;
 use gfx::traits::FactoryExt;
 
 use core::resource;
+use frontend::render::formats;
 use frontend::render::Result;
 
 pub type HDR = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
@@ -48,9 +49,7 @@ gfx_defines! {
 
 use std::marker::PhantomData;
 
-pub type HDRRenderSurface<R> = (gfx::handle::Texture<R, gfx::format::R16_G16_B16_A16>,
-                                gfx::handle::ShaderResourceView<R, [f32; 4]>,
-                                gfx::handle::RenderTargetView<R, (gfx::format::R16_G16_B16_A16, gfx::format::Float)>);
+
 
 pub struct PostLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
     vertex_buffer: gfx::handle::Buffer<R, BlitVertex>,
@@ -58,15 +57,15 @@ pub struct PostLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
     nearest_sampler: gfx::handle::Sampler<R>,
     linear_sampler: gfx::handle::Sampler<R>,
 
-    resolved: HDRRenderSurface<R>,
+    resolved: formats::HdrRenderSurface<R>,
     resolve_msaa_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
 
-    ping_pong_half: [HDRRenderSurface<R>; 2],
-    ping_pong_full: [HDRRenderSurface<R>; 2],
+    ping_pong_half: [formats::HdrRenderSurface<R>; 2],
+    ping_pong_full: [formats::HdrRenderSurface<R>; 2],
 
-    mips: Vec<HDRRenderSurface<R>>,
-    luminance_smooth: HDRRenderSurface<R>,
-    luminance_acc: HDRRenderSurface<R>,
+    mips: Vec<formats::HdrRenderSurface<R>>,
+    luminance_smooth: formats::HdrRenderSurface<R>,
+    luminance_acc: formats::HdrRenderSurface<R>,
 
     blit_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
     average_pso: gfx::pso::PipelineState<R, postprocess::Meta>,
@@ -181,7 +180,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
             try!(factory.create_render_target::<HDR>(w, h)),
         ];
 
-        let mut mips: Vec<HDRRenderSurface<R>> = Vec::new();
+        let mut mips: Vec<formats::HdrRenderSurface<R>> = Vec::new();
         let mut w2 = w;
         let mut h2 = h;
 
