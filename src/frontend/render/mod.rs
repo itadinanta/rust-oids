@@ -158,42 +158,38 @@ trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 	fn create_msaa_depth(&mut self, aa: gfx::texture::AaMode, width: gfx::texture::Size, height: gfx::texture::Size)
 		-> Result<formats::DepthSurface<R>> {
 		let kind = gfx::texture::Kind::D2(width, height, aa);
-		let tex = try!(self.create_texture(
+		let tex = self.create_texture(
 			kind,
 			1,
 			gfx::SHADER_RESOURCE | gfx::DEPTH_STENCIL,
 			gfx::memory::Usage::Data,
 			Some(gfx::format::ChannelType::Float),
-		));
-		let resource = try!(
-			self.view_texture_as_shader_resource::<formats::RenderDepthFormat>(
-				&tex,
-				(0, 0),
-				gfx::format::Swizzle::new(),
-			)
-		);
-		let target = try!(self.view_texture_as_depth_stencil_trivial(&tex));
+		)?;
+		let resource = self.view_texture_as_shader_resource::<formats::RenderDepthFormat>(
+			&tex,
+			(0, 0),
+			gfx::format::Swizzle::new(),
+		)?;
+		let target = self.view_texture_as_depth_stencil_trivial(&tex)?;
 		Ok((tex, resource, target))
 	}
 
 	fn create_msaa_render_target(&mut self, aa: gfx::texture::AaMode, width: gfx::texture::Size, height: gfx::texture::Size)
 		-> Result<formats::RenderSurface<R>> {
 		let kind = gfx::texture::Kind::D2(width, height, aa);
-		let tex = try!(self.create_texture(
+		let tex = self.create_texture(
 			kind,
 			1,
 			gfx::SHADER_RESOURCE | gfx::RENDER_TARGET,
 			gfx::memory::Usage::Data,
 			Some(gfx::format::ChannelType::Float),
-		));
-		let hdr_srv = try!(
-			self.view_texture_as_shader_resource::<formats::RenderColorFormat>(
-				&tex,
-				(0, 0),
-				gfx::format::Swizzle::new(),
-			)
-		);
-		let hdr_color_buffer = try!(self.view_texture_as_render_target(&tex, 0, None));
+		)?;
+		let hdr_srv = self.view_texture_as_shader_resource::<formats::RenderColorFormat>(
+			&tex,
+			(0, 0),
+			gfx::format::Swizzle::new(),
+		)?;
+		let hdr_color_buffer = self.view_texture_as_render_target(&tex, 0, None)?;
 		Ok((tex, hdr_srv, hdr_color_buffer))
 	}
 }
@@ -259,11 +255,11 @@ impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone,
 		let (w, h, _, _) = frame_buffer.get_dimensions();
 		let (hdr_srv, hdr_color_buffer, depth_buffer) = factory.create_msaa_surfaces(w, h)?;
 
-		let forward = try!(forward::ForwardLighting::new(factory, res));
-		let effects = try!(effects::PostLighting::new(factory, res, w, h));
-		let text_renderer = try!(gfx_text::new(factory.clone()).build().map_err(|_| {
+		let forward = forward::ForwardLighting::new(factory, res)?;
+		let effects = effects::PostLighting::new(factory, res, w, h)?;
+		let text_renderer = gfx_text::new(factory.clone()).build().map_err(|_| {
 			RenderError::TextRenderer
-		}));
+		})?;
 
 		Ok(ForwardRenderer {
 			factory: my_factory,
@@ -290,8 +286,8 @@ impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone,
 		let factory = &mut self.factory;
 
 		let (w, h, _, _) = self.frame_buffer.get_dimensions();
-		let pass_forward_lighting = try!(forward::ForwardLighting::new(factory, self.res));
-		let pass_effects = try!(effects::PostLighting::new(factory, self.res, w, h));
+		let pass_forward_lighting = forward::ForwardLighting::new(factory, self.res)?;
+		let pass_effects = effects::PostLighting::new(factory, self.res, w, h)?;
 		self.pass_forward_lighting = pass_forward_lighting;
 		self.pass_effects = pass_effects;
 		Ok(())

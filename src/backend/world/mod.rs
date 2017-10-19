@@ -268,13 +268,13 @@ impl World {
 	pub fn dump(&self) -> io::Result<String> {
 		let now: DateTime<Utc> = Utc::now();
 		let file_name = now.format("resources/%Y%m%d_%H%M%S.csv").to_string();
-		let mut f = try!(fs::File::create(&file_name));
+		let mut f = fs::File::create(&file_name)?;
 		for (_, agent) in self.agents(agent::AgentType::Minion).iter() {
 			info!("{}", agent.dna().to_base64(base64::STANDARD));
-			try!(f.write_fmt(format_args!(
+			f.write_fmt(format_args!(
 				"{}\n",
 				agent.dna().to_base64(base64::STANDARD)
-			)));
+			))?;
 		}
 		Ok(file_name)
 	}

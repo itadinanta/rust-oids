@@ -102,19 +102,19 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 
 		macro_rules! load_shaders {
 			($v:expr, $f:expr) => { factory.create_shader_set(
-					&try!(res.load(concat!("shaders/forward/", $v, ".vert"))),
-					&try!(res.load(concat!("shaders/forward/", $f, ".frag")))) };
+					&res.load(concat!("shaders/forward/", $v, ".vert"))?,
+					&res.load(concat!("shaders/forward/", $f, ".frag"))?) };
 
 			($g:expr, $v:expr, $f:expr) => { factory.create_shader_set_with_geometry(
-					&try!(res.load(concat!("shaders/forward/", $g, ".geom"))),
-					&try!(res.load(concat!("shaders/forward/", $v, ".vert"))),
-					&try!(res.load(concat!("shaders/forward/", $f, ".frag"))))
+					&res.load(concat!("shaders/forward/", $g, ".geom"))?,
+					&res.load(concat!("shaders/forward/", $v, ".vert"))?,
+					&res.load(concat!("shaders/forward/", $f, ".frag"))?)
 				 }
 		};
 
-		let flat_shaders = try!(load_shaders!("lighting", "lighting_flat"));
-		let solid_shaders = try!(load_shaders!("lighting", "lighting_poly"));
-		let ball_shaders = try!(load_shaders!("point_ball", "lighting", "lighting_poly"));
+		let flat_shaders = load_shaders!("lighting", "lighting_flat")?;
+		let solid_shaders = load_shaders!("lighting", "lighting_poly")?;
+		let ball_shaders = load_shaders!("point_ball", "lighting", "lighting_poly")?;
 
 		let solid_rasterizer = gfx::state::Rasterizer {
 			samples: Some(gfx::state::MultiSample),
@@ -130,36 +130,36 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 			..solid_rasterizer
 		};
 
-		let ball_pso = try!(Self::new_pso(
+		let ball_pso = Self::new_pso(
 			factory,
 			&ball_shaders,
 			gfx::Primitive::TriangleList,
 			solid_rasterizer,
-		));
-		let poly_pso = try!(Self::new_pso(
+		)?;
+		let poly_pso = Self::new_pso(
 			factory,
 			&solid_shaders,
 			gfx::Primitive::TriangleList,
 			solid_rasterizer,
-		));
-		let wireframe_pso = try!(Self::new_pso(
+		)?;
+		let wireframe_pso = Self::new_pso(
 			factory,
 			&solid_shaders,
 			gfx::Primitive::TriangleList,
 			line_rasterizer,
-		));
-		let lines_pso = try!(Self::new_pso(
+		)?;
+		let lines_pso = Self::new_pso(
 			factory,
 			&flat_shaders,
 			gfx::Primitive::LineStrip,
 			line_rasterizer,
-		));
-		let debug_lines_pso = try!(Self::new_pso(
+		)?;
+		let debug_lines_pso = Self::new_pso(
 			factory,
 			&flat_shaders,
 			gfx::Primitive::LineStrip,
 			debug_line_rasterizer,
-		));
+		)?;
 		Ok(ForwardLighting {
 			camera: camera,
 			model: model,

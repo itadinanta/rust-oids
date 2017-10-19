@@ -43,9 +43,9 @@ pub mod filesystem {
 					f.read_to_end(&mut buf).map(|_| buf.into_boxed_slice())
 				})
 				// 		Rust idiom
-				// 		let mut f = try!(fs::File::open(path.as_path()));
+				// 		let mut f = fs::File::open(path.as_path())?;
 				// 		let mut buf = Vec::new();
-				// 		try!(f.read_to_end(&mut buf));
+				// 		f.read_to_end(&buf)?;
 				// 		Ok(buf.into_boxed_slice())
 			}
 
