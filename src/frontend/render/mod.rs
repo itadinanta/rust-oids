@@ -23,11 +23,11 @@ use gfx_text;
 
 pub struct Appearance {
 	color: formats::Rgba,
-	effect: [f32; 4],
+	effect: formats::Float4,
 }
 
 impl Appearance {
-	pub fn new(color: formats::Rgba, effect: [f32; 4]) -> Self {
+	pub fn new(color: formats::Rgba, effect: formats::Float4) -> Self {
 		Appearance {
 			color: color,
 			effect: effect,

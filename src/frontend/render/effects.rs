@@ -5,8 +5,8 @@ use core::resource;
 use frontend::render::formats;
 use frontend::render::Result;
 
-pub type HDR = (gfx::format::R16_G16_B16_A16, gfx::format::Float);
-pub type LDR = gfx::format::Rgba8;
+pub type RenderColorFormat = formats::RenderColorFormat;
+pub type ScreenColorFormat = formats::ScreenColorFormat;
 
 gfx_defines! {
 	vertex BlitVertex {
@@ -16,7 +16,7 @@ gfx_defines! {
 	pipeline postprocess {
 		vbuf: gfx::VertexBuffer<BlitVertex> = (),
 		src: gfx::TextureSampler<[f32; 4]> = "t_Source",
-		dst: gfx::RenderTarget<HDR> = "o_Color",
+		dst: gfx::RenderTarget<RenderColorFormat> = "o_Color",
 	}
 	constant SmoothFragmentArgs {
         exp_alpha: f32 = "u_ExpAlpha",
@@ -26,7 +26,7 @@ gfx_defines! {
 		value: gfx::TextureSampler<[f32; 4]> = "t_Value",
 		acc: gfx::TextureSampler<[f32; 4]> = "t_Acc",
 		fragment_args: gfx::ConstantBuffer<SmoothFragmentArgs> = "cb_FragmentArgs",
-		dst: gfx::RenderTarget<HDR> = "o_Smooth",
+		dst: gfx::RenderTarget<RenderColorFormat> = "o_Smooth",
 	}
 	constant ToneMapVertexArgs {
         white: f32 = "u_White",
@@ -37,13 +37,13 @@ gfx_defines! {
 		vertex_luminance: gfx::TextureSampler<[f32; 4]> = "t_VertexLuminance",
 		vertex_args: gfx::ConstantBuffer<ToneMapVertexArgs> = "cb_VertexArgs",
 		src: gfx::TextureSampler<[f32; 4]> = "t_Source",
-		dst: gfx::RenderTarget<HDR> = "o_Color",
+		dst: gfx::RenderTarget<RenderColorFormat> = "o_Color",
 	}
 	pipeline compose {
 		vbuf: gfx::VertexBuffer<BlitVertex> = (),
 		src1: gfx::TextureSampler<[f32; 4]> = "t_Source1",
 		src2: gfx::TextureSampler<[f32; 4]> = "t_Source2",
-		dst: gfx::RenderTarget<LDR> = "o_Color",
+		dst: gfx::RenderTarget<ScreenColorFormat> = "o_Color",
 	}
 }
 
@@ -168,16 +168,16 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		)?;
 		let compose_pso = load_pipeline_simple!("identity", "compose_2", compose)?;
 
-		let resolved = factory.create_render_target::<HDR>(w, h)?;
+		let resolved = factory.create_render_target::<RenderColorFormat>(w, h)?;
 
 		let ping_pong_half = [
-			factory.create_render_target::<HDR>(w / 2, h / 2)?,
-			factory.create_render_target::<HDR>(w / 2, h / 2)?,
+			factory.create_render_target::<RenderColorFormat>(w / 2, h / 2)?,
+			factory.create_render_target::<RenderColorFormat>(w / 2, h / 2)?,
 		];
 
 		let ping_pong_full = [
-			factory.create_render_target::<HDR>(w, h)?,
-			factory.create_render_target::<HDR>(w, h)?,
+			factory.create_render_target::<RenderColorFormat>(w, h)?,
+			factory.create_render_target::<RenderColorFormat>(w, h)?,
 		];
 
 		let mut mips: Vec<formats::RenderSurface<R>> = Vec::new();
@@ -187,11 +187,11 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		while w2 > 1 || h2 > 1 {
 			w2 = (w2 + 1) / 2;
 			h2 = (h2 + 1) / 2;
-			mips.push(factory.create_render_target::<HDR>(w2, h2)?);
+			mips.push(factory.create_render_target::<RenderColorFormat>(w2, h2)?);
 		}
 
-		let luminance_smooth = factory.create_render_target::<HDR>(1, 1)?;
-		let luminance_acc = factory.create_render_target::<HDR>(1, 1)?;
+		let luminance_smooth = factory.create_render_target::<RenderColorFormat>(1, 1)?;
+		let luminance_acc = factory.create_render_target::<RenderColorFormat>(1, 1)?;
 
 		Ok(PostLighting {
 			vertex_buffer: vertex_buffer,
@@ -229,7 +229,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 
 	fn full_screen_pass(
 		&self, encoder: &mut gfx::Encoder<R, C>, pso: &gfx::pso::PipelineState<R, postprocess::Meta>,
-		src: &gfx::handle::ShaderResourceView<R, [f32; 4]>, dst: &gfx::handle::RenderTargetView<R, HDR>
+		src: &gfx::handle::ShaderResourceView<R, [f32; 4]>, dst: &gfx::handle::RenderTargetView<R, RenderColorFormat>
 	) {
 		encoder.draw(
 			&self.index_buffer_slice,
@@ -244,7 +244,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 
 	pub fn apply_all(
 		&mut self, encoder: &mut gfx::Encoder<R, C>, raw_hdr_src: gfx::handle::ShaderResourceView<R, [f32; 4]>,
-		color_target: gfx::handle::RenderTargetView<R, LDR>
+		color_target: gfx::handle::RenderTargetView<R, ScreenColorFormat>
 	) {
 		let ping_pong_full = &self.ping_pong_full[..];
 		let ping_pong_half = &self.ping_pong_half[..];

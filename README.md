@@ -1,12 +1,8 @@
 
 ## Rust-oids
 
-UPDATE 10/10/2017:
-  code ported to Rust 1.22.0-nightly with *all* libraries updated to latest version available.
-
-  Runs only in release mode (I'm tracking a debug_assert! in gfx).
-
-  ```cargo run --release``` is required. Also gamma correction is iffy due to a quick-and-dirty workaround.
+UPDATE 19/10/2017:
+  Runs in debug mode again. sRGB surface still disabled.
 
   Tested on Devuan Ceres latest.
 
