@@ -1,11 +1,9 @@
 [package]
-
 name = "rust-oids"
 version = "0.5.0"
 authors = [
 	"norru <nigu.orru@gmail.com>"
 ]
-build="build.rs"
 
 [[bin]]
 name = "rust-oids"

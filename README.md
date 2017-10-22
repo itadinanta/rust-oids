@@ -51,20 +51,34 @@ Some rust-oids competing for territory and resources:
 
 ![screenshot](img/screenshot_007.png)
 
-## Prerequisites
+## Prerequisites/platforms
 
-I've only built on Ubuntu GNU/Linux but I've got reports of successful builds on Mac OS + Homebrew. Since adding MSAA a month or so ago, the OSX build panics at launch.
+I've built on Ubuntu GNU/Linux and Windows 10. I've got reports of successful builds on Mac OS + Homebrew. Since adding MSAA a month or so ago, the OSX build panics at launch.
+
+### Linux
 
 Aside from the full Rust toolchain, the following packages are required:
 
 - libbox2d-dev
 - libfreetype6-dev
 
+### Windows
+
+Building Windows dependencies is a tedious a yak shaving exercise.
+
+Thus, for convenience, I am redistributing parts of open source projects in the form of headers and prebuilt x64 static libs for Windows 10.
+Links to the source code are provided below as for licences:
+
+- `Box2D` https://github.com/erincatto/Box2D, https://github.com/erincatto/Box2D/blob/master/LICENSE
+- `Freetype` https://www.freetype.org/developer.html, https://www.freetype.org/license.html
+
 ## Build/run
 
 - Clone this repo and ```cd`` into its root
 - ```cargo run --release``` to run starting with the default gene pool
 - ```cargo run --release -- <gene_pool_file.csv>``` to run starting with a snapshotted gene pool (DDDDMMYYY_hhmmss.csv).
+
+`cargo_wrapper.bat` can be used in place of `cargo` to automatically sets the env var required to build the Box2D wrapper on Windows.
 
 ## How to play
 
