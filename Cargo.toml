@@ -5,6 +5,7 @@ version = "0.5.0"
 authors = [
 	"norru <nigu.orru@gmail.com>"
 ]
+build="build.rs"
 
 [[bin]]
 name = "rust-oids"
@@ -32,5 +33,4 @@ gfx_core = "*"
 gfx_device_gl = "*"
 gfx_window_glutin = "*"
 gfx_text = "*"
-
 sampler="*"
