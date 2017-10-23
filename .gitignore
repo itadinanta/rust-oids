@@ -1,7 +1,8 @@
 target/
+out/
+.idea/workspace.xml
 *.bk
 *.log
-/nohup.out
-out/
+nohup.out
 core
-.idea/workspace.xml
+*.VC.db
