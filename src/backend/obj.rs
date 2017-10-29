@@ -79,15 +79,12 @@ impl Winding {
 
 impl Shape {
 	pub fn new_ball(radius: f32) -> Self {
-		Shape::Ball { radius: radius }
+		Shape::Ball { radius }
 	}
 
 
 	pub fn new_box(radius: f32, ratio: f32) -> Self {
-		Shape::Box {
-			radius: radius,
-			ratio: ratio,
-		}
+		Shape::Box { radius, ratio }
 	}
 
 	pub fn new_star(n: u8, radius: f32, ratio1: f32, ratio2: f32) -> Self {
@@ -97,29 +94,17 @@ impl Shape {
 		assert!(ratio2 > 0.);
 		assert!(ratio1 * ratio2 <= 1.);
 
-		Shape::Star {
-			radius: radius,
-			n: n,
-			ratio1: ratio1,
-			ratio2: ratio2,
-		}
+		Shape::Star { radius, n, ratio1, ratio2 }
 	}
 
 	pub fn new_poly(n: i8, radius: f32) -> Self {
 		assert!(n > 2 || n < -2);
 
-		Shape::Poly {
-			radius: radius,
-			n: n,
-		}
+		Shape::Poly { radius, n }
 	}
 
 	pub fn new_triangle(radius: f32, angle1: f32, angle2: f32) -> Self {
-		Shape::Triangle {
-			radius: radius,
-			angle1: angle1,
-			angle2: angle2,
-		}
+		Shape::Triangle { radius, angle1, angle2 }
 	}
 
 	pub fn vertices(&self, winding: Winding) -> Box<[Position]> {
@@ -213,9 +198,9 @@ impl Mesh {
 			if classifier.is_convex() { MeshFlags::CONVEX } else { MeshFlags::empty() }
 		};
 		Mesh {
-			shape: shape,
+			shape,
 			flags: winding_flags | shape_flags,
-			vertices: vertices,
+			vertices,
 		}
 	}
 

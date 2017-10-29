@@ -40,7 +40,6 @@ set(SOURCE_FILES
         src/backend/systems/ai.rs
         src/backend/systems/alife.rs
         src/backend/systems/animation.rs
-        src/backend/systems/audio.rs
         src/backend/systems/game.rs
         src/backend/systems/mod.rs
         src/backend/systems/physics.rs

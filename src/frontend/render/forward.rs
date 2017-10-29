@@ -161,11 +161,11 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 			debug_line_rasterizer,
 		)?;
 		Ok(ForwardLighting {
-			camera: camera,
-			model: model,
-			fragment: fragment,
-			material: material,
-			lights: lights,
+			camera,
+			model,
+			fragment,
+			material,
+			lights,
 			pso: [
 				ball_pso,
 				poly_pso,
@@ -219,7 +219,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 			&self.material,
 			&MaterialArgs {
 				emissive: color,
-				effect: effect,
+				effect,
 			},
 		);
 		encoder.draw(

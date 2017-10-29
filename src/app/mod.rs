@@ -77,7 +77,7 @@ impl Viewport {
 			width: w,
 			height: h,
 			ratio: (w as f32 / h as f32),
-			scale: scale,
+			scale,
 		}
 	}
 
@@ -96,14 +96,12 @@ pub struct Systems {
 	game: systems::GameSystem,
 	ai: systems::AiSystem,
 	alife: systems::AlifeSystem,
-	audio: systems::AudioSystem,
 }
 
 impl Systems {
 	fn systems(&mut self) -> Vec<&mut systems::System> {
 		vec![
 			&mut self.animation as &mut systems::System,
-			&mut self.audio as &mut systems::System,
 			&mut self.game as &mut systems::System,
 			&mut self.ai as &mut systems::System,
 			&mut self.alife as &mut systems::System,
@@ -617,6 +615,10 @@ impl App {
 		});
 	}
 
+	pub fn audio_events(&mut self) {
+
+	}
+
 	pub fn update(&mut self) -> Update {
 		let frame_time = self.frame_start.seconds();
 		let frame_time_smooth = self.frame_smooth.smooth(frame_time);
@@ -637,8 +639,8 @@ impl App {
 			wall_clock_elapsed: self.wall_clock_start.seconds(),
 			frame_count: self.frame_count,
 			frame_elapsed: self.frame_elapsed,
-			frame_time: frame_time,
-			frame_time_smooth: frame_time_smooth,
+			frame_time,
+			frame_time_smooth,
 			fps: 1.0 / frame_time_smooth,
 			population: self.world.agents(agent::AgentType::Minion).len(),
 			extinctions: self.world.extinctions(),

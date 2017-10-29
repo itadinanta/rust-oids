@@ -131,7 +131,7 @@ impl Default for PhysicsSystem {
 		PhysicsSystem {
 			world: Self::new_world(touched.clone()),
 			handles: HashMap::new(),
-			touched: touched,
+			touched,
 		}
 	}
 }
@@ -290,10 +290,10 @@ impl PhysicsSystem {
 					}
 				};
 				JointRef {
-					refs: refs,
-					handle: handle,
-					mesh: mesh,
-					flags: flags,
+					refs,
+					handle,
+					mesh,
+					flags,
 					attachment: attached_to,
 				}
 			})
@@ -345,7 +345,7 @@ impl PhysicsSystem {
 
 	fn new_world(touched: ContactSet) -> b2::World<AgentData> {
 		let mut world = b2::World::new(&b2::Vec2 { x: 0.0, y: -0.5 });
-		world.set_contact_listener(Box::new(ContactListener { touched: touched }));
+		world.set_contact_listener(Box::new(ContactListener { touched }));
 		world
 	}
 

@@ -80,14 +80,14 @@ impl Default for Transform {
 impl Transform {
 	pub fn new(position: Position, angle: f32) -> Self {
 		Transform {
-			position: position,
-			angle: angle,
+			position,
+			angle,
 			..Transform::default()
 		}
 	}
 	pub fn from_position(position: Position) -> Self {
 		Transform {
-			position: position,
+			position,
 			..Transform::default()
 		}
 	}
@@ -129,7 +129,7 @@ impl PolygonType {
 			count[vertex_type as usize] += 1;
 		}
 
-		PolygonType { count: count }
+		PolygonType { count }
 	}
 
 	pub fn is_convex(&self) -> bool {

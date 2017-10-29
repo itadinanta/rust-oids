@@ -31,4 +31,10 @@ gfx_core = "*"
 gfx_device_gl = "*"
 gfx_window_glutin = "*"
 gfx_text = "*"
-sampler="*"
+
+#sound
+dsp-chain="*"
+sample="*"
+synth="*"
+pitch_calc="*"
+portaudio="*"

@@ -48,17 +48,13 @@ impl Key {
 	pub fn with_segment(id: obj::Id, segment_index: obj::SegmentIndex) -> Key {
 		Key {
 			agent_id: id,
-			segment_index: segment_index,
+			segment_index,
 			..Default::default()
 		}
 	}
 
-	pub fn with_bone(id: obj::Id, segment_index: obj::SegmentIndex, bone_index: obj::BoneIndex) -> Key {
-		Key {
-			agent_id: id,
-			segment_index: segment_index,
-			bone_index: bone_index,
-		}
+	pub fn with_bone(agent_id: obj::Id, segment_index: obj::SegmentIndex, bone_index: obj::BoneIndex) -> Key {
+		Key { agent_id, segment_index, bone_index }
 	}
 
 	pub fn no_bone(&self) -> Key {
@@ -157,8 +153,8 @@ pub trait TypedBrain {
 }
 
 pub trait Personality<S>
-where
-	S: Copy + Float,
+	where
+		S: Copy + Float,
 {
 	fn hunger(&self) -> S;
 	fn haste(&self) -> S;
@@ -170,9 +166,9 @@ where
 }
 
 pub trait Layer<S, T>
-where
-	T: Copy,
-	S: Float + From<T>,
+	where
+		T: Copy,
+		S: Float + From<T>,
 {
 	fn activation(x: S) -> S {
 		x / (S::one() + x.abs())
@@ -191,16 +187,15 @@ where
 }
 
 impl<S, T> Layer<S, T> for GBrain<T>
-where
-	T: Copy + Default,
-	S: Float + From<T>,
-{
-}
+	where
+		T: Copy + Default,
+		S: Float + From<T>,
+{}
 
 impl<T, S> Personality<S> for GBrain<T>
-where
-	T: Copy + Default,
-	S: Copy + Float + From<T>,
+	where
+		T: Copy + Default,
+		S: Copy + Float + From<T>,
 {
 	fn hunger(&self) -> S {
 		self.hunger.into()
@@ -230,8 +225,8 @@ where
 }
 
 impl<T> TypedBrain for GBrain<T>
-where
-	T: Default + Copy + Float,
+	where
+		T: Default + Copy + Float,
 {
 	type Parameter = T;
 	type WeightVector = WeightVector<Self::Parameter>;
@@ -446,21 +441,21 @@ impl Agent {
 				.filter(|s| s.flags.contains(segment::Flags::STORAGE))
 				.fold(0., |a, s| a + s.mesh.shape.radius().powi(2));
 		Agent {
-			id: id,
+			id,
 			state: State {
 				flags: Flags::ACTIVE,
 				lifecycle: Hourglass::new(5.),
 				energy: max_energy * 0.5,
 				target: None,
 				target_position: segments[0].transform.position,
-				limits: Limits { max_energy: max_energy },
+				limits: Limits { max_energy },
 				foreign_dna: None,
 				trajectory: util::History::new(600),
 			},
 			brain: brain.clone(),
-			gender: gender,
+			gender,
 			dna: dna.clone(),
-			segments: segments,
+			segments,
 		}
 	}
 }

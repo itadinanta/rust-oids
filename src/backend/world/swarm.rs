@@ -20,7 +20,7 @@ impl Swarm {
 	pub fn new(agent_type: AgentType) -> Swarm {
 		Swarm {
 			seq: 0,
-			agent_type: agent_type,
+			agent_type,
 			agents: HashMap::new(),
 		}
 	}

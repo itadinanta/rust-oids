@@ -1,3 +1,4 @@
+pub mod notification;
 pub mod segment;
 pub mod agent;
 pub mod swarm;
@@ -24,6 +25,12 @@ use backend::world::agent::AgentType;
 use backend::world::agent::TypedAgent;
 use backend::world::swarm::*;
 use serialize::base64::{self, ToBase64};
+use self::notification::*;
+
+pub trait WorldState {
+	fn agent(&self, id: obj::Id) -> Option<&Agent>;
+	fn notify_event(&mut self, ev: WorldEvent);
+}
 
 pub struct World {
 	pub extent: Rect,
@@ -33,15 +40,17 @@ pub struct World {
 	extinctions: usize,
 	minion_gene_pool: gen::GenePool,
 	resource_gene_pool: gen::GenePool,
-}
-
-pub trait WorldState {
-	fn agent(&self, id: obj::Id) -> Option<&Agent>;
+	elapsed_seconds: f32,
+	notifications: Vec<WorldEventNotification>,
 }
 
 impl WorldState for World {
 	fn agent(&self, id: obj::Id) -> Option<&Agent> {
 		self.swarms.get(&id.type_of()).and_then(|m| m.get(id))
+	}
+	fn notify_event(&mut self, event: WorldEvent) {
+		let timestamp = self.elapsed_seconds;
+		self.notifications.push(WorldEventNotification::new(timestamp, event));
 	}
 }
 
@@ -63,8 +72,8 @@ impl Emitter {
 	pub fn new(x: f32, y: f32, rate: f32, emission: Emission) -> Self {
 		Emitter {
 			transform: Transform::from_position(Position::new(x, y)),
-			rate: rate,
-			emission: emission,
+			rate,
+			emission,
 		}
 	}
 	pub fn rate(&self) -> f32 {
@@ -87,8 +96,8 @@ impl Transformable for Emitter {
 
 impl World {
 	pub fn new<R>(res: &R, minion_gene_pool: &str) -> Self
-	where
-		R: ResourceLoader<u8>, {
+		where
+			R: ResourceLoader<u8>, {
 		let mut swarms = HashMap::new();
 		let types = AgentType::all();
 		for t in types {
@@ -107,7 +116,7 @@ impl World {
 
 		World {
 			extent: Rect::new(-80., -80., 80., 80.),
-			swarms: swarms,
+			swarms,
 			emitters: vec![
 				Emitter::new(-20., -20., 0.4, Emission::CW(consts::PI / 12.)),
 				Emitter::new(-20., 20., 0.4, Emission::Random),
@@ -120,6 +129,8 @@ impl World {
 			resource_gene_pool: gen::GenePool::parse_from_base64(&["GyA21QoQ", "M00sWS0M"]),
 			registered: HashSet::new(),
 			extinctions: 0usize,
+			elapsed_seconds: 0f32,
+			notifications: Vec::new(),
 		}
 	}
 
@@ -222,8 +233,8 @@ impl World {
 	}
 
 	pub fn for_all_agents<F>(&mut self, callback: &mut F)
-	where
-		F: FnMut(&mut Agent), {
+		where
+			F: FnMut(&mut Agent), {
 		for (_, swarm) in self.swarms.iter_mut() {
 			for (_, mut agent) in swarm.agents_mut().iter_mut() {
 				callback(&mut agent)

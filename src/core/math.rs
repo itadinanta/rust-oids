@@ -54,15 +54,15 @@ impl<S: num::Num + num::NumCast + Copy> Smooth<S> for MovingAverage<S> {
 }
 
 impl<S, T> Exponential<S, T>
-where
-	S: ops::Add<S, Output = S> + ops::Mul<T, Output = S> + Copy,
-	T: cgmath::BaseFloat,
+	where
+		S: ops::Add<S, Output=S> + ops::Mul<T, Output=S> + Copy,
+		T: cgmath::BaseFloat,
 {
 	pub fn new(value: S, dt: T, tau: T) -> Self {
 		Exponential {
 			last: value,
-			dt: dt,
-			tau: tau,
+			dt,
+			tau,
 		}
 	}
 
@@ -77,9 +77,9 @@ where
 }
 
 impl<S, T> Smooth<S> for Exponential<S, T>
-where
-	S: ops::Add<S, Output = S> + ops::Mul<T, Output = S> + Copy,
-	T: cgmath::BaseFloat,
+	where
+		S: ops::Add<S, Output=S> + ops::Mul<T, Output=S> + Copy,
+		T: cgmath::BaseFloat,
 {
 	fn smooth(&mut self, value: S) -> S {
 		let alpha1 = T::exp(-self.dt / self.tau);
@@ -124,8 +124,8 @@ pub struct Inertial<T: cgmath::BaseNum + ops::Neg + Copy> {
 }
 
 impl<T> Default for Inertial<T>
-where
-	T: cgmath::BaseFloat + cgmath::Zero + cgmath::One,
+	where
+		T: cgmath::BaseFloat + cgmath::Zero + cgmath::One,
 {
 	fn default() -> Self {
 		Inertial {
@@ -140,8 +140,8 @@ where
 }
 
 impl<T> Directional<T> for Inertial<T>
-where
-	T: cgmath::BaseFloat,
+	where
+		T: cgmath::BaseFloat,
 {
 	fn push(&mut self, d: Direction) {
 		let v = Self::unit(d);
@@ -156,8 +156,8 @@ where
 }
 
 impl<T> Relative<T> for Inertial<T>
-where
-	T: cgmath::BaseFloat,
+	where
+		T: cgmath::BaseFloat,
 {
 	fn zero(&mut self) {
 		self.zero = self.position;
@@ -171,16 +171,11 @@ where
 
 #[allow(dead_code)]
 impl<T> Inertial<T>
-where
-	T: cgmath::BaseFloat,
+	where
+		T: cgmath::BaseFloat,
 {
 	pub fn new(impulse: T, inertia: T, limit: T) -> Self {
-		Inertial {
-			impulse: impulse,
-			inertia: inertia,
-			limit: limit,
-			..Default::default()
-		}
+		Inertial { impulse, inertia, limit, ..Default::default() }
 	}
 
 	pub fn reset(&mut self) {

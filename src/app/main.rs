@@ -22,7 +22,7 @@ pub fn main_loop(minion_gene_pool: &str) {
 	let mut events_loop = glutin::EventsLoop::new();
 
 	let builder = glutin::WindowBuilder::new()
-		.with_title("Box2d + GFX".to_string())
+		.with_title("Rust-oids".to_string())
 		.with_dimensions(WIDTH, HEIGHT);
 
 	let context_builder = glutin::ContextBuilder::new();
@@ -76,6 +76,10 @@ pub fn main_loop(minion_gene_pool: &str) {
 
 		// update and measure
 		let update_result = app.update();
+
+
+
+		app.audio_events();
 
 		let camera = render::Camera::ortho(
 			app.camera.position(),

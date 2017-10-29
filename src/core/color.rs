@@ -13,7 +13,7 @@ pub trait ToRgb<T: num::Float> {
 }
 
 pub trait FromRgb<T: num::Float>: Sized {
-	fn from_rgb(&Rgb<T>) -> Self;
+	fn from_rgb(c: &Rgb<T>) -> Self;
 
 	fn from_rgba(c: &Rgba<T>) -> Self {
 		Self::from_rgb(&[c[0], c[1], c[2]])
@@ -48,15 +48,11 @@ impl FromRgb<f32> for YPbPr<f32> {
 }
 
 impl<T> YPbPr<T>
-where
-	T: num::Float,
+	where
+		T: num::Float,
 {
-	pub fn new(y: T, cb: T, cr: T) -> Self {
-		YPbPr {
-			y: y,
-			pb: cb,
-			pr: cr,
-		}
+	pub fn new(y: T, pb: T, pr: T) -> Self {
+		YPbPr { y, pb, pr }
 	}
 }
 
@@ -69,16 +65,14 @@ impl ToRgb<f32> for YPbPr<f32> {
 	}
 }
 
-
 impl<T> Hsl<T>
-where
-	T: num::Float,
+	where
+		T: num::Float,
 {
 	pub fn new(h: T, s: T, l: T) -> Self {
-		Hsl { h: h, s: s, l: l }
+		Hsl { h, s, l }
 	}
 }
-
 
 impl FromRgb<f32> for Hsl<f32> {
 	/// http://axonflux.com/handy-rgb-to-hsl-and-rgb-to-hsv-color-model-c

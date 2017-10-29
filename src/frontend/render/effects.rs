@@ -194,34 +194,34 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		let luminance_acc = factory.create_render_target::<RenderColorFormat>(1, 1)?;
 
 		Ok(PostLighting {
-			vertex_buffer: vertex_buffer,
+			vertex_buffer,
 			index_buffer_slice: slice,
-			nearest_sampler: nearest_sampler,
-			linear_sampler: linear_sampler,
+			nearest_sampler,
+			linear_sampler,
 
-			blit_pso: blit_pso,
-			average_pso: average_pso,
+			blit_pso,
+			average_pso,
 
-			smooth_fragment_args: smooth_fragment_args,
-			smooth_pso: smooth_pso,
+			smooth_fragment_args,
+			smooth_pso,
 
-			tone_map_vertex_args: tone_map_vertex_args,
-			tone_map_pso: tone_map_pso,
+			tone_map_vertex_args,
+			tone_map_pso,
 
-			highlight_pso: highlight_pso,
-			blur_h_pso: blur_h_pso,
-			blur_v_pso: blur_v_pso,
-			resolve_msaa_pso: resolve_msaa_pso,
+			highlight_pso,
+			blur_h_pso,
+			blur_v_pso,
+			resolve_msaa_pso,
 
-			resolved: resolved,
-			compose_pso: compose_pso,
+			resolved,
+			compose_pso,
 
-			mips: mips,
-			luminance_smooth: luminance_smooth,
-			luminance_acc: luminance_acc,
+			mips,
+			luminance_smooth,
+			luminance_acc,
 
-			ping_pong_half: ping_pong_half,
-			ping_pong_full: ping_pong_full,
+			ping_pong_half,
+			ping_pong_full,
 
 			_buffer: PhantomData,
 		})

@@ -20,7 +20,6 @@ use gfx::Factory;
 use gfx::traits::FactoryExt;
 use gfx_text;
 
-
 pub struct Appearance {
 	color: formats::Rgba,
 	effect: formats::Float4,
@@ -29,14 +28,14 @@ pub struct Appearance {
 impl Appearance {
 	pub fn new(color: formats::Rgba, effect: formats::Float4) -> Self {
 		Appearance {
-			color: color,
-			effect: effect,
+			color,
+			effect,
 		}
 	}
 
 	pub fn rgba(color: formats::Rgba) -> Self {
 		Appearance {
-			color: color,
+			color,
 			effect: [1., 0., 0., 0.],
 		}
 	}
@@ -137,7 +136,7 @@ impl<T: fmt::Display> convert::From<T> for RenderError {
 
 trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 	fn create_shader_set_with_geometry(&mut self, gs_code: &[u8], vs_code: &[u8], ps_code: &[u8])
-		-> Result<gfx::ShaderSet<R>> {
+	                                   -> Result<gfx::ShaderSet<R>> {
 		let gs = self.create_shader_geometry(gs_code)?;
 		let vs = self.create_shader_vertex(vs_code)?;
 		let ps = self.create_shader_pixel(ps_code)?;
@@ -145,7 +144,7 @@ trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 	}
 
 	fn create_msaa_surfaces(&mut self, width: gfx::texture::Size, height: gfx::texture::Size)
-		-> Result<formats::RenderSurfaceWithDepth<R>> {
+	                        -> Result<formats::RenderSurfaceWithDepth<R>> {
 		let (_, color_resource, color_target) = self.create_msaa_render_target(
 			formats::MSAA_MODE,
 			width,
@@ -156,7 +155,7 @@ trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 	}
 
 	fn create_msaa_depth(&mut self, aa: gfx::texture::AaMode, width: gfx::texture::Size, height: gfx::texture::Size)
-		-> Result<formats::DepthSurface<R>> {
+	                     -> Result<formats::DepthSurface<R>> {
 		let kind = gfx::texture::Kind::D2(width, height, aa);
 		let tex = self.create_texture(
 			kind,
@@ -175,7 +174,7 @@ trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 	}
 
 	fn create_msaa_render_target(&mut self, aa: gfx::texture::AaMode, width: gfx::texture::Size, height: gfx::texture::Size)
-		-> Result<formats::RenderSurface<R>> {
+	                             -> Result<formats::RenderSurface<R>> {
 		let kind = gfx::texture::Kind::D2(width, height, aa);
 		let tex = self.create_texture(
 			kind,
@@ -213,8 +212,8 @@ pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>>: Draw {
 	);
 	fn begin_frame(&mut self);
 	fn resolve_frame_buffer(&mut self);
-	fn end_frame<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D);
-	fn cleanup<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D);
+	fn end_frame<D: gfx::Device<Resources=R, CommandBuffer=C>>(&mut self, device: &mut D);
+	fn cleanup<D: gfx::Device<Resources=R, CommandBuffer=C>>(&mut self, device: &mut D);
 }
 
 pub struct ForwardRenderer<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: gfx::Factory<R>, L: 'l + ResourceLoader<u8>> {
@@ -243,7 +242,7 @@ pub struct ForwardRenderer<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer
 }
 
 impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone, L: ResourceLoader<u8>>
-	ForwardRenderer<'e, 'l, R, C, F, L> {
+ForwardRenderer<'e, 'l, R, C, F, L> {
 	pub fn new(
 		factory: &mut F, encoder: &'e mut gfx::Encoder<R, C>, res: &'l L,
 		frame_buffer: &gfx::handle::RenderTargetView<R, formats::ScreenColorFormat>
@@ -263,22 +262,22 @@ impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone,
 
 		Ok(ForwardRenderer {
 			factory: my_factory,
-			res: res,
-			encoder: encoder,
-			hdr_srv: hdr_srv,
+			res,
+			encoder,
+			hdr_srv,
 			hdr_color: hdr_color_buffer,
 			depth: depth_buffer,
 			frame_buffer: frame_buffer.clone(),
-			text_renderer: text_renderer,
+			text_renderer,
 			_quad_vertices: quad_vertices,
-			quad_indices: quad_indices,
-			base_vertices: base_vertices,
-			base_indices: base_indices,
+			quad_indices,
+			base_vertices,
+			base_indices,
 			pass_forward_lighting: forward,
 			pass_effects: effects,
 			background_color: BACKGROUND,
-            /* 			light_color: BLACK,
-                                                      * 			light_position: cgmath::Vector2::new(0.0, 0.0), */
+			/* 			light_color: BLACK,
+													  * 			light_position: cgmath::Vector2::new(0.0, 0.0), */
 		})
 	}
 
@@ -294,7 +293,7 @@ impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone,
 	}
 
 	pub fn resize_to(&mut self, frame_buffer: &gfx::handle::RenderTargetView<R, formats::ScreenColorFormat>)
-		-> Result<()> {
+	                 -> Result<()> {
 		// TODO: this thing leaks?
 		let (w, h, _, _) = frame_buffer.get_dimensions();
 		let (hdr_srv, hdr_color_buffer, depth_buffer) = self.factory.create_msaa_surfaces(w, h)?;
@@ -308,7 +307,7 @@ impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone,
 }
 
 impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> Draw
-	for ForwardRenderer<'e, 'l, R, C, F, L> {
+for ForwardRenderer<'e, 'l, R, C, F, L> {
 	fn draw_star(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], appearance: &Appearance) {
 		let mut v: Vec<_> = vertices
 			.iter()
@@ -512,7 +511,7 @@ impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: Reso
 }
 
 impl<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> Renderer<R, C>
-	for ForwardRenderer<'e, 'l, R, C, F, L> {
+for ForwardRenderer<'e, 'l, R, C, F, L> {
 	fn setup_frame(
 		&mut self, camera: &Camera, background_color: formats::Rgba, light_color: formats::Rgba,
 		light_position: &[Position]
@@ -560,11 +559,11 @@ impl<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>, L:
 		);
 	}
 
-	fn end_frame<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D) {
+	fn end_frame<D: gfx::Device<Resources=R, CommandBuffer=C>>(&mut self, device: &mut D) {
 		self.encoder.flush(device);
 	}
 
-	fn cleanup<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D) {
+	fn cleanup<D: gfx::Device<Resources=R, CommandBuffer=C>>(&mut self, device: &mut D) {
 		device.cleanup();
 	}
 }

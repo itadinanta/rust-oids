@@ -230,10 +230,10 @@ pub struct AgentBuilder {
 impl AgentBuilder {
 	pub fn new(id: Id, material: Material, livery: Livery, dna: &Dna, state: segment::State) -> Self {
 		AgentBuilder {
-			id: id,
-			material: material,
-			livery: livery,
-			state: state,
+			id,
+			material,
+			livery,
+			state,
 			gender: 0u8,
 			brain: Brain::default(),
 			dna: dna.clone(),
@@ -263,7 +263,7 @@ impl AgentBuilder {
 
 	#[inline]
 	pub fn add(&mut self, parent_index: SegmentIndex, attachment_index_offset: isize, shape: &Shape, flags: segment::Flags)
-		-> &mut Self {
+	           -> &mut Self {
 		self.addw(
 			parent_index,
 			attachment_index_offset,
@@ -274,7 +274,7 @@ impl AgentBuilder {
 	}
 	#[inline]
 	pub fn addl(&mut self, parent_index: SegmentIndex, attachment_index_offset: isize, shape: &Shape, flags: segment::Flags)
-		-> &mut Self {
+	            -> &mut Self {
 		self.addw(
 			parent_index,
 			attachment_index_offset,
@@ -285,7 +285,7 @@ impl AgentBuilder {
 	}
 	#[inline]
 	pub fn addr(&mut self, parent_index: SegmentIndex, attachment_index_offset: isize, shape: &Shape, flags: segment::Flags)
-		-> &mut Self {
+	            -> &mut Self {
 		self.addw(
 			parent_index,
 			attachment_index_offset,
@@ -389,7 +389,7 @@ impl AgentBuilder {
 			livery: self.livery.clone(),
 			state: self.state.clone(),
 			attached_to: attachment,
-			flags: flags,
+			flags,
 		}
 	}
 

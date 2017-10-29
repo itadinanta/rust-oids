@@ -3,14 +3,12 @@ pub mod animation;
 pub mod ai;
 pub mod alife;
 pub mod game;
-pub mod audio;
 
 pub use self::physics::PhysicsSystem;
 pub use self::animation::AnimationSystem;
 pub use self::game::GameSystem;
 pub use self::ai::AiSystem;
 pub use self::alife::AlifeSystem;
-pub use self::audio::AudioSystem;
 
 use backend::world;
 

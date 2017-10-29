@@ -27,11 +27,11 @@ struct Emitter {
 impl Emitter {
 	fn new(position: Position, rate: f32, emission: Emission) -> Self {
 		Emitter {
-			position: position,
+			position,
 			hourglass: Hourglass::new(rate),
 			to_spawn: 0,
 			spawned: 0,
-			emission: emission,
+			emission,
 			spin: consts::PI,
 			velocity: 5.,
 		}

@@ -65,11 +65,11 @@ impl State {
 		}
 	}
 
-	pub fn with_charge(initial: f32, target: f32, recharge: f32) -> Self {
+	pub fn with_charge(initial: f32, target_charge: f32, recharge: f32) -> Self {
 		State {
 			charge: initial,
-			target_charge: target,
-			recharge: recharge,
+			target_charge,
+			recharge,
 			smooth: math::Exponential::new(initial, 1., 2.),
 			..Self::default()
 		}
