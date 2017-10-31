@@ -311,13 +311,11 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 	fn draw_star(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], appearance: &Appearance) {
 		let mut v: Vec<_> = vertices
 			.iter()
-			.map(|v| {
-				Vertex {
-					pos: [v.x, v.y, 0.0],
-					normal: [0.0, 0.0, 1.0],
-					tangent: [1.0, 0.0, 0.0],
-					tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
-				}
+			.map(|v| Vertex {
+				pos: [v.x, v.y, 0.0],
+				normal: [0.0, 0.0, 1.0],
+				tangent: [1.0, 0.0, 0.0],
+				tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
 			})
 			.collect();
 		let n = v.len();

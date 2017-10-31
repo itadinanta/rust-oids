@@ -49,8 +49,6 @@ gfx_defines! {
 
 use std::marker::PhantomData;
 
-
-
 pub struct PostLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 	vertex_buffer: gfx::handle::Buffer<R, BlitVertex>,
 	index_buffer_slice: gfx::Slice<R>,
@@ -126,53 +124,27 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 					$s::new())}
 		};
 
-		let tone_map_pso = load_pipeline_simple!(
-			"luminance",
-			"exposure_tone_map",
-			tone_map
-		)?;
-		let resolve_msaa_pso = load_pipeline_simple!(
-			"identity",
-			"msaa4x_resolve",
-			postprocess
-		)?;
-		let highlight_pso = load_pipeline_simple!(
-			"identity",
-			"clip_luminance",
-			postprocess
-		)?;
-		let blur_h_pso = load_pipeline_simple!(
-			"identity",
-			"gaussian_blur_horizontal",
-			postprocess
-		)?;
-		let blur_v_pso = load_pipeline_simple!(
-			"identity",
-			"gaussian_blur_vertical",
-			postprocess
-		)?;
-		let blit_pso = load_pipeline_simple!(
-			"identity",
-			"simple_blit",
-			postprocess
-		)?;
-		let smooth_pso = load_pipeline_simple!(
-			"identity",
-			"exponential_smooth",
-			smooth
-		)?;
-		let average_pso = load_pipeline_simple!(
-			"identity",
-			"quad_smooth",
-			postprocess
-		)?;
+		let tone_map_pso = load_pipeline_simple!("luminance", "exposure_tone_map", tone_map)?;
+		let resolve_msaa_pso = load_pipeline_simple!("identity", "msaa4x_resolve", postprocess)?;
+		let highlight_pso = load_pipeline_simple!("identity", "clip_luminance", postprocess)?;
+		let blur_h_pso = load_pipeline_simple!("identity", "gaussian_blur_horizontal", postprocess)?;
+		let blur_v_pso = load_pipeline_simple!("identity", "gaussian_blur_vertical", postprocess)?;
+		let blit_pso = load_pipeline_simple!("identity", "simple_blit", postprocess)?;
+		let smooth_pso = load_pipeline_simple!("identity", "exponential_smooth", smooth)?;
+		let average_pso = load_pipeline_simple!("identity", "quad_smooth", postprocess)?;
 		let compose_pso = load_pipeline_simple!("identity", "compose_2", compose)?;
 
 		let resolved = factory.create_render_target::<RenderColorFormat>(w, h)?;
 
 		let ping_pong_half = [
-			factory.create_render_target::<RenderColorFormat>(w / 2, h / 2)?,
-			factory.create_render_target::<RenderColorFormat>(w / 2, h / 2)?,
+			factory.create_render_target::<RenderColorFormat>(
+				w / 2,
+				h / 2,
+			)?,
+			factory.create_render_target::<RenderColorFormat>(
+				w / 2,
+				h / 2,
+			)?,
 		];
 
 		let ping_pong_full = [
