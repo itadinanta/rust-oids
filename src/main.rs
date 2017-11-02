@@ -36,13 +36,16 @@ extern crate itertools;
 extern crate enum_primitive;
 extern crate gfx_text;
 
+extern crate getopts;
+extern crate ctrlc;
+
 extern crate rustc_serialize as serialize;
 
 fn main() {
 	use log4rs::config::*;
 	use log4rs::append::console::*;
 	use std::env;
-	let args = env::args().collect::<Vec<_>>();
+	let args = env::args_os().collect::<Vec<_>>();
 
 	let config = Config::builder()
 		.appender(Appender::builder().build(

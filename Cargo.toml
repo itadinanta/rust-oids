@@ -38,3 +38,7 @@ sample="*"
 synth="*"
 pitch_calc="*"
 portaudio="*"
+
+#sys
+getopts = "*"
+ctrlc = "*"

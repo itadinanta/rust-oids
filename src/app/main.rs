@@ -10,6 +10,11 @@ use portaudio as pa;
 
 use core::resource::filesystem::ResourceLoaderBuilder;
 use core::math::Directional;
+
+use ctrlc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
 use app;
 use app::ev::GlutinEventMapper;
 use glutin;
@@ -53,7 +58,7 @@ pub fn main_loop(minion_gene_pool: &str) {
 
 	let audio = audio::PortaudioSoundSystem::new();
 
-	match audio.init_status  {
+	match audio.init_status {
 		pa::Error::NoError => println!("Success initializing portaudio"),
 		failure => println!("Failure initializing portaudio: {:?}", failure),
 	}
@@ -85,8 +90,8 @@ pub fn main_loop(minion_gene_pool: &str) {
 			break 'main;
 		}
 
-		// update and measure
-		let update_result = app.update();
+		// update and measure, let the app determine the appropriate frame length
+		let update_result = app.update(None);
 
 		app.audio_events();
 
@@ -134,5 +139,47 @@ pub fn main_loop(minion_gene_pool: &str) {
 
 		window.swap_buffers().unwrap();
 		renderer.cleanup(&mut device);
+	}
+}
+
+pub fn main_loop_headless(minion_gene_pool: &str) {
+	const WIDTH: u32 = 1024;
+	const HEIGHT: u32 = 1024;
+	let res = ResourceLoaderBuilder::new()
+		.add(path::Path::new("resources"))
+		.build();
+
+	let mut app = app::App::new(WIDTH, HEIGHT, 100.0, &res, minion_gene_pool);
+	app.init();
+
+	let running = Arc::new(AtomicBool::new(true));
+	let r = running.clone();
+
+	ctrlc::set_handler(move || {
+		r.store(false, Ordering::SeqCst);
+	}).expect("Error setting Ctrl-C handler");
+
+	const FRAME_SIMULATION_LENGTH: f32 = 1.0f32/60.0f32;
+	'main: loop {
+		if !app.is_running() {
+			break 'main;
+		}
+
+		if !running.load(Ordering::SeqCst) {
+			eprintln!("Interrupted, exiting");
+			break 'main;
+		}
+		// update and measure
+		let r = app.update(Some(FRAME_SIMULATION_LENGTH));
+		println!(
+			"F: {} E: {:.3} FT: {:.2} SFT: {:.2} FPS: {:.1} P: {} E: {}",
+			r.frame_count,
+			r.frame_elapsed,
+			r.frame_time * 1000.0,
+			r.frame_time_smooth * 1000.0,
+			r.fps,
+			r.population,
+			r.extinctions
+		)
 	}
 }

@@ -23,6 +23,11 @@ use backend::systems::System;
 use frontend::input;
 use frontend::render;
 
+use getopts::Options;
+use std::ffi::OsStr;
+use std::ffi::OsString;
+
+use num;
 use cgmath;
 use cgmath::{Matrix4, SquareMatrix};
 
@@ -57,11 +62,21 @@ pub enum Event {
 	EndDrag(Position, Position, Velocity),
 }
 
-pub fn run(args: &[String]) {
-	let pool_file_name = args.get(1).map(|n| n.as_str()).unwrap_or(
+pub fn run(args: &[OsString]) {
+	let options = Options::new()
+		.optflag("t", "terminal", "Headless mode")
+		.parse(args)
+		.unwrap();
+
+	let pool_file_name = options.free.get(1).map(|n| n.as_str()).unwrap_or(
 		"minion_gene_pool.csv",
 	);
-	main::main_loop(pool_file_name);
+	if options.opt_present("t") {
+		main::main_loop_headless(pool_file_name);
+	}
+	else {
+		main::main_loop(pool_file_name);
+	}
 }
 
 pub struct Viewport {
@@ -165,6 +180,7 @@ pub struct Update {
 	pub frame_count: u32,
 	pub wall_clock_elapsed: f32,
 	pub frame_elapsed: f32,
+	pub dt: f32,
 	pub frame_time: f32,
 	pub frame_time_smooth: f32,
 	pub fps: f32,
@@ -619,19 +635,23 @@ impl App {
 
 	}
 
-	pub fn update(&mut self) -> Update {
+	pub fn update(&mut self, time_quantum: Option<f32>) -> Update {
+		const MIN_FRAME_LENGTH: f32 = 1.0f32/120.0f32;
+		const MAX_FRAME_LENGTH: f32 = 1.0f32/15.0f32;
+
 		let frame_time = self.frame_start.seconds();
 		let frame_time_smooth = self.frame_smooth.smooth(frame_time);
+		let dt = num::clamp(time_quantum.unwrap_or(frame_time_smooth), MIN_FRAME_LENGTH, MAX_FRAME_LENGTH);
 
 		self.frame_elapsed += frame_time;
 		self.frame_start.reset();
 
 		self.cleanup();
 
-		self.camera.update(frame_time_smooth);
+		self.camera.update(dt);
 
-		self.update_input(frame_time_smooth);
-		self.update_systems(frame_time_smooth);
+		self.update_input(dt);
+		self.update_systems(dt);
 		self.register_all();
 		self.frame_count += 1;
 
@@ -639,6 +659,7 @@ impl App {
 			wall_clock_elapsed: self.wall_clock_start.seconds(),
 			frame_count: self.frame_count,
 			frame_elapsed: self.frame_elapsed,
+			dt,
 			frame_time,
 			frame_time_smooth,
 			fps: 1.0 / frame_time_smooth,
