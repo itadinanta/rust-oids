@@ -40,7 +40,7 @@ pub struct World {
 	extinctions: usize,
 	minion_gene_pool: gen::GenePool,
 	resource_gene_pool: gen::GenePool,
-	elapsed_seconds: f32,
+	world_clock: f32,
 	notifications: Vec<WorldEventNotification>,
 }
 
@@ -49,7 +49,7 @@ impl WorldState for World {
 		self.swarms.get(&id.type_of()).and_then(|m| m.get(id))
 	}
 	fn notify_event(&mut self, event: WorldEvent) {
-		let timestamp = self.elapsed_seconds;
+		let timestamp = self.world_clock;
 		self.notifications.push(WorldEventNotification::new(timestamp, event));
 	}
 }
@@ -129,9 +129,13 @@ impl World {
 			resource_gene_pool: gen::GenePool::parse_from_base64(&["GyA21QoQ", "M00sWS0M"]),
 			registered: HashSet::new(),
 			extinctions: 0usize,
-			elapsed_seconds: 0f32,
+			world_clock: 0f32,
 			notifications: Vec::new(),
 		}
+	}
+
+	pub fn tick(&mut self, dt: f32) {
+		self.world_clock += dt;
 	}
 
 	pub fn extinctions(&self) -> usize {

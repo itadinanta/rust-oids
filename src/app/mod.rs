@@ -625,6 +625,10 @@ impl App {
 		});
 	}
 
+	fn tick(&mut self, dt: f32) {
+		self.world.tick(dt);
+	}
+
 	fn update_systems(&mut self, dt: f32) {
 		self.systems.to_world(&mut self.world, &|s, mut world| {
 			s.update_world(&mut world, dt)
@@ -653,6 +657,7 @@ impl App {
 		self.update_input(dt);
 		self.update_systems(dt);
 		self.register_all();
+		self.tick(dt);
 		self.frame_count += 1;
 
 		Update {
