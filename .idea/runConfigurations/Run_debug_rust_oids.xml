@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Run/debug rust-oids" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
     <option name="channel" value="STABLE" />
-    <option name="command" value="run -vv --bin rust-oids" />
+    <option name="command" value="run --bin rust-oids" />
     <option name="nocapture" value="true" />
     <option name="backtrace" value="FULL" />
     <envs />

@@ -4,6 +4,10 @@ use frontend::input::EventMapper;
 use frontend::render::formats;
 use frontend::render::Draw;
 use frontend::render::Renderer;
+use frontend::audio;
+
+use portaudio as pa;
+
 use core::resource::filesystem::ResourceLoaderBuilder;
 use core::math::Directional;
 use app;
@@ -47,6 +51,13 @@ pub fn main_loop(minion_gene_pool: &str) {
 	// Create a new game and run it.
 	let mut app = app::App::new(w as u32, h as u32, 100.0, &res, minion_gene_pool);
 
+	let audio = audio::PortaudioSoundSystem::new();
+
+	match audio.init_status  {
+		pa::Error::NoError => println!("Success initializing portaudio"),
+		failure => println!("Failure initializing portaudio: {:?}", failure),
+	}
+
 	app.init();
 
 	'main: loop {
@@ -76,8 +87,6 @@ pub fn main_loop(minion_gene_pool: &str) {
 
 		// update and measure
 		let update_result = app.update();
-
-
 
 		app.audio_events();
 

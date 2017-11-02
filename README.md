@@ -53,7 +53,7 @@ Some rust-oids competing for territory and resources:
 
 ## Prerequisites/platforms
 
-I've built on Ubuntu GNU/Linux and Windows 10. I've got reports of successful builds on Mac OS + Homebrew. Since adding MSAA a month or so ago, the OSX build panics at launch.
+I've built on Ubuntu GNU/Linux, Devuan Ceres GNU/Linux and Windows 10. I've got reports of successful builds on Mac OS + Homebrew. Since adding MSAA a month or so ago, the OSX build panics at launch.
 
 ### Linux
 
@@ -62,15 +62,21 @@ Aside from the full Rust toolchain, the following packages are required:
 - libbox2d-dev
 - libfreetype6-dev
 
+For audio:
+
+- libportaudio19-dev
+- libasound2-dev
+
 ### Windows
 
-Building Windows dependencies is a tedious a yak shaving exercise.
+Building Windows dependencies is a tedious yak shaving exercise.
 
 Thus, for convenience, I am redistributing parts of open source projects in the form of headers and prebuilt x64 static libs for Windows 10.
 Links to the source code are provided below as for licences:
 
 - `Box2D` https://github.com/erincatto/Box2D, https://github.com/erincatto/Box2D/blob/master/LICENSE
 - `Freetype` https://www.freetype.org/developer.html, https://www.freetype.org/license.html
+- `portaudio` http://www.portaudio.com/, http://www.portaudio.com/license.html
 
 ## Build/run
 

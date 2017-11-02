@@ -23,6 +23,11 @@ extern crate gfx_window_glutin;
 extern crate winit;
 extern crate glutin;
 
+extern crate pitch_calc;
+extern crate portaudio;
+extern crate sample;
+extern crate synth;
+
 extern crate rand;
 extern crate num;
 extern crate itertools;
