@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Check rust-oids" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-    <option name="channel" value="STABLE" />
+    <option name="channel" value="NIGHTLY" />
     <option name="command" value="check" />
     <option name="nocapture" value="true" />
     <option name="backtrace" value="FULL" />
