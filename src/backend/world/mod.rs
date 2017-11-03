@@ -17,6 +17,8 @@ use std::io;
 use std::io::Write;
 use std::fs;
 
+use core::clock;
+use core::clock::Stopwatch;
 use core::geometry::*;
 use core::geometry::Transform;
 use core::resource::ResourceLoader;
@@ -40,7 +42,7 @@ pub struct World {
 	extinctions: usize,
 	minion_gene_pool: gen::GenePool,
 	resource_gene_pool: gen::GenePool,
-	world_clock: f32,
+	world_clock: clock::SimulationStopwatch,
 	notifications: Vec<WorldEventNotification>,
 }
 
@@ -49,7 +51,7 @@ impl WorldState for World {
 		self.swarms.get(&id.type_of()).and_then(|m| m.get(id))
 	}
 	fn notify_event(&mut self, event: WorldEvent) {
-		let timestamp = self.world_clock;
+		let timestamp = self.world_clock.seconds();
 		self.notifications.push(WorldEventNotification::new(timestamp, event));
 	}
 }
@@ -129,13 +131,13 @@ impl World {
 			resource_gene_pool: gen::GenePool::parse_from_base64(&["GyA21QoQ", "M00sWS0M"]),
 			registered: HashSet::new(),
 			extinctions: 0usize,
-			world_clock: 0f32,
+			world_clock: clock::SimulationStopwatch::new(),
 			notifications: Vec::new(),
 		}
 	}
 
 	pub fn tick(&mut self, dt: f32) {
-		self.world_clock += dt;
+		self.world_clock.tick(dt);
 	}
 
 	pub fn extinctions(&self) -> usize {

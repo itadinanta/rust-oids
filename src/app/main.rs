@@ -91,7 +91,7 @@ pub fn main_loop(minion_gene_pool: &str) {
 		}
 
 		// update and measure, let the app determine the appropriate frame length
-		let update_result = app.update(None);
+		let update_result = app.update();
 
 		app.audio_events();
 
@@ -170,7 +170,7 @@ pub fn main_loop_headless(minion_gene_pool: &str) {
 			break 'main;
 		}
 		// update and measure
-		let r = app.update(Some(FRAME_SIMULATION_LENGTH));
+		let r = app.simulate(FRAME_SIMULATION_LENGTH);
 		println!(
 			"F: {} E: {:.3} FT: {:.2} SFT: {:.2} FPS: {:.1} P: {} E: {}",
 			r.frame_count,

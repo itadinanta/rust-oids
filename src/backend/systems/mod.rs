@@ -20,11 +20,11 @@ pub trait System: Updateable {
 	fn init(&mut self, _: &world::World) {}
 	fn register(&mut self, _: &world::agent::Agent) {}
 	fn unregister(&mut self, _: &world::agent::Agent) {}
-	fn from_world(&mut self, _: &world::World) {}
-	fn to_world(&self, _: &mut world::World) {}
+	fn get_from_world(&mut self, _: &world::World) {}
+	fn put_to_world(&self, _: &mut world::World) {}
 	fn update_world(&mut self, world: &mut world::World, dt: f32) {
-		self.from_world(world);
+		self.get_from_world(world);
 		self.update(world, dt);
-		self.to_world(world);
+		self.put_to_world(world);
 	}
 }

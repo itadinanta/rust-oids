@@ -24,7 +24,7 @@ pub struct AiSystem {
 impl Updateable for AiSystem {}
 
 impl System for AiSystem {
-	fn from_world(&mut self, world: &world::World) {
+	fn get_from_world(&mut self, world: &world::World) {
 		self.beacons = world
 			.emitters()
 			.iter()
@@ -39,7 +39,7 @@ impl System for AiSystem {
 			.collect::<HashMap<_, _>>();
 	}
 
-	fn to_world(&self, world: &mut world::World) {
+	fn put_to_world(&self, world: &mut world::World) {
 		Self::update_minions(
 			&self.targets,
 			&self.beacons,

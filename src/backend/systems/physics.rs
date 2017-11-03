@@ -107,7 +107,7 @@ impl System for PhysicsSystem {
 		self.init_extent(&world.extent);
 	}
 
-	fn to_world(&self, world: &mut world::World) {
+	fn put_to_world(&self, world: &mut world::World) {
 		for (_, b) in self.world.bodies() {
 			let body = b.borrow();
 			let position = (*body).position();

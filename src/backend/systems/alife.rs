@@ -29,7 +29,7 @@ impl Updateable for AlifeSystem {
 }
 
 impl System for AlifeSystem {
-	fn from_world(&mut self, world: &world::World) {
+	fn get_from_world(&mut self, world: &world::World) {
 		self.source = world.emitters().to_vec().into_boxed_slice();
 		self.eaten = Self::find_eaten_resources(
 			&world.agents(agent::AgentType::Minion),
@@ -41,7 +41,7 @@ impl System for AlifeSystem {
 		);
 	}
 
-	fn to_world(&self, world: &mut world::World) {
+	fn put_to_world(&self, world: &mut world::World) {
 		Self::update_resources(
 			self.dt,
 			&mut world.agents_mut(agent::AgentType::Resource),

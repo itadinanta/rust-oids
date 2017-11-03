@@ -24,7 +24,6 @@ use frontend::input;
 use frontend::render;
 
 use getopts::Options;
-use std::ffi::OsStr;
 use std::ffi::OsString;
 
 use num;
@@ -148,7 +147,6 @@ bitflags! {
 		const DEBUG_TARGETS = 0x1;
 	}
 }
-
 
 pub struct App {
 	pub viewport: Viewport,
@@ -639,25 +637,35 @@ impl App {
 
 	}
 
-	pub fn update(&mut self, time_quantum: Option<f32>) -> Update {
-		const MIN_FRAME_LENGTH: f32 = 1.0f32/120.0f32;
-		const MAX_FRAME_LENGTH: f32 = 1.0f32/15.0f32;
+	pub fn update(&mut self) -> Update {
+		const MIN_FRAME_LENGTH: f32 = 1.0f32 / 120.0f32;
+		const MAX_FRAME_LENGTH: f32 = 1.0f32 / 15.0f32;
 
 		let frame_time = self.frame_start.seconds();
 		let frame_time_smooth = self.frame_smooth.smooth(frame_time);
-		let dt = num::clamp(time_quantum.unwrap_or(frame_time_smooth), MIN_FRAME_LENGTH, MAX_FRAME_LENGTH);
-
 		self.frame_elapsed += frame_time;
+
+		let dt = num::clamp(frame_time_smooth, MIN_FRAME_LENGTH, MAX_FRAME_LENGTH);
 		self.frame_start.reset();
-
-		self.cleanup();
-
 		self.camera.update(dt);
+
+		let r = self.simulate(dt);
+		Update {
+			frame_time,
+			frame_time_smooth,
+			fps: 1.0 / frame_time_smooth,
+			..r
+		}
+	}
+
+	pub fn simulate(&mut self, dt: f32) -> Update {
+		self.cleanup();
 
 		self.update_input(dt);
 		self.update_systems(dt);
 		self.register_all();
 		self.tick(dt);
+
 		self.frame_count += 1;
 
 		Update {
@@ -665,9 +673,9 @@ impl App {
 			frame_count: self.frame_count,
 			frame_elapsed: self.frame_elapsed,
 			dt,
-			frame_time,
-			frame_time_smooth,
-			fps: 1.0 / frame_time_smooth,
+			frame_time: dt,
+			frame_time_smooth: dt,
+			fps: 1.0 / dt,
 			population: self.world.agents(agent::AgentType::Minion).len(),
 			extinctions: self.world.extinctions(),
 		}

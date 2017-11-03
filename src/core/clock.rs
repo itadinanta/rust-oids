@@ -1,8 +1,6 @@
 use std::time;
 use std::fmt;
 
-pub type SystemStopwatch = time::SystemTime;
-
 pub trait Stopwatch: Sized {
 	fn new() -> Self;
 
@@ -17,6 +15,13 @@ pub trait Stopwatch: Sized {
 		self.reset();
 		elapsed
 	}
+}
+
+pub type SystemStopwatch = time::SystemTime;
+
+#[derive(Clone)]
+pub struct SimulationStopwatch {
+	seconds: f32
 }
 
 #[derive(Clone)]
@@ -72,6 +77,21 @@ impl<T: Stopwatch> Hourglass<T> {
 		let dt = self.left();
 		let e = dt <= 0.;
 		e
+	}
+}
+
+impl Stopwatch for SimulationStopwatch {
+	fn new() -> Self {
+		SimulationStopwatch { seconds: 0.0f32 }
+	}
+	fn seconds(&self) -> f32 {
+		self.seconds
+	}
+}
+
+impl SimulationStopwatch {
+	pub fn tick(&mut self, dt: f32) {
+		self.seconds += dt;
 	}
 }
 
