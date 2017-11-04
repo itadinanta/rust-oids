@@ -106,7 +106,7 @@ impl Viewport {
 #[derive(Default)]
 pub struct Systems {
 	physics: systems::PhysicsSystem,
-	animation: systems::AnimationSystem,
+	animation: systems::AnimationSystem<SimulationStopwatch>,
 	game: systems::GameSystem,
 	ai: systems::AiSystem,
 	alife: systems::AlifeSystem,

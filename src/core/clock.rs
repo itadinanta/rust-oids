@@ -10,6 +10,8 @@ pub trait Stopwatch: Sized {
 		*self = Self::new();
 	}
 
+	fn tick(&mut self, dt: f32);
+
 	fn restart(&mut self) -> f32 {
 		let elapsed = self.seconds();
 		self.reset();
@@ -87,17 +89,24 @@ impl Stopwatch for SimulationStopwatch {
 	fn seconds(&self) -> f32 {
 		self.seconds
 	}
+
+	fn tick(&mut self, dt: f32) {
+		self.seconds += dt;
+	}
 }
 
 impl SimulationStopwatch {
-	pub fn tick(&mut self, dt: f32) {
-		self.seconds += dt;
+	pub fn sync_from<T: Stopwatch>(&mut self, source: &T) {
+		self.seconds = source.seconds();
 	}
 }
 
 impl Stopwatch for SystemStopwatch {
 	fn new() -> Self {
 		time::SystemTime::now()
+	}
+
+	fn tick(&mut self, _: f32) {
 	}
 
 	fn seconds(&self) -> f32 {
