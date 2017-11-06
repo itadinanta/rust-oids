@@ -1,4 +1,5 @@
 use backend::obj;
+use core::clock::Seconds;
 
 #[derive(Copy, Clone)]
 pub enum WorldEvent {
@@ -8,12 +9,12 @@ pub enum WorldEvent {
 
 #[derive(Copy, Clone)]
 pub struct WorldEventNotification {
-	timestamp: f32,
+	timestamp: Seconds,
 	event: WorldEvent,
 }
 
 impl WorldEventNotification {
-	pub fn new(timestamp: f32, event: WorldEvent) -> Self {
+	pub fn new(timestamp: Seconds, event: WorldEvent) -> Self {
 		WorldEventNotification { timestamp, event }
 	}
 }

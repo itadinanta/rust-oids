@@ -1,40 +1,38 @@
 use super::*;
+use std::rc::Rc;
+use std::cell::RefCell;
 use backend::world::WorldState;
 use core::clock::*;
 
-pub struct AnimationSystem<T: Stopwatch> {
+pub struct AnimationSystem {
 	speed: f32,
-	t0: T,
-	now: T,
-	dt: f32,
-	frames: f32,
-	elapsed: f32,
+	animation_timer: SharedTimer<SimulationTimer>,
+	simulation_timer: SharedTimer<SimulationTimer>,
+	animation_clock: TimerStopwatch<SimulationTimer>,
+	simulation_clock: TimerStopwatch<SimulationTimer>,
 }
 
-impl<T> Updateable for AnimationSystem<T> where T: Stopwatch {
-	fn update(&mut self, _: &WorldState, dt: f32) {
-		self.now.reset();
-		self.dt = dt * self.speed;
-		self.frames += self.dt;
-		self.elapsed = self.t0.seconds();
-		self.now.tick(dt);
-		self.t0.tick(dt);
+impl Updateable for AnimationSystem {
+	fn update(&mut self, _: &WorldState, dt: Seconds) {
+		self.simulation_timer.borrow_mut().tick(dt);
+		self.animation_timer.borrow_mut().tick(dt * self.speed);
 	}
 }
 
-impl<T> System for AnimationSystem<T> where T: Stopwatch {}
+impl System for AnimationSystem {}
 
-impl<T> Default for AnimationSystem<T> where T: Stopwatch {
+impl Default for AnimationSystem {
 	fn default() -> Self {
+		let animation_timer = Rc::new(RefCell::new(SimulationTimer::new()));
+		let simulation_timer = Rc::new(RefCell::new(SimulationTimer::new()));
 		AnimationSystem {
-			dt: 1. / 60.,
 			speed: 1.,
-			t0: T::new(),
-			now: T::new(),
-			frames: 0.,
-			elapsed: 0.,
+			simulation_clock: TimerStopwatch::new(animation_timer.clone()),
+			animation_clock: TimerStopwatch::new(simulation_timer.clone()),
+			animation_timer,
+			simulation_timer,
 		}
 	}
 }
 
-impl<T> AnimationSystem<T> where T: Stopwatch {}
+impl AnimationSystem {}

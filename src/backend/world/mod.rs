@@ -5,6 +5,9 @@ pub mod swarm;
 pub mod gen;
 pub mod phen;
 
+use std::rc::Rc;
+use std::cell::RefCell;
+
 use backend::obj;
 use backend::obj::*;
 use rand;
@@ -17,8 +20,7 @@ use std::io;
 use std::io::Write;
 use std::fs;
 
-use core::clock;
-use core::clock::Stopwatch;
+use core::clock::*;
 use core::geometry::*;
 use core::geometry::Transform;
 use core::resource::ResourceLoader;
@@ -42,7 +44,7 @@ pub struct World {
 	extinctions: usize,
 	minion_gene_pool: gen::GenePool,
 	resource_gene_pool: gen::GenePool,
-	world_clock: clock::SimulationStopwatch,
+	clock: SharedTimer<SimulationTimer>,
 	notifications: Vec<WorldEventNotification>,
 }
 
@@ -51,7 +53,7 @@ impl WorldState for World {
 		self.swarms.get(&id.type_of()).and_then(|m| m.get(id))
 	}
 	fn notify_event(&mut self, event: WorldEvent) {
-		let timestamp = self.world_clock.seconds();
+		let timestamp = self.clock.borrow().seconds();
 		self.notifications.push(WorldEventNotification::new(timestamp, event));
 	}
 }
@@ -66,19 +68,19 @@ pub enum Emission {
 #[derive(Clone)]
 pub struct Emitter {
 	transform: Transform,
-	rate: f32,
+	rate: Seconds,
 	emission: Emission,
 }
 
 impl Emitter {
-	pub fn new(x: f32, y: f32, rate: f32, emission: Emission) -> Self {
+	pub fn new(x: f32, y: f32, rate: Seconds, emission: Emission) -> Self {
 		Emitter {
 			transform: Transform::from_position(Position::new(x, y)),
 			rate,
 			emission,
 		}
 	}
-	pub fn rate(&self) -> f32 {
+	pub fn rate(&self) -> Seconds {
 		self.rate
 	}
 	pub fn emission(&self) -> Emission {
@@ -102,8 +104,9 @@ impl World {
 			R: ResourceLoader<u8>, {
 		let mut swarms = HashMap::new();
 		let types = AgentType::all();
+		let clock = Rc::new(RefCell::new(SimulationTimer::new()));
 		for t in types {
-			swarms.insert(*t, Swarm::new(*t));
+			swarms.insert(*t, Swarm::new(*t, clock.clone()));
 		}
 		fn default_gene_pool(_: io::Error) -> gen::GenePool {
 			gen::GenePool::parse_from_base64(
@@ -115,15 +118,15 @@ impl World {
 				],
 			)
 		}
-
+		let emitter_rate = Seconds::new(0.4f32);
 		World {
 			extent: Rect::new(-80., -80., 80., 80.),
 			swarms,
 			emitters: vec![
-				Emitter::new(-20., -20., 0.4, Emission::CW(consts::PI / 12.)),
-				Emitter::new(-20., 20., 0.4, Emission::Random),
-				Emitter::new(20., 20., 0.4, Emission::CCW(consts::PI / 12.)),
-				Emitter::new(20., -20., 0.4, Emission::Random),
+				Emitter::new(-20., -20., emitter_rate, Emission::CW(consts::PI / 12.)),
+				Emitter::new(-20., 20., emitter_rate, Emission::Random),
+				Emitter::new(20., 20., emitter_rate, Emission::CCW(consts::PI / 12.)),
+				Emitter::new(20., -20., emitter_rate, Emission::Random),
 			],
 			minion_gene_pool: res.load(minion_gene_pool)
 				.map(|data| gen::GenePool::parse_from_resource(&data))
@@ -131,14 +134,16 @@ impl World {
 			resource_gene_pool: gen::GenePool::parse_from_base64(&["GyA21QoQ", "M00sWS0M"]),
 			registered: HashSet::new(),
 			extinctions: 0usize,
-			world_clock: clock::SimulationStopwatch::new(),
+			clock,
 			notifications: Vec::new(),
 		}
 	}
 
-	pub fn tick(&mut self, dt: f32) {
-		self.world_clock.tick(dt);
+	pub fn tick(&mut self, dt: Seconds) {
+		self.clock.borrow_mut().tick(dt);
 	}
+
+	pub fn clock(&self) -> SharedTimer<SimulationTimer> { self.clock.clone() }
 
 	pub fn extinctions(&self) -> usize {
 		self.extinctions

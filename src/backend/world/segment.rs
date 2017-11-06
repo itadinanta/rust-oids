@@ -5,6 +5,8 @@ use core::math;
 use core::math::Smooth;
 use core::geometry::*;
 use core::geometry::Transform;
+use core::clock::Seconds;
+use num::Zero;
 
 #[derive(Clone)]
 pub enum Intent {
@@ -16,7 +18,7 @@ pub enum Intent {
 
 #[derive(Clone)]
 pub struct State {
-	age_seconds: f32,
+	age_seconds: Seconds,
 	age_frames: usize,
 	charge: f32,
 	target_charge: f32,
@@ -29,7 +31,7 @@ pub struct State {
 impl Default for State {
 	fn default() -> Self {
 		State {
-			age_seconds: 0.,
+			age_seconds: Seconds::zero(),
 			age_frames: 0,
 			charge: 1.,
 			target_charge: 0.,
@@ -55,10 +57,10 @@ impl State {
 		self.target_charge = target_charge;
 	}
 
-	pub fn update(&mut self, dt: f32) {
+	pub fn update(&mut self, dt: Seconds) {
 		self.age_seconds += dt;
 		self.age_frames += 1;
-		self.charge = self.smooth.dt(dt).smooth(self.target_charge);
+		self.charge = self.smooth.dt(dt.into()).smooth(self.target_charge);
 		if (self.charge - self.target_charge).abs() < 0.001 {
 			let reset = self.recharge;
 			self.set_charge(reset);

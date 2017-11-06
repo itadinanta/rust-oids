@@ -251,7 +251,7 @@ pub struct Limits {
 
 #[derive(Clone, Debug)]
 pub struct State {
-	lifecycle: Hourglass<SystemStopwatch>,
+	lifecycle: Hourglass<SimulationTimer>,
 	flags: Flags,
 	energy: f32,
 	target: Option<Id>,
@@ -263,7 +263,7 @@ pub struct State {
 
 impl State {
 	#[inline]
-	pub fn lifecycle(&self) -> &Hourglass<SystemStopwatch> {
+	pub fn lifecycle(&self) -> &Hourglass<SimulationTimer> {
 		&self.lifecycle
 	}
 
@@ -433,7 +433,7 @@ impl Agent {
 			.map(|sensor| sensor.clone())
 	}
 
-	pub fn new(id: Id, gender: u8, brain: &Brain, dna: &Dna, segments: Box<[Segment]>) -> Self {
+	pub fn new(id: Id, gender: u8, brain: &Brain, dna: &Dna, segments: Box<[Segment]>, timer: SharedTimer<SimulationTimer>) -> Self {
 		const SCALE: f32 = 100.;
 		let max_energy = SCALE *
 			segments
@@ -444,7 +444,7 @@ impl Agent {
 			id,
 			state: State {
 				flags: Flags::ACTIVE,
-				lifecycle: Hourglass::new(5.),
+				lifecycle: Hourglass::new(timer, Seconds::new(5.)),
 				energy: max_energy * 0.5,
 				target: None,
 				target_position: segments[0].transform.position,

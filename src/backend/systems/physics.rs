@@ -33,10 +33,10 @@ pub struct PhysicsSystem {
 }
 
 impl Updateable for PhysicsSystem {
-	fn update(&mut self, state: &world::WorldState, dt: f32) {
+	fn update(&mut self, state: &world::WorldState, dt_sec: Seconds) {
 		let mut forces = Vec::new();
 		let mut impulses = Vec::new();
-
+		let dt: f32 = dt_sec.into();
 		for (h, b) in self.world.bodies() {
 			let body = b.borrow();
 			let center = (*body).world_center().clone();

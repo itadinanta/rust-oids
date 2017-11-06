@@ -10,6 +10,7 @@ use portaudio as pa;
 
 use core::resource::filesystem::ResourceLoaderBuilder;
 use core::math::Directional;
+use core::clock::Seconds;
 
 use ctrlc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -159,7 +160,7 @@ pub fn main_loop_headless(minion_gene_pool: &str) {
 		r.store(false, Ordering::SeqCst);
 	}).expect("Error setting Ctrl-C handler");
 
-	const FRAME_SIMULATION_LENGTH: f32 = 1.0f32/60.0f32;
+	const FRAME_SIMULATION_LENGTH: f32 = 1.0f32 / 60.0f32;
 	'main: loop {
 		if !app.is_running() {
 			break 'main;
@@ -170,7 +171,7 @@ pub fn main_loop_headless(minion_gene_pool: &str) {
 			break 'main;
 		}
 		// update and measure
-		let r = app.simulate(FRAME_SIMULATION_LENGTH);
+		let r = app.simulate(Seconds::new(FRAME_SIMULATION_LENGTH));
 		println!(
 			"F: {} E: {:.3} FT: {:.2} SFT: {:.2} FPS: {:.1} P: {} E: {}",
 			r.frame_count,

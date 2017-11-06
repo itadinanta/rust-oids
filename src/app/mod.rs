@@ -1,6 +1,9 @@
 mod main;
 mod ev;
 
+use std::rc::Rc;
+use std::cell::RefCell;
+
 use core::util::Cycle;
 use core::geometry::*;
 use core::geometry::Transform;
@@ -11,6 +14,7 @@ use core::math::Relative;
 use core::math::Smooth;
 
 use core::resource::ResourceLoader;
+use num::Zero;
 
 use backend::obj;
 use backend::obj::*;
@@ -106,7 +110,7 @@ impl Viewport {
 #[derive(Default)]
 pub struct Systems {
 	physics: systems::PhysicsSystem,
-	animation: systems::AnimationSystem<SimulationStopwatch>,
+	animation: systems::AnimationSystem,
 	game: systems::GameSystem,
 	ai: systems::AiSystem,
 	alife: systems::AlifeSystem,
@@ -151,11 +155,11 @@ bitflags! {
 pub struct App {
 	pub viewport: Viewport,
 	input_state: input::InputState,
-	wall_clock_start: SystemStopwatch,
+	wall_clock_start: TimerStopwatch<SystemTimer>,
 	frame_count: u32,
-	frame_start: SystemStopwatch,
-	frame_elapsed: f32,
-	frame_smooth: math::MovingAverage<f32>,
+	frame_start: TimerStopwatch<SystemTimer>,
+	frame_elapsed: Seconds,
+	frame_smooth: math::MovingAverage<Seconds>,
 	is_running: bool,
 	//
 	camera: math::Inertial<f32>,
@@ -176,11 +180,11 @@ pub struct Environment {
 
 pub struct Update {
 	pub frame_count: u32,
-	pub wall_clock_elapsed: f32,
-	pub frame_elapsed: f32,
-	pub dt: f32,
-	pub frame_time: f32,
-	pub frame_time_smooth: f32,
+	pub wall_clock_elapsed: Seconds,
+	pub frame_elapsed: Seconds,
+	pub dt: Seconds,
+	pub frame_time: Seconds,
+	pub frame_time_smooth: Seconds,
 	pub fps: f32,
 	pub population: usize,
 	pub extinctions: usize,
@@ -190,6 +194,7 @@ impl App {
 	pub fn new<R>(w: u32, h: u32, scale: f32, resource_loader: &R, minion_gene_pool: &str) -> Self
 	where
 		R: ResourceLoader<u8>, {
+		let system_timer = Rc::new(RefCell::new(SystemTimer::new()));
 		App {
 			viewport: Viewport::rect(w, h, scale),
 			input_state: input::InputState::default(),
@@ -203,9 +208,9 @@ impl App {
 			systems: Systems::default(),
 			// runtime and timing
 			frame_count: 0u32,
-			frame_elapsed: 0.0f32,
-			frame_start: SystemStopwatch::new(),
-			wall_clock_start: SystemStopwatch::new(),
+			frame_elapsed: Seconds::zero(),
+			frame_start: TimerStopwatch::new(system_timer.clone()),
+			wall_clock_start: TimerStopwatch::new(system_timer),
 			frame_smooth: math::MovingAverage::new(120),
 			is_running: true,
 			// debug
@@ -340,7 +345,7 @@ impl App {
 		self.input_state.event(e);
 	}
 
-	fn update_input(&mut self, dt: f32) {
+	fn update_input(&mut self, dt: Seconds) {
 		let mut events = Vec::new();
 
 		macro_rules! on_key_held {
@@ -410,7 +415,7 @@ impl App {
 					events.push(Event::Drag(self.to_world(&from), self.to_world(&to)));
 				}
 				input::Dragging::End(_, from, to, prev) => {
-					let mouse_vel = (self.to_view(&prev) - to) / dt;
+					let mouse_vel = (self.to_view(&prev) - to) / dt.into();
 					events.push(Event::EndDrag(
 						self.to_world(&from),
 						self.to_world(&to),
@@ -468,7 +473,7 @@ impl App {
 					let fixture_scale = Matrix4::from_scale(mesh.shape.radius());
 					let transform = body_transform * fixture_scale;
 
-					let appearance = render::Appearance::new(segment.color(), [energy_left, age, 0., 0.]);
+					let appearance = render::Appearance::new(segment.color(), [energy_left, age.into(), 0., 0.]);
 
 					match mesh.shape {
 						obj::Shape::Ball { .. } => {
@@ -623,11 +628,11 @@ impl App {
 		});
 	}
 
-	fn tick(&mut self, dt: f32) {
+	fn tick(&mut self, dt: Seconds) {
 		self.world.tick(dt);
 	}
 
-	fn update_systems(&mut self, dt: f32) {
+	fn update_systems(&mut self, dt: Seconds) {
 		self.systems.to_world(&mut self.world, &|s, mut world| {
 			s.update_world(&mut world, dt)
 		});
@@ -645,20 +650,21 @@ impl App {
 		let frame_time_smooth = self.frame_smooth.smooth(frame_time);
 		self.frame_elapsed += frame_time;
 
-		let dt = num::clamp(frame_time_smooth, MIN_FRAME_LENGTH, MAX_FRAME_LENGTH);
+		let dt = Seconds::new(num::clamp(frame_time_smooth.into(), MIN_FRAME_LENGTH, MAX_FRAME_LENGTH));
 		self.frame_start.reset();
-		self.camera.update(dt);
+		self.camera.update(dt.into());
 
 		let r = self.simulate(dt);
+		let d_smooth: f32 = frame_time_smooth.into();
 		Update {
 			frame_time,
 			frame_time_smooth,
-			fps: 1.0 / frame_time_smooth,
+			fps: 1.0f32 / d_smooth,
 			..r
 		}
 	}
 
-	pub fn simulate(&mut self, dt: f32) -> Update {
+	pub fn simulate(&mut self, dt: Seconds) -> Update {
 		self.cleanup();
 
 		self.update_input(dt);
@@ -667,7 +673,7 @@ impl App {
 		self.tick(dt);
 
 		self.frame_count += 1;
-
+		let d_smooth: f32 = dt.into();
 		Update {
 			wall_clock_elapsed: self.wall_clock_start.seconds(),
 			frame_count: self.frame_count,
@@ -675,7 +681,7 @@ impl App {
 			dt,
 			frame_time: dt,
 			frame_time_smooth: dt,
-			fps: 1.0 / dt,
+			fps: 1.0f32 / d_smooth,
 			population: self.world.agents(agent::AgentType::Minion).len(),
 			extinctions: self.world.extinctions(),
 		}

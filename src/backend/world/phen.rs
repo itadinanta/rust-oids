@@ -4,6 +4,9 @@ use core::color;
 use core::color::ToRgb;
 use core::geometry::*;
 use core::geometry::Transform;
+use core::clock;
+use core::clock::SimulationTimer;
+use core::clock::SharedTimer;
 use backend::world::segment;
 use backend::world::segment::*;
 use backend::world::agent;
@@ -16,7 +19,7 @@ use cgmath;
 use cgmath::InnerSpace;
 
 pub trait Phenotype {
-	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32) -> agent::Agent;
+	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, clock: SharedTimer<SimulationTimer>) -> agent::Agent;
 }
 
 pub struct Resource {}
@@ -26,7 +29,7 @@ pub struct Minion {}
 pub struct Spore {}
 
 impl Phenotype for Resource {
-	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32) -> agent::Agent {
+	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, clock: SharedTimer<SimulationTimer>) -> agent::Agent {
 		gen.next_integer::<u8>(0, 3);
 		let albedo = color::YPbPr::new(0.5, gen.next_float(-0.5, 0.5), gen.next_float(-0.5, 0.5));
 		let body = gen.eq_triangle();
@@ -42,13 +45,14 @@ impl Phenotype for Resource {
 			},
 			gen.dna(),
 			segment::State::with_charge(charge, 0., charge),
+			clock,
 		);
 		builder.start(transform, motion, &body).build()
 	}
 }
 
 impl Phenotype for Minion {
-	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32) -> agent::Agent {
+	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, clock: SharedTimer<SimulationTimer>) -> agent::Agent {
 		let gender = gen.next_integer::<u8>(0, 3);
 		let tint = gen.next_float(0., 1.);
 		let albedo = color::Hsl::new(tint, 0.5, 0.5);
@@ -64,6 +68,7 @@ impl Phenotype for Minion {
 			},
 			gen.dna(),
 			segment::State::with_charge(0., charge, charge),
+			clock,
 		);
 		builder.gender(gender);
 
@@ -191,7 +196,7 @@ impl Phenotype for Minion {
 }
 
 impl Phenotype for Spore {
-	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32) -> agent::Agent {
+	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, clock: SharedTimer<SimulationTimer>) -> agent::Agent {
 		let gender = gen.next_integer::<u8>(0, 3);
 		let tint = gen.next_float(0., 1.);
 		let albedo = color::Hsl::new(tint, 0.5, 0.5);
@@ -208,6 +213,7 @@ impl Phenotype for Spore {
 			},
 			gen.dna(),
 			segment::State::with_charge(0., charge, charge),
+			clock,
 		);
 		builder
 			.gender(gender)
@@ -225,10 +231,11 @@ pub struct AgentBuilder {
 	dna: Dna,
 	state: segment::State,
 	segments: Vec<Segment>,
+	clock: SharedTimer<clock::SimulationTimer>
 }
 
 impl AgentBuilder {
-	pub fn new(id: Id, material: Material, livery: Livery, dna: &Dna, state: segment::State) -> Self {
+	pub fn new(id: Id, material: Material, livery: Livery, dna: &Dna, state: segment::State, clock: SharedTimer<clock::SimulationTimer>) -> Self {
 		AgentBuilder {
 			id,
 			material,
@@ -238,6 +245,7 @@ impl AgentBuilder {
 			brain: Brain::default(),
 			dna: dna.clone(),
 			segments: Vec::new(),
+			clock,
 		}
 	}
 
@@ -401,6 +409,7 @@ impl AgentBuilder {
 			&self.brain,
 			&self.dna,
 			self.segments.clone().into_boxed_slice(),
+			self.clock.clone(),
 		)
 	}
 }

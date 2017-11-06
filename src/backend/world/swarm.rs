@@ -1,6 +1,8 @@
 use backend::obj::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use core::clock::SharedTimer;
+use core::clock::SimulationTimer;
 use core::geometry::*;
 use core::geometry::Transform;
 use backend::world::phen;
@@ -14,14 +16,16 @@ pub struct Swarm {
 	seq: Id,
 	agent_type: AgentType,
 	agents: agent::AgentMap,
+	clock: SharedTimer<SimulationTimer>,
 }
 
 impl Swarm {
-	pub fn new(agent_type: AgentType) -> Swarm {
+	pub fn new(agent_type: AgentType, clock: SharedTimer<SimulationTimer>) -> Swarm {
 		Swarm {
 			seq: 0,
 			agent_type,
 			agents: HashMap::new(),
+			clock
 		}
 	}
 
@@ -50,9 +54,9 @@ impl Swarm {
 			.iter()
 			.filter(|&(_, agent)| !agent.state.is_alive())
 			.map(|(&id, _)| id)
-		{
-			dead.insert(id);
-		}
+			{
+				dead.insert(id);
+			}
 		for id in &dead {
 			if let Some(agent) = self.agents.remove(&id) {
 				freed.push(agent);
@@ -61,14 +65,14 @@ impl Swarm {
 	}
 
 	pub fn spawn<T>(&mut self, genome: &mut Genome, transform: &Transform, motion: Option<&Motion>, charge: f32) -> Id
-	where
-		T: phen::Phenotype, {
+		where
+			T: phen::Phenotype, {
 		let id = self.next_id();
 		match id.type_of() {
 			AgentType::Minion | AgentType::Spore => info!("spawn: {} as {}", genome, id.type_of()),
 			_ => {}
 		}
-		let entity = T::develop(genome, id, transform, motion, charge);
+		let entity = T::develop(genome, id, transform, motion, charge, self.clock.clone());
 		self.insert(entity)
 	}
 

@@ -16,14 +16,14 @@ type StateMap = HashMap<obj::Id, agent::State>;
 type GeneMap = HashMap<obj::Id, gen::Dna>;
 
 pub struct AlifeSystem {
-	dt: f32,
+	dt: Seconds,
 	source: Box<[world::Emitter]>,
 	eaten: StateMap,
 	touched: GeneMap,
 }
 
 impl Updateable for AlifeSystem {
-	fn update(&mut self, _: &WorldState, dt: f32) {
+	fn update(&mut self, _: &WorldState, dt: Seconds) {
 		self.dt = dt;
 	}
 }
@@ -75,7 +75,7 @@ impl System for AlifeSystem {
 impl Default for AlifeSystem {
 	fn default() -> Self {
 		AlifeSystem {
-			dt: 1. / 60.,
+			dt: Seconds::new(1. / 60.),
 			source: Box::new([]),
 			eaten: StateMap::new(),
 			touched: GeneMap::new(),
@@ -120,7 +120,7 @@ impl AlifeSystem {
 		touched
 	}
 
-	fn update_minions(dt: f32, extent: &geometry::Rect, minions: &mut agent::AgentMap, eaten: &StateMap)
+	fn update_minions(dt: Seconds, extent: &geometry::Rect, minions: &mut agent::AgentMap, eaten: &StateMap)
 		-> (Box<[(geometry::Transform, gen::Dna)]>, Box<[(geometry::Transform, gen::Dna)]>) {
 		let mut spawns = Vec::new();
 		let mut corpses = Vec::new();
@@ -146,7 +146,7 @@ impl AlifeSystem {
 						}
 					}
 					agent.state.consume(
-						dt * segment.state.get_charge() * segment.mesh.shape.radius(),
+						dt.to_f32() * segment.state.get_charge() * segment.mesh.shape.radius(),
 					);
 					segment.state.update(dt);
 				}
@@ -169,7 +169,7 @@ impl AlifeSystem {
 		(spawns.into_boxed_slice(), corpses.into_boxed_slice())
 	}
 
-	fn update_resources(dt: f32, resources: &mut agent::AgentMap, eaten: &StateMap) {
+	fn update_resources(dt: Seconds, resources: &mut agent::AgentMap, eaten: &StateMap) {
 		for (_, agent) in resources.iter_mut() {
 			if eaten.get(&agent.id()).is_some() {
 				agent.state.die();
@@ -197,9 +197,10 @@ impl AlifeSystem {
 		}
 	}
 
-	fn update_spores(dt: f32, spores: &mut agent::AgentMap, touched: &GeneMap)
+	fn update_spores(dt: Seconds, spores: &mut agent::AgentMap, touched: &GeneMap)
 		-> Box<[(geometry::Transform, gen::Dna)]> {
 		let mut spawns = Vec::new();
+		//let dt: f32 = dt_sec.into();
 		for (spore_id, spore) in spores.iter_mut() {
 			if spore.state.lifecycle().is_expired() {
 				spore.state.die();

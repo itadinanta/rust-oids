@@ -16,7 +16,7 @@ pub struct GameSystem {
 
 struct Emitter {
 	position: Position,
-	hourglass: Hourglass<SystemStopwatch>,
+	hourglass: Hourglass<SimulationTimer>,
 	to_spawn: usize,
 	spawned: usize,
 	emission: Emission,
@@ -24,11 +24,11 @@ struct Emitter {
 	velocity: f32,
 }
 
-impl Emitter {
-	fn new(position: Position, rate: f32, emission: Emission) -> Self {
+impl Emitter where {
+	fn new(timer: SharedTimer<SimulationTimer>, position: Position, rate: Seconds, emission: Emission) -> Self {
 		Emitter {
 			position,
-			hourglass: Hourglass::new(rate),
+			hourglass: Hourglass::new(timer, rate),
 			to_spawn: 0,
 			spawned: 0,
 			emission,
@@ -39,7 +39,7 @@ impl Emitter {
 }
 
 impl Updateable for GameSystem {
-	fn update(&mut self, _: &world::WorldState, _: f32) {
+	fn update(&mut self, _: &world::WorldState, _: Seconds) {
 		for e in &mut self.emitters {
 			e.spawned = e.to_spawn;
 		}
@@ -59,6 +59,7 @@ impl System for GameSystem {
 		for i in self.emitters.len()..source.len() {
 			let s = &source[i];
 			self.emitters.push(Emitter::new(
+				world.clock().clone(),
 				s.transform().position,
 				s.rate(),
 				s.emission(),

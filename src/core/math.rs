@@ -1,8 +1,7 @@
 use cgmath;
 use cgmath::InnerSpace;
-use num;
-use std::ops;
-
+use num::Zero;
+use std::ops::*;
 
 pub trait Smooth<S> {
 	fn smooth(&mut self, value: S) -> S {
@@ -10,7 +9,7 @@ pub trait Smooth<S> {
 	}
 }
 
-pub struct MovingAverage<S: num::Num> {
+pub struct MovingAverage<S> {
 	ptr: usize,
 	count: usize,
 	acc: S,
@@ -25,7 +24,7 @@ pub struct Exponential<S, T> {
 	last: S,
 }
 
-impl<S: num::Num + num::NumCast + Copy> MovingAverage<S> {
+impl<S: Zero + Copy> MovingAverage<S> {
 	pub fn new(window_size: usize) -> Self {
 		MovingAverage {
 			ptr: 0,
@@ -37,26 +36,29 @@ impl<S: num::Num + num::NumCast + Copy> MovingAverage<S> {
 	}
 }
 
-impl<S: num::Num + num::NumCast + Copy> Smooth<S> for MovingAverage<S> {
+impl<S> Smooth<S> for MovingAverage<S>
+where
+	S: Zero + Sub + Copy + AddAssign + SubAssign + Div<usize, Output = S>,
+{
 	fn smooth(&mut self, value: S) -> S {
 		let len = self.values.len();
 		if self.count < len {
 			self.count = self.count + 1;
 		} else {
-			self.acc = self.acc - self.values[self.ptr];
+			self.acc -= self.values[self.ptr];
 		}
-		self.acc = self.acc + value;
+		self.acc += value;
 		self.values[self.ptr] = value;
 		self.ptr = ((self.ptr + 1) % len) as usize;
-		self.last = self.acc / num::cast(self.count).unwrap();
+		self.last = self.acc / self.count;
 		self.last
 	}
 }
 
 impl<S, T> Exponential<S, T>
-	where
-		S: ops::Add<S, Output=S> + ops::Mul<T, Output=S> + Copy,
-		T: cgmath::BaseFloat,
+where
+	S: Add<S, Output = S> + Mul<T, Output = S> + Copy,
+	T: cgmath::BaseFloat,
 {
 	pub fn new(value: S, dt: T, tau: T) -> Self {
 		Exponential {
@@ -77,9 +79,9 @@ impl<S, T> Exponential<S, T>
 }
 
 impl<S, T> Smooth<S> for Exponential<S, T>
-	where
-		S: ops::Add<S, Output=S> + ops::Mul<T, Output=S> + Copy,
-		T: cgmath::BaseFloat,
+where
+	S: Add<S, Output = S> + Mul<T, Output = S> + Copy,
+	T: cgmath::BaseFloat,
 {
 	fn smooth(&mut self, value: S) -> S {
 		let alpha1 = T::exp(-self.dt / self.tau);
@@ -114,7 +116,7 @@ pub trait Relative<T: cgmath::BaseFloat> {
 }
 
 #[derive(Clone)]
-pub struct Inertial<T: cgmath::BaseNum + ops::Neg + Copy> {
+pub struct Inertial<T: cgmath::BaseNum + Neg + Copy> {
 	impulse: T,
 	inertia: T,
 	limit: T,
@@ -124,8 +126,8 @@ pub struct Inertial<T: cgmath::BaseNum + ops::Neg + Copy> {
 }
 
 impl<T> Default for Inertial<T>
-	where
-		T: cgmath::BaseFloat + cgmath::Zero + cgmath::One,
+where
+	T: cgmath::BaseFloat + cgmath::Zero + cgmath::One,
 {
 	fn default() -> Self {
 		Inertial {
@@ -140,8 +142,8 @@ impl<T> Default for Inertial<T>
 }
 
 impl<T> Directional<T> for Inertial<T>
-	where
-		T: cgmath::BaseFloat,
+where
+	T: cgmath::BaseFloat,
 {
 	fn push(&mut self, d: Direction) {
 		let v = Self::unit(d);
@@ -156,8 +158,8 @@ impl<T> Directional<T> for Inertial<T>
 }
 
 impl<T> Relative<T> for Inertial<T>
-	where
-		T: cgmath::BaseFloat,
+where
+	T: cgmath::BaseFloat,
 {
 	fn zero(&mut self) {
 		self.zero = self.position;
@@ -171,11 +173,16 @@ impl<T> Relative<T> for Inertial<T>
 
 #[allow(dead_code)]
 impl<T> Inertial<T>
-	where
-		T: cgmath::BaseFloat,
+where
+	T: cgmath::BaseFloat,
 {
 	pub fn new(impulse: T, inertia: T, limit: T) -> Self {
-		Inertial { impulse, inertia, limit, ..Default::default() }
+		Inertial {
+			impulse,
+			inertia,
+			limit,
+			..Default::default()
+		}
 	}
 
 	pub fn reset(&mut self) {
