@@ -52,6 +52,8 @@ pub enum Event {
     DumpToFile,
     ToggleDebug,
 
+    TogglePause,
+
     AppQuit,
 
     NewMinion(Position),
@@ -161,6 +163,7 @@ pub struct App {
     frame_elapsed: SimulationTimer,
     frame_smooth: math::MovingAverage<Seconds>,
     is_running: bool,
+    is_paused: bool,
     //
     camera: math::Inertial<f32>,
     lights: Cycle<Rgba>,
@@ -223,6 +226,7 @@ impl App {
             wall_clock: system_timer,
             frame_smooth: math::MovingAverage::new(120),
             is_running: true,
+            is_paused: false,
             // debug
             debug_flags: DebugFlags::empty(),
         }
@@ -319,6 +323,7 @@ impl App {
             Event::Reload => {}
 
             Event::AppQuit => self.quit(),
+            Event::TogglePause => self.is_paused = !self.is_paused,
 
             Event::DumpToFile => {
                 match self.world.dump() {
@@ -389,6 +394,7 @@ impl App {
 			B -> NextBackground,
 			K -> PrevLight,
 			V -> PrevBackground,
+			P -> TogglePause,
 			Esc -> AppQuit
 		];
 
@@ -658,13 +664,19 @@ impl App {
         self.frame_elapsed.tick(frame_time);
 
         let frame_time_smooth = self.frame_smooth.smooth(frame_time);
+        self.camera.update(frame_time_smooth);
 
-        let target_duration: SecondsValue = frame_time_smooth.into();
+        let target_duration = frame_time_smooth.get();
+        self.update_input(frame_time_smooth);
 
-        let dt = Seconds::new(num::clamp(target_duration, MIN_FRAME_LENGTH, MAX_FRAME_LENGTH));
-        self.camera.update(dt);
+        let dt = if self.is_paused {
+            Seconds::zero()
+        } else {
+            Seconds::new(num::clamp(target_duration, MIN_FRAME_LENGTH, MAX_FRAME_LENGTH))
+        };
 
         let simulation_update = self.simulate(dt);
+
         self.frame_count += 1;
 
         FrameUpdate {
@@ -680,10 +692,10 @@ impl App {
 
     pub fn simulate(&mut self, dt: Seconds) -> SimulationUpdate {
         self.cleanup();
-        self.update_input(dt);
         self.update_systems(dt);
         self.register_all();
         self.tick(dt);
+
         self.simulations_count += 1;
 
         SimulationUpdate {
