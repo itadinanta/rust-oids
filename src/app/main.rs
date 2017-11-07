@@ -92,7 +92,7 @@ pub fn main_loop(minion_gene_pool: &str) {
 		}
 
 		// update and measure, let the app determine the appropriate frame length
-		let update_result = app.update();
+		let frame_update = app.update();
 
 		app.audio_events();
 
@@ -118,18 +118,17 @@ pub fn main_loop(minion_gene_pool: &str) {
 		// post-render effects and tone mapping
 		renderer.resolve_frame_buffer();
 
-		let r = update_result;
 		// draw some debug text on screen
 		renderer.draw_text(
 			&format!(
 				"F: {} E: {:.3} FT: {:.2} SFT: {:.2} FPS: {:.1} P: {} E: {}",
-				r.frame_count,
-				r.frame_elapsed,
-				r.frame_time * 1000.0,
-				r.frame_time_smooth * 1000.0,
-				r.fps,
-				r.population,
-				r.extinctions
+				frame_update.count,
+				frame_update.elapsed,
+				frame_update.dt,
+				frame_update.duration_smooth,
+				frame_update.fps,
+				frame_update.simulation.population,
+				frame_update.simulation.extinctions
 			),
 			[10, 10],
 			[1.0; 4],
@@ -171,16 +170,14 @@ pub fn main_loop_headless(minion_gene_pool: &str) {
 			break 'main;
 		}
 		// update and measure
-		let r = app.simulate(Seconds::new(FRAME_SIMULATION_LENGTH));
+		let simulation_update = app.simulate(Seconds::new(FRAME_SIMULATION_LENGTH));
 		println!(
-			"F: {} E: {:.3} FT: {:.2} SFT: {:.2} FPS: {:.1} P: {} E: {}",
-			r.frame_count,
-			r.frame_elapsed,
-			r.frame_time * 1000.0,
-			r.frame_time_smooth * 1000.0,
-			r.fps,
-			r.population,
-			r.extinctions
+			"C: {} E: {:.3} FT: {:.2} P: {} E: {}",
+			simulation_update.count,
+			simulation_update.elapsed,
+			simulation_update.dt,
+			simulation_update.population,
+			simulation_update.extinctions
 		)
 	}
 }

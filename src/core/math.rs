@@ -202,7 +202,8 @@ where
 		self.velocity = cgmath::Zero::zero();
 	}
 
-	pub fn update(&mut self, dt: T) {
+	pub fn update<D: Into<T>>(&mut self, dt: D) {
+		let dt: T = dt.into();
 		self.position = self.position + self.velocity * dt;
 		self.velocity = self.velocity * T::exp(-dt / self.inertia);
 	}

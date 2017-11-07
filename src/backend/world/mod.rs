@@ -145,6 +145,8 @@ impl World {
 
 	pub fn clock(&self) -> SharedTimer<SimulationTimer> { self.clock.clone() }
 
+	pub fn seconds(&self) -> Seconds { self.clock.borrow().seconds() }
+
 	pub fn extinctions(&self) -> usize {
 		self.extinctions
 	}
