@@ -48,6 +48,9 @@ pub enum Event {
     NextBackground,
     PrevBackground,
 
+    NextSpeedFactor,
+    PrevSpeedFactor,
+
     Reload,
     DumpToFile,
     ToggleDebug,
@@ -168,6 +171,7 @@ pub struct App {
     camera: math::Inertial<f32>,
     lights: Cycle<Rgba>,
     backgrounds: Cycle<Rgba>,
+    speed_factors: Cycle<f32>,
     //
     world: world::World,
     systems: Systems,
@@ -214,6 +218,7 @@ impl App {
             camera: Self::init_camera(),
             lights: Self::init_lights(),
             backgrounds: Self::init_backgrounds(),
+            speed_factors: Self::init_speed_factors(),
 
             world: world::World::new(resource_loader, minion_gene_pool),
             // subsystems
@@ -249,6 +254,19 @@ impl App {
                 [0.1, 0.1, 0.1, 1.0],
                 [0.31, 0.31, 0.31, 0.5],
             ],
+        )
+    }
+
+    fn init_speed_factors() -> Cycle<f32> {
+        Cycle::new(
+            &[
+                1.0f32,
+                0.5f32,
+                0.2f32,
+                0.1f32,
+                2.0f32,
+                5.0f32,
+            ]
         )
     }
 
@@ -318,6 +336,12 @@ impl App {
             }
             Event::PrevBackground => {
                 self.backgrounds.prev();
+            }
+            Event::NextSpeedFactor => {
+                self.speed_factors.next();
+            }
+            Event::PrevSpeedFactor => {
+                self.speed_factors.prev();
             }
             Event::ToggleDebug => self.debug_flags.toggle(DebugFlags::DEBUG_TARGETS),
             Event::Reload => {}
@@ -394,6 +418,8 @@ impl App {
 			B -> NextBackground,
 			K -> PrevLight,
 			V -> PrevBackground,
+			G -> PrevSpeedFactor,
+			H -> NextSpeedFactor,
 			P -> TogglePause,
 			Esc -> AppQuit
 		];
@@ -657,7 +683,7 @@ impl App {
     pub fn audio_events(&mut self) {}
 
     pub fn update(&mut self) -> FrameUpdate {
-        const MIN_FRAME_LENGTH: f32 = 1.0f32 / 120.0f32;
+        const MIN_FRAME_LENGTH: f32 = 1.0f32 / 1000.0f32;
         const MAX_FRAME_LENGTH: f32 = 1.0f32 / 15.0f32;
 
         let frame_time = self.frame_stopwatch.restart();
@@ -672,7 +698,10 @@ impl App {
         let dt = if self.is_paused {
             Seconds::zero()
         } else {
-            Seconds::new(num::clamp(target_duration, MIN_FRAME_LENGTH, MAX_FRAME_LENGTH))
+            Seconds::new(self.speed_factors.get() *
+                    num::clamp(target_duration,
+                               MIN_FRAME_LENGTH,
+                               MAX_FRAME_LENGTH))
         };
 
         let simulation_update = self.simulate(dt);
