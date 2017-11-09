@@ -10,8 +10,8 @@ pub trait Initial {
 }
 
 impl<T> History<T>
-where
-	T: Clone + Initial,
+	where
+		T: Clone + Initial,
 {
 	pub fn new(n: usize) -> Self {
 		History {
@@ -19,6 +19,11 @@ where
 			count: 0,
 			ptr: 0,
 		}
+	}
+
+	pub fn clear(&mut self) {
+		self.count = 0;
+		self.ptr = 0;
 	}
 
 	pub fn push(&mut self, value: T) {
@@ -32,16 +37,16 @@ where
 }
 
 pub struct HistoryIntoIterator<'a, T>
-where
-	T: Clone + Initial + 'a,
+	where
+		T: Clone + Initial + 'a,
 {
 	history: &'a History<T>,
 	index: usize,
 }
 
 impl<'a, T> IntoIterator for &'a History<T>
-where
-	T: Clone + Initial,
+	where
+		T: Clone + Initial,
 {
 	type Item = T;
 	type IntoIter = HistoryIntoIterator<'a, T>;
@@ -55,8 +60,8 @@ where
 }
 
 impl<'a, T> Iterator for HistoryIntoIterator<'a, T>
-where
-	T: Clone + Initial,
+	where
+		T: Clone + Initial,
 {
 	type Item = T;
 
@@ -78,8 +83,8 @@ pub struct Cycle<T: Copy> {
 }
 
 impl<T> Cycle<T>
-where
-	T: Copy,
+	where
+		T: Copy,
 {
 	pub fn new(items: &[T]) -> Cycle<T> {
 		Cycle {

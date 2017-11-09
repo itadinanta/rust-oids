@@ -121,10 +121,13 @@ pub fn main_loop(minion_gene_pool: &str) {
 		// draw some debug text on screen
 		renderer.draw_text(
 			&format!(
-				"F: {} E: {:.3} FT: {:.2} SFT: {:.2} FPS: {:.1} P: {} E: {}",
+				"F: {},{} E: {:.3} FT: {:.3},{:.3}(x{}) SFT: {:.3} FPS: {:.1} P: {} E: {}",
+				frame_update.simulation.count,
 				frame_update.count,
 				frame_update.elapsed,
+				frame_update.simulation.dt,
 				frame_update.dt,
+				frame_update.speed_factor,
 				frame_update.duration_smooth,
 				frame_update.fps,
 				frame_update.simulation.population,

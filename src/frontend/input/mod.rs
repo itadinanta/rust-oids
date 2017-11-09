@@ -231,6 +231,7 @@ impl InputState {
 		let (drag_state, displacement) = match &self.drag_state {
 			&DragState::Nothing => {
 				if self.key_pressed(key) {
+					self.mouse_history.clear();
 					(DragState::Hold(key, pos), Dragging::Begin(key, pos))
 				} else {
 					(DragState::Nothing, Dragging::Nothing)
