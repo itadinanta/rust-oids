@@ -417,7 +417,7 @@ impl App {
 			None
 		};
 
-		if self.input_state.key_once(input::Key::MouseRight) {
+		if self.input_state.key_once(input::Key::MouseMiddle) {
 			if self.input_state.any_ctrl_pressed() {
 				events.push(Event::RandomizeMinion(mouse_world_pos));
 			} else {
@@ -428,7 +428,7 @@ impl App {
 		if let Some(picked) = picked_id {
 			events.push(Event::SelectMinion(mouse_world_pos, picked));
 		} else {
-			match self.input_state.dragging(input::Key::MouseLeft, mouse_view_pos) {
+			match self.input_state.dragging(input::Key::MouseRight, mouse_view_pos) {
 				input::Dragging::Begin(_, from) => {
 					let from = self.to_world(&from);
 					events.push(Event::BeginDrag(from, from));

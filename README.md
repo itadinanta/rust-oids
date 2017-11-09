@@ -88,10 +88,10 @@ Links to the source code are provided below as for licences:
 
 ## How to play
 
-- Right mouse click: new rustoid from current gene pool.
-- Ctrl + Right mouse click: new random rustoid.
+- Middle mouse click: new rustoid from current gene pool.
+- Ctrl + Middle mouse click: new random rustoid.
 - Left mouse clik: select minion for tracing
-- Left mouse click/drag: pan.
+- Right mouse click/drag: pan.
 - Z: deselect minion for tracing
 - D: disable tracing of target and trajectories
 - F6: snapshot current gene pool into the **resources** folder
