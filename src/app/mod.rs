@@ -185,7 +185,6 @@ pub struct Environment {
 	pub background_color: Rgba,
 }
 
-
 pub struct SimulationUpdate {
 	pub timestamp: Seconds,
 	pub dt: Seconds,
@@ -205,7 +204,6 @@ pub struct FrameUpdate {
 	pub fps: f32,
 	pub simulation: SimulationUpdate,
 }
-
 
 impl App {
 	pub fn new<R>(w: u32, h: u32, scale: f32, resource_loader: &R, minion_gene_pool: &str) -> Self
@@ -430,10 +428,7 @@ impl App {
 		if let Some(picked) = picked_id {
 			events.push(Event::SelectMinion(mouse_world_pos, picked));
 		} else {
-			match self.input_state.dragging(
-				input::Key::MouseLeft,
-				mouse_view_pos,
-			) {
+			match self.input_state.dragging(input::Key::MouseLeft, mouse_view_pos) {
 				input::Dragging::Begin(_, from) => {
 					let from = self.to_world(&from);
 					events.push(Event::BeginDrag(from, from));
@@ -452,7 +447,6 @@ impl App {
 				_ => {}
 			}
 		}
-
 
 		for e in events {
 			self.on_app_event(e)

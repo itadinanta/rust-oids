@@ -4,6 +4,7 @@ use core::geometry;
 use core::util::History;
 use core::geometry::Position;
 use bit_set::BitSet;
+use std::iter::Iterator;
 
 #[derive(Clone)]
 enum DragState {
@@ -223,7 +224,6 @@ impl InputState {
 	}
 
 	pub fn mouse_at(&mut self, pos: Position) {
-		self.mouse_history.push(self.mouse_position);
 		self.mouse_position = pos;
 	}
 
@@ -238,17 +238,14 @@ impl InputState {
 				}
 			}
 			&DragState::Hold(held, start) if held == key => {
-				if self.key_pressed(key) {
-					(
-						DragState::Hold(key, start),
-						Dragging::Dragging(key, start, pos),
-					)
+				let hold = if self.key_pressed(key) {
+					(DragState::Hold(key, start), Dragging::Dragging(key, start, pos))
 				} else {
-					let prev = self.mouse_history.into_iter().next().unwrap_or(
-						self.mouse_position,
-					);
+					let prev = self.mouse_history.into_iter().next().unwrap_or(self.mouse_position);
 					(DragState::Nothing, Dragging::End(key, start, pos, prev))
-				}
+				};
+				self.mouse_history.push(self.mouse_position);
+				hold
 			}
 			_ => (self.drag_state.clone(), Dragging::Nothing),
 		};
