@@ -4,14 +4,13 @@ use std::env;
 
 fn main() {
 	let target = env::var_os("TARGET").expect("TARGET is not defined");
-	if target.to_str().expect("Invalid TARGET value").ends_with(
-		"x86_64-pc-windows-msvc",
-	)
-	{
+	if target.to_str()
+		.expect("Invalid TARGET value")
+		.ends_with("x86_64-pc-windows-msvc") {
 		let current_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
 		// TODO: this doesn't work, it's currently impossible to set variables for upstream
 		if env::var_os("BOX2D_INCLUDE_PATH") == None {
-			eprintln!("BOX2D_INCLUDE_PATH was not set");
+			eprintln!("BOX2D_INCLUDE_PATH was not set, try the provided cargo_wrapper.bat");
 			let box2d_include_path = Path::new(&current_dir).join("include");
 			env::set_var(
 				OsStr::new("BOX2D_INCLUDE_PATH"),
