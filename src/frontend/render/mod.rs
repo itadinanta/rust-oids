@@ -41,7 +41,6 @@ impl Appearance {
 	}
 }
 
-
 // pub type GFormat = Rgba;
 
 pub const BACKGROUND: formats::Rgba = [0.01, 0.01, 0.01, 1.0];
@@ -136,7 +135,7 @@ impl<T: fmt::Display> convert::From<T> for RenderError {
 
 trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 	fn create_shader_set_with_geometry(&mut self, gs_code: &[u8], vs_code: &[u8], ps_code: &[u8])
-	                                   -> Result<gfx::ShaderSet<R>> {
+									   -> Result<gfx::ShaderSet<R>> {
 		let gs = self.create_shader_geometry(gs_code)?;
 		let vs = self.create_shader_vertex(vs_code)?;
 		let ps = self.create_shader_pixel(ps_code)?;
@@ -144,7 +143,7 @@ trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 	}
 
 	fn create_msaa_surfaces(&mut self, width: gfx::texture::Size, height: gfx::texture::Size)
-	                        -> Result<formats::RenderSurfaceWithDepth<R>> {
+							-> Result<formats::RenderSurfaceWithDepth<R>> {
 		let (_, color_resource, color_target) = self.create_msaa_render_target(
 			formats::MSAA_MODE,
 			width,
@@ -155,7 +154,7 @@ trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 	}
 
 	fn create_msaa_depth(&mut self, aa: gfx::texture::AaMode, width: gfx::texture::Size, height: gfx::texture::Size)
-	                     -> Result<formats::DepthSurface<R>> {
+						 -> Result<formats::DepthSurface<R>> {
 		let kind = gfx::texture::Kind::D2(width, height, aa);
 		let tex = self.create_texture(
 			kind,
@@ -174,7 +173,7 @@ trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 	}
 
 	fn create_msaa_render_target(&mut self, aa: gfx::texture::AaMode, width: gfx::texture::Size, height: gfx::texture::Size)
-	                             -> Result<formats::RenderSurface<R>> {
+								 -> Result<formats::RenderSurface<R>> {
 		let kind = gfx::texture::Kind::D2(width, height, aa);
 		let tex = self.create_texture(
 			kind,
@@ -293,7 +292,7 @@ ForwardRenderer<'e, 'l, R, C, F, L> {
 	}
 
 	pub fn resize_to(&mut self, frame_buffer: &gfx::handle::RenderTargetView<R, formats::ScreenColorFormat>)
-	                 -> Result<()> {
+					 -> Result<()> {
 		// TODO: this thing leaks?
 		let (w, h, _, _) = frame_buffer.get_dimensions();
 		let (hdr_srv, hdr_color_buffer, depth_buffer) = self.factory.create_msaa_surfaces(w, h)?;

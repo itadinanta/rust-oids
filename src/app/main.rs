@@ -58,6 +58,7 @@ pub fn main_loop(minion_gene_pool: &str) {
 	let mut app = app::App::new(w as u32, h as u32, 100.0, &res, minion_gene_pool);
 
 	let audio = audio::PortaudioSoundSystem::new();
+	let audio_alert_player = audio::PortaudioAlertPlayer::new(&audio);
 
 	match audio.init_status {
 		pa::Error::NoError => println!("Success initializing portaudio"),
@@ -94,7 +95,7 @@ pub fn main_loop(minion_gene_pool: &str) {
 		// update and measure, let the app determine the appropriate frame length
 		let frame_update = app.update();
 
-		app.audio_events();
+		app.play_alerts(&audio_alert_player);
 
 		let camera = render::Camera::ortho(
 			app.camera.position(),

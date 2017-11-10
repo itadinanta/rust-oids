@@ -1,4 +1,4 @@
-pub mod notification;
+pub mod alert;
 pub mod segment;
 pub mod agent;
 pub mod swarm;
@@ -29,11 +29,14 @@ use backend::world::agent::AgentType;
 use backend::world::agent::TypedAgent;
 use backend::world::swarm::*;
 use serialize::base64::{self, ToBase64};
-use self::notification::*;
+use self::alert::*;
+
+pub use self::alert::Alert;
+pub use self::alert::AlertEvent;
 
 pub trait WorldState {
 	fn agent(&self, id: obj::Id) -> Option<&Agent>;
-	fn notify_event(&mut self, ev: WorldEvent);
+	fn post_alert(&mut self, ev: Alert);
 }
 
 pub struct World {
@@ -45,16 +48,16 @@ pub struct World {
 	minion_gene_pool: gen::GenePool,
 	resource_gene_pool: gen::GenePool,
 	clock: SharedTimer<SimulationTimer>,
-	notifications: Vec<WorldEventNotification>,
+	alerts: Vec<AlertEvent>,
 }
 
 impl WorldState for World {
 	fn agent(&self, id: obj::Id) -> Option<&Agent> {
 		self.swarms.get(&id.type_of()).and_then(|m| m.get(id))
 	}
-	fn notify_event(&mut self, event: WorldEvent) {
+	fn post_alert(&mut self, alert: Alert) {
 		let timestamp = self.clock.borrow().seconds();
-		self.notifications.push(WorldEventNotification::new(timestamp, event));
+		self.alerts.push(AlertEvent::new(timestamp, alert));
 	}
 }
 
@@ -135,7 +138,7 @@ impl World {
 			registered: HashSet::new(),
 			extinctions: 0usize,
 			clock,
-			notifications: Vec::new(),
+			alerts: Vec::new(),
 		}
 	}
 

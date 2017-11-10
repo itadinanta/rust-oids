@@ -26,6 +26,7 @@ use backend::systems::System;
 
 use frontend::input;
 use frontend::render;
+use frontend::ui;
 
 use getopts::Options;
 use std::ffi::OsString;
@@ -659,7 +660,7 @@ impl App {
 		});
 	}
 
-	pub fn audio_events(&mut self) {}
+	pub fn play_alerts<P>(&mut self, player: &P) where P: ui::AlertPlayer {}
 
 	pub fn update(&mut self) -> FrameUpdate {
 		const MIN_FRAME_LENGTH: f32 = 1.0f32 / 1000.0f32;
