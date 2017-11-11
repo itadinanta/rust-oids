@@ -26,6 +26,7 @@ extern crate glutin;
 extern crate pitch_calc;
 extern crate portaudio;
 extern crate sample;
+extern crate sampler;
 extern crate synth;
 
 extern crate rand;

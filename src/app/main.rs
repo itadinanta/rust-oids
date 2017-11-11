@@ -5,8 +5,7 @@ use frontend::render::formats;
 use frontend::render::Draw;
 use frontend::render::Renderer;
 use frontend::audio;
-
-use portaudio as pa;
+use frontend::audio::SoundSystem;
 
 use core::resource::filesystem::ResourceLoaderBuilder;
 use core::math::Directional;
@@ -57,14 +56,14 @@ pub fn main_loop(minion_gene_pool: &str) {
 	// Create a new game and run it.
 	let mut app = app::App::new(w as u32, h as u32, 100.0, &res, minion_gene_pool);
 
-	let audio = audio::PortaudioSoundSystem::new();
-	let audio_alert_player = audio::PortaudioAlertPlayer::new(&audio);
-
-	match audio.init_status {
-		pa::Error::NoError => println!("Success initializing portaudio"),
-		failure => println!("Failure initializing portaudio: {:?}", failure),
+	let mut audio = audio::PortaudioSoundSystem::new();
+	match &audio {
+		&Ok(_) => println!("Success initializing portaudio"),
+		&Err(msg) => println!("Failure initializing portaudio: {:?}", msg),
 	}
-
+	let mut audio = audio.unwrap();
+	let mut audio_alert_player = audio::PortaudioAlertPlayer::new(audio);
+	audio_alert_player.open().expect("Could not open audio player");
 	app.init();
 
 	'main: loop {
@@ -95,7 +94,7 @@ pub fn main_loop(minion_gene_pool: &str) {
 		// update and measure, let the app determine the appropriate frame length
 		let frame_update = app.update();
 
-		app.play_alerts(&audio_alert_player);
+		app.play_alerts(&mut audio_alert_player);
 
 		let camera = render::Camera::ortho(
 			app.camera.position(),
@@ -143,7 +142,8 @@ pub fn main_loop(minion_gene_pool: &str) {
 
 		window.swap_buffers().unwrap();
 		renderer.cleanup(&mut device);
-	}
+	};
+	audio_alert_player.close().expect("Could not close audio player");
 }
 
 pub fn main_loop_headless(minion_gene_pool: &str) {

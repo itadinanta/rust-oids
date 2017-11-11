@@ -292,6 +292,10 @@ impl World {
 		v.into_boxed_slice()
 	}
 
+	pub fn consume_alerts(&mut self) -> Box<[AlertEvent]> {
+		self.alerts.drain(..).collect::<Vec<_>>().into_boxed_slice()
+	}
+
 	pub fn dump(&self) -> io::Result<String> {
 		let now: DateTime<Utc> = Utc::now();
 		let file_name = now.format("resources/%Y%m%d_%H%M%S.csv").to_string();

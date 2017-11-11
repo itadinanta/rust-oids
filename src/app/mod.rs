@@ -660,7 +660,11 @@ impl App {
 		});
 	}
 
-	pub fn play_alerts<P>(&mut self, player: &P) where P: ui::AlertPlayer {}
+	pub fn play_alerts<P>(&mut self, player: &mut P) where P: ui::AlertPlayer {
+		for alert in self.world.consume_alerts().into_iter() {
+			player.play(alert);
+		}
+	}
 
 	pub fn update(&mut self) -> FrameUpdate {
 		const MIN_FRAME_LENGTH: f32 = 1.0f32 / 1000.0f32;
