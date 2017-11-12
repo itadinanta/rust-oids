@@ -57,13 +57,12 @@ pub fn main_loop(minion_gene_pool: &str) {
 	// Create a new game and run it.
 	let mut app = app::App::new(w as u32, h as u32, 100.0, &res, minion_gene_pool);
 
-	let mut audio = audio::PortaudioSoundSystem::new();
+	let audio = audio::PortaudioSoundSystem::new();
 	match &audio {
 		&Ok(_) => println!("Success initializing portaudio"),
 		&Err(msg) => println!("Failure initializing portaudio: {:?}", msg),
 	}
-	let mut audio = audio.unwrap();
-	let mut audio_alert_player = audio::PortaudioAlertPlayer::new(audio);
+	let mut audio_alert_player = audio::PortaudioAlertPlayer::new(audio.unwrap());
 	app.init();
 
 	'main: loop {

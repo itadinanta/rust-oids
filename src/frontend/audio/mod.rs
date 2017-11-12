@@ -5,6 +5,7 @@ use sample;
 use dsp;
 use std::thread;
 use thread_priority::*;
+use std::io;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::SendError;
@@ -30,6 +31,7 @@ pub enum Error {
 	SystemInit,
 	SynthInit,
 	EventSend(SoundEffect),
+	ThreadJoin,
 }
 
 #[derive(Clone, Debug, Copy)]
@@ -54,6 +56,14 @@ impl From<SendError<SoundEffect>> for self::Error {
 	}
 }
 
+impl From<io::Error> for self::Error {
+	fn from(err: io::Error) -> Self {
+		match err {
+			_ => self::Error::ThreadJoin,
+		}
+	}
+}
+
 pub trait SoundSystem: Sized {
 	fn new() -> Result<Self, self::Error>;
 
@@ -66,6 +76,7 @@ type Stream = pa::Stream<pa::NonBlocking, pa::Output<f32>>;
 
 pub struct PortaudioSoundSystem {
 	portaudio: pa::PortAudio,
+	sound_thread: Option<thread::JoinHandle<()>>,
 	trigger: Sender<SoundEffect>,
 }
 
@@ -126,7 +137,6 @@ impl PortaudioAlertPlayer {
 		player
 	}
 }
-
 
 /// Our Node to be used within the Graph.
 enum DspNode {
@@ -190,7 +200,7 @@ impl SoundSystem for PortaudioSoundSystem {
 		};
 		let mut stream = portaudio.open_non_blocking_stream(settings, callback)
 			.expect("Unable to open audio stream, failure in audio thread");
-		let sound_thread = thread::spawn(move || {
+		let sound_thread = thread::Builder::new().name("SoundControl".to_string()).spawn(move || {
 			let thread_id = thread_native_id();
 			assert!(set_thread_priority(thread_id,
 										ThreadPriority::Max,
@@ -200,20 +210,27 @@ impl SoundSystem for PortaudioSoundSystem {
 			stream.start().expect("Unable to start audio stream");
 			loop {
 				match rx.recv() {
-					Ok(SoundEffect::Eof) => break,
+					Ok(SoundEffect::Eof) => {
+						info!("Requested termination, exiting");
+						break;
+					}
 					Ok(alert) => {
 						dsp.lock().unwrap();
 						// update synth parameters here
 					}
-					Err(_) => break
+					Err(msg) => {
+						warn!("Received error {:?}", msg);
+						break;
+					}
 				}
 			}
 			stream.close().expect("Unable to stop audio stream");
 			info!("Terminated sound control thread");
-		});
+		})?;
 
 		Ok(PortaudioSoundSystem {
 			portaudio,
+			sound_thread: Some(sound_thread),
 			trigger: tx,
 		})
 	}
@@ -224,7 +241,11 @@ impl SoundSystem for PortaudioSoundSystem {
 
 	fn close(&mut self) -> Result<(), self::Error> {
 		self.trigger.send(SoundEffect::Eof).ok();
-		Ok(())
+		let result = self.sound_thread.take().unwrap().join();
+		match result {
+			Ok(_) => Ok(()),
+			Err(_) => Err(self::Error::ThreadJoin),
+		}
 	}
 }
 
