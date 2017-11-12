@@ -206,7 +206,7 @@ impl PortaudioSoundSystem {
 		synth
 	}
 
-	fn background_audio(self) -> Result<Sender<AlertEvent>, Error> {
+	fn async_audio<T>(self) -> Result<Sender<T>, Error> where T: Send + 'static {
 		let (tx, rx) = channel();
 		thread::spawn(move || {
 			let settings = self.portaudio.default_output_stream_settings::<f32>(
@@ -221,7 +221,8 @@ impl PortaudioSoundSystem {
 					sample::slice::to_frame_slice_mut(buffer).unwrap();
 				sample::slice::equilibrium(buffer);
 				// uhm what?
-				synth_callback.lock().unwrap().fill_slice(buffer, SAMPLE_HZ as f64);
+				let mut synth = synth_callback.lock().unwrap();
+				synth.fill_slice(buffer, SAMPLE_HZ as f64);
 				pa::Continue
 			};
 
