@@ -10,6 +10,8 @@ use backend::world::gen;
 use backend::world::agent;
 use backend::world::segment;
 use backend::world::WorldState;
+use backend::world::alert;
+use backend::world::AlertReceiver;
 use serialize::base64::{self, ToBase64};
 
 type StateMap = HashMap<obj::Id, agent::State>;
@@ -61,12 +63,15 @@ impl System for AlifeSystem {
 		);
 
 		for &(ref transform, ref dna) in spores.into_iter() {
+			world.alert(alert::Alert::NewSpore);
 			world.new_spore(transform, dna);
 		}
 		for &(ref transform, ref dna) in hatch.into_iter() {
+			world.alert(alert::Alert::NewMinion);
 			world.hatch_spore(transform, dna);
 		}
 		for &(ref transform, ref dna) in corpses.into_iter() {
+			world.alert(alert::Alert::DieMinion);
 			world.decay_to_resource(transform, dna);
 		}
 	}

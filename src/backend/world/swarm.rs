@@ -49,7 +49,6 @@ impl Swarm {
 
 	pub fn free_resources(&mut self, freed: &mut Vec<Agent>) {
 		let mut dead = HashSet::new();
-
 		for id in self.agents
 			.iter()
 			.filter(|&(_, agent)| !agent.state.is_alive())

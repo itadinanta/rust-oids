@@ -35,6 +35,7 @@ use num;
 use cgmath;
 use cgmath::{Matrix4, SquareMatrix};
 
+#[derive(Clone, Copy, Debug)]
 pub enum Event {
 	CamUp,
 	CamDown,
@@ -168,6 +169,7 @@ pub struct App {
 	frame_smooth: math::MovingAverage<Seconds>,
 	is_running: bool,
 	is_paused: bool,
+	interactions: Vec<Event>,
 	//
 	camera: math::Inertial<f32>,
 	lights: Cycle<Rgba>,
@@ -214,6 +216,7 @@ impl App {
 		App {
 			viewport: Viewport::rect(w, h, scale),
 			input_state: input::InputState::default(),
+			interactions: Vec::new(),
 
 			camera: Self::init_camera(),
 			lights: Self::init_lights(),
@@ -450,6 +453,7 @@ impl App {
 		}
 
 		for e in events {
+			self.interactions.push(e);
 			self.on_app_event(e)
 		}
 	}
@@ -660,9 +664,15 @@ impl App {
 		});
 	}
 
-	pub fn play_alerts<P>(&mut self, player: &mut P) where P: ui::AlertPlayer {
+	pub fn play_alerts<P>(&mut self, player: &mut P) where P: ui::AlertPlayer<world::alert::AlertEvent> {
 		for alert in self.world.consume_alerts().into_iter() {
 			player.play(alert);
+		}
+	}
+
+	pub fn play_interactions<P>(&mut self, player: &mut P) where P: ui::AlertPlayer<Event> {
+		for alert in self.interactions.drain(..) {
+			player.play(&alert);
 		}
 	}
 

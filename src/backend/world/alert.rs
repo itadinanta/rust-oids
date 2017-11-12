@@ -1,16 +1,19 @@
 use backend::obj;
 use core::clock::Seconds;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum Alert {
-	UserClick,
-	Die(obj::Id),
+	NewMinion,
+	NewSpore,
+	NewResource,
+	DieMinion,
+	DieResource,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct AlertEvent {
-	timestamp: Seconds,
-	alert: Alert,
+	pub timestamp: Seconds,
+	pub alert: Alert,
 }
 
 impl AlertEvent {

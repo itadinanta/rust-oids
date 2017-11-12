@@ -2,15 +2,19 @@ use portaudio as pa;
 use pitch_calc::{Letter, LetterOctave};
 use synth;
 use sample;
-use std;
-use backend::world::Alert;
+use std::thread;
+use std::sync::mpsc::channel;
+use std::sync::mpsc::Sender;
+use std::sync::Arc;
+use std::sync::Mutex;
+use app;
 use backend::world::AlertEvent;
 use frontend::ui::AlertPlayer;
 
 // Currently supports i8, i32, f32.
-pub type AudioSample = f32;
-pub type Input = AudioSample;
-pub type Output = AudioSample;
+//pub type AudioSample = f32;
+//pub type Input = AudioSample;
+//pub type Output = AudioSample;
 
 const CHANNELS: i32 = 2;
 const FRAMES: u32 = 64;
@@ -38,7 +42,7 @@ pub trait SoundSystem: Sized {
 	fn close(&mut self) -> Result<(), self::Error>;
 }
 
-type Synth = synth::Synth<synth::instrument::mode::Mono,
+type Synth = synth::Synth<synth::instrument::mode::Poly,
 	(),
 	synth::oscillator::waveform::Sine,
 	synth::Envelope,
@@ -48,7 +52,7 @@ type Stream = pa::Stream<pa::NonBlocking, pa::Output<f32>>;
 
 pub struct PortaudioSoundSystem {
 	portaudio: pa::PortAudio,
-	synth: Synth,
+	synth: Arc<Mutex<Synth>>,
 	stream: Stream,
 }
 
@@ -56,20 +60,8 @@ pub struct SoundSystemAlertPlayer<S> where S: SoundSystem {
 	sound_system: S,
 }
 
-pub type PortaudioAlertPlayer = SoundSystemAlertPlayer<PortaudioSoundSystem>;
-
-impl<'s> AlertPlayer for SoundSystemAlertPlayer<PortaudioSoundSystem> {
-	fn play(&mut self, alert: &AlertEvent) {}
-}
-
-impl PortaudioAlertPlayer {
-	pub fn new(s: PortaudioSoundSystem) -> PortaudioAlertPlayer {
-		PortaudioAlertPlayer {
-			sound_system: s,
-		}
-	}
-
-	pub fn open(&mut self) -> Result<(), Error> {
+impl<S> SoundSystemAlertPlayer<S> where S: SoundSystem {
+	fn open(&mut self) -> Result<(), Error> {
 		self.sound_system.open()
 	}
 
@@ -78,22 +70,73 @@ impl PortaudioAlertPlayer {
 	}
 }
 
+pub type PortaudioAlertPlayer = SoundSystemAlertPlayer<PortaudioSoundSystem>;
+
+impl AlertPlayer<AlertEvent> for SoundSystemAlertPlayer<PortaudioSoundSystem> {
+	fn play(&mut self, alert: &AlertEvent) {
+		let note = match alert {
+			UserClick => LetterOctave(Letter::C, 4),
+			NewMinion => LetterOctave(Letter::C, 3),
+			NewSpore => LetterOctave(Letter::G, 4),
+			NewResource => LetterOctave(Letter::D, 5),
+			DieMinion => LetterOctave(Letter::C, 3),
+			DieResource => LetterOctave(Letter::E, 3),
+		};
+		let note_velocity = 1.0;
+		println!("Playing alert: {:?}", alert.alert);
+		let mut synth = self.sound_system.synth.lock().unwrap();
+		synth.note_off(note);
+		synth.note_on(note, note_velocity);
+	}
+}
+
+impl AlertPlayer<app::Event> for SoundSystemAlertPlayer<PortaudioSoundSystem> {
+	fn play(&mut self, event: &app::Event) {
+		let note = match event {
+			_ => LetterOctave(Letter::C, 4),
+		};
+		let note_velocity = 1.0;
+		println!("Playing event: {:?}", event);
+		let mut synth = self.sound_system.synth.lock().unwrap();
+		synth.note_off(note);
+		synth.note_on(note, note_velocity);
+	}
+}
+
+impl<S> Drop for SoundSystemAlertPlayer<S> where S: SoundSystem {
+	fn drop(&mut self) {
+		self.close().expect("Could not stop audio system");
+	}
+}
+
+impl PortaudioAlertPlayer {
+	pub fn new(s: PortaudioSoundSystem) -> PortaudioAlertPlayer {
+		let mut player = PortaudioAlertPlayer {
+			sound_system: s,
+		};
+		player.open().expect("Could not open sound system");
+		player
+	}
+}
+
 impl SoundSystem for PortaudioSoundSystem {
 	fn new() -> Result<Self, self::Error> {
 		let portaudio = Self::init_portaudio()?;
-		let synth = Self::new_synth();
+		let synth = Arc::new(Mutex::new(Self::new_synth()));
 
 		let settings = portaudio.default_output_stream_settings::<f32>(
 			CHANNELS,
 			SAMPLE_HZ,
 			FRAMES,
 		)?;
-
+		let synth_closure = synth.clone();
 		let callback = move |pa::OutputStreamCallbackArgs { buffer, .. }| {
 			let buffer: &mut [[f32; CHANNELS as usize]] =
 				sample::slice::to_frame_slice_mut(buffer).unwrap();
 			sample::slice::equilibrium(buffer);
 			// uhm what?
+			let mut synth = synth_closure.lock().unwrap();
+			synth.fill_slice(buffer, SAMPLE_HZ as f64);
 			pa::Continue
 		};
 
@@ -149,27 +192,51 @@ impl PortaudioSoundSystem {
 			let oscillator = Oscillator::new(oscillator::waveform::Sine, amp_env, freq_env, ());
 
 			// Here we construct our Synth from our oscillator.
-			synth::Synth::retrigger(())
+			synth::Synth::poly(())
 				.oscillator(oscillator) // Add as many different oscillators as desired.
-				.duration(6000.0) // Milliseconds.
+				.duration(400.0) // Milliseconds.
 				.base_pitch(LetterOctave(Letter::C, 1).hz()) // Hz.
-				.loop_points(0.49, 0.51) // Loop start and end points.
+				//.loop_points(0.49, 0.51) // Loop start and end points.
 				.fade(500.0, 500.0) // Attack and Release in milliseconds.
 				.num_voices(16) // By default Synth is monophonic but this gives it `n` voice polyphony.
 				.volume(0.2)
 				.detune(0.5)
 				.spread(1.0)
-
-			// Other methods include:
-			// .loop_start(0.0)
-			// .loop_end(1.0)
-			// .attack(ms)
-			// .release(ms)
-			// .note_freq_generator(nfg)
-			// .oscillators([oscA, oscB, oscC])
-			// .volume(1.0)
 		};
 		synth
+	}
+
+	fn background_audio(self) -> Result<Sender<AlertEvent>, Error> {
+		let (tx, rx) = channel();
+		thread::spawn(move || {
+			let settings = self.portaudio.default_output_stream_settings::<f32>(
+				CHANNELS,
+				SAMPLE_HZ,
+				FRAMES,
+			)?;
+			let synth = Arc::new(Mutex::new(Self::new_synth()));
+			let synth_callback = synth.clone();
+			let callback = move |pa::OutputStreamCallbackArgs { buffer, .. }| {
+				let buffer: &mut [[f32; CHANNELS as usize]] =
+					sample::slice::to_frame_slice_mut(buffer).unwrap();
+				sample::slice::equilibrium(buffer);
+				// uhm what?
+				synth_callback.lock().unwrap().fill_slice(buffer, SAMPLE_HZ as f64);
+				pa::Continue
+			};
+
+			let mut stream = self.portaudio.open_non_blocking_stream(settings, callback)?;
+
+			loop {
+				match rx.recv() {
+					Ok(alert) => synth.lock().unwrap().note_on(LetterOctave(Letter::C, 4), 1.0f32),
+					Err(_) => break
+				}
+			}
+			stream.close()
+		});
+
+		Ok(tx)
 	}
 
 	fn init_portaudio() -> Result<pa::PortAudio, pa::Error> {

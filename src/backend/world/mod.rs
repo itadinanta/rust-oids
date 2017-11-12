@@ -36,8 +36,12 @@ pub use self::alert::AlertEvent;
 
 pub trait WorldState {
 	fn agent(&self, id: obj::Id) -> Option<&Agent>;
-	fn post_alert(&mut self, ev: Alert);
 }
+
+pub trait AlertReceiver {
+	fn alert(&mut self, ev: Alert);
+}
+
 
 pub struct World {
 	pub extent: Rect,
@@ -55,7 +59,10 @@ impl WorldState for World {
 	fn agent(&self, id: obj::Id) -> Option<&Agent> {
 		self.swarms.get(&id.type_of()).and_then(|m| m.get(id))
 	}
-	fn post_alert(&mut self, alert: Alert) {
+}
+
+impl AlertReceiver for World {
+	fn alert(&mut self, alert: Alert) {
 		let timestamp = self.clock.borrow().seconds();
 		self.alerts.push(AlertEvent::new(timestamp, alert));
 	}

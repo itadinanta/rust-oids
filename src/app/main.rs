@@ -6,6 +6,7 @@ use frontend::render::Draw;
 use frontend::render::Renderer;
 use frontend::audio;
 use frontend::audio::SoundSystem;
+use frontend::ui;
 
 use core::resource::filesystem::ResourceLoaderBuilder;
 use core::math::Directional;
@@ -63,7 +64,6 @@ pub fn main_loop(minion_gene_pool: &str) {
 	}
 	let mut audio = audio.unwrap();
 	let mut audio_alert_player = audio::PortaudioAlertPlayer::new(audio);
-	audio_alert_player.open().expect("Could not open audio player");
 	app.init();
 
 	'main: loop {
@@ -95,6 +95,7 @@ pub fn main_loop(minion_gene_pool: &str) {
 		let frame_update = app.update();
 
 		app.play_alerts(&mut audio_alert_player);
+		app.play_interactions(&mut audio_alert_player);
 
 		let camera = render::Camera::ortho(
 			app.camera.position(),
@@ -143,7 +144,6 @@ pub fn main_loop(minion_gene_pool: &str) {
 		window.swap_buffers().unwrap();
 		renderer.cleanup(&mut device);
 	};
-	audio_alert_player.close().expect("Could not close audio player");
 }
 
 pub fn main_loop_headless(minion_gene_pool: &str) {
@@ -154,6 +154,7 @@ pub fn main_loop_headless(minion_gene_pool: &str) {
 		.build();
 
 	let mut app = app::App::new(WIDTH, HEIGHT, 100.0, &res, minion_gene_pool);
+	let mut headless_alert_player = ui::NullAlertPlayer::new();
 	app.init();
 
 	let running = Arc::new(AtomicBool::new(true));
@@ -175,6 +176,9 @@ pub fn main_loop_headless(minion_gene_pool: &str) {
 		}
 		// update and measure
 		let simulation_update = app.simulate(Seconds::new(FRAME_SIMULATION_LENGTH));
+
+		app.play_alerts(&mut headless_alert_player);
+
 		println!(
 			"C: {} E: {:.3} FT: {:.2} P: {} E: {}",
 			simulation_update.count,
