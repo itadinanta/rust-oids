@@ -35,11 +35,9 @@ gfx_text = "*"
 #sound
 dsp-chain="*"
 sample="*"
-sampler="*"
-synth="*"
-pitch_calc="*"
 portaudio="*"
 
 #sys
 getopts = "*"
 ctrlc = "*"
+thread-priority = "*"

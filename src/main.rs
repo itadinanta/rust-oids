@@ -23,11 +23,9 @@ extern crate gfx_window_glutin;
 extern crate winit;
 extern crate glutin;
 
-extern crate pitch_calc;
+extern crate dsp;
 extern crate portaudio;
 extern crate sample;
-extern crate sampler;
-extern crate synth;
 
 extern crate rand;
 extern crate num;
@@ -39,6 +37,7 @@ extern crate gfx_text;
 
 extern crate getopts;
 extern crate ctrlc;
+extern crate thread_priority;
 
 extern crate rustc_serialize as serialize;
 
