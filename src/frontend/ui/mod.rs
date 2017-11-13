@@ -1,7 +1,5 @@
-use backend::world;
-
-pub trait AlertPlayer<T> {
-	fn play(&mut self, alert: &T);
+pub trait AlertPlayer<T, E> {
+	fn play(&mut self, alert: &T) -> Result<(), E>;
 }
 
 pub struct NullAlertPlayer {}
@@ -12,8 +10,8 @@ impl NullAlertPlayer {
 	}
 }
 
-impl<T> AlertPlayer<T> for NullAlertPlayer {
-	fn play(&mut self, alert: &T) {
-		// do nothing
+impl<T> AlertPlayer<T, ()> for NullAlertPlayer {
+	fn play(&mut self, _: &T) -> Result<(), ()> {
+		Ok(())
 	}
 }

@@ -4,6 +4,7 @@ use std::cell::RefCell;
 use backend::world::WorldState;
 use core::clock::*;
 
+#[allow(unused)]
 pub struct AnimationSystem {
 	speed: f32,
 	animation_timer: SharedTimer<SimulationTimer>,

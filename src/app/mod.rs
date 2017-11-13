@@ -3,6 +3,7 @@ mod ev;
 
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::fmt::Debug;
 
 use core::util::Cycle;
 use core::geometry::*;
@@ -14,7 +15,6 @@ use core::math::Relative;
 use core::math::Smooth;
 
 use core::resource::ResourceLoader;
-use num::Zero;
 
 use backend::obj;
 use backend::obj::*;
@@ -664,15 +664,21 @@ impl App {
 		});
 	}
 
-	pub fn play_alerts<P>(&mut self, player: &mut P) where P: ui::AlertPlayer<world::alert::AlertEvent> {
+	pub fn play_alerts<P, E>(&mut self, player: &mut P) where P: ui::AlertPlayer<world::alert::AlertEvent, E>, E: Debug {
 		for alert in self.world.consume_alerts().into_iter() {
-			player.play(alert);
+			match player.play(alert) {
+				Err(e) => error!("Unable to play alert {:?}", e),
+				Ok(_) => ()
+			}
 		}
 	}
 
-	pub fn play_interactions<P>(&mut self, player: &mut P) where P: ui::AlertPlayer<Event> {
+	pub fn play_interactions<P, E>(&mut self, player: &mut P) where P: ui::AlertPlayer<Event, E>, E: Debug {
 		for alert in self.interactions.drain(..) {
-			player.play(&alert);
+			match player.play(&alert) {
+				Err(e) => error!("Unable to play interaction {:?}", e),
+				Ok(_) => ()
+			}
 		}
 	}
 

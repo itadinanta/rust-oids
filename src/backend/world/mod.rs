@@ -29,7 +29,6 @@ use backend::world::agent::AgentType;
 use backend::world::agent::TypedAgent;
 use backend::world::swarm::*;
 use serialize::base64::{self, ToBase64};
-use self::alert::*;
 
 pub use self::alert::Alert;
 pub use self::alert::AlertEvent;
@@ -41,7 +40,6 @@ pub trait WorldState {
 pub trait AlertReceiver {
 	fn alert(&mut self, ev: Alert);
 }
-
 
 pub struct World {
 	pub extent: Rect,

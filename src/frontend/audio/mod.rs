@@ -2,7 +2,6 @@ mod multiplexer;
 
 use portaudio as pa;
 use sample;
-use dsp;
 use std::thread;
 use thread_priority::*;
 use std::io;
@@ -12,11 +11,10 @@ use std::sync::mpsc::SendError;
 use std::sync::Arc;
 use std::sync::Mutex;
 use app;
-use dsp::{Graph, Frame, Node, FromSample, Sample};
 use dsp::sample::ToFrameSliceMut;
-use backend::world::AlertEvent;
 use frontend::ui::AlertPlayer;
-
+use backend::world::AlertEvent;
+use backend::world::Alert;
 // Currently supports i8, i32, f32.
 //pub type AudioSample = f32;
 //pub type Input = AudioSample;
@@ -26,6 +24,7 @@ const CHANNELS: i32 = 2;
 const FRAMES: u32 = 64;
 const SAMPLE_HZ: f64 = 48_000.0;
 
+#[allow(unused)]
 #[derive(Clone, Debug, Copy)]
 pub enum Error {
 	SystemInit,
@@ -34,10 +33,18 @@ pub enum Error {
 	ThreadJoin,
 }
 
+#[allow(unused)]
 #[derive(Clone, Debug, Copy)]
 pub enum SoundEffect {
-	Pitch(usize),
+	Click(usize),
+	Release(usize),
+	NewSpore,
+	NewMinion,
+	DieMinion,
+	UserOption,
+	Eat,
 	Eof,
+	None,
 }
 
 impl From<pa::Error> for self::Error {
@@ -72,8 +79,7 @@ pub trait SoundSystem: Sized {
 	fn close(&mut self) -> Result<(), self::Error>;
 }
 
-type Stream = pa::Stream<pa::NonBlocking, pa::Output<f32>>;
-
+#[allow(unused)]
 pub struct PortaudioSoundSystem {
 	portaudio: pa::PortAudio,
 	sound_thread: Option<thread::JoinHandle<()>>,
@@ -96,29 +102,47 @@ impl<S> SoundSystemAlertPlayer<S> where S: SoundSystem {
 
 pub type PortaudioAlertPlayer = SoundSystemAlertPlayer<PortaudioSoundSystem>;
 
-impl AlertPlayer<AlertEvent> for SoundSystemAlertPlayer<PortaudioSoundSystem> {
-	fn play(&mut self, alert: &AlertEvent) {
-		let note = match alert {
-			UserClick => SoundEffect::Pitch(1),
-			NewMinion => SoundEffect::Pitch(2),
-			NewSpore => SoundEffect::Pitch(3),
-			NewResource => SoundEffect::Pitch(4),
-			DieMinion => SoundEffect::Pitch(5),
-			DieResource => SoundEffect::Pitch(6),
+impl AlertPlayer<AlertEvent, self::Error> for SoundSystemAlertPlayer<PortaudioSoundSystem> {
+	fn play(&mut self, alert: &AlertEvent) -> Result<(), self::Error> {
+		let note = match alert.alert {
+			Alert::NewMinion => SoundEffect::NewMinion,
+			Alert::NewSpore => SoundEffect::NewSpore,
+			Alert::DieMinion => SoundEffect::DieMinion,
+			_ => SoundEffect::None,
 		};
 		println!("Playing alert: {:?}", alert.alert);
-		self.sound_system.trigger.send(note);
+		self.sound_system.trigger.send(note)?;
+		Ok(())
 	}
 }
 
-impl AlertPlayer<app::Event> for SoundSystemAlertPlayer<PortaudioSoundSystem> {
-	fn play(&mut self, event: &app::Event) {
-		let note = match event {
-			_ => SoundEffect::Pitch(100),
+impl AlertPlayer<app::Event, self::Error> for SoundSystemAlertPlayer<PortaudioSoundSystem> {
+	fn play(&mut self, event: &app::Event) -> Result<(), self::Error> {
+		use app::Event;
+		let sound_effect = match event {
+			&Event::CamReset |
+			&Event::NextLight |
+			&Event::PrevLight |
+			&Event::NextBackground |
+			&Event::PrevBackground |
+			&Event::NextSpeedFactor |
+			&Event::PrevSpeedFactor |
+			&Event::Reload |
+			&Event::DumpToFile |
+			&Event::SelectMinion(_, _) |
+			&Event::DeselectAll |
+			&Event::ToggleDebug => SoundEffect::UserOption,
+
+			&Event::NewMinion(_) |
+			&Event::RandomizeMinion(_) => SoundEffect::NewMinion,
+
+			&Event::EndDrag(_, _, _) => SoundEffect::Release(0),
+
+			_ => SoundEffect::None,
 		};
-		let note_velocity = 1.0;
 		println!("Playing event: {:?}", event);
-		self.sound_system.trigger.send(note);
+		self.sound_system.trigger.send(sound_effect)?;
+		Ok(())
 	}
 }
 
@@ -138,55 +162,18 @@ impl PortaudioAlertPlayer {
 	}
 }
 
-/// Our Node to be used within the Graph.
-enum DspNode {
-	Synth(f64),
-	Volume(f32),
-}
-
-/// Implement the `Node` trait for our DspNode.
-impl Node<[f32; CHANNELS as usize]> for DspNode {
-	fn audio_requested(&mut self, buffer: &mut [[f32; CHANNELS as usize]], sample_hz: f64) {
-		match *self {
-			DspNode::Synth(ref mut phase) => {
-				dsp::slice::map_in_place(buffer, |_| {
-					let val = sine_wave(*phase);
-					const SYNTH_HZ: f64 = 110.0;
-					*phase += SYNTH_HZ / sample_hz;
-					Frame::from_fn(|_| val)
-				})
-			}
-			DspNode::Volume(vol) => {
-				dsp::slice::map_in_place(buffer, |f|
-					f.map(|s| s.mul_amp(vol)))
-			}
-		}
-	}
-}
-
-/// Return a sine wave for the given phase.
-fn sine_wave<S: Sample>(phase: f64) -> S
-	where
-		S: Sample + FromSample<f32>,
-{
-	use std::f64::consts::PI;
-	((phase * PI * 2.0).sin() as f32).to_sample::<S>()
-}
-
 impl SoundSystem for PortaudioSoundSystem {
 	fn new() -> Result<Self, self::Error> {
-		let portaudio = Self::init_portaudio()?;
+		let portaudio = pa::PortAudio::new()?;
+		info!("Detected {:?} devices", portaudio.device_count());
 		let settings = portaudio.default_output_stream_settings::<f32>(
 			CHANNELS,
 			SAMPLE_HZ,
 			FRAMES,
 		)?;
 		let (tx, rx) = channel();
-		// Construct our dsp graph.
-		let mut graph = Graph::new();
-		let synth = graph.add_node(DspNode::Synth(0.0));
-		let (_, volume) = graph.add_output(synth, DspNode::Volume(1.0));
-		let dsp = Arc::new(Mutex::new(graph));
+
+		let dsp = Arc::new(Mutex::new(multiplexer::Multiplexer::new()));
 		let dsp_handle = dsp.clone();
 
 		let callback = move |pa::OutputStreamCallbackArgs { buffer, .. }| {
@@ -194,8 +181,7 @@ impl SoundSystem for PortaudioSoundSystem {
 				buffer.to_frame_slice_mut().unwrap();
 			sample::slice::equilibrium(buffer);
 			// uhm what?
-			let mut graph = dsp_handle.lock().unwrap();
-			graph.audio_requested(buffer, SAMPLE_HZ as f64);
+			dsp_handle.lock().unwrap().audio_requested(buffer, SAMPLE_HZ as f64);
 			pa::Continue
 		};
 		let mut stream = portaudio.open_non_blocking_stream(settings, callback)
@@ -214,9 +200,8 @@ impl SoundSystem for PortaudioSoundSystem {
 						info!("Requested termination, exiting");
 						break;
 					}
-					Ok(alert) => {
-						dsp.lock().unwrap();
-						// update synth parameters here
+					Ok(sound_effect) => {
+						dsp.lock().unwrap().trigger(sound_effect)
 					}
 					Err(msg) => {
 						warn!("Received error {:?}", msg);
@@ -246,15 +231,5 @@ impl SoundSystem for PortaudioSoundSystem {
 			Ok(_) => Ok(()),
 			Err(_) => Err(self::Error::ThreadJoin),
 		}
-	}
-}
-
-impl PortaudioSoundSystem {
-	fn init_portaudio() -> Result<pa::PortAudio, pa::Error> {
-		// Construct our fancy Synth!
-		// Construct PortAudio and the stream.
-		let pa = pa::PortAudio::new()?;
-		println!("Detected {:?} devices", pa.device_count());
-		Ok(pa)
 	}
 }

@@ -1,6 +1,6 @@
-use backend::obj;
 use core::clock::Seconds;
 
+#[allow(unused)]
 #[derive(Copy, Clone, Debug)]
 pub enum Alert {
 	NewMinion,
