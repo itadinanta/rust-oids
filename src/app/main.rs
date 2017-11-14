@@ -35,7 +35,8 @@ pub fn main_loop(minion_gene_pool: &str) {
 		.with_title("Rust-oids".to_string())
 		.with_dimensions(WIDTH, HEIGHT);
 
-	let context_builder = glutin::ContextBuilder::new();
+	let context_builder = glutin::ContextBuilder::new()
+		.with_vsync(true);
 
 	let (window, mut device, mut factory, mut frame_buffer, mut depth_buffer) =
 		gfx_window_glutin::init::<formats::ScreenColorFormat, formats::ScreenDepthFormat>(

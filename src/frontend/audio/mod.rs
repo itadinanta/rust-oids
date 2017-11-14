@@ -22,7 +22,7 @@ use backend::world::Alert;
 
 const CHANNELS: i32 = 2;
 const FRAMES: u32 = 64;
-const SAMPLE_HZ: f64 = 48_000.0;
+const SAMPLE_HZ: f64 = 44100.0;
 
 #[allow(unused)]
 #[derive(Clone, Debug, Copy)]
@@ -110,7 +110,7 @@ impl AlertPlayer<AlertEvent, self::Error> for SoundSystemAlertPlayer<PortaudioSo
 			Alert::DieMinion => SoundEffect::DieMinion,
 			_ => SoundEffect::None,
 		};
-		println!("Playing alert: {:?}", alert.alert);
+		trace!("Playing alert: {:?}", alert.alert);
 		self.sound_system.trigger.send(note)?;
 		Ok(())
 	}
@@ -140,7 +140,7 @@ impl AlertPlayer<app::Event, self::Error> for SoundSystemAlertPlayer<PortaudioSo
 
 			_ => SoundEffect::None,
 		};
-		println!("Playing event: {:?}", event);
+		trace!("Playing event: {:?}", event);
 		self.sound_system.trigger.send(sound_effect)?;
 		Ok(())
 	}
