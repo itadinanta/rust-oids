@@ -1,6 +1,7 @@
 mod main;
 mod ev;
 
+use std::process;
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::fmt::Debug;
@@ -73,18 +74,31 @@ pub enum Event {
 }
 
 pub fn run(args: &[OsString]) {
-	let options = Options::new()
-		.optflag("t", "terminal", "Headless mode")
-		.parse(args)
-		.unwrap();
+	let mut opt = Options::new();
+	opt.optflag("t", "terminal", "Headless mode");
+	opt.optopt("f", "fullscreen", "Fullscreen mode on monitor X", "0");
+	opt.optopt("w", "width", "Window width", "1024");
+	opt.optopt("h", "height", "Window height", "1024");
+	match opt.parse(args) {
+		Ok(options) => {
+			let pool_file_name = options.free.get(1).map(|n| n.as_str()).unwrap_or(
+				"minion_gene_pool.csv",
+			);
+			if options.opt_present("t") {
+				main::main_loop_headless(pool_file_name);
+			} else {
+				let fullscreen = options.opt_default("f", "0").and_then(|v| v.parse::<usize>().ok());
+				let width = options.opt_default("w", "1024").and_then(|v| v.parse::<u32>().ok());
+				let height = options.opt_default("h", "1024").and_then(|v| v.parse::<u32>().ok());
 
-	let pool_file_name = options.free.get(1).map(|n| n.as_str()).unwrap_or(
-		"minion_gene_pool.csv",
-	);
-	if options.opt_present("t") {
-		main::main_loop_headless(pool_file_name);
-	} else {
-		main::main_loop(pool_file_name);
+				main::main_loop(pool_file_name, fullscreen, width, height);
+			}
+		}
+		Err(message) => {
+			eprintln!("Invalid option: {:?}", message);
+			eprintln!("{}", opt.usage("rust-oids [Options]"));
+			process::exit(1)
+		}
 	}
 }
 

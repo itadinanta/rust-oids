@@ -21,8 +21,8 @@ use backend::world::Alert;
 //pub type Output = AudioSample;
 
 const CHANNELS: i32 = 2;
-const FRAMES: u32 = 64;
-const SAMPLE_HZ: f64 = 44100.0;
+const SAMPLE_HZ: f64 = 48000.0;
+const FRAMES: u32 = 256;
 
 #[allow(unused)]
 #[derive(Clone, Debug, Copy)]
@@ -80,8 +80,7 @@ pub trait SoundSystem: Sized {
 }
 
 #[allow(unused)]
-pub struct PortaudioSoundSystem {
-	portaudio: pa::PortAudio,
+pub struct ThreadedSoundSystem {
 	sound_thread: Option<thread::JoinHandle<()>>,
 	trigger: Sender<SoundEffect>,
 }
@@ -100,9 +99,9 @@ impl<S> SoundSystemAlertPlayer<S> where S: SoundSystem {
 	}
 }
 
-pub type PortaudioAlertPlayer = SoundSystemAlertPlayer<PortaudioSoundSystem>;
+pub type ThreadedAlertPlayer = SoundSystemAlertPlayer<ThreadedSoundSystem>;
 
-impl AlertPlayer<AlertEvent, self::Error> for SoundSystemAlertPlayer<PortaudioSoundSystem> {
+impl AlertPlayer<AlertEvent, self::Error> for SoundSystemAlertPlayer<ThreadedSoundSystem> {
 	fn play(&mut self, alert: &AlertEvent) -> Result<(), self::Error> {
 		let note = match alert.alert {
 			Alert::NewMinion => SoundEffect::NewMinion,
@@ -116,7 +115,7 @@ impl AlertPlayer<AlertEvent, self::Error> for SoundSystemAlertPlayer<PortaudioSo
 	}
 }
 
-impl AlertPlayer<app::Event, self::Error> for SoundSystemAlertPlayer<PortaudioSoundSystem> {
+impl AlertPlayer<app::Event, self::Error> for SoundSystemAlertPlayer<ThreadedSoundSystem> {
 	fn play(&mut self, event: &app::Event) -> Result<(), self::Error> {
 		use app::Event;
 		let sound_effect = match event {
@@ -152,9 +151,9 @@ impl<S> Drop for SoundSystemAlertPlayer<S> where S: SoundSystem {
 	}
 }
 
-impl PortaudioAlertPlayer {
-	pub fn new(s: PortaudioSoundSystem) -> PortaudioAlertPlayer {
-		let mut player = PortaudioAlertPlayer {
+impl ThreadedAlertPlayer {
+	pub fn new(s: ThreadedSoundSystem) -> Self {
+		let mut player = ThreadedAlertPlayer {
 			sound_system: s,
 		};
 		player.open().expect("Could not open sound system");
@@ -162,8 +161,8 @@ impl PortaudioAlertPlayer {
 	}
 }
 
-impl SoundSystem for PortaudioSoundSystem {
-	fn new() -> Result<Self, self::Error> {
+impl SoundSystem for ThreadedSoundSystem {
+	fn new() -> Result<ThreadedSoundSystem, self::Error> {
 		let portaudio = pa::PortAudio::new()?;
 		info!("Detected {:?} devices", portaudio.device_count());
 		let settings = portaudio.default_output_stream_settings::<f32>(
@@ -210,11 +209,11 @@ impl SoundSystem for PortaudioSoundSystem {
 				}
 			}
 			stream.close().expect("Unable to stop audio stream");
+			portaudio.terminate().expect("Unable to end portaudio session");
 			info!("Terminated sound control thread");
 		})?;
 
-		Ok(PortaudioSoundSystem {
-			portaudio,
+		Ok(ThreadedSoundSystem {
 			sound_thread: Some(sound_thread),
 			trigger: tx,
 		})

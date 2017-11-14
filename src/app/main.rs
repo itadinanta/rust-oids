@@ -25,20 +25,29 @@ use glutin::KeyboardInput;
 use glutin::GlContext;
 use gfx_window_glutin;
 
-pub fn main_loop(minion_gene_pool: &str) {
+pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Option<u32>, height: Option<u32>) {
 	const WIDTH: u32 = 1024;
 	const HEIGHT: u32 = 1024;
 
 	let mut events_loop = glutin::EventsLoop::new();
 
 	let builder = glutin::WindowBuilder::new()
-		.with_title("Rust-oids".to_string())
-		.with_dimensions(WIDTH, HEIGHT);
-
+		.with_title("Rust-oids".to_string());
+	let builder = if let Some(monitor_index) = fullscreen {
+		let monitor = events_loop.get_available_monitors().nth(monitor_index).expect("Please enter a valid monitor ID");
+		println!("Using {:?}", monitor.get_name());
+		builder.with_fullscreen(Some(monitor))
+	} else {
+		builder.with_dimensions(width.unwrap_or(WIDTH), height.unwrap_or(HEIGHT))
+	};
 	let context_builder = glutin::ContextBuilder::new()
 		.with_vsync(true);
 
-	let (window, mut device, mut factory, mut frame_buffer, mut depth_buffer) =
+	let (window,
+		mut device,
+		mut factory,
+		mut frame_buffer,
+		mut depth_buffer) =
 		gfx_window_glutin::init::<formats::ScreenColorFormat, formats::ScreenDepthFormat>(
 			builder,
 			context_builder,
@@ -58,12 +67,12 @@ pub fn main_loop(minion_gene_pool: &str) {
 	// Create a new game and run it.
 	let mut app = app::App::new(w as u32, h as u32, 100.0, &res, minion_gene_pool);
 
-	let audio = audio::PortaudioSoundSystem::new();
+	let audio = audio::ThreadedSoundSystem::new();
 	match &audio {
 		&Ok(_) => println!("Success initializing portaudio"),
 		&Err(msg) => println!("Failure initializing portaudio: {:?}", msg),
 	}
-	let mut audio_alert_player = audio::PortaudioAlertPlayer::new(audio.unwrap());
+	let mut audio_alert_player = audio::ThreadedAlertPlayer::new(audio.unwrap());
 	app.init();
 
 	'main: loop {
