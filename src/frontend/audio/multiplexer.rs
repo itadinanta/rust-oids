@@ -172,8 +172,9 @@ impl Multiplexer {
 			SoundEffect::Click(_) => (Generator::square(880.0f32, 0.1f32, 0.1f32), 0.8f32),
 			//SoundEffect::Release(_) => Some((400.0f32, 0.15f32, 0.3f32)),
 			SoundEffect::UserOption => (Generator::square(1000.0f32, 0.1f32, 0.1f32), 0.6f32),
-			SoundEffect::NewSpore => (Generator::sin(300.0f32, 0.3f32, 0.1f32), 0.3f32),
-			SoundEffect::NewMinion => (Generator::sin(220.0f32, 0.5f32, 0.1f32), 0.55f32),
+			SoundEffect::Fertilised => (Generator::sin(300.0f32, 0.3f32, 0.1f32), 0.6f32),
+			SoundEffect::NewSpore => (Generator::sin(150.0f32, 0.3f32, 0.1f32), 0.3f32),
+			SoundEffect::NewMinion => (Generator::sin(600.0f32, 0.5f32, 0.1f32), 0.55f32),
 			SoundEffect::DieMinion => (Generator::sin(90.0f32, 1.0f32, 0.2f32), 0.1f32),
 			_ => (Generator::Silence, 0.5f32)
 		};

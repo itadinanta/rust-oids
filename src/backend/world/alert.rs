@@ -8,6 +8,7 @@ pub enum Alert {
 	NewResource,
 	DieMinion,
 	DieResource,
+	Fertilised,
 }
 
 #[derive(Copy, Clone, Debug)]

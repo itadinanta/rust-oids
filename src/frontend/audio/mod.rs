@@ -42,6 +42,7 @@ pub enum SoundEffect {
 	NewMinion,
 	DieMinion,
 	UserOption,
+	Fertilised,
 	Eat,
 	Eof,
 	None,
@@ -106,6 +107,7 @@ impl AlertPlayer<AlertEvent, self::Error> for SoundSystemAlertPlayer<ThreadedSou
 		let note = match alert.alert {
 			Alert::NewMinion => SoundEffect::NewMinion,
 			Alert::NewSpore => SoundEffect::NewSpore,
+			Alert::Fertilised => SoundEffect::Fertilised,
 			Alert::DieMinion => SoundEffect::DieMinion,
 			_ => SoundEffect::None,
 		};
