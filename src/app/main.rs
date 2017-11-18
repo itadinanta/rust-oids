@@ -7,7 +7,7 @@ use frontend::ui;
 
 use core::resource::filesystem::ResourceLoaderBuilder;
 use core::math::Directional;
-use core::clock::{Seconds, Timer, Hourglass, SystemTimer};
+use core::clock::{Seconds, SecondsValue, Timer, Hourglass, SystemTimer};
 
 use ctrlc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -167,10 +167,10 @@ pub fn main_loop_headless(minion_gene_pool: &str) {
 	}).expect("Error setting Ctrl-C handler");
 
 	let wall_clock = SystemTimer::new().shared();
-	let mut output_hourglass = Hourglass::new(wall_clock.clone(), Seconds::new(5.0f32));
-	let mut save_hourglass = Hourglass::new(wall_clock.clone(), Seconds::new(300.0f32));
+	let mut output_hourglass = Hourglass::new(wall_clock.clone(), Seconds::new(5.0));
+	let mut save_hourglass = Hourglass::new(wall_clock.clone(), Seconds::new(300.0));
 
-	const FRAME_SIMULATION_LENGTH: f32 = 1.0f32 / 60.0f32;
+	const FRAME_SIMULATION_LENGTH: SecondsValue = 1.0 / 60.0;
 	'main: loop {
 		if !app.is_running() {
 			break 'main;

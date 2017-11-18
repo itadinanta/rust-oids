@@ -172,6 +172,8 @@ bitflags! {
 	}
 }
 
+pub type SpeedFactor = f64;
+
 pub struct App {
 	pub viewport: Viewport,
 	input_state: input::InputState,
@@ -188,7 +190,7 @@ pub struct App {
 	camera: math::Inertial<f32>,
 	lights: Cycle<Rgba>,
 	backgrounds: Cycle<Rgba>,
-	speed_factors: Cycle<f32>,
+	speed_factors: Cycle<SpeedFactor>,
 	//
 	world: world::World,
 	systems: Systems,
@@ -274,17 +276,17 @@ impl App {
 		)
 	}
 
-	fn init_speed_factors() -> Cycle<f32> {
+	fn init_speed_factors() -> Cycle<SpeedFactor> {
 		Cycle::new(
 			&[
-				1.0f32,
-				0.5f32,
-				0.2f32,
-				0.1f32,
-				1f32,
-				2.0f32,
-				5.0f32,
-				10.0f32,
+				1.0,
+				0.5,
+				0.2,
+				0.1,
+				1.0,
+				2.0,
+				5.0,
+				10.0,
 			]
 		)
 	}
@@ -699,8 +701,8 @@ impl App {
 	}
 
 	pub fn update(&mut self) -> FrameUpdate {
-		const MIN_FRAME_LENGTH: f32 = 1.0f32 / 1000.0f32;
-		const MAX_FRAME_LENGTH: f32 = 1.0f32 / 15.0f32;
+		const MIN_FRAME_LENGTH: SecondsValue = (1.0 / 1000.0) as SecondsValue;
+		const MAX_FRAME_LENGTH: SecondsValue = (1.0 / 15.0) as SecondsValue;
 
 		let frame_time = self.frame_stopwatch.restart();
 		self.frame_elapsed.tick(frame_time);
@@ -711,9 +713,9 @@ impl App {
 		let target_duration = frame_time_smooth.get();
 		self.update_input(frame_time_smooth);
 
-		let speed_factor = if self.is_paused { 0.0f32 } else { self.speed_factors.get() };
+		let speed_factor = if self.is_paused { 1.0 as SpeedFactor } else { self.speed_factors.get() };
 		let quantum = num::clamp(target_duration, MIN_FRAME_LENGTH, MAX_FRAME_LENGTH);
-		let (dt, rounds) = if speed_factor <= 1.0f32 {
+		let (dt, rounds) = if speed_factor <= 1.0 {
 			(Seconds::new(speed_factor * quantum), 1)
 		} else {
 			(Seconds::new(quantum), speed_factor as usize)
@@ -731,11 +733,11 @@ impl App {
 		FrameUpdate {
 			timestamp: self.wall_clock.borrow().seconds(),
 			dt: frame_time,
-			speed_factor,
+			speed_factor: speed_factor as f32,
 			count: self.frame_count,
 			elapsed: self.frame_elapsed.seconds(),
 			duration_smooth: frame_time_smooth,
-			fps: 1.0f32 / target_duration,
+			fps: 1.0f32 / target_duration as f32,
 			simulation: simulation_update,
 		}
 	}

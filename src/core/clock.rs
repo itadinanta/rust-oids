@@ -6,19 +6,20 @@ use std::cell::RefCell;
 use std::ops::*;
 use num::Zero;
 
-pub type SecondsValue = f32;
+pub type SecondsValue = f64;
+pub type SpeedFactor = SecondsValue;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Seconds(SecondsValue);
 
-const ZERO_SECONDS: Seconds = Seconds(0.0 as SecondsValue);
+const ZERO_SECONDS: Seconds = Seconds(0.0);
 
 impl Display for Seconds {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		if self.0 > 0.5 as SecondsValue {
 			write!(f, "{:.3}s", self.0)
 		} else {
-			write!(f, "{:.1}ms", self.0 * 1000.0 as SecondsValue)
+			write!(f, "{:.1}ms", self.0 * 1000.0)
 		}
 	}
 }
@@ -80,6 +81,10 @@ impl Sub for Seconds {
 
 impl Into<SecondsValue> for Seconds {
 	fn into(self) -> SecondsValue { self.0 }
+}
+
+impl Into<f32> for Seconds {
+	fn into(self) -> f32 { self.0 as f32 }
 }
 
 /// Timer

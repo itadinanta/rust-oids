@@ -6,7 +6,7 @@ use core::clock::*;
 
 #[allow(unused)]
 pub struct AnimationSystem {
-	speed: f32,
+	speed: SpeedFactor,
 	animation_timer: SharedTimer<SimulationTimer>,
 	simulation_timer: SharedTimer<SimulationTimer>,
 	animation_clock: TimerStopwatch<SimulationTimer>,
@@ -27,7 +27,7 @@ impl Default for AnimationSystem {
 		let animation_timer = Rc::new(RefCell::new(SimulationTimer::new()));
 		let simulation_timer = Rc::new(RefCell::new(SimulationTimer::new()));
 		AnimationSystem {
-			speed: 1.,
+			speed: 1.0,
 			simulation_clock: TimerStopwatch::new(animation_timer.clone()),
 			animation_clock: TimerStopwatch::new(simulation_timer.clone()),
 			animation_timer,

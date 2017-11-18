@@ -126,7 +126,7 @@ impl World {
 				],
 			)
 		}
-		let emitter_rate = Seconds::new(0.4f32);
+		let emitter_rate = Seconds::new(0.4);
 		World {
 			extent: Rect::new(-80., -80., 80., 80.),
 			swarms,
