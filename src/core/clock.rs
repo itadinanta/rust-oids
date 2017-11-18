@@ -8,15 +8,17 @@ use num::Zero;
 
 pub type SecondsValue = f32;
 
-#[derive(Clone, Copy, Debug)]
-pub struct Seconds(f32);
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Seconds(SecondsValue);
+
+const ZERO_SECONDS: Seconds = Seconds(0.0 as SecondsValue);
 
 impl Display for Seconds {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		if self.0 > 0.5f32 {
+		if self.0 > 0.5 as SecondsValue {
 			write!(f, "{:.3}s", self.0)
 		} else {
-			write!(f, "{:.1}ms", self.0 * 1000.0f32)
+			write!(f, "{:.1}ms", self.0 * 1000.0 as SecondsValue)
 		}
 	}
 }
@@ -27,8 +29,9 @@ impl Seconds {
 }
 
 impl Zero for Seconds {
-	fn zero() -> Seconds { Seconds(0.0f32) }
-	fn is_zero(&self) -> bool { self.0 == 0.0f32 }
+	#[inline]
+	fn zero() -> Seconds { ZERO_SECONDS }
+	fn is_zero(&self) -> bool { *self == ZERO_SECONDS }
 }
 
 impl Default for Seconds {
@@ -82,6 +85,9 @@ impl Into<SecondsValue> for Seconds {
 /// Timer
 pub trait Timer {
 	fn seconds(&self) -> Seconds;
+	fn shared(self) -> Rc<RefCell<Self>> where Self: Sized {
+		Rc::new(RefCell::new(self))
+	}
 }
 
 /// SystemTimer
@@ -215,10 +221,16 @@ impl<T> Hourglass<T> where T: Timer {
 
 	pub fn left(&self) -> Seconds {
 		let dt = self.timeout - self.stopwatch.elapsed();
-		Seconds(f32::max(0., dt.into()))
+		Seconds(SecondsValue::max(0., dt.into()))
 	}
 
 	pub fn is_expired(&self) -> bool {
-		self.left().get() <= 0.0f32
+		self.left().get() <= Seconds::zero().0
+	}
+
+	pub fn flip_if_expired(&mut self) -> bool {
+		let expired = self.is_expired();
+		if expired { self.flip(); };
+		expired
 	}
 }

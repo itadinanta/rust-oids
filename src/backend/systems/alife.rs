@@ -160,12 +160,9 @@ impl AlifeSystem {
 				}
 
 				if agent.state.energy() < 1. {
-					for segment in agent.segments.iter().filter(|s| {
-						true//s.flags.contains(segment::Flags::STORAGE)
-					})
-						{
-							corpses.push((segment.transform.clone(), agent.dna().clone()));
-						}
+					for segment in agent.segments.iter() {
+						corpses.push((segment.transform.clone(), agent.dna().clone()));
+					}
 					agent.state.die();
 				}
 

@@ -1,16 +1,13 @@
 use std::path;
 use frontend::render;
 use frontend::input::EventMapper;
-use frontend::render::formats;
-use frontend::render::Draw;
-use frontend::render::Renderer;
-use frontend::audio;
-use frontend::audio::SoundSystem;
+use frontend::render::{formats, Draw, Renderer};
+use frontend::audio::{self, SoundSystem};
 use frontend::ui;
 
 use core::resource::filesystem::ResourceLoaderBuilder;
 use core::math::Directional;
-use core::clock::Seconds;
+use core::clock::{Seconds, Timer, Hourglass, SystemTimer};
 
 use ctrlc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -18,11 +15,7 @@ use std::sync::Arc;
 
 use app;
 use app::ev::GlutinEventMapper;
-use glutin;
-use glutin::WindowEvent;
-use glutin::VirtualKeyCode;
-use glutin::KeyboardInput;
-use glutin::GlContext;
+use glutin::{self, WindowEvent, VirtualKeyCode, KeyboardInput, GlContext};
 use gfx_window_glutin;
 
 pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Option<u32>, height: Option<u32>) {
@@ -173,6 +166,10 @@ pub fn main_loop_headless(minion_gene_pool: &str) {
 		r.store(false, Ordering::SeqCst);
 	}).expect("Error setting Ctrl-C handler");
 
+	let wall_clock = SystemTimer::new().shared();
+	let mut output_hourglass = Hourglass::new(wall_clock.clone(), Seconds::new(5.0f32));
+	let mut save_hourglass = Hourglass::new(wall_clock.clone(), Seconds::new(300.0f32));
+
 	const FRAME_SIMULATION_LENGTH: f32 = 1.0f32 / 60.0f32;
 	'main: loop {
 		if !app.is_running() {
@@ -181,20 +178,25 @@ pub fn main_loop_headless(minion_gene_pool: &str) {
 
 		if !running.load(Ordering::SeqCst) {
 			eprintln!("Interrupted, exiting");
+			app.dump_to_file();
 			break 'main;
 		}
 		// update and measure
 		let simulation_update = app.simulate(Seconds::new(FRAME_SIMULATION_LENGTH));
+		if save_hourglass.flip_if_expired() {
+			app.dump_to_file();
+		}
 
 		app.play_alerts(&mut headless_alert_player);
-
-		println!(
-			"C: {} E: {:.3} FT: {:.2} P: {} E: {}",
-			simulation_update.count,
-			simulation_update.elapsed,
-			simulation_update.dt,
-			simulation_update.population,
-			simulation_update.extinctions
-		)
+		if output_hourglass.flip_if_expired() {
+			info!(
+				"C: {} E: {:.3} FT: {:.2} P: {} E: {}",
+				simulation_update.count,
+				simulation_update.elapsed,
+				simulation_update.dt,
+				simulation_update.population,
+				simulation_update.extinctions
+			)
+		}
 	}
 }

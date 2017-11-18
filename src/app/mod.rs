@@ -334,6 +334,13 @@ impl App {
 		}
 	}
 
+	pub fn dump_to_file(&self) {
+		match self.world.dump() {
+			Err(_) => error!("Failed to dump log"),
+			Ok(name) => info!("Saved {}", name),
+		}
+	}
+
 	pub fn on_app_event(&mut self, e: Event) {
 		match e {
 			Event::CamUp => self.camera.push(math::Direction::Up),
@@ -354,12 +361,7 @@ impl App {
 			Event::AppQuit => self.quit(),
 			Event::TogglePause => self.is_paused = !self.is_paused,
 
-			Event::DumpToFile => {
-				match self.world.dump() {
-					Err(_) => error!("Failed to dump log"),
-					Ok(name) => info!("Saved {}", name),
-				}
-			}
+			Event::DumpToFile => self.dump_to_file(),
 			Event::BeginDrag(_, _) => { self.camera.zero(); }
 			Event::Drag(start, end) => { self.camera.set_relative(start - end); }
 			Event::EndDrag(start, end, vel) => {
