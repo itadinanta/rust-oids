@@ -60,6 +60,8 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 	// Create a new game and run it.
 	let mut app = app::App::new(w as u32, h as u32, 100.0, &res, minion_gene_pool);
 
+	let mut ui = ui::conrod_gfx::Renderer::new(&mut factory, &frame_buffer, window.hidpi_factor() as f64).unwrap();
+
 	let audio = audio::ThreadedSoundSystem::new();
 	match &audio {
 		&Ok(_) => println!("Success initializing portaudio"),

@@ -31,7 +31,6 @@ gfx_core = "*"
 gfx_device_gl = "*"
 gfx_window_glutin = "*"
 gfx_text = "*"
-
 #sound
 dsp-chain="*"
 sample="*"
@@ -41,3 +40,5 @@ portaudio="*"
 getopts = "*"
 ctrlc = "*"
 thread-priority = "*"
+
+conrod = { features = ["gfx_rs", "winit"], version = "*" }

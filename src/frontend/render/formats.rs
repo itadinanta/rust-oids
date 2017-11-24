@@ -7,7 +7,9 @@ pub type Float = f32;
 pub type RenderColorChannels = gfx::format::R16_G16_B16_A16;
 pub type RenderColorFormat = (RenderColorChannels, gfx::format::Float);
 pub type RenderDepthFormat = gfx::format::Depth;
-pub type ScreenColorFormat = gfx::format::Rgba8; // Srgba8 broken on Linux
+
+pub type ScreenColorChannels = gfx::format::R8_G8_B8_A8; // Srgba8 broken on Linux
+pub type ScreenColorFormat = (ScreenColorChannels, gfx::format::Unorm); // Srgba8 broken on Linux
 pub type ScreenDepthFormat = gfx::format::Depth;
 
 pub type RenderSurface<R> = (gfx::handle::Texture<R, RenderColorChannels>,

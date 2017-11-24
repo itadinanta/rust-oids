@@ -1,3 +1,5 @@
+pub mod conrod_gfx;
+
 pub trait AlertPlayer<T, E> {
 	fn play(&mut self, alert: &T) -> Result<(), E>;
 }
