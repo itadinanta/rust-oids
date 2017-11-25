@@ -195,18 +195,18 @@ impl SoundSystem for ThreadedSoundSystem {
 
 			info!("Started sound control thread");
 			stream.start().expect("Unable to start audio stream");
-			loop {
+			'sound_main: loop {
 				match rx.recv() {
 					Ok(SoundEffect::Eof) => {
 						info!("Requested termination, exiting");
-						break;
+						break 'sound_main;
 					}
 					Ok(sound_effect) => {
 						dsp.lock().unwrap().trigger(sound_effect)
 					}
 					Err(msg) => {
 						warn!("Received error {:?}", msg);
-						break;
+						break 'sound_main;
 					}
 				}
 			}

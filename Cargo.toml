@@ -25,20 +25,21 @@ rustc-serialize="*"
 image = "*"
 wrapped2d = "*"
 glutin = "*"
-winit = "*"
 gfx = "*"
 gfx_core = "*"
 gfx_device_gl = "*"
-gfx_window_glutin = "*"
-gfx_text = "*"
 #sound
 dsp-chain="*"
 sample="*"
 portaudio="*"
 
 #sys
-getopts = "*"
-ctrlc = "*"
 thread-priority = "*"
+ctrlc = "*"
+getopts = "*"
 
+#gui
+winit = "*"
+gfx_window_glutin = "*"
+gfx_text = "*"
 conrod = { features = ["gfx_rs", "winit"], version = "*" }
