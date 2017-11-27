@@ -211,6 +211,7 @@ pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>>: Draw {
 	);
 	fn begin_frame(&mut self);
 	fn resolve_frame_buffer(&mut self);
+	fn draw_overlay<O>(&mut self, overlay: O) where O: FnMut(&mut gfx::Encoder<R, C>) -> ();
 	fn end_frame<D: gfx::Device<Resources=R, CommandBuffer=C>>(&mut self, device: &mut D);
 	fn cleanup<D: gfx::Device<Resources=R, CommandBuffer=C>>(&mut self, device: &mut D);
 }
@@ -546,6 +547,11 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 			&self.frame_buffer,
 			self.background_color,
 		);
+	}
+
+	fn draw_overlay<O>(&mut self, mut overlay: O)
+		where O: FnMut(&mut gfx::Encoder<R, C>) -> () {
+		overlay(&mut self.encoder)
 	}
 
 	fn resolve_frame_buffer(&mut self) {

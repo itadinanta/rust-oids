@@ -210,8 +210,13 @@ impl SoundSystem for ThreadedSoundSystem {
 					}
 				}
 			}
-			stream.close().expect("Unable to stop audio stream");
-			portaudio.terminate().expect("Unable to end portaudio session");
+			info!("Closing audio stream");
+			match stream.close() {
+				Err(msg) => error!("Unable to close audio stream: {:?}", msg),
+				Ok(_) => info!("Close audio stream"),
+			}
+			info!("Terminating portaudio system");
+			portaudio.terminate().expect("Unable to terminate portaudio session");
 			info!("Terminated sound control thread");
 		})?;
 

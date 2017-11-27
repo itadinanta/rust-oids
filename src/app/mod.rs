@@ -59,6 +59,7 @@ pub enum Event {
 	ToggleDebug,
 
 	TogglePause,
+	ToggleGui,
 
 	AppQuit,
 
@@ -196,6 +197,7 @@ pub struct App {
 	systems: Systems,
 	//
 	debug_flags: DebugFlags,
+	has_ui_overlay: bool,
 }
 
 pub struct Environment {
@@ -253,6 +255,7 @@ impl App {
 			is_paused: false,
 			// debug
 			debug_flags: DebugFlags::empty(),
+			has_ui_overlay: false,
 		}
 	}
 
@@ -362,7 +365,7 @@ impl App {
 
 			Event::AppQuit => self.quit(),
 			Event::TogglePause => self.is_paused = !self.is_paused,
-
+			Event::ToggleGui => self.has_ui_overlay = !self.has_ui_overlay,
 			Event::DumpToFile => self.dump_to_file(),
 			Event::BeginDrag(_, _) => { self.camera.zero(); }
 			Event::Drag(start, end) => { self.camera.set_relative(start - end); }
@@ -375,6 +378,10 @@ impl App {
 			Event::NewMinion(pos) => self.new_minion(pos),
 			Event::RandomizeMinion(pos) => self.randomize_minion(pos),
 		}
+	}
+
+	pub fn has_ui_overlay(&self) -> bool {
+		self.has_ui_overlay
 	}
 
 	pub fn quit(&mut self) {
@@ -413,6 +420,7 @@ impl App {
 
 		on_key_pressed_once![
 			F5 -> Reload,
+			F1 -> ToggleGui,
 			N0 -> CamReset,
 			Home -> CamReset,
 			KpHome -> CamReset,

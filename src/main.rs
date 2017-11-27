@@ -34,6 +34,7 @@ extern crate itertools;
 #[macro_use]
 extern crate enum_primitive;
 extern crate gfx_text;
+#[macro_use]
 extern crate conrod;
 
 extern crate getopts;
