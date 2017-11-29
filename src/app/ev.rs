@@ -87,6 +87,7 @@ impl input::EventMapper<glutin::WindowEvent> for GlutinEventMapper {
 				X -> X,
 				Y -> Y,
 				Z -> Z,
+				Space -> Space,
 				Escape -> Esc
 			]
 		}

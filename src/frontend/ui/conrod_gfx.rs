@@ -106,7 +106,6 @@ pub enum RendererCreationError {
 
 // Format definitions (must be pub for  gfx_defines to use them)
 pub type ColorFormat = formats::ScreenColorFormat;
-type DepthFormat = formats::ScreenDepthFormat;
 type SurfaceFormat = formats::ScreenColorChannels;
 type FullFormat = (SurfaceFormat, gfx::format::Unorm);
 
@@ -137,6 +136,7 @@ mod defines{
 use self::defines::*;
 
 // Convenience constructor
+#[allow(dead_code)]
 impl Vertex {
 	fn new(pos: [f32; 2], uv: [f32; 2], color: [f32; 4], mode: u32) -> Vertex {
 		Vertex {
@@ -153,6 +153,7 @@ pub struct Renderer<R: Resources>{
 	glyph_cache: GlyphCache,
 	cache_tex: gfx::handle::Texture<R, SurfaceFormat>,
 	cache_tex_view: gfx::handle::ShaderResourceView<R, [f32; 4]>,
+	#[allow(dead_code)]
 	blank_texture: gfx::handle::ShaderResourceView<R, [f32; 4]>,
 	data: pipe::Data<R>,
 	dpi_factor: f64,

@@ -1,7 +1,7 @@
 use conrod;
 use std;
 
-pub fn theme() -> conrod::Theme {
+pub fn default_theme() -> conrod::Theme {
 	use conrod::position::{Align, Direction, Padding, Position, Relative};
 	conrod::Theme {
 		name: "Demo Theme".to_string(),

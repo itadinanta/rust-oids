@@ -3,10 +3,9 @@ use std::io;
 
 use frontend::render;
 use frontend::input::EventMapper;
-use frontend::render::{formats, Draw, Renderer};
+use frontend::render::{formats, Renderer};
 use frontend::audio::{self, SoundSystem};
 use frontend::ui;
-
 
 use conrod;
 
@@ -24,7 +23,7 @@ use glutin::{self, WindowEvent, VirtualKeyCode, KeyboardInput, GlContext};
 use gfx_window_glutin;
 
 pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Option<u32>, height: Option<u32>) {
-	const WIDTH: u32 = 1024;
+	const WIDTH: u32 = 1280;
 	const HEIGHT: u32 = 1024;
 
 	let mut events_loop = glutin::EventsLoop::new();
@@ -55,7 +54,6 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 	let (w, h, _, _) = frame_buffer.get_dimensions();
 
 	let mut encoder = factory.create_command_buffer().into();
-	let mut ui_encoder = factory.create_command_buffer().into();
 
 	let res = ResourceLoaderBuilder::new()
 		.add(path::Path::new("resources"))
@@ -67,7 +65,6 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 	let mut app = app::App::new(w as u32, h as u32, 100.0, &res, minion_gene_pool);
 
 	let mut ui_renderer = ui::conrod_gfx::Renderer::new(&mut factory, &frame_buffer, window.hidpi_factor() as f64).unwrap();
-	let mut ui = conrod::UiBuilder::new([w as f64, h as f64]).theme(ui::theme::theme()).build();
 	let ui_image_map = conrod::image::Map::new();
 
 	impl From<conrod::text::font::Error> for ui::Error {
@@ -82,6 +79,8 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 		}
 	}
 
+	let mut ui = conrod::UiBuilder::new([w as f64, h as f64]).theme(ui::theme::default_theme()).build();
+
 	fn load_font<R>(res: &R, map: &mut conrod::text::font::Map, key: &str) ->
 	Result<conrod::text::font::Id, ui::Error>
 		where R: ResourceLoader<u8> {
@@ -92,7 +91,7 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 		Ok(id)
 	}
 
-	let font_freesans = load_font(&res, &mut ui.fonts, "fonts/FreeSans.ttf")
+	load_font(&res, &mut ui.fonts, "fonts/FreeSans.ttf")
 		.expect("Could not find default font");
 
 	let audio = audio::ThreadedSoundSystem::new().expect("Failure in audio initialization");
@@ -112,10 +111,11 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 					match event {
 						WindowEvent::Resized(new_width, new_height) => {
 							gfx_window_glutin::update_views(&window, &mut frame_buffer, &mut depth_buffer);
-							renderer.resize_to(&frame_buffer).unwrap();
+							renderer.resize_to(&frame_buffer)
+								.expect("Unable to resize window");
 							app.on_resize(new_width, new_height);
-							ui = conrod::UiBuilder::new([new_width as f64, new_height as f64]).theme(ui::theme::theme()).build();
-//                            ui.handle_event(conrod::event::Input::Resize(new_width, new_height))
+							ui_renderer = ui::conrod_gfx::Renderer::new(&mut factory, &frame_buffer, window.hidpi_factor() as f64)
+								.expect("Unable to recreate ui renderer");
 						}
 						WindowEvent::Closed => app.quit(),
 						WindowEvent::KeyboardInput {
@@ -162,47 +162,7 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 		// post-render effects and tone mapping
 		renderer.resolve_frame_buffer();
 		if app.has_ui_overlay() {
-			use conrod::{self, widget, Colorable, Positionable, Sizeable, Widget};
-			widget_ids!(struct Ids { text, canvas, rounded_rectangle });
-			let ids = Ids::new(ui.widget_id_generator());
-
-			let window_id = ui.window.clone();
-			let wui = &mut ui.set_widgets();
-			// "Hello World!" in the middle of the screen.
-
-			widget::Canvas::new()
-				.pad(10.0)
-				.color(conrod::color::CHARCOAL.alpha(0.4))
-				.middle_of(window_id)
-				.scroll_kids_vertically()
-				.set(ids.canvas, wui);
-
-//			widget::RoundedRectangle::fill([200.0, 100.0], 5.0)
-//				.color(conrod::color::BLACK)
-//				.w(wui.w_of(ids.canvas).unwrap_or_default())
-//				.middle_of(ids.canvas)
-//				.set(ids.rounded_rectangle, wui);
-
-			widget::Text::new("Hello World!")
-				.middle_of(ids.canvas)
-				.wh([100.0, 100.0])
-				.color(conrod::color::WHITE)
-				.font_id(font_freesans)
-				.font_size(32)
-				.set(ids.text, wui);
-
-			let primitives = wui.draw();
-
-			let dims = (app.viewport.width as f32 * window.hidpi_factor(),
-						app.viewport.height as f32 * window.hidpi_factor());
-
-			ui_renderer.fill(&mut ui_encoder, dims, primitives, &ui_image_map);
-			ui_renderer.draw(&mut factory, &mut ui_encoder, &ui_image_map);
-		}
-
-		// draw some debug text on screen
-		renderer.draw_text(
-			&format!(
+			let frame_info = format!(
 				"F: {},{} E: {:.3} FT: {:.3},{:.3}(x{}) SFT: {:.3} FPS: {:.1} P: {} E: {}",
 				frame_update.simulation.count,
 				frame_update.count,
@@ -214,14 +174,48 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 				frame_update.fps,
 				frame_update.simulation.population,
 				frame_update.simulation.extinctions
-			),
-			[10, 10],
-			[1.0; 4],
-		);
+			);
+
+			use conrod::{self, widget, Colorable, Positionable, Widget};
+			widget_ids!(struct Ids { text, canvas, rounded_rectangle });
+			let ids = Ids::new(ui.widget_id_generator());
+
+			let window_id = ui.window.clone();
+			let win_w = ui.win_w;
+			let win_h = ui.win_h;
+			let ui = &mut ui.set_widgets();
+			// "Hello World!" in the middle of the screen.
+
+			widget::Canvas::new()
+				.pad(10.0)
+				.color(conrod::color::CHARCOAL.alpha(0.4))
+				.middle_of(window_id)
+				.scroll_kids_vertically()
+				.set(ids.canvas, ui);
+
+			let full_width = ui.w_of(window_id).unwrap_or_default();
+			widget::RoundedRectangle::fill([full_width, 100.0], 5.0)
+				.color(conrod::color::BLACK.alpha(0.5))
+				.middle_of(ids.canvas)
+				.set(ids.rounded_rectangle, ui);
+
+			widget::Text::new(&frame_info)
+				.middle_of(ids.rounded_rectangle)
+				.color(conrod::color::WHITE)
+				.font_size(20)
+				.set(ids.text, ui);
+
+			let primitives = ui.draw();
+
+			let dims = (win_w as f32 * window.hidpi_factor(),
+						win_h as f32 * window.hidpi_factor());
+			//let dims = (500.0f32, 500.0f32);
+			ui_renderer.fill(&mut renderer.encoder, dims, primitives, &ui_image_map);
+			ui_renderer.draw(&mut factory, &mut renderer.encoder, &ui_image_map);
+		}
 
 		// push the commands
 		renderer.end_frame(&mut device);
-		ui_encoder.flush(&mut device);
 
 		window.swap_buffers().unwrap();
 		renderer.cleanup(&mut device);

@@ -421,6 +421,7 @@ impl App {
 		on_key_pressed_once![
 			F5 -> Reload,
 			F1 -> ToggleGui,
+			Space -> ToggleGui,
 			N0 -> CamReset,
 			Home -> CamReset,
 			KpHome -> CamReset,
