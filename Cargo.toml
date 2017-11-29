@@ -41,5 +41,4 @@ getopts = "*"
 #gui
 winit = "*"
 gfx_window_glutin = "*"
-gfx_text = "*"
 conrod = { features = ["gfx_rs", "winit"], version = "*" }

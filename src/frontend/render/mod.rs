@@ -18,7 +18,6 @@ use std::result;
 use gfx;
 use gfx::Factory;
 use gfx::traits::FactoryExt;
-use gfx_text;
 
 pub struct Appearance {
 	color: formats::Rgba,
@@ -234,7 +233,6 @@ pub struct ForwardRenderer<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer
 	base_vertices: gfx::handle::Buffer<R, Vertex>,
 	base_indices: gfx::Slice<R>,
 
-	text_renderer: gfx_text::Renderer<R, F>,
 	pass_forward_lighting: forward::ForwardLighting<R, C>,
 	pass_effects: effects::PostLighting<R, C>,
 
@@ -256,9 +254,6 @@ ForwardRenderer<'e, 'l, R, C, F, L> {
 
 		let forward = forward::ForwardLighting::new(factory, res)?;
 		let effects = effects::PostLighting::new(factory, res, w, h)?;
-		let text_renderer = gfx_text::new(factory.clone()).build().map_err(|_| {
-			RenderError::TextRenderer
-		})?;
 
 		Ok(ForwardRenderer {
 			factory: my_factory,
@@ -268,7 +263,6 @@ ForwardRenderer<'e, 'l, R, C, F, L> {
 			hdr_color: hdr_color_buffer,
 			depth: depth_buffer,
 			frame_buffer: frame_buffer.clone(),
-			text_renderer,
 			_quad_vertices: quad_vertices,
 			quad_indices,
 			base_vertices,
@@ -500,11 +494,8 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 		}
 	}
 
-	fn draw_text(&mut self, text: &str, screen_position: [i32; 2], text_color: formats::Rgba) {
-		self.text_renderer.add(&text, screen_position, text_color);
-		self.text_renderer
-			.draw(&mut self.encoder, &mut self.frame_buffer)
-			.expect("Failed to write text");
+	fn draw_text(&mut self, _text: &str, _screen_position: [i32; 2], _text_color: formats::Rgba) {
+		warn!("draw_text to be implemented in rusttype");
 	}
 }
 

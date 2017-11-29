@@ -1,13 +1,11 @@
+use std::result;
+use cgmath;
 use gfx;
 use gfx::traits::FactoryExt;
-use std::result;
 use frontend::render::Result;
 use frontend::render::RenderFactoryExt;
 use frontend::render::formats;
 use core::resource;
-
-extern crate cgmath;
-extern crate gfx_text;
 
 gfx_vertex_struct!(VertexPosNormal {
 	pos: [f32; 3] = "a_Pos",

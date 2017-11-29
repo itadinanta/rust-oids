@@ -348,26 +348,6 @@ version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "freetype-rs"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "freetype-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "freetype-sys"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "libc 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
- "libz-sys 1.0.18 (registry+https://github.com/rust-lang/crates.io-index)",
- "pkg-config 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "fs2"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -449,15 +429,6 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "gl_generator 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "gfx_text"
-version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "freetype-rs 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gfx 0.16.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -635,17 +606,6 @@ dependencies = [
  "lazy_static 0.2.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "target_build_utils 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "libz-sys"
-version = "1.0.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "cc 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
- "pkg-config 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "vcpkg 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1015,7 +975,6 @@ dependencies = [
  "gfx 0.16.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_core 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_device_gl 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "gfx_text 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_window_glutin 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1281,11 +1240,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "vcpkg"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
 name = "vec_map"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1485,8 +1439,6 @@ dependencies = [
 "checksum fixedbitset 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)" = "85cb8fec437468d86dc7c83ca7cfc933341d561873275f22dd5eedefa63a6478"
 "checksum flate2 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)" = "e6234dd4468ae5d1e2dbb06fe2b058696fdc50a339c68a393aefbf00bc81e423"
 "checksum fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)" = "2fad85553e09a6f881f739c29f0b00b0f01357c743266d478b68951ce23285f3"
-"checksum freetype-rs 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c8e83cb8754cc1b106191a62d50fc52e9ea0a140a92e20bade3dd8fe2748b35a"
-"checksum freetype-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4f858c54592103d59f7008c2dd438f7aab72fb587def60453c74f708531b832b"
 "checksum fs2 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)" = "bcd414e5a1a979b931bb92f41b7a54106d3f6d2e6c253e9ce943b7cd468251ef"
 "checksum fuchsia-zircon 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f6c0581a4e363262e52b87f59ee2afe3415361c6ec35e665924eb08afe8ff159"
 "checksum fuchsia-zircon-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "43f3795b4bae048dc6123a6b972cadde2e676f9ded08aef6bb77f5f157684a82"
@@ -1497,7 +1449,6 @@ dependencies = [
 "checksum gfx_core 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)" = "ceb99b721c3b5c30585d5bb33283c21bcd7c8feb29f0791b7372c3b006822c9b"
 "checksum gfx_device_gl 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)" = "f49f0eb02f923897a5f324d31e3a4d850cb12ba446a46f88eb0a1bc4749c059c"
 "checksum gfx_gl 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f25c3866329ab91b92bfbc4d5e1d8172607e804564d90b8fbecb96cbc366845d"
-"checksum gfx_text 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2e3857a50f9981097fb988828a97b063c6d11e3a7db8e4c7158e998bf9e6201a"
 "checksum gfx_window_glutin 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)" = "23068da65ba4cd3f7c52a68e59ba20be0f0626aa28a6fd992f0b917704c396f6"
 "checksum gif 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e2e41945ba23db3bf51b24756d73d81acb4f28d85c3dccc32c6fae904438c25f"
 "checksum gl_generator 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)" = "e7acbf2ba3d52e9e1ad96a84362129e9c1aa0af55ebfc86a91004e1b83eca61c"
@@ -1517,7 +1468,6 @@ dependencies = [
 "checksum lazy_static 0.2.9 (registry+https://github.com/rust-lang/crates.io-index)" = "c9e5e58fa1a4c3b915a561a78a22ee0cac6ab97dca2504428bc1cb074375f8d5"
 "checksum libc 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)" = "5ba3df4dcb460b9dfbd070d41c94c19209620c191b0340b929ce748a2bcd42d2"
 "checksum libloading 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)" = "0a020ac941774eb37e9d13d418c37b522e76899bfc4e7b1a600d529a53f83a66"
-"checksum libz-sys 1.0.18 (registry+https://github.com/rust-lang/crates.io-index)" = "87f737ad6cc6fd6eefe3d9dc5412f1573865bded441300904d2f42269e140f16"
 "checksum linked-hash-map 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6d262045c5b87c0861b3f004610afd0e2c851e2908d08b6c870cbb9d5f494ecd"
 "checksum linked-hash-map 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7860ec297f7008ff7a1e3382d7f7e1dcd69efc94751a2284bafc3d013c2aa939"
 "checksum linked-hash-map 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2d2aab0478615bb586559b0114d94dd8eca4fdbb73b443adcb0d00b61692b4bf"
@@ -1591,7 +1541,6 @@ dependencies = [
 "checksum unreachable 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1f2ae5ddb18e1c92664717616dd9549dde73f539f01bd7b77c2edb2446bdff91"
 "checksum unsafe-any 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "f30360d7979f5e9c6e6cea48af192ea8fab4afb3cf72597154b8f08935bc9c7f"
 "checksum user32-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "6717129de5ac253f5642fc78a51d0c7de6f9f53d617fc94e9bae7f6e71cf5504"
-"checksum vcpkg 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "9e0a7d8bed3178a8fb112199d466eeca9ed09a14ba8ad67718179b4fd5487d0b"
 "checksum vec_map 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "887b5b631c2ad01628bbbaa7dd4c869f80d3186688f8d0b6f58774fbe324988c"
 "checksum void 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
 "checksum wayland-client 0.9.10 (registry+https://github.com/rust-lang/crates.io-index)" = "9b10f2880f3dedaa496609a0aa7117bc6824490a48309dfbbf26258e5acc5a9d"
