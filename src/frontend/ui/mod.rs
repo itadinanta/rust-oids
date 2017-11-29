@@ -18,3 +18,9 @@ impl<T> AlertPlayer<T, ()> for NullAlertPlayer {
 		Ok(())
 	}
 }
+
+#[derive(Debug, Copy, Clone)]
+pub enum Error {
+	FontLoader,
+	ResourceLoader,
+}

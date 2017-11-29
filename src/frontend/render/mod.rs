@@ -218,7 +218,7 @@ pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>>: Draw {
 
 pub struct ForwardRenderer<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: gfx::Factory<R>, L: 'l + ResourceLoader<u8>> {
 	factory: F,
-	encoder: &'e mut gfx::Encoder<R, C>,
+	pub encoder: &'e mut gfx::Encoder<R, C>,
 
 	res: &'l L,
 
