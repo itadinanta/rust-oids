@@ -1,4 +1,5 @@
 pub mod conrod_gfx;
+pub mod conrod_ui;
 pub mod theme;
 
 pub trait AlertPlayer<T, E> {
