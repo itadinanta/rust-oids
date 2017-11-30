@@ -121,7 +121,7 @@ impl Camera {
 #[derive(Debug)]
 pub enum RenderError {
 	Shader(String),
-	TextRenderer,
+	//TextRenderer,
 }
 
 pub type Result<T> = result::Result<T, RenderError>;

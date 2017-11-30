@@ -39,6 +39,7 @@ extern crate conrod;
 
 extern crate getopts;
 extern crate ctrlc;
+#[cfg(unix)]
 extern crate thread_priority;
 
 extern crate rustc_serialize as serialize;

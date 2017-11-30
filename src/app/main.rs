@@ -163,7 +163,7 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 		renderer.resolve_frame_buffer();
 		if app.has_ui_overlay() {
 			let frame_info = format!(
-				"F: {},{} E: {:.3} FT: {:.3},{:.3}(x{}) SFT: {:.3} FPS: {:.1} P: {} E: {}",
+				"F: {},{} E: {:.3} FT: {:.3},{:.3}(x{}) SFT: {:.3} FPS: {:.1} P: {} X: {}",
 				frame_update.simulation.count,
 				frame_update.count,
 				frame_update.elapsed,
@@ -173,7 +173,7 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 				frame_update.duration_smooth,
 				frame_update.fps,
 				frame_update.simulation.population,
-				frame_update.simulation.extinctions
+				frame_update.simulation.extinctions,
 			);
 
 			use conrod::{self, widget, Colorable, Positionable, Widget};
@@ -264,7 +264,7 @@ pub fn main_loop_headless(minion_gene_pool: &str) {
 		app.play_alerts(&mut headless_alert_player);
 		if output_hourglass.flip_if_expired() {
 			info!(
-				"C: {} E: {:.3} FT: {:.2} P: {} E: {}",
+				"C: {} E: {:.3} FT: {:.2} P: {} X: {}",
 				simulation_update.count,
 				simulation_update.elapsed,
 				simulation_update.dt,

@@ -34,7 +34,6 @@ sample="*"
 portaudio="*"
 
 #sys
-thread-priority = "*"
 ctrlc = "*"
 getopts = "*"
 
@@ -42,3 +41,6 @@ getopts = "*"
 winit = "*"
 gfx_window_glutin = "*"
 conrod = { features = ["gfx_rs", "winit"], version = "*" }
+#
+[target.'cfg(unix)'.dependencies]
+thread-priority = "*"

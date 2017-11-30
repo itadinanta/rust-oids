@@ -1,10 +1,7 @@
 
 ## Rust-oids
 
-UPDATE 19/10/2017:
-  Runs in debug mode again. sRGB surface still disabled.
-
-  Tested on Devuan Ceres latest.
+A Rust-based A-life playground, for Linux (tested on Devuan Ceres) and Windows 10.
 
 ## Simulation
 
@@ -60,7 +57,6 @@ I've built on Ubuntu GNU/Linux, Devuan Ceres GNU/Linux and Windows 10. I've got 
 Aside from the full Rust toolchain, the following packages are required:
 
 - libbox2d-dev
-- libfreetype6-dev
 
 For audio:
 
@@ -69,20 +65,22 @@ For audio:
 
 ### Windows
 
-Building Windows dependencies is a tedious yak shaving exercise.
-
-Thus, for convenience, I am redistributing parts of open source projects in the form of headers and prebuilt x64 static libs for Windows 10.
+Building Windows dependencies is a tedious yak shaving exercise. For convenience, I am redistributing parts of open source projects in the form of headers and prebuilt x64 static libs for Windows 10.
 Links to the source code are provided below as for licences:
 
 - `Box2D` https://github.com/erincatto/Box2D, https://github.com/erincatto/Box2D/blob/master/LICENSE
-- `Freetype` https://www.freetype.org/developer.html, https://www.freetype.org/license.html
 - `portaudio` http://www.portaudio.com/, http://www.portaudio.com/license.html
 
 ## Build/run
 
 - Clone this repo and ```cd`` into its root
-- ```cargo run --release``` to run starting with the default gene pool
-- ```cargo run --release -- <gene_pool_file.csv>``` to run starting with a snapshotted gene pool (DDDDMMYYY_hhmmss.csv).
+- ```cargo run --release [options]``` to run starting with the default gene pool
+- ```cargo run --release -- <gene_pool_file.csv> [options]``` to run starting with a snapshotted gene pool (DDDDMMYYY_hhmmss.csv).
+
+Options:
+- `-t` text mode, headless. Simulates as fast as possible, dumps gene pool every 5 minutes. 
+- `-f I` runs in fullscreen on given monitor index I (0..)
+- `-w W`, `-w H`, optional window size
 
 `cargo_wrapper.bat` can be used in place of `cargo` to automatically sets the env var required to build the Box2D wrapper on Windows.
 
@@ -98,20 +96,27 @@ Links to the source code are provided below as for licences:
 - F5: reload shaders
 - V,B: set background tone
 - K,L: change light intensity
+- G,H: slow down/fast forward
 - 0, Home: reset camera pan
 - Arrows: camera pan
+- Spacebar/F1: show HUD
 
 ## Status line indicators
 
-The status line at the top of the screen contains the following runtime stats: 
+Press Spacebar or F1 to show the status line
 
-- F: Frame #
+- F: Simulation Frame #, Display Frame #
 - E: Elapsed time since start in seconds
-- FT: Last frame duration in milliseconds
+- FT: Simulation quantum, frame time (speed factor)
 - SFT: Average frame duration of the last 120 frames (step)
 - FPS: Average fps of the last 120 frames
 - P: Population size
-- E: Extinction index - increased every time the whole population dies off
+- X: Extinction index - increased every time the whole population dies off
+
+### Other licences
+
+For convenience, I have added some `FreeFont` assets, which are used in the Conrod GUI.
+https://www.gnu.org/software/freefont/
 
 ## Keywords
 

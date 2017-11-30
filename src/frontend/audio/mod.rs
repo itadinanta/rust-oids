@@ -3,6 +3,7 @@ mod multiplexer;
 use portaudio as pa;
 use sample;
 use std::thread;
+#[cfg(unix)]
 use thread_priority::*;
 use std::io;
 use std::sync::mpsc::channel;
@@ -165,35 +166,38 @@ impl ThreadedAlertPlayer {
 
 impl SoundSystem for ThreadedSoundSystem {
 	fn new() -> Result<ThreadedSoundSystem, self::Error> {
-		let portaudio = pa::PortAudio::new()?;
-		info!("Detected {:?} devices", portaudio.device_count());
-		let settings = portaudio.default_output_stream_settings::<f32>(
-			CHANNELS,
-			SAMPLE_HZ,
-			FRAMES,
-		)?;
 		let (tx, rx) = channel();
-
-		let dsp = Arc::new(Mutex::new(multiplexer::Multiplexer::new()));
-		let dsp_handle = dsp.clone();
-
-		let callback = move |pa::OutputStreamCallbackArgs { buffer, .. }| {
-			let buffer: &mut [[f32; CHANNELS as usize]] =
-				buffer.to_frame_slice_mut().unwrap();
-			sample::slice::equilibrium(buffer);
-			// uhm what?
-			dsp_handle.lock().unwrap().audio_requested(buffer, SAMPLE_HZ as f64);
-			pa::Continue
-		};
-		let mut stream = portaudio.open_non_blocking_stream(settings, callback)
-			.expect("Unable to open audio stream, failure in audio thread");
 		let sound_thread = thread::Builder::new().name("SoundControl".to_string()).spawn(move || {
-			let thread_id = thread_native_id();
-			assert!(set_thread_priority(thread_id,
-										ThreadPriority::Max,
-										ThreadSchedulePolicy::Normal(NormalThreadSchedulePolicy::Normal)).is_ok());
-
 			info!("Started sound control thread");
+			let portaudio = pa::PortAudio::new()
+				.expect("Unable to open portAudio");
+			info!("Detected {:?} devices", portaudio.device_count());
+			let settings = portaudio.default_output_stream_settings::<f32>(
+				CHANNELS,
+				SAMPLE_HZ,
+				FRAMES,
+			).expect("Unable to setup portAudio");
+
+			let dsp = Arc::new(Mutex::new(multiplexer::Multiplexer::new()));
+			let dsp_handle = dsp.clone();
+
+			let callback = move |pa::OutputStreamCallbackArgs { buffer, .. }| {
+				let buffer: &mut [[f32; CHANNELS as usize]] =
+					buffer.to_frame_slice_mut().unwrap();
+				sample::slice::equilibrium(buffer);
+				// uhm what?
+				dsp_handle.lock().unwrap().audio_requested(buffer, SAMPLE_HZ as f64);
+				pa::Continue
+			};
+			let mut stream = portaudio.open_non_blocking_stream(settings, callback)
+				.expect("Unable to open audio stream, failure in audio thread");
+			#[cfg(unix)] {
+				// push up thread priority
+				let thread_id = thread_native_id();
+				assert!(set_thread_priority(thread_id,
+				                            ThreadPriority::Max,
+				                            ThreadSchedulePolicy::Normal(NormalThreadSchedulePolicy::Normal)).is_ok());
+			}
 			stream.start().expect("Unable to start audio stream");
 			'sound_main: loop {
 				match rx.recv() {
