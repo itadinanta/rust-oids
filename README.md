@@ -80,7 +80,7 @@ Links to the source code are provided below as for licences:
 Options:
 - `-t` text mode, headless. Simulates as fast as possible, dumps gene pool every 5 minutes. 
 - `-f I` runs in fullscreen on given monitor index I (0..)
-- `-w W`, `-w H`, optional window size
+- `-w W`, `-h H`, optional window size
 
 `cargo_wrapper.bat` can be used in place of `cargo` to automatically sets the env var required to build the Box2D wrapper on Windows.
 
