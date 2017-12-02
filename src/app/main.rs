@@ -137,8 +137,8 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 
 		if app.has_ui_overlay() {
 			let screen = ui::conrod_ui::Screen::Main(frame_update);
-			renderer.overlay(|factory, encoder| {
-				ui.draw_screen(&screen, factory, encoder);
+			renderer.overlay(|_, encoder| {
+				ui.draw_screen(&screen, encoder);
 			});
 		}
 
