@@ -11,7 +11,6 @@ use conrod;
 use core::resource::filesystem::ResourceLoaderBuilder;
 use core::math::Directional;
 use core::clock::{Seconds, SecondsValue, Timer, Hourglass, SystemTimer};
-use core::resource::ResourceLoader;
 use ctrlc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -137,8 +136,10 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 		renderer.resolve_frame_buffer();
 
 		if app.has_ui_overlay() {
-			let primitives = ui.overlay(ui::conrod_ui::Screen::Main(frame_update));
-			renderer.overlay(move |f, r| ui.render(primitives, f, r));
+			let screen = ui::conrod_ui::Screen::Main(frame_update);
+			renderer.overlay(|factory, encoder| {
+				ui.draw_screen(&screen, factory, encoder);
+			});
 		}
 
 		// push the commands
@@ -182,7 +183,7 @@ pub fn main_loop_headless(minion_gene_pool: &str) {
 			app.dump_to_file();
 			break 'main;
 		}
-		// update and measure
+// update and measure
 		let simulation_update = app.simulate(Seconds::new(FRAME_SIMULATION_LENGTH));
 		if save_hourglass.flip_if_expired() {
 			app.dump_to_file();

@@ -205,7 +205,7 @@ pub trait Draw {
 
 pub trait Overlay<R, F, C>
 	where R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> {
-	fn overlay<O>(&mut self, overlay: O) where O: FnMut(&mut F, &mut gfx::Encoder<R, C>);
+	fn overlay<O>(&mut self, callback: O) where O: FnMut( & mut F, & mut gfx::Encoder < R, C > );
 }
 
 pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>>: Draw {
@@ -563,7 +563,7 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 
 impl<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> Overlay<R, F, C>
 for ForwardRenderer<'e, 'l, R, C, F, L> {
-	fn overlay<O>(&mut self, callback: O)
+	fn overlay<O>(&mut self, mut callback: O)
 		where O: FnMut(&mut F, &mut gfx::Encoder<R, C>),
 			  F: Factory<R> {
 		callback(&mut self.factory, &mut self.encoder)

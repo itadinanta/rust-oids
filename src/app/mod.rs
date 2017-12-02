@@ -206,6 +206,7 @@ pub struct Environment {
 	pub background_color: Rgba,
 }
 
+#[derive(Clone)]
 pub struct SimulationUpdate {
 	pub timestamp: Seconds,
 	pub dt: Seconds,
@@ -215,6 +216,7 @@ pub struct SimulationUpdate {
 	pub extinctions: usize,
 }
 
+#[derive(Clone)]
 pub struct FrameUpdate {
 	pub timestamp: Seconds,
 	pub dt: Seconds,
