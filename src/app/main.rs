@@ -1,9 +1,8 @@
 use std::path;
-use std::io;
 
 use frontend::render;
 use frontend::input::EventMapper;
-use frontend::render::{formats, Renderer};
+use frontend::render::{formats, Renderer, Overlay};
 use frontend::audio::{self, SoundSystem};
 use frontend::ui;
 
@@ -64,35 +63,10 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 	// Create a new game and run it.
 	let mut app = app::App::new(w as u32, h as u32, 100.0, &res, minion_gene_pool);
 
-	let mut ui_renderer = ui::conrod_gfx::Renderer::new(&mut factory, &frame_buffer, window.hidpi_factor() as f64).unwrap();
-	let ui_image_map = conrod::image::Map::new();
-
-	impl From<conrod::text::font::Error> for ui::Error {
-		fn from(_: conrod::text::font::Error) -> ui::Error {
-			ui::Error::FontLoader
-		}
-	}
-
-	impl From<io::Error> for ui::Error {
-		fn from(_: io::Error) -> ui::Error {
-			ui::Error::ResourceLoader
-		}
-	}
-
-	let mut ui = conrod::UiBuilder::new([w as f64, h as f64]).theme(ui::theme::default_theme()).build();
-
-	fn load_font<R>(res: &R, map: &mut conrod::text::font::Map, key: &str) ->
-	Result<conrod::text::font::Id, ui::Error>
-		where R: ResourceLoader<u8> {
-		let font_bytes = res.load(key)?;
-		let font_collection = conrod::text::FontCollection::from_bytes(font_bytes);
-		let default_font = font_collection.into_font().ok_or(ui::Error::FontLoader)?;
-		let id = map.insert(default_font);
-		Ok(id)
-	}
-
-	load_font(&res, &mut ui.fonts, "fonts/FreeSans.ttf")
-		.expect("Could not find default font");
+	let mut ui = ui::conrod_ui::Ui::new(&res,
+										&mut factory,
+										&frame_buffer, window.hidpi_factor() as f64)
+		.expect("Unable to create UI");
 
 	let audio = audio::ThreadedSoundSystem::new().expect("Failure in audio initialization");
 	let mut audio_alert_player = audio::ThreadedAlertPlayer::new(audio);
@@ -113,9 +87,9 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 							gfx_window_glutin::update_views(&window, &mut frame_buffer, &mut depth_buffer);
 							renderer.resize_to(&frame_buffer)
 								.expect("Unable to resize window");
+							ui.resize_to(&frame_buffer)
+								.expect("Unable to resize window");
 							app.on_resize(new_width, new_height);
-							ui_renderer = ui::conrod_gfx::Renderer::new(&mut factory, &frame_buffer, window.hidpi_factor() as f64)
-								.expect("Unable to recreate ui renderer");
 						}
 						WindowEvent::Closed => app.quit(),
 						WindowEvent::KeyboardInput {
@@ -161,57 +135,10 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 		app.render(renderer);
 		// post-render effects and tone mapping
 		renderer.resolve_frame_buffer();
+
 		if app.has_ui_overlay() {
-			let frame_info = format!(
-				"F: {},{} E: {:.3} FT: {:.3},{:.3}(x{}) SFT: {:.3} FPS: {:.1} P: {} X: {}",
-				frame_update.simulation.count,
-				frame_update.count,
-				frame_update.elapsed,
-				frame_update.simulation.dt,
-				frame_update.dt,
-				frame_update.speed_factor,
-				frame_update.duration_smooth,
-				frame_update.fps,
-				frame_update.simulation.population,
-				frame_update.simulation.extinctions,
-			);
-
-			use conrod::{self, widget, Colorable, Positionable, Widget};
-			widget_ids!(struct Ids { text, canvas, rounded_rectangle });
-			let ids = Ids::new(ui.widget_id_generator());
-
-			let window_id = ui.window.clone();
-			let win_w = ui.win_w;
-			let win_h = ui.win_h;
-			let ui = &mut ui.set_widgets();
-			// "Hello World!" in the middle of the screen.
-
-			widget::Canvas::new()
-				.pad(10.0)
-				.color(conrod::color::CHARCOAL.alpha(0.4))
-				.middle_of(window_id)
-				.scroll_kids_vertically()
-				.set(ids.canvas, ui);
-
-			let full_width = ui.w_of(window_id).unwrap_or_default();
-			widget::RoundedRectangle::fill([full_width, 100.0], 5.0)
-				.color(conrod::color::BLACK.alpha(0.5))
-				.middle_of(ids.canvas)
-				.set(ids.rounded_rectangle, ui);
-
-			widget::Text::new(&frame_info)
-				.middle_of(ids.rounded_rectangle)
-				.color(conrod::color::WHITE)
-				.font_size(20)
-				.set(ids.text, ui);
-
-			let primitives = ui.draw();
-
-			let dims = (win_w as f32 * window.hidpi_factor(),
-						win_h as f32 * window.hidpi_factor());
-			//let dims = (500.0f32, 500.0f32);
-			ui_renderer.fill(&mut renderer.encoder, dims, primitives, &ui_image_map);
-			ui_renderer.draw(&mut factory, &mut renderer.encoder, &ui_image_map);
+			let primitives = ui.overlay(ui::conrod_ui::Screen::Main(frame_update));
+			renderer.overlay(move |f, r| ui.render(primitives, f, r));
 		}
 
 		// push the commands

@@ -545,7 +545,7 @@ impl<R: Resources> Renderer<R>{
 	/// methods for the case that the user does not require accessing or modifying conrod's draw
 	/// parameters, uniforms or generated draw commands.
 	pub fn draw<F, C>(&self, factory: &mut F, encoder: &mut gfx::Encoder<R,C>, image_map: &image::Map<(gfx::handle::ShaderResourceView<R, [f32; 4]>,(u32,u32))>)
-		where F: Factory<R>,
+		where F: gfx::Factory<R>,
 			  C: gfx::CommandBuffer<R>,
 	{
 		let Renderer{ ref pipeline, ref data, ref cache_tex_view, ..} = *self;

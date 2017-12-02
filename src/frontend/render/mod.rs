@@ -203,6 +203,11 @@ pub trait Draw {
 	fn draw_text(&mut self, text: &str, screen_position: [i32; 2], text_color: formats::Rgba);
 }
 
+pub trait Overlay<R, F, C>
+	where R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> {
+	fn overlay<O>(&mut self, overlay: O) where O: FnMut(&mut F, &mut gfx::Encoder<R, C>);
+}
+
 pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>>: Draw {
 	fn setup_frame(
 		&mut self, camera: &Camera, background_color: formats::Rgba, light_color: formats::Rgba,
@@ -210,7 +215,6 @@ pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>>: Draw {
 	);
 	fn begin_frame(&mut self);
 	fn resolve_frame_buffer(&mut self);
-	fn draw_overlay<O>(&mut self, overlay: O) where O: FnMut(&mut gfx::Encoder<R, C>) -> ();
 	fn end_frame<D: gfx::Device<Resources=R, CommandBuffer=C>>(&mut self, device: &mut D);
 	fn cleanup<D: gfx::Device<Resources=R, CommandBuffer=C>>(&mut self, device: &mut D);
 }
@@ -540,11 +544,6 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 		);
 	}
 
-	fn draw_overlay<O>(&mut self, mut overlay: O)
-		where O: FnMut(&mut gfx::Encoder<R, C>) -> () {
-		overlay(&mut self.encoder)
-	}
-
 	fn resolve_frame_buffer(&mut self) {
 		self.pass_effects.apply_all(
 			&mut self.encoder,
@@ -559,5 +558,14 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 
 	fn cleanup<D: gfx::Device<Resources=R, CommandBuffer=C>>(&mut self, device: &mut D) {
 		device.cleanup();
+	}
+}
+
+impl<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> Overlay<R, F, C>
+for ForwardRenderer<'e, 'l, R, C, F, L> {
+	fn overlay<O>(&mut self, callback: O)
+		where O: FnMut(&mut F, &mut gfx::Encoder<R, C>),
+			  F: Factory<R> {
+		callback(&mut self.factory, &mut self.encoder)
 	}
 }
