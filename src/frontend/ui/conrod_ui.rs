@@ -1,15 +1,45 @@
-use conrod;
-use conrod::event;
-use conrod::widget;
+use conrod::{self, event, widget, Colorable, Positionable, Widget};
+use conrod::widget::primitive::text::Style;
 use std::io;
-use app;
-use super::Error;
+use super::{Error, Screen, theme};
 use super::conrod_gfx;
-use super::theme;
 use core::resource::ResourceLoader;
 use gfx::{Encoder, Factory, Resources, CommandBuffer};
 use gfx::handle::{ShaderResourceView, RenderTargetView};
 use frontend::render::formats;
+
+widget_ids!(
+	#[derive(Clone)]
+	struct Ids {
+	// HELP
+	help_text,
+
+	// HUD
+	text, canvas, rounded_rectangle,
+
+	simulation_count_label,
+	count_label,
+	elapsed_label,
+	simulation_dt_label,
+	dt_label,
+	speed_factor_label,
+	duration_smooth_label,
+	fps_label,
+	simulation_population_label,
+	simulation_extinctions_label,
+
+	simulation_count_value,
+	count_value,
+	elapsed_value,
+	simulation_dt_value,
+	dt_value,
+	speed_factor_value,
+	duration_smooth_value,
+	fps_value,
+	simulation_population_value,
+	simulation_extinctions_value,
+
+});
 
 pub struct Ui<'f, R, F>
 	where
@@ -21,6 +51,9 @@ pub struct Ui<'f, R, F>
 	ui: Box<conrod::Ui>,
 	image_map: conrod::image::Map<(ShaderResourceView<R, [f32; 4]>, (u32, u32))>,
 	hidpi_factor: f64,
+	style_label: Style,
+	style_value: Style,
+	ids: Ids,
 	events: Vec<event::Input>,
 }
 
@@ -36,18 +69,74 @@ impl From<io::Error> for Error {
 	}
 }
 
-#[derive(Clone)]
-pub enum Screen {
-	Main(app::FrameUpdate),
+impl Screen {
+	fn draw_widgets<'e>(&self,
+						ui: &'e mut conrod::Ui,
+						root_window_id: widget::Id,
+						style_label: Style,
+						style_value: Style,
+						ids: Ids) -> conrod::UiCell<'e> {
+		let mut widgets = ui.set_widgets();
+
+		match self {
+			&Screen::Help => {
+				let help_text = "Text help";
+				widget::Canvas::new()
+					.pad(10.0)
+					.color(conrod::color::CHARCOAL.alpha(0.4))
+					.middle_of(root_window_id)
+					.scroll_kids_vertically()
+					.set(ids.canvas, &mut widgets);
+
+				widget::Text::new(&help_text)
+					.middle_of(ids.canvas)
+					.with_style(style_label)
+					.set(ids.text, &mut widgets);
+			}
+			&Screen::Main(ref frame_update) => {
+				let frame_info = format!(
+					"F: {},{} E: {:.3} FT: {:.3},{:.3}(x{}) SFT: {:.3} FPS: {:.1} P: {} X: {}",
+					frame_update.simulation.count,
+					frame_update.count,
+					frame_update.elapsed,
+					frame_update.simulation.dt,
+					frame_update.dt,
+					frame_update.speed_factor,
+					frame_update.duration_smooth,
+					frame_update.fps,
+					frame_update.simulation.population,
+					frame_update.simulation.extinctions,
+				);
+				let mut txt_with_label =
+					|label_id: widget::id::Id,
+					 value_id: widget::id::Id,
+					 label: &str, value: &str| {
+						widget::Text::new(label)
+							.mid_bottom_of(root_window_id)
+							.with_style(style_value)
+							.set(label_id, &mut widgets);
+
+						widget::Text::new(value)
+							.mid_bottom_of(root_window_id)
+							.with_style(style_value)
+							.set(value_id, &mut widgets);
+					};
+
+				txt_with_label(ids.simulation_count_label, ids.simulation_count_value,
+							   "Sim Frames:", &format!("{}", frame_update.simulation.count));
+			}
+		};
+		widgets
+	}
 }
 
 impl<'f, R, F> Ui<'f, R, F> where
 	R: Resources,
 	F: Factory<R> + 'f, {
 	pub fn new<'e, L>(res: &L,
-	                  factory: &'e mut F,
-	                  frame_buffer: &RenderTargetView<R, formats::ScreenColorFormat>,
-	                  hidpi_factor: f64) -> Result<Ui<'f, R, F>, Error>
+					  factory: &'e mut F,
+					  frame_buffer: &RenderTargetView<R, formats::ScreenColorFormat>,
+					  hidpi_factor: f64) -> Result<Ui<'f, R, F>, Error>
 		where L: ResourceLoader<u8>, 'e: 'f {
 		let renderer = conrod_gfx::Renderer::new(factory, frame_buffer, hidpi_factor).unwrap();
 		let image_map = conrod::image::Map::new();
@@ -56,19 +145,36 @@ impl<'f, R, F> Ui<'f, R, F> where
 
 		Self::load_font(res, &mut ui.fonts, "fonts/FreeSans.ttf")?;
 
+
+		let style_label = Style {
+			color: Some(conrod::color::WHITE),
+			font_size: Some(20),
+			..Default::default()
+		};
+		let style_value = Style {
+			color: Some(conrod::color::WHITE),
+			font_size: Some(20),
+			..Default::default()
+		};
+
+		let ids = Ids::new(ui.widget_id_generator());
+
 		Ok(Ui {
 			factory,
 			renderer,
 			ui: Box::new(ui),
 			image_map,
 			hidpi_factor,
+			style_label,
+			style_value,
+			ids,
 			events: Vec::new(),
 		})
 	}
 
 	pub fn resize_to(&mut self,
-	                 frame_buffer: &RenderTargetView<R, formats::ScreenColorFormat>)
-	                 -> Result<(), Error> {
+					 frame_buffer: &RenderTargetView<R, formats::ScreenColorFormat>)
+					 -> Result<(), Error> {
 		let hidpi_factor = self.hidpi_factor;
 		self.renderer = conrod_gfx::Renderer::new(self.factory, frame_buffer, hidpi_factor).unwrap();
 		Ok(())
@@ -88,50 +194,14 @@ impl<'f, R, F> Ui<'f, R, F> where
 		where C: CommandBuffer<R> {
 		let dims = (self.ui.win_w as f32, self.ui.win_h as f32);
 		let window_id = self.ui.window.clone();
-
-		let widgets = Self::draw_screen_widgets(&mut self.ui, window_id, screen);
+		let widgets = screen.draw_widgets(&mut self.ui,
+										  window_id,
+										  self.style_label.clone(),
+										  self.style_value.clone(),
+										  self.ids.clone());
 		let primitives = widgets.draw();
 		self.renderer.fill(encoder, dims, primitives, &self.image_map);
 		self.renderer.draw(self.factory, encoder, &self.image_map);
-	}
-
-	fn draw_screen_widgets<'e>(ui: &'e mut conrod::Ui, window_id: widget::Id, screen: &Screen) -> conrod::UiCell<'e> {
-		use conrod::{self, widget, Colorable, Positionable, Widget};
-		match screen {
-			&Screen::Main(ref frame_update) => {
-				let frame_info = format!(
-					"F: {},{} E: {:.3} FT: {:.3},{:.3}(x{}) SFT: {:.3} FPS: {:.1} P: {} X: {}",
-					frame_update.simulation.count,
-					frame_update.count,
-					frame_update.elapsed,
-					frame_update.simulation.dt,
-					frame_update.dt,
-					frame_update.speed_factor,
-					frame_update.duration_smooth,
-					frame_update.fps,
-					frame_update.simulation.population,
-					frame_update.simulation.extinctions,
-				);
-				widget_ids!( struct Ids { text, canvas, rounded_rectangle });
-				let ids = Ids::new(ui.widget_id_generator());
-				let mut widgets = ui.set_widgets();
-
-				widget::Canvas::new()
-					.pad(10.0)
-					.color(conrod::color::CHARCOAL.alpha(0.4))
-					.middle_of(window_id)
-					.scroll_kids_vertically()
-					.set(ids.canvas, &mut widgets);
-
-				widget::Text::new(&frame_info)
-					.mid_bottom_of(ids.canvas)
-					.color(conrod::color::WHITE)
-					.font_size(20)
-					.set(ids.text, &mut widgets);
-
-				widgets
-			}
-		}
 	}
 
 	pub fn push_event(&mut self, event: event::Input) {

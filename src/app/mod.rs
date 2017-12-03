@@ -206,7 +206,7 @@ pub struct Environment {
 	pub background_color: Rgba,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SimulationUpdate {
 	pub timestamp: Seconds,
 	pub dt: Seconds,
@@ -216,7 +216,7 @@ pub struct SimulationUpdate {
 	pub extinctions: usize,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FrameUpdate {
 	pub timestamp: Seconds,
 	pub dt: Seconds,
@@ -257,7 +257,7 @@ impl App {
 			is_paused: false,
 			// debug
 			debug_flags: DebugFlags::empty(),
-			has_ui_overlay: false,
+			has_ui_overlay: true,
 		}
 	}
 

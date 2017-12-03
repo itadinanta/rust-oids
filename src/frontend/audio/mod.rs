@@ -215,6 +215,13 @@ impl SoundSystem for ThreadedSoundSystem {
 				}
 			}
 			info!("Closing audio stream");
+			#[cfg(unix)] {
+				// push up thread priority
+				let thread_id = thread_native_id();
+				assert!(set_thread_priority(thread_id,
+											ThreadPriority::Specific(0),
+											ThreadSchedulePolicy::Normal(NormalThreadSchedulePolicy::Normal)).is_ok());
+			}
 			match stream.close() {
 				Err(msg) => error!("Unable to close audio stream: {:?}", msg),
 				Ok(_) => info!("Close audio stream"),
