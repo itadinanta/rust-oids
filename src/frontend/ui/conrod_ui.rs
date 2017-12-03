@@ -21,6 +21,7 @@ pub struct Ui<'f, R, F>
 	ui: Box<conrod::Ui>,
 	image_map: conrod::image::Map<(ShaderResourceView<R, [f32; 4]>, (u32, u32))>,
 	hidpi_factor: f64,
+	events: Vec<event::Input>,
 }
 
 impl From<conrod::text::font::Error> for Error {
@@ -61,6 +62,7 @@ impl<'f, R, F> Ui<'f, R, F> where
 			ui: Box::new(ui),
 			image_map,
 			hidpi_factor,
+			events: Vec::new(),
 		})
 	}
 
@@ -132,7 +134,14 @@ impl<'f, R, F> Ui<'f, R, F> where
 		}
 	}
 
-	pub fn handle_event(&mut self, event: event::Input) {
-		self.ui.handle_event(event)
+	pub fn push_event(&mut self, event: event::Input) {
+		self.events.push(event);
+	}
+
+	pub fn handle_events(&mut self) {
+		for event in &self.events {
+			self.ui.handle_event(event.clone())
+		}
+		self.events.clear();
 	}
 }

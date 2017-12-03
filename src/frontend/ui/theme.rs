@@ -4,13 +4,13 @@ use std;
 pub fn default_theme() -> conrod::Theme {
 	use conrod::position::{Align, Direction, Padding, Position, Relative};
 	conrod::Theme {
-		name: "Demo Theme".to_string(),
+		name: "Default Theme".to_string(),
 		padding: Padding::none(),
 		x_position: Position::Relative(Relative::Align(Align::Start), None),
 		y_position: Position::Relative(Relative::Direction(Direction::Backwards, 20.0), None),
-		background_color: conrod::color::DARK_CHARCOAL,
-		shape_color: conrod::color::LIGHT_CHARCOAL,
-		border_color: conrod::color::BLACK,
+		background_color: conrod::color::DARK_CHARCOAL.alpha(0.4),
+		shape_color: conrod::color::WHITE.alpha(0.0),
+		border_color: conrod::color::WHITE,
 		border_width: 0.0,
 		label_color: conrod::color::WHITE,
 		font_id: None,

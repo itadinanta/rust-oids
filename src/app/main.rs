@@ -75,7 +75,7 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 		events_loop.poll_events(|event| {
 			if app.has_ui_overlay() {
 				if let Some(event) = conrod::backend::winit::convert_event(event.clone(), window.window()) {
-					ui.handle_event(event);
+					ui.push_event(event);
 				}
 			}
 
@@ -140,6 +140,7 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 			renderer.overlay(|_, encoder| {
 				ui.draw_screen(&screen, encoder);
 			});
+			ui.handle_events(); // we pass the events directly to the drawn screen
 		}
 
 		// push the commands
