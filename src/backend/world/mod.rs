@@ -46,7 +46,7 @@ pub struct World {
 	swarms: HashMap<AgentType, Swarm>,
 	emitters: Vec<Emitter>,
 	registered: HashSet<Id>,
-	extinctions: usize,
+	regenerations: usize,
 	minion_gene_pool: gen::GenePool,
 	resource_gene_pool: gen::GenePool,
 	clock: SharedTimer<SimulationTimer>,
@@ -141,7 +141,7 @@ impl World {
 				.unwrap_or_else(default_gene_pool),
 			resource_gene_pool: gen::GenePool::parse_from_base64(&["GyA21QoQ", "M00sWS0M"]),
 			registered: HashSet::new(),
-			extinctions: 0usize,
+			regenerations: 0usize,
 			clock,
 			alerts: Vec::new(),
 		}
@@ -156,7 +156,7 @@ impl World {
 	pub fn seconds(&self) -> Seconds { self.clock.borrow().seconds() }
 
 	pub fn extinctions(&self) -> usize {
-		self.extinctions
+		if self.regenerations > 1 { self.regenerations - 1 } else { 0usize }
 	}
 
 	pub fn new_resource(&mut self, transform: &Transform, motion: Option<&Motion>) -> obj::Id {
@@ -198,7 +198,7 @@ impl World {
 	}
 
 	pub fn init_minions(&mut self) {
-		self.extinctions += 1;
+		self.regenerations += 1;
 		let n = self.minion_gene_pool.len();
 		let mut r = self.extent.top_right().x * 0.25;
 		let mut angle = 0.0f32;
