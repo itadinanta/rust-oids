@@ -1,4 +1,4 @@
-use conrod::{self, event, widget, Colorable, Positionable, Widget};
+use conrod::{self, event, widget, Colorable, Positionable, Sizeable, Widget};
 use conrod::widget::primitive::text::Style;
 use std::io;
 use super::{Error, Screen, theme};
@@ -11,6 +11,7 @@ use frontend::render::formats;
 
 #[derive(Clone, Debug)]
 pub struct WidgetIdGroup {
+	panel_row_id: widget::Id,
 	panel_id: widget::Id,
 	label_id: widget::Id,
 	value_id: widget::Id,
@@ -55,11 +56,11 @@ impl From<io::Error> for Error {
 
 impl Screen {
 	fn draw_widgets<'e>(&self,
-	                    ui: &'e mut conrod::Ui,
-	                    root_window_id: widget::Id,
-	                    style_label: Style,
-	                    style_value: Style,
-	                    ids: &Ids) -> conrod::UiCell<'e> {
+						ui: &'e mut conrod::Ui,
+						root_window_id: widget::Id,
+						style_label: Style,
+						style_value: Style,
+						ids: &Ids) -> conrod::UiCell<'e> {
 		let mut widgets = ui.set_widgets();
 
 		match self {
@@ -78,13 +79,28 @@ impl Screen {
 					.set(ids.help_text, &mut widgets);
 			}
 			&Screen::Main(ref frame_update) => {
+				let splits = ids.hud_labels.iter()
+					.map(|&WidgetIdGroup { panel_row_id, .. }|
+						(panel_row_id, widget::Canvas::new().color(conrod::color::TRANSPARENT)))
+					.collect::<Vec<_>>();
+				;
+				widget::Canvas::new()
+					.pad(50.0)
+					.color(conrod::color::TRANSPARENT)
+					.kid_area_w_of(root_window_id)
+					.mid_top()
+					.flow_down(&splits)
+					.set(ids.hud_canvas, &mut widgets);
 				let mut ids_iter = ids.hud_labels.iter();
 				let mut txt_with_label = |label: &str, value: &str| {
-					let WidgetIdGroup { panel_id, label_id, value_id } = ids_iter.next().unwrap().clone();
+					let WidgetIdGroup { panel_id, label_id, value_id, panel_row_id } = ids_iter.next().unwrap().clone();
+
 					widget::Canvas::new()
+						.mid_left_of(panel_row_id)
 						.pad(10.0)
 						.color(conrod::color::CHARCOAL.alpha(0.4))
-						.middle_of(root_window_id)
+						.w(300.0)
+						.h(60.0)
 						.set(panel_id, &mut widgets);
 
 					widget::Text::new(label)
@@ -119,9 +135,9 @@ impl<'f, R, F> Ui<'f, R, F> where
 	R: Resources,
 	F: Factory<R> + 'f, {
 	pub fn new<'e, L>(res: &L,
-	                  factory: &'e mut F,
-	                  frame_buffer: &RenderTargetView<R, formats::ScreenColorFormat>,
-	                  hidpi_factor: f64) -> Result<Ui<'f, R, F>, Error>
+					  factory: &'e mut F,
+					  frame_buffer: &RenderTargetView<R, formats::ScreenColorFormat>,
+					  hidpi_factor: f64) -> Result<Ui<'f, R, F>, Error>
 		where L: ResourceLoader<u8>, 'e: 'f {
 		let renderer = conrod_gfx::Renderer::new(factory, frame_buffer, hidpi_factor).unwrap();
 		let image_map = conrod::image::Map::new();
@@ -132,13 +148,13 @@ impl<'f, R, F> Ui<'f, R, F> where
 
 
 		let style_label = Style {
-			color: Some(conrod::color::WHITE),
-			font_size: Some(20),
+			color: Some(conrod::color::LIGHT_GRAY),
+			font_size: Some(14),
 			..Default::default()
 		};
 		let style_value = Style {
-			color: Some(conrod::color::WHITE),
-			font_size: Some(20),
+			color: Some(conrod::color::GREEN),
+			font_size: Some(14),
 			..Default::default()
 		};
 
@@ -150,6 +166,7 @@ impl<'f, R, F> Ui<'f, R, F> where
 			hud_labels: (0..10)
 				.map(|_| {
 					WidgetIdGroup {
+						panel_row_id: ui.widget_id_generator().next(),
 						panel_id: ui.widget_id_generator().next(),
 						label_id: ui.widget_id_generator().next(),
 						value_id: ui.widget_id_generator().next(),
@@ -172,8 +189,8 @@ impl<'f, R, F> Ui<'f, R, F> where
 	}
 
 	pub fn resize_to(&mut self,
-	                 frame_buffer: &RenderTargetView<R, formats::ScreenColorFormat>)
-	                 -> Result<(), Error> {
+					 frame_buffer: &RenderTargetView<R, formats::ScreenColorFormat>)
+					 -> Result<(), Error> {
 		let hidpi_factor = self.hidpi_factor;
 		self.renderer = conrod_gfx::Renderer::new(self.factory, frame_buffer, hidpi_factor).unwrap();
 		Ok(())
@@ -194,10 +211,10 @@ impl<'f, R, F> Ui<'f, R, F> where
 		let dims = (self.ui.win_w as f32, self.ui.win_h as f32);
 		let window_id = self.ui.window.clone();
 		let widgets = screen.draw_widgets(&mut self.ui,
-		                                  window_id,
-		                                  self.style_label.clone(),
-		                                  self.style_value.clone(),
-		                                  &self.ids.clone());
+										  window_id,
+										  self.style_label.clone(),
+										  self.style_value.clone(),
+										  &self.ids.clone());
 		let primitives = widgets.draw();
 		self.renderer.fill(encoder, dims, primitives, &self.image_map);
 		self.renderer.draw(self.factory, encoder, &self.image_map);
