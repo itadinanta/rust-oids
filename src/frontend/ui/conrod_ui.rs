@@ -8,13 +8,21 @@ use gfx::{Encoder, Factory, Resources, CommandBuffer};
 use gfx::handle::{ShaderResourceView, RenderTargetView};
 use frontend::render::formats;
 
+
+#[derive(Clone, Debug)]
+pub struct WidgetIdGroup {
+	panel_id: widget::Id,
+	label_id: widget::Id,
+	value_id: widget::Id,
+}
+
 #[derive(Clone, Debug)]
 pub struct Ids {
 	help_canvas: widget::Id,
 	help_text: widget::Id,
 
 	hud_canvas: widget::Id,
-	hud_labels: Vec<(widget::Id, widget::Id)>,
+	hud_labels: Vec<WidgetIdGroup>,
 }
 
 pub struct Ui<'f, R, F>
@@ -72,14 +80,20 @@ impl Screen {
 			&Screen::Main(ref frame_update) => {
 				let mut ids_iter = ids.hud_labels.iter();
 				let mut txt_with_label = |label: &str, value: &str| {
-					let (label_id, value_id) = ids_iter.next().unwrap().clone();
+					let WidgetIdGroup { panel_id, label_id, value_id } = ids_iter.next().unwrap().clone();
+					widget::Canvas::new()
+						.pad(10.0)
+						.color(conrod::color::CHARCOAL.alpha(0.4))
+						.middle_of(root_window_id)
+						.set(panel_id, &mut widgets);
+
 					widget::Text::new(label)
-						.mid_bottom_of(root_window_id)
+						.mid_left_of(panel_id)
 						.with_style(style_label)
 						.set(label_id, &mut widgets);
 
 					widget::Text::new(value)
-						.mid_bottom_of(root_window_id)
+						.mid_right_of(panel_id)
 						.with_style(style_value)
 						.set(value_id, &mut widgets);
 				};
@@ -134,7 +148,13 @@ impl<'f, R, F> Ui<'f, R, F> where
 
 			hud_canvas: ui.widget_id_generator().next(),
 			hud_labels: (0..10)
-				.map(|_| (ui.widget_id_generator().next(), ui.widget_id_generator().next()))
+				.map(|_| {
+					WidgetIdGroup {
+						panel_id: ui.widget_id_generator().next(),
+						label_id: ui.widget_id_generator().next(),
+						value_id: ui.widget_id_generator().next(),
+					}
+				})
 				.collect()
 		};
 
