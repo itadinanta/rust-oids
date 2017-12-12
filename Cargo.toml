@@ -1,6 +1,6 @@
 [package]
 name = "rust-oids"
-version = "0.5.0"
+version = "0.6.0"
 authors = [
 	"norru <nigu.orru@gmail.com>"
 ]
@@ -40,7 +40,7 @@ getopts = "*"
 #gui
 winit = "*"
 gfx_window_glutin = "*"
-conrod = { features = ["gfx_rs", "winit"], version = "*" }
+conrod = { features = ["winit"], version = "*" }
 #
 [target.'cfg(unix)'.dependencies]
 thread-priority = "*"

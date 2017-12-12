@@ -26,13 +26,13 @@ pub struct Ids {
 	hud_labels: Vec<WidgetIdGroup>,
 }
 
-pub struct Ui<'f, R, F>
+pub struct Ui<'f, 'font, R, F>
 	where
 		R: Resources,
 		F: Factory<R> + 'f,
 {
 	factory: &'f mut F,
-	renderer: conrod_gfx::Renderer<R>,
+	renderer: conrod_gfx::Renderer<'font, R>,
 	ui: Box<conrod::Ui>,
 	image_map: conrod::image::Map<(ShaderResourceView<R, [f32; 4]>, (u32, u32))>,
 	hidpi_factor: f64,
@@ -131,13 +131,13 @@ impl Screen {
 	}
 }
 
-impl<'f, R, F> Ui<'f, R, F> where
+impl<'f, 'font, R, F> Ui<'f, 'font, R, F> where
 	R: Resources,
 	F: Factory<R> + 'f, {
 	pub fn new<'e, L>(res: &L,
 					  factory: &'e mut F,
 					  frame_buffer: &RenderTargetView<R, formats::ScreenColorFormat>,
-					  hidpi_factor: f64) -> Result<Ui<'f, R, F>, Error>
+					  hidpi_factor: f64) -> Result<Ui<'f, 'font, R, F>, Error>
 		where L: ResourceLoader<u8>, 'e: 'f {
 		let renderer = conrod_gfx::Renderer::new(factory, frame_buffer, hidpi_factor).unwrap();
 		let image_map = conrod::image::Map::new();

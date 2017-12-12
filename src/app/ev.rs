@@ -125,7 +125,7 @@ impl input::EventMapper<glutin::WindowEvent> for GlutinEventMapper {
 				button,
 				..
 			} => mousemap(button).and_then(|key| Some(input::Event::Key(state_map(element_state), key))),
-			&WindowEvent::MouseMoved { position: (x, y), .. } => Some(
+			&WindowEvent::CursorMoved { position: (x, y), .. } => Some(
 				input::Event::Mouse(Position::new(x as f32, y as f32)),
 			),
 			_ => None,
