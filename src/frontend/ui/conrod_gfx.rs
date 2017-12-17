@@ -1,11 +1,11 @@
-use gfx::{self,Resources,Factory, texture,PipelineState};
-use gfx::handle::{RenderTargetView};
+use gfx::{self, Resources, Factory, texture, PipelineState};
+use gfx::handle::RenderTargetView;
 use gfx::traits::FactoryExt;
 use std;
 
 use frontend::render::formats;
 
-use conrod::text::{rt,GlyphCache};
+use conrod::text::{rt, GlyphCache};
 use conrod::render;
 use conrod::color;
 use conrod::image;
@@ -110,9 +110,10 @@ type SurfaceFormat = formats::ScreenColorChannels;
 type FullFormat = (SurfaceFormat, gfx::format::Unorm);
 
 //this is it's own module to allow_unsafe within it
-mod defines{
+mod defines {
 	//it appears gfx_defines generates unsafe code
 	#![allow(unsafe_code)]
+
 	use gfx;
 	use super::ColorFormat;
 	// Vertex and pipeline declarations
@@ -143,12 +144,12 @@ impl Vertex {
 			pos,
 			uv,
 			color,
-			mode
+			mode,
 		}
 	}
 }
 
-pub struct Renderer<'font, R: Resources>{
+pub struct Renderer<'font, R: Resources> {
 	pipeline: PipelineState<R, pipe::Meta>,
 	glyph_cache: GlyphCache<'font>,
 	cache_tex: gfx::handle::Texture<R, SurfaceFormat>,
@@ -161,24 +162,24 @@ pub struct Renderer<'font, R: Resources>{
 	vertices: Vec<Vertex>,
 }
 
-impl<'font, R: Resources> Renderer<'font, R>{
-	pub fn new<F: Factory<R>>(factory: &mut F, rtv: &RenderTargetView<R, ColorFormat>, dpi_factor: f64) -> Result<Self,RendererCreationError>
+impl<'font, R: Resources> Renderer<'font, R> {
+	pub fn new<F: Factory<R>>(factory: &mut F, rtv: &RenderTargetView<R, ColorFormat>, dpi_factor: f64) -> Result<Self, RendererCreationError>
 	{
 		let sampler_info = texture::SamplerInfo::new(
 			texture::FilterMethod::Bilinear,
-			texture::WrapMode::Clamp
+			texture::WrapMode::Clamp,
 		);
 		let sampler = factory.create_sampler(sampler_info);
 
 		let vbuf = factory.create_vertex_buffer(&[]);
-		let (_, fake_texture) = create_texture(factory, 1, 1, &[0;4]);
-		let (_, blank_texture) = create_texture(factory, 1, 1, &[255;4]);
+		let (_, fake_texture) = create_texture(factory, 1, 1, &[0; 4]);
+		let (_, blank_texture) = create_texture(factory, 1, 1, &[255; 4]);
 
-		let (width,height,_depth,_samples) = rtv.get_dimensions();
+		let (width, height, _depth, _samples) = rtv.get_dimensions();
 
 		let data = pipe::Data {
 			vbuf,
-			scissor: gfx::Rect{x:0,y:0,w:width,h:height},
+			scissor: gfx::Rect { x: 0, y: 0, w: width, h: height },
 			color: (fake_texture.clone(), sampler),
 			out: rtv.clone(),
 		};
@@ -186,8 +187,7 @@ impl<'font, R: Resources> Renderer<'font, R>{
 		let pipeline = factory.create_pipeline_simple(VERTEX_SHADER, FRAGMENT_SHADER, pipe::new())?;
 
 		let (glyph_cache, cache_tex, cache_tex_view) = {
-
-			let width = (width as f64* dpi_factor) as u32;
+			let width = (width as f64 * dpi_factor) as u32;
 			let height = (height as f64 * dpi_factor) as u32;
 
 			const SCALE_TOLERANCE: f32 = 0.1;
@@ -203,7 +203,7 @@ impl<'font, R: Resources> Renderer<'font, R>{
 
 			(cache, texture, texture_view)
 		};
-		Ok(Renderer{
+		Ok(Renderer {
 			pipeline,
 			glyph_cache,
 			cache_tex,
@@ -227,10 +227,10 @@ impl<'font, R: Resources> Renderer<'font, R>{
 
 	/// Fill the inner vertex and command buffers by translating the given `primitives`.
 	pub fn fill<P, C>(&mut self,
-					  encoder: &mut gfx::Encoder<R,C>,
-					  dims: (f32,f32),
+					  encoder: &mut gfx::Encoder<R, C>,
+					  dims: (f32, f32),
 					  mut primitives: P,
-					  image_map: &image::Map<(gfx::handle::ShaderResourceView<R, [f32; 4]>,(u32,u32))>)
+					  image_map: &image::Map<(gfx::handle::ShaderResourceView<R, [f32; 4]>, (u32, u32))>)
 		where P: render::PrimitiveWalker,
 			  C: gfx::CommandBuffer<R>,
 	{
@@ -287,7 +287,7 @@ impl<'font, R: Resources> Renderer<'font, R>{
 				x: std::cmp::max(left, 0),
 				w: std::cmp::min(width, screen_w as u16),
 				y: std::cmp::max(bottom, 0),
-				h:  std::cmp::min(height, screen_h as u16),
+				h: std::cmp::min(height, screen_h as u16),
 			}
 		};
 
@@ -315,7 +315,6 @@ impl<'font, R: Resources> Renderer<'font, R>{
 			}
 
 			match kind {
-
 				render::PrimitiveKind::Rectangle { color } => {
 					switch_to_plain_state!();
 
@@ -343,7 +342,7 @@ impl<'font, R: Resources> Renderer<'font, R>{
 					push_v(l, t);
 					push_v(r, b);
 					push_v(r, t);
-				},
+				}
 
 				render::PrimitiveKind::TrianglesSingleColor { color, triangles } => {
 					if triangles.is_empty() {
@@ -368,7 +367,7 @@ impl<'font, R: Resources> Renderer<'font, R>{
 						vertices.push(v(triangle[1]));
 						vertices.push(v(triangle[2]));
 					}
-				},
+				}
 
 				render::PrimitiveKind::TrianglesMultiColor { triangles } => {
 					if triangles.is_empty() {
@@ -391,7 +390,7 @@ impl<'font, R: Resources> Renderer<'font, R>{
 						vertices.push(v(triangle[1]));
 						vertices.push(v(triangle[2]));
 					}
-				},
+				}
 
 				render::PrimitiveKind::Text { color, text, font_id } => {
 					switch_to_plain_state!();
@@ -444,7 +443,7 @@ impl<'font, R: Resources> Renderer<'font, R>{
 							push_v([gl_rect.min.x, gl_rect.max.y], [uv_rect.min.x, uv_rect.max.y]);
 						}
 					}
-				},
+				}
 
 				render::PrimitiveKind::Image { image_id, color, source_rect } => {
 
@@ -462,7 +461,7 @@ impl<'font, R: Resources> Renderer<'font, R>{
 								image_id: new_image_id,
 								start: vertices.len(),
 							};
-						},
+						}
 
 						// If we were drawing a different image, switch state to draw *this* image.
 						State::Image { image_id, start } => {
@@ -471,7 +470,7 @@ impl<'font, R: Resources> Renderer<'font, R>{
 								image_id: new_image_id,
 								start: vertices.len(),
 							};
-						},
+						}
 					}
 
 					let color = color.unwrap_or(color::WHITE).to_fsa();
@@ -492,7 +491,7 @@ impl<'font, R: Resources> Renderer<'font, R>{
 							 (r / image_w) as f32,
 							 (b / image_h) as f32,
 							 (t / image_h) as f32)
-						},
+						}
 						None => (0.0, 1.0, 0.0, 1.0),
 					};
 
@@ -521,12 +520,11 @@ impl<'font, R: Resources> Renderer<'font, R>{
 					push_v(l, t, [uv_l, uv_t]);
 					push_v(r, b, [uv_r, uv_b]);
 					push_v(r, t, [uv_r, uv_t]);
-				},
+				}
 
 				// We have no special case widgets to handle.
 				render::PrimitiveKind::Other(_) => (),
 			}
-
 		}
 
 		// Enter the final command.
@@ -544,11 +542,11 @@ impl<'font, R: Resources> Renderer<'font, R>{
 	/// and `commands` methods separately. This method is simply a convenience wrapper around those
 	/// methods for the case that the user does not require accessing or modifying conrod's draw
 	/// parameters, uniforms or generated draw commands.
-	pub fn draw<F, C>(&self, factory: &mut F, encoder: &mut gfx::Encoder<R,C>, image_map: &image::Map<(gfx::handle::ShaderResourceView<R, [f32; 4]>,(u32,u32))>)
+	pub fn draw<F, C>(&self, factory: &mut F, encoder: &mut gfx::Encoder<R, C>, image_map: &image::Map<(gfx::handle::ShaderResourceView<R, [f32; 4]>, (u32, u32))>)
 		where F: gfx::Factory<R>,
 			  C: gfx::CommandBuffer<R>,
 	{
-		let Renderer{ ref pipeline, ref data, ref cache_tex_view, ..} = *self;
+		let Renderer { ref pipeline, ref data, ref cache_tex_view, .. } = *self;
 
 		let mut data = data.clone();
 
@@ -567,7 +565,7 @@ impl<'font, R: Resources> Renderer<'font, R>{
 						let (vbuf, slice) = factory.create_vertex_buffer_with_slice(&verts, ());
 						data.vbuf = vbuf;
 						encoder.draw(&slice, &pipeline, &data);
-					},
+					}
 
 					// Draw an image whose texture data lies within the `image_map` at the
 					// given `id`.
@@ -577,8 +575,7 @@ impl<'font, R: Resources> Renderer<'font, R>{
 						let (vbuf, slice) = factory.create_vertex_buffer_with_slice(&verts, ());
 						data.vbuf = vbuf;
 						encoder.draw(&slice, &pipeline, &data);
-					},
-
+					}
 				}
 			}
 		}
@@ -600,14 +597,13 @@ fn gamma_srgb_to_linear(c: [f32; 4]) -> [f32; 4] {
 // Creates a gfx texture with the given data
 fn create_texture<F, R>(factory: &mut F, width: u32, height: u32, data: &[u8])
 						-> (gfx::handle::Texture<R, SurfaceFormat>, gfx::handle::ShaderResourceView<R, [f32; 4]>)
-
 	where R: gfx::Resources, F: gfx::Factory<R>
 {
 	// Modified `Factory::create_texture_immutable_u8` for dynamic texture.
 	fn create_texture<T, F, R>(
 		factory: &mut F,
 		kind: gfx::texture::Kind,
-		data: &[&[u8]]
+		data: &[&[u8]],
 	) -> Result<(
 		gfx::handle::Texture<R, T::Surface>,
 		gfx::handle::ShaderResourceView<R, T::View>
@@ -622,7 +618,7 @@ fn create_texture<F, R>(factory: &mut F, width: u32, height: u32, data: &[u8])
 
 		let surface = <T::Surface as format::SurfaceTyped>::get_surface_type();
 		let num_slices = kind.get_num_slices().unwrap_or(1) as usize;
-		let num_faces = if kind.is_cube() {6} else {1};
+		let num_faces = if kind.is_cube() { 6 } else { 1 };
 		let desc = texture::Info {
 			kind: kind,
 			levels: (data.len() / (num_slices * num_faces)) as texture::Level,
@@ -631,19 +627,19 @@ fn create_texture<F, R>(factory: &mut F, width: u32, height: u32, data: &[u8])
 			usage: Usage::Dynamic,
 		};
 		let cty = <T::Channel as format::ChannelTyped>::get_channel_type();
-		let raw = try!(factory.create_texture_raw(desc, Some(cty), Some(data)));
+		let raw = factory.create_texture_raw(desc, Some(cty), Some(data))?;
 		let levels = (0, raw.get_info().levels - 1);
 		let tex = Typed::new(raw);
-		let view = try!(factory.view_texture_as_shader_resource::<T>(
-			&tex, levels, format::Swizzle::new()
-		));
+		let view = factory.view_texture_as_shader_resource::<T>(
+			&tex, levels, format::Swizzle::new(),
+		)?;
 		Ok((tex, view))
 	}
 
 	let kind = texture::Kind::D2(
 		width as texture::Size,
 		height as texture::Size,
-		texture::AaMode::Single
+		texture::AaMode::Single,
 	);
 	create_texture::<ColorFormat, F, R>(factory, kind, &[data]).unwrap()
 }
@@ -654,7 +650,6 @@ fn update_texture<R, C>(encoder: &mut gfx::Encoder<R, C>,
 						offset: [u16; 2],
 						size: [u16; 2],
 						data: &[[u8; 4]])
-
 	where R: gfx::Resources, C: gfx::CommandBuffer<R>
 {
 	let info = texture::ImageInfoCommon {

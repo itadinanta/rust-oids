@@ -1,8 +1,10 @@
-use conrod::{self, event, widget, Colorable, Positionable, Sizeable, Widget};
-use conrod::widget::primitive::text::Style;
+use conrod::{self, event, widget, Colorable, Positionable, Labelable, Sizeable, Widget};
+use conrod::widget::text;
+use conrod::widget::button;
 use std::io;
 use super::{Error, Screen, theme};
 use super::conrod_gfx;
+use app;
 use core::resource::ResourceLoader;
 use gfx::{Encoder, Factory, Resources, CommandBuffer};
 use gfx::handle::{ShaderResourceView, RenderTargetView};
@@ -22,6 +24,7 @@ pub struct Ids {
 	help_canvas: widget::Id,
 	help_text: widget::Id,
 
+	hud_speed_button: widget::Id,
 	hud_canvas: widget::Id,
 	hud_labels: Vec<WidgetIdGroup>,
 }
@@ -36,8 +39,9 @@ pub struct Ui<'f, 'font, R, F>
 	ui: Box<conrod::Ui>,
 	image_map: conrod::image::Map<(ShaderResourceView<R, [f32; 4]>, (u32, u32))>,
 	hidpi_factor: f64,
-	style_label: Style,
-	style_value: Style,
+	style_label: text::Style,
+	style_value: text::Style,
+	style_button: button::Style,
 	ids: Ids,
 	events: Vec<event::Input>,
 }
@@ -58,11 +62,12 @@ impl Screen {
 	fn draw_widgets<'e>(&self,
 						ui: &'e mut conrod::Ui,
 						root_window_id: widget::Id,
-						style_label: Style,
-						style_value: Style,
-						ids: &Ids) -> conrod::UiCell<'e> {
+						style_label: text::Style,
+						style_value: text::Style,
+						style_button: button::Style,
+						ids: &Ids) -> (conrod::UiCell<'e>, Box<[app::Event]>) {
 		let mut widgets = ui.set_widgets();
-
+		let mut app_events = Vec::with_capacity(1);
 		match self {
 			&Screen::Help => {
 				let help_text = "Text help";
@@ -83,7 +88,7 @@ impl Screen {
 					.map(|&WidgetIdGroup { panel_row_id, .. }|
 						(panel_row_id, widget::Canvas::new().color(conrod::color::TRANSPARENT)))
 					.collect::<Vec<_>>();
-				;
+
 				widget::Canvas::new()
 					.pad(50.0)
 					.color(conrod::color::TRANSPARENT)
@@ -92,7 +97,10 @@ impl Screen {
 					.flow_down(&splits)
 					.set(ids.hud_canvas, &mut widgets);
 				let mut ids_iter = ids.hud_labels.iter();
-				let mut txt_with_label = |label: &str, value: &str| {
+				let mut txt_with_label = |ids_iter: &mut Iterator<Item=&WidgetIdGroup>,
+										  mut widgets: &mut conrod::UiCell<'e>,
+										  label: &str,
+										  value: &str| -> widget::Id {
 					let WidgetIdGroup { panel_id, label_id, value_id, panel_row_id } = ids_iter.next().unwrap().clone();
 
 					widget::Canvas::new()
@@ -112,22 +120,57 @@ impl Screen {
 						.mid_right_of(panel_id)
 						.with_style(style_value)
 						.set(value_id, &mut widgets);
+
+					panel_id
+				};
+
+				let mut button_with_label = |ids_iter: &mut Iterator<Item=&WidgetIdGroup>,
+											 mut widgets: &mut conrod::UiCell<'e>,
+											 label: &str,
+											 value: &str| -> bool {
+					let WidgetIdGroup { panel_id, label_id, value_id, panel_row_id } = ids_iter.next().unwrap().clone();
+
+					widget::Canvas::new()
+						.mid_left_of(panel_row_id)
+						.pad(10.0)
+						.color(conrod::color::CHARCOAL.alpha(0.4))
+						.w(300.0)
+						.h(60.0)
+						.set(panel_id, &mut widgets);
+
+					let pressed = widget::Button::new()
+						.label(label)
+						.mid_left_of(panel_id)
+						.kid_area_w_of(panel_id)
+						.with_style(style_button)
+						.set(label_id, &mut widgets)
+						.was_clicked();
+
+					widget::Text::new(value)
+						.mid_right_of(panel_id)
+						.with_style(style_value)
+						.set(value_id, &mut widgets);
+
+					pressed
 				};
 
 
-				txt_with_label("Sim Frames", &format!("{}", frame_update.simulation.count));
-				txt_with_label("Vid Frames", &format!("{}", frame_update.count));
-				txt_with_label("Elapsed", &format!("{:.3}", frame_update.elapsed));
-				txt_with_label("Sim dt", &format!("{:.3}", frame_update.simulation.dt));
-				txt_with_label("Vid dt", &format!("{:.3}", frame_update.dt));
-				txt_with_label(">>", &format!("x{}", frame_update.speed_factor));
-				txt_with_label("Avg dt", &format!("{:.3}", frame_update.duration_smooth));
-				txt_with_label("FPS", &format!("{:.1}", frame_update.fps));
-				txt_with_label("Population", &format!("{}", frame_update.simulation.population));
-				txt_with_label("Extinctions", &format!("{}", frame_update.simulation.extinctions));
+				txt_with_label(&mut ids_iter, &mut widgets, "Sim Frames", &format!("{}", frame_update.simulation.count));
+				txt_with_label(&mut ids_iter, &mut widgets, "Vid Frames", &format!("{}", frame_update.count));
+				txt_with_label(&mut ids_iter, &mut widgets, "Elapsed", &format!("{:.3}", frame_update.elapsed));
+				txt_with_label(&mut ids_iter, &mut widgets, "Sim dt", &format!("{:.3}", frame_update.simulation.dt));
+				txt_with_label(&mut ids_iter, &mut widgets, "Vid dt", &format!("{:.3}", frame_update.dt));
+				if button_with_label(&mut ids_iter, &mut widgets, ">>", &format!("x{}", frame_update.speed_factor)) {
+					info!("Button pressed");
+					app_events.push(app::Event::NextSpeedFactor);
+				}
+				txt_with_label(&mut ids_iter, &mut widgets, "Avg dt", &format!("{:.3}", frame_update.duration_smooth));
+				txt_with_label(&mut ids_iter, &mut widgets, "FPS", &format!("{:.1}", frame_update.fps));
+				txt_with_label(&mut ids_iter, &mut widgets, "Population", &format!("{}", frame_update.simulation.population));
+				txt_with_label(&mut ids_iter, &mut widgets, "Extinctions", &format!("{}", frame_update.simulation.extinctions));
 			}
 		};
-		widgets
+		(widgets, app_events.into_boxed_slice())
 	}
 }
 
@@ -147,12 +190,19 @@ impl<'f, 'font, R, F> Ui<'f, 'font, R, F> where
 		Self::load_font(res, &mut ui.fonts, "fonts/FreeSans.ttf")?;
 
 
-		let style_label = Style {
+		let style_label = text::Style {
 			color: Some(conrod::color::LIGHT_GRAY),
 			font_size: Some(14),
 			..Default::default()
 		};
-		let style_value = Style {
+		let style_button = button::Style {
+			label_color: Some(conrod::color::LIGHT_GRAY),
+			label_font_size: Some(14),
+			label_justify: Some(conrod::text::Justify::Left),
+			label_x: Some(conrod::position::Relative::Align(conrod::position::Align::Start)),
+			..Default::default()
+		};
+		let style_value = text::Style {
 			color: Some(conrod::color::GREEN),
 			font_size: Some(14),
 			..Default::default()
@@ -162,6 +212,7 @@ impl<'f, 'font, R, F> Ui<'f, 'font, R, F> where
 			help_canvas: ui.widget_id_generator().next(),
 			help_text: ui.widget_id_generator().next(),
 
+			hud_speed_button: ui.widget_id_generator().next(),
 			hud_canvas: ui.widget_id_generator().next(),
 			hud_labels: (0..10)
 				.map(|_| {
@@ -172,7 +223,7 @@ impl<'f, 'font, R, F> Ui<'f, 'font, R, F> where
 						value_id: ui.widget_id_generator().next(),
 					}
 				})
-				.collect()
+				.collect(),
 		};
 
 		Ok(Ui {
@@ -183,6 +234,7 @@ impl<'f, 'font, R, F> Ui<'f, 'font, R, F> where
 			hidpi_factor,
 			style_label,
 			style_value,
+			style_button,
 			ids,
 			events: Vec::new(),
 		})
@@ -206,18 +258,20 @@ impl<'f, 'font, R, F> Ui<'f, 'font, R, F> where
 		Ok(id)
 	}
 
-	pub fn draw_screen<C>(&mut self, screen: &Screen, encoder: &mut Encoder<R, C>)
+	pub fn draw_screen<C>(&mut self, screen: &Screen, encoder: &mut Encoder<R, C>) -> Box<[app::Event]>
 		where C: CommandBuffer<R> {
 		let dims = (self.ui.win_w as f32, self.ui.win_h as f32);
 		let window_id = self.ui.window.clone();
-		let widgets = screen.draw_widgets(&mut self.ui,
-										  window_id,
-										  self.style_label.clone(),
-										  self.style_value.clone(),
-										  &self.ids.clone());
+		let (widgets, app_events) = screen.draw_widgets(&mut self.ui,
+														window_id,
+														self.style_label.clone(),
+														self.style_value.clone(),
+														self.style_button.clone(),
+														&self.ids.clone());
 		let primitives = widgets.draw();
 		self.renderer.fill(encoder, dims, primitives, &self.image_map);
 		self.renderer.draw(self.factory, encoder, &self.image_map);
+		app_events
 	}
 
 	pub fn push_event(&mut self, event: event::Input) {
