@@ -24,13 +24,16 @@ csv = "*"
 rustc-serialize="*"
 image = "*"
 wrapped2d = "*"
-glutin = "*"
-winit = "*"
 gfx = "*"
 gfx_core = "*"
+
+# ui
+winit = "*"
+glutin = "*"
 gfx_device_gl = "*"
 gfx_window_glutin = "*"
 gfx_text = "*"
+conrod = { version = "*", features = ["winit", "gfx_rs"]  }
 
 #sound
 dsp-chain="*"
@@ -41,3 +44,4 @@ portaudio="*"
 getopts = "*"
 ctrlc = "*"
 thread-priority = "*"
+

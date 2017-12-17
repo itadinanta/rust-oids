@@ -5,6 +5,8 @@ use frontend::render::{formats, Draw, Renderer};
 use frontend::audio::{self, SoundSystem};
 use frontend::ui;
 
+use conrod;
+
 use core::resource::filesystem::ResourceLoaderBuilder;
 use core::math::Directional;
 use core::clock::{Seconds, SecondsValue, Timer, Hourglass, SystemTimer};
@@ -26,6 +28,8 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 
 	let builder = glutin::WindowBuilder::new()
 		.with_title("Rust-oids".to_string());
+
+
 	let builder = if let Some(monitor_index) = fullscreen {
 		let monitor = events_loop.get_available_monitors().nth(monitor_index).expect("Please enter a valid monitor ID");
 		println!("Using {:?}", monitor.get_name());
@@ -47,9 +51,11 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 			&events_loop,
 		);
 
+
 	let (w, h, _, _) = frame_buffer.get_dimensions();
 
 	let mut encoder = factory.create_command_buffer().into();
+	// let mut ui = conrod::backend::gfx::Renderer::new(&mut factory, &frame_buffer, window.hidpi_factor() as f64).unwrap();
 
 	let res = ResourceLoaderBuilder::new()
 		.add(path::Path::new("resources"))
