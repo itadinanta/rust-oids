@@ -138,9 +138,13 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 		if app.has_ui_overlay() {
 			let screen = ui::Screen::Main(frame_update);
 			renderer.overlay(|_, encoder| {
-				ui.draw_screen(&screen, encoder);
+				ui.update_and_draw_screen(&screen, encoder);
 			});
-			ui.handle_events(); // we pass the events directly to the drawn screen
+			ui.handle_events();
+
+			for app_event in ui.drain_app_events() {
+				app.on_app_event(app_event)
+			}
 		}
 
 		// push the commands
@@ -159,7 +163,7 @@ pub fn main_loop_headless(minion_gene_pool: &str) {
 		.build();
 
 	let mut app = app::App::new(WIDTH, HEIGHT, 100.0, &res, minion_gene_pool);
-	let mut headless_alert_player = ui::NullAlertPlayer::new();
+	let mut no_audio = ui::NullAlertPlayer::new();
 	app.init();
 
 	let running = Arc::new(AtomicBool::new(true));
@@ -190,7 +194,7 @@ pub fn main_loop_headless(minion_gene_pool: &str) {
 			app.dump_to_file();
 		}
 
-		app.play_alerts(&mut headless_alert_player);
+		app.play_alerts(&mut no_audio);
 		if output_hourglass.flip_if_expired() {
 			info!(
 				"C: {} E: {:.3} FT: {:.2} P: {} X: {}",

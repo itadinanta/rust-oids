@@ -2,6 +2,7 @@ use conrod::{self, event, widget, Colorable, Positionable, Labelable, Sizeable, 
 use conrod::widget::text;
 use conrod::widget::button;
 use std::io;
+use std::vec::Drain;
 use super::{Error, Screen, theme};
 use super::conrod_gfx;
 use app;
@@ -43,6 +44,7 @@ pub struct Ui<'f, 'font, R, F>
 	style_value: text::Style,
 	style_button: button::Style,
 	ids: Ids,
+	app_events: Vec<app::Event>,
 	events: Vec<event::Input>,
 }
 
@@ -65,9 +67,10 @@ impl Screen {
 						style_label: text::Style,
 						style_value: text::Style,
 						style_button: button::Style,
-						ids: &Ids) -> (conrod::UiCell<'e>, Box<[app::Event]>) {
+						ids: &Ids,
+						app_events: &mut Vec<app::Event>) -> conrod::UiCell<'e> {
 		let mut widgets = ui.set_widgets();
-		let mut app_events = Vec::with_capacity(1);
+		//let mut app_events = Vec::with_capacity(1);
 		match self {
 			&Screen::Help => {
 				let help_text = "Text help";
@@ -162,7 +165,7 @@ impl Screen {
 				txt_with_label(&mut ids_iter, &mut widgets, "Vid dt", &format!("{:.3}", frame_update.dt));
 				if button_with_label(&mut ids_iter, &mut widgets, ">>", &format!("x{}", frame_update.speed_factor)) {
 					info!("Button pressed");
-					app_events.push(app::Event::NextSpeedFactor);
+					app_events.push(app::Event::PrevSpeedFactor);
 				}
 				txt_with_label(&mut ids_iter, &mut widgets, "Avg dt", &format!("{:.3}", frame_update.duration_smooth));
 				txt_with_label(&mut ids_iter, &mut widgets, "FPS", &format!("{:.1}", frame_update.fps));
@@ -170,7 +173,7 @@ impl Screen {
 				txt_with_label(&mut ids_iter, &mut widgets, "Extinctions", &format!("{}", frame_update.simulation.extinctions));
 			}
 		};
-		(widgets, app_events.into_boxed_slice())
+		widgets
 	}
 }
 
@@ -236,6 +239,7 @@ impl<'f, 'font, R, F> Ui<'f, 'font, R, F> where
 			style_value,
 			style_button,
 			ids,
+			app_events: Vec::new(),
 			events: Vec::new(),
 		})
 	}
@@ -258,24 +262,30 @@ impl<'f, 'font, R, F> Ui<'f, 'font, R, F> where
 		Ok(id)
 	}
 
-	pub fn draw_screen<C>(&mut self, screen: &Screen, encoder: &mut Encoder<R, C>) -> Box<[app::Event]>
+	pub fn update_and_draw_screen<C>(&mut self, screen: &Screen, encoder: &mut Encoder<R, C>)
 		where C: CommandBuffer<R> {
 		let dims = (self.ui.win_w as f32, self.ui.win_h as f32);
 		let window_id = self.ui.window.clone();
-		let (widgets, app_events) = screen.draw_widgets(&mut self.ui,
-														window_id,
-														self.style_label.clone(),
-														self.style_value.clone(),
-														self.style_button.clone(),
-														&self.ids.clone());
+		let mut app_events = Vec::with_capacity(1);
+		let widgets = screen.draw_widgets(&mut self.ui,
+										  window_id,
+										  self.style_label.clone(),
+										  self.style_value.clone(),
+										  self.style_button.clone(),
+										  &self.ids.clone(),
+										  &mut app_events);
 		let primitives = widgets.draw();
 		self.renderer.fill(encoder, dims, primitives, &self.image_map);
 		self.renderer.draw(self.factory, encoder, &self.image_map);
-		app_events
+		self.app_events.extend(app_events);
 	}
 
 	pub fn push_event(&mut self, event: event::Input) {
 		self.events.push(event);
+	}
+
+	pub fn drain_app_events(&mut self) -> Drain<app::Event> {
+		self.app_events.drain(..)
 	}
 
 	pub fn handle_events(&mut self) {
