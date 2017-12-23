@@ -70,9 +70,11 @@ impl System for AlifeSystem {
 			world.alert(alert::Alert::NewMinion);
 			world.hatch_spore(transform, dna);
 		}
-		for &(ref transform, ref dna) in corpses.into_iter() {
+		for &(ref transforms, ref dna) in corpses.into_iter() {
 			world.alert(alert::Alert::DieMinion);
-			world.decay_to_resource(transform, dna);
+			for transform in transforms.iter() {
+				world.decay_to_resource(transform, dna);
+			}
 		}
 		for _ in 0..fertilised {
 			world.alert(alert::Alert::Fertilised);
@@ -129,7 +131,9 @@ impl AlifeSystem {
 	}
 
 	fn update_minions(dt: Seconds, extent: &geometry::Rect, minions: &mut agent::AgentMap, eaten: &StateMap)
-					  -> (Box<[(geometry::Transform, gen::Dna)]>, Box<[(geometry::Transform, gen::Dna)]>) {
+					  -> (Box<[(geometry::Transform, gen::Dna)]>,
+						  Box<[(Box<[geometry::Transform]>, gen::Dna)]>,
+					  ) {
 		let mut spawns = Vec::new();
 		let mut corpses = Vec::new();
 		for (_, agent) in minions.iter_mut() {
@@ -160,9 +164,10 @@ impl AlifeSystem {
 				}
 
 				if agent.state.energy() < 1. {
-					for segment in agent.segments.iter() {
-						corpses.push((segment.transform.clone(), agent.dna().clone()));
-					}
+					let transforms = agent.segments.into_iter()
+						.map(|segment| segment.transform.clone())
+						.collect::<Vec<_>>();
+					corpses.push((transforms.into_boxed_slice(), agent.dna().clone()));
 					agent.state.die();
 				}
 
