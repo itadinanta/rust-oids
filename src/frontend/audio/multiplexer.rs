@@ -2,6 +2,7 @@ use dsp;
 use dsp::Sample;
 use dsp::Frame;
 use dsp::Node;
+use clock::Seconds;
 use num;
 use std::iter::Iterator;
 use frontend::audio::SoundEffect;
@@ -13,6 +14,11 @@ trait Sampling {
 	fn sample(&self, position: f32, phase: f32) -> f32;
 	fn pitch(&self, position: f32) -> f32;
 	fn has_sample(&self, position: f32) -> bool;
+}
+
+struct Signal<S, F> where S: num::Float {
+	sample_rate: S,
+	frames: Box<[F]>,
 }
 
 // TODO: genericise this
@@ -202,6 +208,22 @@ impl Multiplexer {
 		});
 	}
 }
+
+impl Signal<f32, f32> {
+	fn new(g: Generator, sample_rate: f32, pitch: f32, duration : Seconds  ) {
+		let samples = g.length / g.pitch;
+		let frames = Vec::with_capacity(samples);
+		for i in 0..samples {
+			let sample =
+			frames.push(sample)
+		}
+	}
+
+	fn duration(&self) -> Seconds {
+		self.sample_rate * self.frames.len()
+	}
+}
+
 
 /// Our Node to be used within the Graph.
 /// Implement the `Node` trait for our DspNode.
