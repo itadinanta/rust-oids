@@ -4,7 +4,10 @@
     <option name="command" value="run --bin rust-oids" />
     <option name="nocapture" value="true" />
     <option name="backtrace" value="FULL" />
-    <envs />
+    <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+    <envs>
+      <env name="CARGO_INCREMENTAL" value="1" />
+    </envs>
     <method />
   </configuration>
 </component>

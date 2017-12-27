@@ -11,7 +11,6 @@ use gfx::{Encoder, Factory, Resources, CommandBuffer};
 use gfx::handle::{ShaderResourceView, RenderTargetView};
 use frontend::render::formats;
 
-
 #[derive(Clone, Debug)]
 pub struct WidgetIdGroup {
 	panel_row_id: widget::Id,
@@ -100,10 +99,10 @@ impl Screen {
 					.flow_down(&splits)
 					.set(ids.hud_canvas, &mut widgets);
 				let mut ids_iter = ids.hud_labels.iter();
-				let mut txt_with_label = |ids_iter: &mut Iterator<Item=&WidgetIdGroup>,
-										  mut widgets: &mut conrod::UiCell<'e>,
-										  label: &str,
-										  value: &str| -> widget::Id {
+				let txt_with_label = |ids_iter: &mut Iterator<Item=&WidgetIdGroup>,
+									  mut widgets: &mut conrod::UiCell<'e>,
+									  label: &str,
+									  value: &str| -> widget::Id {
 					let WidgetIdGroup { panel_id, label_id, value_id, panel_row_id } = ids_iter.next().unwrap().clone();
 
 					widget::Canvas::new()
@@ -127,10 +126,10 @@ impl Screen {
 					panel_id
 				};
 
-				let mut button_with_label = |ids_iter: &mut Iterator<Item=&WidgetIdGroup>,
-											 mut widgets: &mut conrod::UiCell<'e>,
-											 label: &str,
-											 value: &str| -> bool {
+				let button_with_label = |ids_iter: &mut Iterator<Item=&WidgetIdGroup>,
+										 mut widgets: &mut conrod::UiCell<'e>,
+										 label: &str,
+										 value: &str| -> bool {
 					let WidgetIdGroup { panel_id, label_id, value_id, panel_row_id } = ids_iter.next().unwrap().clone();
 
 					widget::Canvas::new()
@@ -156,7 +155,6 @@ impl Screen {
 
 					pressed
 				};
-
 
 				txt_with_label(&mut ids_iter, &mut widgets, "Sim Frames", &format!("{}", frame_update.simulation.count));
 				txt_with_label(&mut ids_iter, &mut widgets, "Vid Frames", &format!("{}", frame_update.count));
@@ -192,7 +190,6 @@ impl<'f, 'font, R, F> Ui<'f, 'font, R, F> where
 
 		Self::load_font(res, &mut ui.fonts, "fonts/FreeSans.ttf")?;
 
-
 		let style_label = text::Style {
 			color: Some(conrod::color::LIGHT_GRAY),
 			font_size: Some(14),
@@ -210,14 +207,14 @@ impl<'f, 'font, R, F> Ui<'f, 'font, R, F> where
 			font_size: Some(14),
 			..Default::default()
 		};
-
+		const MAX_HUD_LABELS: usize = 10;
 		let ids = Ids {
 			help_canvas: ui.widget_id_generator().next(),
 			help_text: ui.widget_id_generator().next(),
 
 			hud_speed_button: ui.widget_id_generator().next(),
 			hud_canvas: ui.widget_id_generator().next(),
-			hud_labels: (0..10)
+			hud_labels: (0..MAX_HUD_LABELS)
 				.map(|_| {
 					WidgetIdGroup {
 						panel_row_id: ui.widget_id_generator().next(),

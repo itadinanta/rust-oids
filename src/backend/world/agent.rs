@@ -253,6 +253,7 @@ pub struct Limits {
 pub struct State {
 	lifecycle: Hourglass<SimulationTimer>,
 	flags: Flags,
+	phase: f32,
 	energy: f32,
 	target: Option<Id>,
 	target_position: Position,
@@ -277,6 +278,11 @@ impl State {
 
 	pub fn energy_ratio(&self) -> f32 {
 		self.energy / self.limits.max_energy
+	}
+
+	pub fn phase(&self) -> f32 {
+		let age = self.lifecycle.elapsed();
+		age.into()
 	}
 
 	pub fn consume(&mut self, q: f32) -> bool {
@@ -446,6 +452,7 @@ impl Agent {
 				flags: Flags::ACTIVE,
 				lifecycle: Hourglass::new(timer, Seconds::new(5.)),
 				energy: max_energy * 0.5,
+				phase: 0.0f32,
 				target: None,
 				target_position: segments[0].transform.position,
 				limits: Limits { max_energy },
