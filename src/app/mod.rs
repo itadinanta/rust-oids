@@ -520,7 +520,7 @@ impl App {
 		for (_, swarm) in self.world.swarms().iter() {
 			for (_, agent) in swarm.agents().iter() {
 				let energy_left = agent.state.energy_ratio();
-				let age = agent.state.lifecycle().elapsed();
+				let phase = agent.state.phase();
 				for segment in agent.segments() {
 					let body_transform = Self::from_transform(&segment.transform());
 
@@ -528,7 +528,7 @@ impl App {
 					let fixture_scale = Matrix4::from_scale(mesh.shape.radius());
 					let transform = body_transform * fixture_scale;
 
-					let appearance = render::Appearance::new(segment.color(), [energy_left, age.into(), 0., 0.]);
+					let appearance = render::Appearance::new(segment.color(), [energy_left, phase, 0., 0.]);
 
 					match mesh.shape {
 						obj::Shape::Ball { .. } => {
