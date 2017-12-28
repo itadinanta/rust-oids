@@ -1,8 +1,11 @@
+//#![feature(conservative_impl_trait)]
+
 use dsp;
 use dsp::Sample;
 use dsp::Frame;
 use dsp::Node;
-use clock::Seconds;
+use std::collections::HashMap;
+use core::clock::Seconds;
 use num;
 use std::iter::Iterator;
 use frontend::audio::SoundEffect;
@@ -10,102 +13,85 @@ use std::f32;
 
 const CHANNELS: i32 = super::CHANNELS;
 
-trait Sampling {
-	fn sample(&self, position: f32, phase: f32) -> f32;
-	fn pitch(&self, position: f32) -> f32;
-	fn has_sample(&self, position: f32) -> bool;
-}
-
 struct Signal<S, F> where S: num::Float {
 	sample_rate: S,
 	frames: Box<[F]>,
 }
 
+type StereoFrame = [f32; CHANNELS as usize];
+type StereoSignal = Signal<f32, StereoFrame>;
+
 // TODO: genericise this
-struct SinWave {
+struct Tone {
 	pitch: f32,
 	length: f32,
 	amplitude: f32,
 }
 
-struct SquareWave {
-	pitch: f32,
-	length: f32,
-	amplitude: f32,
-}
-
-impl Sampling for SinWave {
-	#[inline]
-	fn sample(&self, position: f32, phase: f32) -> f32 {
-		let envelope = num::clamp(1.0f32 - position / self.length, 0.0f32, 1.0f32);
-		envelope * self.amplitude * (phase * f32::consts::PI * 2.0).sin()
-	}
-	#[inline]
-	fn pitch(&self, _: f32) -> f32 {
-		self.pitch
-	}
-	#[inline]
-	fn has_sample(&self, position: f32) -> bool {
-		position < self.length
-	}
-}
-
-// Just to introduce a different generator
-impl Sampling for SquareWave {
-	#[inline]
-	fn sample(&self, position: f32, phase: f32) -> f32 {
-		let envelope = num::clamp(1.0f32 - position / self.length, 0.0f32, 1.0f32);
-		envelope * self.amplitude * (phase * f32::consts::PI * 2.0).sin().signum() // TODO: quick and dirty and overkill. Remove sin()
-	}
-	#[inline]
-	fn pitch(&self, _: f32) -> f32 {
-		self.pitch
-	}
-	#[inline]
-	fn has_sample(&self, position: f32) -> bool {
-		position < self.length
-	}
-}
-
-enum Generator {
-	Sin(SinWave),
-	Square(SquareWave),
+enum Waveform {
+	Sin,
+	Square(f32),
 	Silence,
+}
+
+impl Waveform {
+	#[inline]
+	fn sample(&self, amplitude: f32, length: f32, position: f32, phase: f32) -> f32 {
+		let envelope = num::clamp(1.0f32 - position / length, 0.0f32, 1.0f32);
+		let value = match self {
+			&Waveform::Sin => (phase * f32::consts::PI * 2.0).sin(),
+			&Waveform::Square(duty_cycle) => (phase - duty_cycle).signum(),
+			_ => 0.0f32,
+		};
+		amplitude * envelope * value
+	}
+
+	fn has_sample(&self, position: f32, length: f32) -> bool {
+		match self {
+			&Waveform::Sin | &Waveform::Square(_) => position < length,
+			_ => false
+		}
+	}
+}
+
+struct Generator {
+	tone: Tone,
+	waveform: Waveform,
 }
 
 impl Generator {
 	fn sin(pitch: f32, length: f32, amplitude: f32) -> Generator {
-		Generator::Sin(SinWave { pitch, length, amplitude })
+		Generator { tone: Tone { pitch, length, amplitude }, waveform: Waveform::Sin }
 	}
-	fn square(pitch: f32, length: f32, amplitude: f32) -> Generator {
-		Generator::Square(SquareWave { pitch, length, amplitude })
-	}
-}
 
-impl Sampling for Generator {
+	fn square(pitch: f32, length: f32, amplitude: f32) -> Generator {
+		Generator { tone: Tone { pitch, length, amplitude }, waveform: Waveform::Square(0.5f32) }
+	}
+
+	fn silence() -> Generator {
+		Generator { tone: Tone { pitch: 1.0f32, length: 1.0f32, amplitude: 1.0f32 }, waveform: Waveform::Silence }
+	}
+
+	//noinspection RsSelfConvention
+	fn to_signal_function(self, sample_rate: f32, pan: f32) -> Box<Fn(f32) -> StereoFrame> {
+		let c_pan: StereoFrame = [1.0f32 - pan, pan];
+		Box::new(move |position| {
+			let val = self.sample(position, position);
+			dsp::Frame::from_fn(|channel| (val * c_pan[channel]).to_sample())
+		})
+	}
+
 	#[inline]
 	fn sample(&self, position: f32, phase: f32) -> f32 {
-		match self {
-			&Generator::Sin(ref wave) => wave.sample(position, phase),
-			&Generator::Square(ref wave) => wave.sample(position, phase),
-			_ => 0.0f32,
-		}
+		self.waveform.sample(self.tone.amplitude, self.tone.length, position, phase)
 	}
 	#[inline]
 	fn pitch(&self, position: f32) -> f32 {
-		match self {
-			&Generator::Sin(ref wave) => wave.pitch(position),
-			&Generator::Square(ref wave) => wave.pitch(position),
-			_ => 1.0f32,
-		}
+		self.tone.pitch
 	}
 	#[inline]
 	fn has_sample(&self, position: f32) -> bool {
-		match self {
-			&Generator::Sin(ref wave) => wave.has_sample(position),
-			&Generator::Square(ref wave) => wave.has_sample(position),
-			_ => false
-		}
+		self.waveform.has_sample(position, self.tone.length)
 	}
 }
 
@@ -135,29 +121,48 @@ impl DspNode {
 }
 
 pub struct Multiplexer {
+	sample_rate: f64,
+	sample_table: HashMap<SoundEffect, StereoSignal>,
 	graph: dsp::Graph<[f32; CHANNELS as usize], DspNode>,
 }
 
 impl Multiplexer {
-	pub fn new() -> Multiplexer {
+	pub fn new(sample_rate: f64) -> Multiplexer {
 		// Construct our dsp graph.
 		let mut graph = dsp::Graph::new();
 
 		let mixer = graph.add_node(DspNode::Mixer(0.5f32));
 		const VOICES: usize = 8;
 		for index in 0..VOICES {
-			graph.add_input(DspNode::new_voice(index, Generator::Silence), mixer);
+			graph.add_input(DspNode::new_voice(index, Generator::silence()), mixer);
 		}
 		// graph.set_master(Some(volume));
 		graph.set_master(Some(mixer));
 
+		let mut sample_table = HashMap::new();
+
+		fn from_generator(generator: Generator, sample_rate: f32, pan: f32) -> StereoSignal {
+			let duration = Seconds::new(generator.tone.length as f64);
+			let f: Box<Fn(f32) -> StereoFrame> = generator.to_signal_function(sample_rate, pan);
+			Signal::new(sample_rate, duration, f)
+		}
+
+		sample_table.insert(SoundEffect::Click(1), from_generator(Generator::square(880.0f32, 0.1f32, 0.1f32), sample_rate as f32, 0.8f32));
+		sample_table.insert(SoundEffect::UserOption, from_generator(Generator::square(1000.0f32, 0.1f32, 0.1f32), sample_rate as f32, 0.6f32));
+		sample_table.insert(SoundEffect::Fertilised, from_generator(Generator::sin(300.0f32, 0.3f32, 0.1f32), sample_rate as f32, 0.6f32));
+		sample_table.insert(SoundEffect::NewSpore, from_generator(Generator::sin(150.0f32, 0.3f32, 0.1f32), sample_rate as f32, 0.3f32));
+		sample_table.insert(SoundEffect::NewMinion, from_generator(Generator::sin(600.0f32, 0.5f32, 0.1f32), sample_rate as f32, 0.55f32));
+		sample_table.insert(SoundEffect::DieMinion, from_generator(Generator::sin(90.0f32, 1.0f32, 0.2f32), sample_rate as f32, 0.1f32));
+
 		Multiplexer {
+			sample_rate,
+			sample_table,
 			graph,
 		}
 	}
 
-	pub fn audio_requested(&mut self, buffer: &mut [[f32; CHANNELS as usize]], sample_hz: f64) {
-		self.graph.audio_requested(buffer, sample_hz)
+	pub fn audio_requested(&mut self, buffer: &mut [[f32; CHANNELS as usize]]) {
+		self.graph.audio_requested(buffer, self.sample_rate)
 	}
 
 	pub fn trigger(&mut self, effect: SoundEffect) {
@@ -175,14 +180,14 @@ impl Multiplexer {
 		}
 
 		let (new_generator, new_pan) = match effect {
-			SoundEffect::Click(_) => (Generator::square(880.0f32, 0.1f32, 0.1f32), 0.8f32),
+			SoundEffect::Click(1) => (Generator::square(880.0f32, 0.1f32, 0.1f32), 0.8f32),
 			//SoundEffect::Release(_) => Some((400.0f32, 0.15f32, 0.3f32)),
 			SoundEffect::UserOption => (Generator::square(1000.0f32, 0.1f32, 0.1f32), 0.6f32),
 			SoundEffect::Fertilised => (Generator::sin(300.0f32, 0.3f32, 0.1f32), 0.6f32),
 			SoundEffect::NewSpore => (Generator::sin(150.0f32, 0.3f32, 0.1f32), 0.3f32),
 			SoundEffect::NewMinion => (Generator::sin(600.0f32, 0.5f32, 0.1f32), 0.55f32),
 			SoundEffect::DieMinion => (Generator::sin(90.0f32, 1.0f32, 0.2f32), 0.1f32),
-			_ => (Generator::Silence, 0.5f32)
+			_ => (Generator::silence(), 0.5f32)
 		};
 		// Finds the first available voice
 		let mut free_voice = self.graph.nodes_mut().find(|n| match n {
@@ -209,21 +214,27 @@ impl Multiplexer {
 	}
 }
 
-impl Signal<f32, f32> {
-	fn new(g: Generator, sample_rate: f32, pitch: f32, duration : Seconds  ) {
-		let samples = g.length / g.pitch;
-		let frames = Vec::with_capacity(samples);
-		for i in 0..samples {
-			let sample =
-			frames.push(sample)
+impl<S, F> Signal<S, F> where S: num::Float + Into<f64> {
+	fn new<V>(sample_rate: S, duration: Seconds, f: Box<V>) -> Signal<S, F>
+		where V: Fn(S) -> F + ? Sized {
+		let samples: usize = ((S::from(duration.get()).unwrap() / sample_rate).round().into()) as usize;
+		let frames = (0..samples)
+			.map(|i| S::from(i).unwrap() / sample_rate)
+			.map(|t| f(t)).collect::<Vec<F>>();
+		Signal {
+			sample_rate,
+			frames: frames.into_boxed_slice(),
 		}
 	}
 
 	fn duration(&self) -> Seconds {
-		self.sample_rate * self.frames.len()
+		Seconds::new(self.sample_rate.into() * self.frames.len() as f64)
+	}
+
+	fn sample_rate(&self) -> S {
+		self.sample_rate
 	}
 }
-
 
 /// Our Node to be used within the Graph.
 /// Implement the `Node` trait for our DspNode.
@@ -238,7 +249,7 @@ impl dsp::Node<[f32; CHANNELS as usize]> for DspNode {
 					dsp::slice::map_in_place(buffer, |_| {
 						let val = generator.sample(*position, *phase);
 						let dp = generator.pitch(*position) / sample_hz as f32;
-						*phase += dp;
+						*phase = (*phase + dp).fract();
 						*position += dt;
 						dsp::Frame::from_fn(|channel| (val * c_pan[channel]).to_sample())
 					})

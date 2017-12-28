@@ -35,7 +35,7 @@ pub enum Error {
 }
 
 #[allow(unused)]
-#[derive(Clone, Debug, Copy)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
 pub enum SoundEffect {
 	Click(usize),
 	Release(usize),
@@ -178,7 +178,7 @@ impl SoundSystem for ThreadedSoundSystem {
 				FRAMES,
 			).expect("Unable to setup portAudio");
 
-			let dsp = Arc::new(Mutex::new(multiplexer::Multiplexer::new()));
+			let dsp = Arc::new(Mutex::new(multiplexer::Multiplexer::new(SAMPLE_HZ)));
 			let dsp_handle = dsp.clone();
 
 			let callback = move |pa::OutputStreamCallbackArgs { buffer, .. }| {
@@ -186,7 +186,7 @@ impl SoundSystem for ThreadedSoundSystem {
 					buffer.to_frame_slice_mut().unwrap();
 				sample::slice::equilibrium(buffer);
 				// uhm what?
-				dsp_handle.lock().unwrap().audio_requested(buffer, SAMPLE_HZ as f64);
+				dsp_handle.lock().unwrap().audio_requested(buffer);
 				pa::Continue
 			};
 			let mut stream = portaudio.open_non_blocking_stream(settings, callback)
@@ -195,8 +195,8 @@ impl SoundSystem for ThreadedSoundSystem {
 				// push up thread priority
 				let thread_id = thread_native_id();
 				assert!(set_thread_priority(thread_id,
-				                            ThreadPriority::Max,
-				                            ThreadSchedulePolicy::Normal(NormalThreadSchedulePolicy::Normal)).is_ok());
+											ThreadPriority::Max,
+											ThreadSchedulePolicy::Normal(NormalThreadSchedulePolicy::Normal)).is_ok());
 			}
 			stream.start().expect("Unable to start audio stream");
 			'sound_main: loop {
