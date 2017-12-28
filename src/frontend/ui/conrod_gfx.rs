@@ -221,7 +221,7 @@ impl<'font, R: Resources> Renderer<'font, R> {
 		let Renderer { ref commands, ref vertices, .. } = *self;
 		Commands {
 			commands: commands.iter(),
-			vertices: vertices,
+			vertices,
 		}
 	}
 
@@ -326,7 +326,7 @@ impl<'font, R: Resources> Renderer<'font, R> {
 						Vertex {
 							pos: [vx(x), vy(y)],
 							uv: [0.0, 0.0],
-							color: color,
+							color,
 							mode: MODE_GEOMETRY,
 						}
 					};
@@ -357,7 +357,7 @@ impl<'font, R: Resources> Renderer<'font, R> {
 						Vertex {
 							pos: [vx(p[0]), vy(p[1])],
 							uv: [0.0, 0.0],
-							color: color,
+							color,
 							mode: MODE_GEOMETRY,
 						}
 					};
@@ -431,7 +431,7 @@ impl<'font, R: Resources> Renderer<'font, R> {
 							let v = |p, t| Vertex {
 								pos: p,
 								uv: t,
-								color: color,
+								color,
 								mode: MODE_TEXT,
 							};
 							let mut push_v = |p, t| vertices.push(v(p, t));
@@ -502,7 +502,7 @@ impl<'font, R: Resources> Renderer<'font, R> {
 						Vertex {
 							pos: [x, y],
 							uv: t,
-							color: color,
+							color,
 							mode: MODE_IMAGE,
 						}
 					};
@@ -620,7 +620,7 @@ fn create_texture<F, R>(factory: &mut F, width: u32, height: u32, data: &[u8])
 		let num_slices = kind.get_num_slices().unwrap_or(1) as usize;
 		let num_faces = if kind.is_cube() { 6 } else { 1 };
 		let desc = texture::Info {
-			kind: kind,
+			kind,
 			levels: (data.len() / (num_slices * num_faces)) as texture::Level,
 			format: surface,
 			bind: SHADER_RESOURCE,
