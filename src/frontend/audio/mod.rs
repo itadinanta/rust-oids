@@ -21,9 +21,10 @@ use backend::world::Alert;
 //pub type Input = AudioSample;
 //pub type Output = AudioSample;
 
-const CHANNELS: i32 = 2;
+const CHANNELS: usize = 2;
 const SAMPLE_HZ: f64 = 48000.0;
 const FRAMES: u32 = 256;
+const MAX_VOICES: usize = 16;
 
 #[allow(unused)]
 #[derive(Clone, Debug, Copy)]
@@ -173,12 +174,12 @@ impl SoundSystem for ThreadedSoundSystem {
 				.expect("Unable to open portAudio");
 			info!("Detected {:?} devices", portaudio.device_count());
 			let settings = portaudio.default_output_stream_settings::<f32>(
-				CHANNELS,
+				CHANNELS as i32,
 				SAMPLE_HZ,
 				FRAMES,
 			).expect("Unable to setup portAudio");
 
-			let dsp = Arc::new(Mutex::new(multiplexer::Multiplexer::new(SAMPLE_HZ)));
+			let dsp = Arc::new(Mutex::new(multiplexer::Multiplexer::new(SAMPLE_HZ, MAX_VOICES)));
 			let dsp_handle = dsp.clone();
 
 			let callback = move |pa::OutputStreamCallbackArgs { buffer, .. }| {
