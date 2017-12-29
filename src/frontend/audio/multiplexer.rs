@@ -2,6 +2,7 @@
 
 use dsp;
 use dsp::Sample;
+use pitch_calc::{Letter, LetterOctave};
 use std::collections::HashMap;
 use bit_set::BitSet;
 use core::clock::Seconds;
@@ -69,12 +70,12 @@ struct Oscillator {
 
 #[allow(unused)]
 impl Oscillator {
-	fn sin(pitch: f32, length: f32, amplitude: f32) -> Oscillator {
-		Oscillator { tone: Tone { pitch, length, amplitude }, waveform: Waveform::Sin }
+	fn sin(letter_octave: LetterOctave, length: f32, amplitude: f32) -> Oscillator {
+		Oscillator { tone: Tone { pitch: letter_octave.hz(), length, amplitude }, waveform: Waveform::Sin }
 	}
 
-	fn square(pitch: f32, length: f32, amplitude: f32) -> Oscillator {
-		Oscillator { tone: Tone { pitch, length, amplitude }, waveform: Waveform::Square(0.5f32) }
+	fn square(letter_octave: LetterOctave, length: f32, amplitude: f32) -> Oscillator {
+		Oscillator { tone: Tone { pitch: letter_octave.hz(), length, amplitude }, waveform: Waveform::Square(0.5f32) }
 	}
 
 	fn silence() -> Oscillator {
@@ -154,12 +155,12 @@ impl Multiplexer {
 				sample_map.insert(effect, sample_table.len() - 1);
 			};
 
-			create_signal(SoundEffect::Click(1), Oscillator::square(880.0f32, 0.1f32, 0.1f32), 0.8f32);
-			create_signal(SoundEffect::UserOption, Oscillator::square(1000.0f32, 0.1f32, 0.1f32), 0.6f32);
-			create_signal(SoundEffect::Fertilised, Oscillator::sin(300.0f32, 0.3f32, 0.1f32), 0.6f32);
-			create_signal(SoundEffect::NewSpore, Oscillator::sin(150.0f32, 0.3f32, 0.1f32), 0.3f32);
-			create_signal(SoundEffect::NewMinion, Oscillator::sin(600.0f32, 0.5f32, 0.1f32), 0.55f32);
-			create_signal(SoundEffect::DieMinion, Oscillator::sin(90.0f32, 1.0f32, 0.2f32), 0.1f32);
+			create_signal(SoundEffect::Click(1), Oscillator::square(LetterOctave(Letter::G, 5), 0.1f32, 0.1f32), 0.8f32);
+			create_signal(SoundEffect::UserOption, Oscillator::square(LetterOctave(Letter::C, 6), 0.1f32, 0.1f32), 0.6f32);
+			create_signal(SoundEffect::Fertilised, Oscillator::sin(LetterOctave(Letter::C, 4), 0.3f32, 0.1f32), 0.6f32);
+			create_signal(SoundEffect::NewSpore, Oscillator::sin(LetterOctave(Letter::F, 3), 0.3f32, 0.1f32), 0.3f32);
+			create_signal(SoundEffect::NewMinion, Oscillator::sin(LetterOctave(Letter::E, 4), 0.5f32, 0.1f32), 0.55f32);
+			create_signal(SoundEffect::DieMinion, Oscillator::sin(LetterOctave(Letter::Eb, 4), 1.0f32, 0.2f32), 0.1f32);
 		}
 
 		let voices = vec![Voice::default(); max_voices];
