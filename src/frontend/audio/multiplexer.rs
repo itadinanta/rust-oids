@@ -30,26 +30,28 @@ type StereoFrame = [f32; CHANNELS as usize];
 type StereoSignal = Signal<f32, StereoFrame>;
 
 #[derive(Clone)]
-struct Tone<S> where S: num::Float {
-	pitch: S,
+struct Tone<T, S> where
+	T: num::Float, S: num::Float {
+	pitch: T,
 	duration: Seconds,
 	amplitude: S,
 }
 
 #[allow(unused)]
 #[derive(Clone)]
-enum Waveform<S> where S: num::Float {
+enum Waveform<T, S> where
+	T: num::Float, S: num::Float {
 	Sin,
 	Harmonics(Box<[S]>, Box<[S]>),
-	Square(S),
+	Square(T),
 	Silence,
 }
 
-impl<S> Waveform<S>
-	where S: num::Float {
+impl<T, S> Waveform<T, S>
+	where T: num::Float, S: num::Float {
 	#[inline]
-	fn sample(&self, phase: S) -> S {
-		let phi: S = phase * NumCast::from(2.0f64 * f64::consts::PI).unwrap();
+	fn sample(&self, phase: T) -> S {
+		let phi = <S as NumCast>::from(phase).unwrap() * NumCast::from(2.0f64 * f64::consts::PI).unwrap();
 		match self {
 			&Waveform::Sin => phi.sin(),
 			&Waveform::Harmonics(ref hcos, ref hsin) => {
@@ -61,36 +63,40 @@ impl<S> Waveform<S>
 						.fold(S::zero(), |sum, (i, f)| sum + *f * (phi * NumCast::from(i + 1).unwrap()).sin());
 				cos_comp + sin_comp
 			}
-			&Waveform::Square(duty_cycle) => (
-				phase - duty_cycle).signum(),
+			&Waveform::Square(duty_cycle) => {
+				let s: T = (phase - duty_cycle).signum();
+				NumCast::from(s).unwrap()
+			}
 			_ => S::zero(),
 		}
 	}
 }
 
 #[derive(Clone)]
-struct Envelope<S> where S: num::Float {
-	attack: S,
-	decay: S,
+struct Envelope<T, S>
+	where T: num::Float, S: num::Float {
+	attack: T,
+	decay: T,
 	sustain: S,
-	release: S,
+	release: T,
 }
 
-impl<S> Default for Envelope<S>
-	where S: num::Float {
+impl<T, S> Default for Envelope<T, S>
+	where T: num::Float, S: num::Float {
 	fn default() -> Self {
 		Envelope {
-			attack: S::zero(),
-			decay: S::zero(),
+			attack: T::zero(),
+			decay: T::zero(),
 			sustain: S::one(),
-			release: S::zero(),
+			release: T::zero(),
 		}
 	}
 }
 
-impl<S> Envelope<S>
-	where S: num::Float {
-	fn new(attack: S, decay: S, sustain: S, release: S) -> Self {
+impl<T, S> Envelope<T, S>
+	where T: num::Float, S: num::Float {
+	#[allow(unused)]
+	fn new(attack: T, decay: T, sustain: S, release: T) -> Self {
 		Envelope {
 			attack,
 			decay,
@@ -99,7 +105,7 @@ impl<S> Envelope<S>
 		}
 	}
 
-	fn ramp_down(duration: S) -> Self {
+	fn ramp_down(duration: T) -> Self {
 		Envelope {
 			release: duration,
 			..Default::default()
@@ -107,14 +113,14 @@ impl<S> Envelope<S>
 	}
 
 	#[inline]
-	fn lerp_clip(x0: S, x1: S, y0: S, y1: S, t: S) -> S {
-		let v = (t - x0) / (x1 - x0);
+	fn lerp_clip(x0: T, x1: T, y0: S, y1: S, t: T) -> S {
+		let v = NumCast::from((t - x0) / (x1 - x0)).unwrap();
 		y0 + (y1 - y0) * S::zero().max(S::one().min(v))
 	}
 
-	fn gain(&self, duration: S, t: S) -> S {
+	fn gain(&self, duration: T, t: T) -> S {
 		if t < self.attack {
-			Self::lerp_clip(S::zero(), self.attack, S::zero(), S::one(), t)
+			Self::lerp_clip(T::zero(), self.attack, S::zero(), S::one(), t)
 		} else if t < self.decay {
 			Self::lerp_clip(self.attack, self.attack + self.decay, S::one(), self.sustain, t)
 		} else if t < duration - self.release {
@@ -126,13 +132,15 @@ impl<S> Envelope<S>
 }
 
 #[derive(Clone)]
-struct Oscillator<S> where S: num::Float {
-	tone: Tone<S>,
-	waveform: Waveform<S>,
+struct Oscillator<T, S>
+	where T: num::Float, S: num::Float {
+	tone: Tone<T, S>,
+	waveform: Waveform<T, S>,
 }
 
 #[allow(unused)]
-impl<S> Oscillator<S> where S: num::Float + sample::Sample + 'static {
+impl<T, S> Oscillator<T, S>
+	where T: num::Float + 'static, S: num::Float + sample::Sample + 'static {
 	fn sin(letter_octave: LetterOctave, duration: Seconds, amplitude: S) -> Self {
 		Oscillator {
 			tone: Tone { pitch: NumCast::from(letter_octave.hz()).unwrap(), duration, amplitude },
@@ -144,7 +152,7 @@ impl<S> Oscillator<S> where S: num::Float + sample::Sample + 'static {
 		Self::pwm(letter_octave, duration, amplitude, NumCast::from(0.5).unwrap())
 	}
 
-	fn pwm(letter_octave: LetterOctave, duration: Seconds, amplitude: S, duty_cycle: S) -> Self {
+	fn pwm(letter_octave: LetterOctave, duration: Seconds, amplitude: S, duty_cycle: T) -> Self {
 		Oscillator {
 			tone: Tone { pitch: NumCast::from(letter_octave.hz()).unwrap(), duration, amplitude },
 			waveform: Waveform::Square(duty_cycle),
@@ -160,15 +168,18 @@ impl<S> Oscillator<S> where S: num::Float + sample::Sample + 'static {
 
 	fn silence() -> Self {
 		Oscillator {
-			tone: Tone { pitch: S::one(), duration: Seconds::new(1.0f64), amplitude: S::one() },
+			tone: Tone { pitch: T::one(), duration: Seconds::new(1.0f64), amplitude: S::one() },
 			waveform: Waveform::Silence,
 		}
 	}
 
-	fn signal_function(self, pan: S) -> Box<Fn(S) -> [S; CHANNELS]> {
+	fn signal_function(self, pan: S, envelope: Envelope<T, S>) -> Box<Fn(T) -> [S; CHANNELS]>
+		where T: num::Float {
 		let c_pan = [S::one() - pan, pan];
-		Box::new(move |t| {
-			let val = self.sample(NumCast::from(t).unwrap());
+		let duration: T = NumCast::from(self.duration().get()).unwrap();
+		Box::new(move |t: T| {
+			let t = NumCast::from(t).unwrap();
+			let val = self.sample(t) * envelope.gain(duration, t);
 			Frame::from_fn(|channel| {
 				let n = val * c_pan[channel];
 				n.to_sample()
@@ -177,7 +188,7 @@ impl<S> Oscillator<S> where S: num::Float + sample::Sample + 'static {
 	}
 
 	#[inline]
-	fn sample(&self, t: S) -> S {
+	fn sample(&self, t: T) -> S {
 		self.tone.amplitude * self.waveform.sample((t * self.tone.pitch).fract())
 	}
 
@@ -188,7 +199,7 @@ impl<S> Oscillator<S> where S: num::Float + sample::Sample + 'static {
 
 	#[inline]
 	#[allow(unused)]
-	fn pitch(&self) -> S {
+	fn pitch(&self) -> T {
 		self.tone.pitch
 	}
 }
@@ -234,9 +245,9 @@ impl Multiplexer {
 		let mut wave_table = Vec::new();
 		let mut sample_map = HashMap::new();
 		{
-			let mut create_signal = |oscillator: Oscillator<f32>, pan: f32, delay: Seconds| {
+			let mut create_signal = |oscillator: Oscillator<f32, f32>, pan: f32, delay: Seconds| {
 				let duration = oscillator.tone.duration;
-				let f: Box<Fn(f32) -> StereoFrame> = oscillator.signal_function(pan);
+				let f: Box<Fn(f32) -> StereoFrame> = oscillator.signal_function(pan, Envelope::ramp_down(NumCast::from(duration.get()).unwrap()));
 				let signal = Signal::new(sample_rate as f32, duration, f)
 					.with_delay(delay, delay * 8.0, 1.0f32, 0.5f32);
 				let index = wave_table.len();
