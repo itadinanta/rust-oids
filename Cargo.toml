@@ -11,6 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 num ="*"
+num-traits="*"
 log="*"
 itertools = "*"
 log4rs = "*"

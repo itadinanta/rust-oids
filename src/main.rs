@@ -29,6 +29,7 @@ extern crate sample;
 
 extern crate rand;
 extern crate num;
+extern crate num_traits;
 extern crate itertools;
 
 #[macro_use]
