@@ -29,7 +29,6 @@ gfx = "*"
 gfx_core = "*"
 gfx_device_gl = "*"
 #sound
-dsp-chain="*"
 sample="*"
 pitch_calc="*"
 portaudio="*"

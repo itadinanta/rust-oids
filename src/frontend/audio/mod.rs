@@ -12,7 +12,7 @@ use std::sync::mpsc::SendError;
 use std::sync::Arc;
 use std::sync::Mutex;
 use app;
-use dsp::sample::ToFrameSliceMut;
+use sample::ToFrameSliceMut;
 use frontend::ui::AlertPlayer;
 use backend::world::AlertEvent;
 use backend::world::Alert;
