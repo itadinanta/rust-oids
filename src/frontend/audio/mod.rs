@@ -38,6 +38,7 @@ pub enum Error {
 #[allow(unused)]
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
 pub enum SoundEffect {
+	Startup,
 	Click(usize),
 	Release(usize),
 	NewSpore,
@@ -107,6 +108,7 @@ pub type ThreadedAlertPlayer = SoundSystemAlertPlayer<ThreadedSoundSystem>;
 impl AlertPlayer<AlertEvent, self::Error> for SoundSystemAlertPlayer<ThreadedSoundSystem> {
 	fn play(&mut self, alert: &AlertEvent) -> Result<(), self::Error> {
 		let note = match alert.alert {
+			Alert::BeginSimulation => SoundEffect::Startup,
 			Alert::NewMinion => SoundEffect::NewMinion,
 			Alert::NewSpore => SoundEffect::NewSpore,
 			Alert::Fertilised => SoundEffect::Fertilised,

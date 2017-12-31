@@ -666,7 +666,9 @@ impl App {
 	}
 
 	pub fn init(&mut self) {
+		use backend::world::AlertReceiver;
 		self.init_systems();
+		self.world.alert(world::alert::Alert::BeginSimulation);
 	}
 
 	fn init_systems(&mut self) {
