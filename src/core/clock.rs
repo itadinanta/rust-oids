@@ -24,6 +24,10 @@ impl Display for Seconds {
 	}
 }
 
+pub fn seconds(value: SecondsValue) -> Seconds {
+	Seconds::new(value)
+}
+
 impl Seconds {
 	pub fn new(value: SecondsValue) -> Seconds { Seconds(value) }
 	pub fn get(&self) -> SecondsValue { self.0 }
@@ -159,7 +163,7 @@ pub type SharedTimer<T> = Rc<RefCell<T>>;
 #[derive(Clone)]
 pub struct TimerStopwatch<T> where T: Timer {
 	timer: SharedTimer<T>,
-	t0: Seconds
+	t0: Seconds,
 }
 
 impl<T> Stopwatch for TimerStopwatch<T> where T: Timer {

@@ -4,7 +4,7 @@ use sample;
 use pitch_calc::{Letter, LetterOctave};
 use std::collections::HashMap;
 use bit_set::BitSet;
-use core::clock::Seconds;
+use core::clock::{seconds, Seconds};
 use num;
 use num::NumCast;
 use num_traits::FloatConst;
@@ -31,11 +31,26 @@ type StereoFrame = [f32; CHANNELS as usize];
 type StereoSignal = Signal<f32, StereoFrame>;
 
 #[derive(Clone)]
-struct Tone<T, S> where
-	T: num::Float, S: num::Float {
+struct Tone<T, S> where T: num::Float, S: num::Float {
 	pitch: T,
 	duration: Seconds,
 	amplitude: S,
+}
+
+impl<T, S> Tone<T, S> where T: num::Float, S: num::Float {
+	fn new(letter_octave: LetterOctave, duration: Seconds, amplitude: S) -> Self {
+		Tone { pitch: NumCast::from(letter_octave.hz()).unwrap(), duration, amplitude }
+	}
+
+	fn note_octave(note: Letter, octave: i32, duration: Seconds, amplitude: S) -> Self {
+		Self::new(LetterOctave(note, octave), duration, amplitude)
+	}
+}
+
+impl<T, S> Default for Tone<T, S> where T: num::Float, S: num::Float {
+	fn default() -> Self {
+		Tone::note_octave(Letter::C, 4, seconds(1.0), S::one())
+	}
 }
 
 #[allow(unused)]
@@ -121,9 +136,9 @@ impl<T, S> Envelope<T, S>
 		}
 	}
 
-	fn ramp_down(duration: T) -> Self {
+	fn ramp_down(duration: Seconds) -> Self {
 		Envelope {
-			release: duration,
+			release: NumCast::from(duration.get()).unwrap(),
 			..Default::default()
 		}
 	}
@@ -146,80 +161,70 @@ impl<T, S> Envelope<T, S>
 #[derive(Clone)]
 struct Oscillator<T, S>
 	where T: num::Float, S: num::Float {
-	tone: Tone<T, S>,
 	waveform: Waveform<T, S>,
 }
 
 #[allow(unused)]
 impl<T, S> Oscillator<T, S>
 	where T: num::Float + 'static, S: num::Float + sample::Sample + 'static {
-	fn sin(letter_octave: LetterOctave, duration: Seconds, amplitude: S) -> Self {
+	fn sin() -> Self {
 		Oscillator {
-			tone: Tone { pitch: NumCast::from(letter_octave.hz()).unwrap(), duration, amplitude },
 			waveform: Waveform::Sin,
 		}
 	}
 
-	fn square(letter_octave: LetterOctave, duration: Seconds, amplitude: S) -> Self {
-		Self::pwm(letter_octave, duration, amplitude, NumCast::from(0.5).unwrap())
+	fn square() -> Self {
+		Self::pwm(NumCast::from(0.5).unwrap())
 	}
 
-	fn pwm(letter_octave: LetterOctave, duration: Seconds, amplitude: S, duty_cycle: T) -> Self {
+	fn pwm(duty_cycle: T) -> Self {
 		Oscillator {
-			tone: Tone { pitch: NumCast::from(letter_octave.hz()).unwrap(), duration, amplitude },
 			waveform: Waveform::Square(duty_cycle),
 		}
 	}
 
-	fn triangle(letter_octave: LetterOctave, duration: Seconds, amplitude: S, slant: T) -> Self {
+	fn down_saw(amplitude: S) -> Self {
+		Self::triangle(T::zero())
+	}
+
+	fn up_saw(amplitude: S) -> Self {
+		Self::triangle(T::one())
+	}
+
+	fn triangle(slant: T) -> Self {
 		Oscillator {
-			tone: Tone { pitch: NumCast::from(letter_octave.hz()).unwrap(), duration, amplitude },
 			waveform: Waveform::Triangle(slant),
 		}
 	}
 
-	fn harmonics(letter_octave: LetterOctave, duration: Seconds, amplitude: S, hcos: &[S], hsin: &[S]) -> Self {
+	fn harmonics(hcos: &[S], hsin: &[S]) -> Self {
 		Oscillator {
-			tone: Tone { pitch: NumCast::from(letter_octave.hz()).unwrap(), duration, amplitude },
 			waveform: Waveform::Harmonics(hcos.to_vec().into_boxed_slice(), hsin.to_vec().into_boxed_slice()),
 		}
 	}
 
 	fn silence() -> Self {
 		Oscillator {
-			tone: Tone { pitch: T::one(), duration: Seconds::new(1.0f64), amplitude: S::one() },
 			waveform: Waveform::Silence,
 		}
 	}
 
-	fn signal_function(self, pan: S, envelope: Envelope<T, S>) -> Box<Fn(T) -> [S; CHANNELS]>
-		where T: FloatConst {
-		let c_pan = [S::one() - pan, pan];
-		let duration: T = NumCast::from(self.duration().get()).unwrap();
-		Box::new(move |t: T| {
-			let t = NumCast::from(t).unwrap();
-			let val = self.sample(t) * envelope.gain(duration, t);
-			sample::Frame::from_fn(|channel| {
-				let n = val * c_pan[channel];
-				n.to_sample()
-			})
-		})
-	}
-
 	#[inline]
 	fn sample(&self, t: T) -> S where T: FloatConst {
-		self.tone.amplitude * self.waveform.sample((t * self.tone.pitch).fract())
+		self.waveform.sample(t)
 	}
 
-	#[inline]
-	fn duration(&self) -> Seconds {
-		self.tone.duration
-	}
-
-	#[inline]
-	#[allow(unused)]
-	fn pitch(&self) -> T {
-		self.tone.pitch
+	fn signal_function(self, tone: Tone<T, S>, envelope: Envelope<T, S>, pan: S) -> Box<Fn(T) -> [S; CHANNELS]>
+		where T: FloatConst {
+		let c_pan = [S::one() - pan, pan];
+		let duration: T = NumCast::from(tone.duration.get()).unwrap();
+		Box::new(move |t: T| {
+			let t = NumCast::from(t).unwrap();
+			let val = tone.amplitude * envelope.gain(duration, t) * self.sample((t * tone.pitch).fract());
+			sample::Frame::from_fn(|channel| {
+				(val * c_pan[channel]).to_sample()
+			})
+		})
 	}
 }
 
@@ -260,43 +265,46 @@ pub struct Multiplexer {
 }
 
 #[derive(Clone)]
-pub struct Delay<S>
-	where S: num::Float {
+pub struct Delay<S> where S: num::Float {
 	time: Seconds,
 	tail: Seconds,
 	wet_dry: S,
 	feedback: S,
 }
 
-impl<S> Default for Delay<S>
-	where S: num::Float {
-	fn default() -> Self {
+impl<S> Delay<S> where S: num::Float {
+	fn with_time(time: Seconds) -> Self {
 		Delay::<S> {
-			time: Seconds::new(0.25),
-			tail: Seconds::new(1.0),
+			time,
+			tail: time * 8.0,
 			wet_dry: S::one(),
 			feedback: NumCast::from(0.5).unwrap(),
 		}
 	}
 }
 
+impl<S> Default for Delay<S> where S: num::Float {
+	fn default() -> Self { Delay::with_time(seconds(0.25)) }
+}
+
 #[derive(Clone)]
 pub struct SignalBuilder<T, S>
 	where T: num::Float, S: num::Float + sample::Sample {
 	oscillator: Oscillator<T, S>,
+	tone: Tone<T, S>,
 	envelope: Envelope<T, S>,
 	pan: S,
 	sample_rate: T,
 	delay: Delay<S>,
 }
 
+#[allow(unused)]
 impl<T, S> SignalBuilder<T, S>
 	where T: num::Float + 'static, S: num::Float + sample::Sample + 'static {
 	fn new() -> Self {
 		SignalBuilder {
-			oscillator: Oscillator::sin(LetterOctave(Letter::C, 4),
-										Seconds::new(1.0),
-										S::one()),
+			oscillator: Oscillator::sin(),
+			tone: Tone::default(),
 			envelope: Envelope::default(),
 			sample_rate: NumCast::from(48000.0).unwrap(),
 			pan: NumCast::from(0.5).unwrap(),
@@ -305,17 +313,20 @@ impl<T, S> SignalBuilder<T, S>
 	}
 
 	fn from_oscillator(oscillator: Oscillator<T, S>) -> Self {
-		let duration = oscillator.tone.duration;
 		SignalBuilder {
 			oscillator,
-			envelope: Envelope::ramp_down(T::from(duration.get()).unwrap()),
+			tone: Tone::default(),
+			envelope: Envelope::ramp_down(seconds(1.0)),
 			sample_rate: NumCast::from(48000.0).unwrap(),
 			pan: NumCast::from(0.5).unwrap(),
-			delay: Delay {
-				time: duration,
-				tail: duration * 4.0f64,
-				..Delay::default()
-			},
+			delay: Delay::default(),
+		}
+	}
+
+	fn with_tone(&self, tone: Tone<T, S>) -> Self {
+		SignalBuilder {
+			tone,
+			..self.clone()
 		}
 	}
 
@@ -327,7 +338,7 @@ impl<T, S> SignalBuilder<T, S>
 	}
 
 	fn with_envelope_ramp_down(&self) -> Self {
-		self.with_envelope(Envelope::ramp_down(NumCast::from(self.oscillator.tone.duration.get()).unwrap()))
+		self.with_envelope(Envelope::ramp_down(self.tone.duration))
 	}
 
 	fn with_oscillator(&self, oscillator: Oscillator<T, S>) -> Self {
@@ -361,13 +372,16 @@ impl<T, S> SignalBuilder<T, S>
 
 	fn build(&self) -> Signal<T, [S; CHANNELS]>
 		where T: FloatConst {
-		let duration = self.oscillator.tone.duration;
-		let f: Box<Fn(T) -> [S; CHANNELS]> = self.oscillator.clone().signal_function(self.pan, self.envelope.clone());
-		Signal::<T, [S; CHANNELS]>::new(self.sample_rate, duration, f)
+		Signal::<T, [S; CHANNELS]>::new(self.sample_rate,
+										self.tone.duration,
+										self.oscillator.clone()
+											.signal_function(self.tone.clone(),
+															 self.envelope.clone(),
+															 self.pan))
 			.with_delay(self.delay.time, self.delay.tail, self.delay.wet_dry, self.delay.feedback)
 	}
 
-	fn record(&self, wave_table: &mut Vec<Signal<T, [S; CHANNELS]>>) -> usize
+	fn render(&self, wave_table: &mut Vec<Signal<T, [S; CHANNELS]>>) -> usize
 		where T: FloatConst {
 		let signal = self.build();
 		let index = wave_table.len();
@@ -388,65 +402,49 @@ impl Multiplexer {
 			};
 
 			map_effect(SoundEffect::Startup, SignalBuilder::from_oscillator(
-				Oscillator::harmonics(LetterOctave(Letter::A, 3),
-									  Seconds::new(2.0),
-									  0.3f32,
-									  &[0.0f32, 0.1f32, 0.0f32, 0.2f32],
-									  &[0.6f32]))
+				Oscillator::harmonics(&[0.0f32, 0.1f32, 0.0f32, 0.2f32], &[0.6f32]))
+				.with_tone(Tone::note_octave(Letter::A, 3, seconds(2.0), 0.3f32))
 				.with_envelope(Envelope::adsr(0.01, 0.5, 0.5, 0.5))
 				.with_pan(0.25f32)
-				.with_delay_time(Seconds::new(1.0))
-				.record(&mut wave_table));
+				.with_delay_time(seconds(1.0))
+				.render(&mut wave_table));
 
-			map_effect(SoundEffect::Click(1), SignalBuilder::from_oscillator(
-				Oscillator::square(LetterOctave(Letter::G, 5),
-								   Seconds::new(0.1),
-								   0.1f32))
+			map_effect(SoundEffect::SelectMinion, SignalBuilder::from_oscillator(Oscillator::square())
+				.with_tone(Tone::note_octave(Letter::G, 5, seconds(0.1), 0.1f32))
 				.with_pan(0.8f32)
-				.with_delay_time(Seconds::new(0.25))
-				.record(&mut wave_table));
+				.with_delay_time(seconds(0.05))
+				.render(&mut wave_table));
 
-			map_effect(SoundEffect::UserOption, SignalBuilder::from_oscillator(
-				Oscillator::square(LetterOctave(Letter::C, 6),
-								   Seconds::new(0.1),
-								   0.1f32))
+			map_effect(SoundEffect::UserOption, SignalBuilder::from_oscillator(Oscillator::triangle(1.0))
+				.with_tone(Tone::note_octave(Letter::C, 6, seconds(0.1), 0.1f32))
+				.with_envelope(Envelope::adsr(0.01, 0.05, 0.9, 0.05))
 				.with_pan(0.6f32)
-				.with_delay_time(Seconds::new(0.25))
-				.record(&mut wave_table));
+				.with_delay_time(seconds(0.1))
+				.render(&mut wave_table));
 
-			map_effect(SoundEffect::Fertilised, SignalBuilder::from_oscillator(
-				Oscillator::sin(LetterOctave(Letter::C, 4),
-								Seconds::new(0.3),
-								0.1f32))
+			map_effect(SoundEffect::Fertilised, SignalBuilder::from_oscillator(Oscillator::sin())
+				.with_tone(Tone::note_octave(Letter::C, 4, seconds(0.3), 0.1f32))
 				.with_pan(0.6f32)
-				.with_delay_time(Seconds::new(0.25))
-				.record(&mut wave_table));
+				.with_delay_time(seconds(0.25))
+				.render(&mut wave_table));
 
 			map_effect(SoundEffect::NewSpore, SignalBuilder::from_oscillator(
-				Oscillator::harmonics(
-					LetterOctave(Letter::F, 5),
-					Seconds::new(0.3),
-					0.1f32,
-					&[0.0f32, 0.3f32, 0.0f32, 0.1f32],
-					&[0.6f32]))
+				Oscillator::harmonics(&[0.0f32, 0.3f32, 0.0f32, 0.1f32], &[0.6f32]))
+				.with_tone(Tone::note_octave(Letter::F, 5, seconds(0.3), 0.1f32))
 				.with_pan(0.3f32)
-				.with_delay_time(Seconds::new(0.33))
-				.record(&mut wave_table));
+				.with_delay_time(seconds(0.33))
+				.render(&mut wave_table));
 
-			map_effect(SoundEffect::NewMinion, SignalBuilder::from_oscillator(
-				Oscillator::sin(LetterOctave(Letter::A, 4),
-								Seconds::new(0.5),
-								0.1f32))
-				.with_pan(0.55f32).with_delay_time(Seconds::new(0.25))
-				.record(&mut wave_table));
+			map_effect(SoundEffect::NewMinion, SignalBuilder::from_oscillator(Oscillator::sin())
+				.with_tone(Tone::note_octave(Letter::A, 4, seconds(0.5), 0.1f32))
+				.with_pan(0.55f32).with_delay_time(seconds(0.25))
+				.render(&mut wave_table));
 
-			map_effect(SoundEffect::DieMinion, SignalBuilder::from_oscillator(
-				Oscillator::sin(LetterOctave(Letter::Eb, 3),
-								Seconds::new(1.0),
-								0.2f32))
+			map_effect(SoundEffect::DieMinion, SignalBuilder::from_oscillator(Oscillator::sin())
+				.with_tone(Tone::note_octave(Letter::Eb, 3, seconds(1.0), 0.2f32))
 				.with_pan(1f32)
-				.with_delay_time(Seconds::new(0.5))
-				.record(&mut wave_table));
+				.with_delay_time(seconds(0.5))
+				.render(&mut wave_table));
 		}
 
 		let voices = vec![Voice::default(); max_voices];
@@ -530,7 +528,7 @@ impl<S, F> Signal<S, F> where S: num::Float {
 	}
 
 	fn duration(&self) -> Seconds {
-		Seconds::new(self.sample_rate.to_f64().unwrap() * self.frames.len() as f64)
+		seconds(self.sample_rate.to_f64().unwrap() * self.frames.len() as f64)
 	}
 
 	fn sample_rate(&self) -> S {

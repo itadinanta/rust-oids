@@ -44,6 +44,7 @@ pub enum SoundEffect {
 	NewSpore,
 	NewMinion,
 	DieMinion,
+	SelectMinion,
 	UserOption,
 	Fertilised,
 	Eat,
@@ -134,9 +135,11 @@ impl AlertPlayer<app::Event, self::Error> for SoundSystemAlertPlayer<ThreadedSou
 			&Event::PrevSpeedFactor |
 			&Event::Reload |
 			&Event::DumpToFile |
-			&Event::SelectMinion(_, _) |
 			&Event::DeselectAll |
 			&Event::ToggleDebug => SoundEffect::UserOption,
+
+			&Event::SelectMinion(_, _) => SoundEffect::SelectMinion,
+
 
 			&Event::NewMinion(_) |
 			&Event::RandomizeMinion(_) => SoundEffect::NewMinion,
@@ -158,9 +161,9 @@ impl<S> Drop for SoundSystemAlertPlayer<S> where S: SoundSystem {
 }
 
 impl ThreadedAlertPlayer {
-	pub fn new(s: ThreadedSoundSystem) -> Self {
+	pub fn new(sound_system: ThreadedSoundSystem) -> Self {
 		let mut player = ThreadedAlertPlayer {
-			sound_system: s,
+			sound_system,
 		};
 		player.open().expect("Could not open sound system");
 		player

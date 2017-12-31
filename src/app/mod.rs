@@ -348,7 +348,12 @@ impl App {
 		}
 	}
 
-	pub fn on_app_event(&mut self, e: Event) {
+	pub fn interact(&mut self, e: Event) {
+		self.interactions.push(e);
+		self.on_app_event(e)
+	}
+
+	fn on_app_event(&mut self, e: Event) {
 		match e {
 			Event::CamUp => self.camera.push(math::Direction::Up),
 			Event::CamDown => self.camera.push(math::Direction::Down),
@@ -482,8 +487,7 @@ impl App {
 		}
 
 		for e in events {
-			self.interactions.push(e);
-			self.on_app_event(e)
+			self.interact(e)
 		}
 	}
 

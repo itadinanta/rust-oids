@@ -10,7 +10,7 @@ use conrod;
 
 use core::resource::filesystem::ResourceLoaderBuilder;
 use core::math::Directional;
-use core::clock::{Seconds, SecondsValue, Timer, Hourglass, SystemTimer};
+use core::clock::{seconds, SecondsValue, Timer, Hourglass, SystemTimer};
 use ctrlc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -110,9 +110,6 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 		// update and measure, let the app determine the appropriate frame length
 		let frame_update = app.update();
 
-		app.play_alerts(&mut audio_alert_player);
-		app.play_interactions(&mut audio_alert_player);
-
 		let camera = render::Camera::ortho(
 			app.camera.position(),
 			app.viewport.scale,
@@ -143,9 +140,12 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 			ui.handle_events();
 
 			for app_event in ui.drain_app_events() {
-				app.on_app_event(app_event)
+				app.interact(app_event)
 			}
 		}
+
+		app.play_alerts(&mut audio_alert_player);
+		app.play_interactions(&mut audio_alert_player);
 
 		// push the commands
 		renderer.end_frame(&mut device);
@@ -174,8 +174,8 @@ pub fn main_loop_headless(minion_gene_pool: &str) {
 	}).expect("Error setting Ctrl-C handler");
 
 	let wall_clock = SystemTimer::new().shared();
-	let mut output_hourglass = Hourglass::new(wall_clock.clone(), Seconds::new(5.0));
-	let mut save_hourglass = Hourglass::new(wall_clock.clone(), Seconds::new(300.0));
+	let mut output_hourglass = Hourglass::new(wall_clock.clone(), seconds(5.0));
+	let mut save_hourglass = Hourglass::new(wall_clock.clone(), seconds(300.0));
 
 	const FRAME_SIMULATION_LENGTH: SecondsValue = 1.0 / 60.0;
 	'main: loop {
@@ -189,7 +189,7 @@ pub fn main_loop_headless(minion_gene_pool: &str) {
 			break 'main;
 		}
 // update and measure
-		let simulation_update = app.simulate(Seconds::new(FRAME_SIMULATION_LENGTH));
+		let simulation_update = app.simulate(seconds(FRAME_SIMULATION_LENGTH));
 		if save_hourglass.flip_if_expired() {
 			app.dump_to_file();
 		}
