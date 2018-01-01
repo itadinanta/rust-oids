@@ -281,8 +281,7 @@ impl State {
 	}
 
 	pub fn phase(&self) -> f32 {
-		let age = self.lifecycle.elapsed();
-		age.into()
+		self.phase
 	}
 
 	pub fn consume(&mut self, q: f32) -> bool {
@@ -357,6 +356,10 @@ impl State {
 	pub fn retarget(&mut self, target: Option<Id>, position: Position) {
 		self.target = target;
 		self.target_position = position;
+	}
+
+	pub fn heartbeat(&mut self, d: f32) {
+		self.phase = (self.phase + d) % (2.0 * f32::consts::PI)
 	}
 
 	pub fn track_position(&mut self, position: &Position) {

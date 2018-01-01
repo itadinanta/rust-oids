@@ -224,6 +224,7 @@ impl<T> Hourglass<T> where T: Timer {
 		left
 	}
 
+	#[allow(unused)]
 	pub fn elapsed(&self) -> Seconds {
 		self.stopwatch.elapsed()
 	}

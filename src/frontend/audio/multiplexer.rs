@@ -372,12 +372,11 @@ impl<T, S> SignalBuilder<T, S>
 
 	fn build(&self) -> Signal<T, [S; CHANNELS]>
 		where T: FloatConst {
-		Signal::<T, [S; CHANNELS]>::new(self.sample_rate,
-										self.tone.duration,
-										self.oscillator.clone()
-											.signal_function(self.tone.clone(),
-															 self.envelope.clone(),
-															 self.pan))
+		let f = self.oscillator.clone().signal_function(
+			self.tone.clone(),
+			self.envelope.clone(),
+			self.pan);
+		Signal::<T, [S; CHANNELS]>::new(self.sample_rate, self.tone.duration, f)
 			.with_delay(self.delay.time, self.delay.tail, self.delay.wet_dry, self.delay.feedback)
 	}
 
