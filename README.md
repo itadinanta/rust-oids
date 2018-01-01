@@ -50,9 +50,7 @@ Some rust-oids competing for territory and resources:
 
 ## Prerequisites/platforms
 
-I've built on Ubuntu GNU/Linux, Devuan Ceres GNU/Linux and Windows 10. I've got reports of successful builds on Mac OS + Homebrew. Since adding MSAA a month or so ago, the OSX build panics at launch.
-
-### Linux
+I've built on Ubuntu GNU/Linux, Devuan Ceres GNU/Linux and Windows 10.
 
 Aside from the full Rust toolchain, the following packages are required:
 

@@ -38,6 +38,9 @@ extern crate conrod;
 
 extern crate getopts;
 extern crate ctrlc;
+
+extern crate gilrs;
+
 #[cfg(unix)]
 extern crate thread_priority;
 

@@ -1,5 +1,6 @@
 //! Input state, including current mouse position and button click
-//! TODO: add keyboard presses
+mod gamepad;
+
 use core::geometry;
 use core::util::History;
 use core::geometry::Position;
@@ -19,7 +20,19 @@ pub enum Dragging {
 	End(Key, Position, Position, Position),
 }
 
+#[derive(Default, Clone)]
+pub struct GamepadState {
+	connected: bool,
+	button_pressed: BitSet,
+	button_ack: BitSet,
+	x: f32,
+	y: f32,
+}
+
+const MAX_GAMEPADS: usize = 2;
+
 pub struct InputState {
+	gamepad: Vec<GamepadState>,
 	key_pressed: BitSet,
 	key_ack: BitSet,
 	drag_state: DragState,
@@ -30,6 +43,7 @@ pub struct InputState {
 impl Default for InputState {
 	fn default() -> Self {
 		InputState {
+			gamepad: vec![GamepadState::default(); MAX_GAMEPADS],
 			key_pressed: BitSet::new(),
 			key_ack: BitSet::new(),
 			drag_state: DragState::Nothing,
@@ -165,6 +179,7 @@ pub enum Key {
 pub enum Event {
 	Key(State, Key),
 	Mouse(Position),
+	GamepadPoll(usize),
 }
 
 #[allow(dead_code)]
@@ -173,6 +188,7 @@ impl InputState {
 		match event {
 			&Event::Key(state, key) => self.key(state, key),
 			&Event::Mouse(position) => self.mouse_at(position),
+			&Event::GamepadPoll(id) => self.gamepad_poll(id),
 		}
 	}
 
@@ -191,6 +207,8 @@ impl InputState {
 	pub fn any_super_pressed(&self) -> bool {
 		self.any_key_pressed(&[Key::LSuper, Key::RSuper])
 	}
+
+	pub fn gamepad_poll(&mut self, id: usize) {}
 
 	pub fn any_key_pressed(&self, b: &[Key]) -> bool {
 		let other: BitSet = b.into_iter().map(|k| *k as usize).collect();

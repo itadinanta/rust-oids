@@ -2,6 +2,7 @@ use std::path;
 
 use frontend::render;
 use frontend::input::EventMapper;
+use frontend::input::Event;
 use frontend::render::{formats, Renderer, Overlay};
 use frontend::audio::{self, SoundSystem};
 use frontend::ui;
@@ -72,6 +73,7 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 	app.init();
 
 	'main: loop {
+		app.on_input_event(&Event::GamepadPoll(0));
 		events_loop.poll_events(|event| {
 			if app.has_ui_overlay() {
 				if let Some(event) = conrod::backend::winit::convert_event(event.clone(), window.window()) {
