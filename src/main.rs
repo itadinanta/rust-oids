@@ -58,14 +58,14 @@ fn main() {
 		))
 		.logger(Logger::builder().build(
 			"gfx_device_gl".to_string(),
-			log::LogLevelFilter::Error,
+			log::LevelFilter::Error,
 		))
 		.logger(Logger::builder().build(
 			"rust_oids".to_string(),
-			log::LogLevelFilter::Info,
+			log::LevelFilter::Info,
 		))
 		.build(Root::builder().appender("stdout".to_string()).build(
-			log::LogLevelFilter::Info,
+			log::LevelFilter::Info,
 		));
 	log4rs::init_config(config.unwrap()).unwrap();
 	app::run(&args);
