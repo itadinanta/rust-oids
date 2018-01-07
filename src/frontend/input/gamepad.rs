@@ -3,7 +3,7 @@ use gilrs::Gilrs;
 // use gilrs::ev::filter::{Filter, Repeat};
 
 use frontend::input;
-use frontend::input::EventMapper ;
+use frontend::input::EventMapper;
 
 pub struct GamepadEventLoop {
 	//	repeat_filter: Repeat,
@@ -23,6 +23,8 @@ impl input::EventMapper<gilrs::Event> for GamepadEventLoop {
 				// Triggers
 				gilrs::Button::LeftTrigger => Some(GamepadL1),
 				gilrs::Button::RightTrigger => Some(GamepadR1),
+				gilrs::Button::LeftTrigger2 => Some(GamepadL2),
+				gilrs::Button::RightTrigger2 => Some(GamepadR2),
 				// Menu Pad
 				gilrs::Button::Select => Some(GamepadSelect),
 				gilrs::Button::Start => Some(GamepadStart),
@@ -46,8 +48,8 @@ impl input::EventMapper<gilrs::Event> for GamepadEventLoop {
 				gilrs::Axis::LeftStickY => Some(LStickY),
 				gilrs::Axis::RightStickX => Some(RStickX),
 				gilrs::Axis::RightStickY => Some(RStickY),
-				gilrs::Axis::LeftTrigger => Some(L2),
-				gilrs::Axis::RightTrigger => Some(R2),
+				gilrs::Axis::LeftTrigger2 => Some(L2),
+				gilrs::Axis::RightTrigger2 => Some(R2),
 				_ => None
 			}
 		}
@@ -68,21 +70,18 @@ impl GamepadEventLoop {
 	pub fn new() -> Self {
 		let gilrs = Gilrs::new();
 		for (_id, gamepad) in gilrs.gamepads() {
-			println!("{} is {:?}", gamepad.name(), gamepad.power_info());
+			info!("{} is {:?}", gamepad.name(), gamepad.power_info());
 		}
 		GamepadEventLoop {
-//			repeat_filter: Repeat::new(),
 			gilrs,
 		}
 	}
 
 	pub fn poll_events<F>(&mut self, mut on_input_event: F)
 		where F: FnMut(input::Event) {
-		//let repeat_filter = self.repeat_filter.clone();
-		//while let Some(ev) = Filter::filter(&self.gilrs.next_event(), &repeat_filter, &self.gilrs) {
 		while let Some(ev) = self.gilrs.next_event() {
 			self.gilrs.update(&ev);
-			println!("{:?}", ev);
+			info!("{:?}", ev);
 			self.translate(&ev).map(&mut on_input_event);
 		};
 		self.gilrs.inc();

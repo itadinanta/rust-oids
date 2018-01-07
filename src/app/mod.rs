@@ -38,10 +38,10 @@ use cgmath::{Matrix4, SquareMatrix};
 
 #[derive(Clone, Copy, Debug)]
 pub enum Event {
-	CamUp,
-	CamDown,
-	CamLeft,
-	CamRight,
+	CamUp(f32),
+	CamDown(f32),
+	CamLeft(f32),
+	CamRight(f32),
 
 	CamReset,
 
@@ -355,10 +355,10 @@ impl App {
 
 	fn on_app_event(&mut self, e: Event) {
 		match e {
-			Event::CamUp => self.camera.push(math::Direction::Up),
-			Event::CamDown => self.camera.push(math::Direction::Down),
-			Event::CamLeft => self.camera.push(math::Direction::Left),
-			Event::CamRight => self.camera.push(math::Direction::Right),
+			Event::CamUp(w) => self.camera.push(math::Direction::Up, w),
+			Event::CamDown(w) => self.camera.push(math::Direction::Down, w),
+			Event::CamLeft(w) => self.camera.push(math::Direction::Left, w),
+			Event::CamRight(w) => self.camera.push(math::Direction::Right, w),
 
 			Event::CamReset => { self.camera.reset(); }
 			Event::NextLight => { self.lights.next(); }
@@ -410,7 +410,12 @@ impl App {
 			[$($key:ident -> $app_event:ident),*] => (
 				$(if self.input_state.key_pressed(input::Key::$key) { events.push(Event::$app_event); })
 				*
+			);
+			[$($key:ident -> $app_event:ident($app_args:expr)),*] => (
+				$(if self.input_state.key_pressed(input::Key::$key) { events.push(Event::$app_event($app_args)); })
+				*
 			)
+
 		}
 		macro_rules! on_key_pressed_once {
 			[$($key:ident -> $app_event:ident),*] => (
@@ -418,29 +423,38 @@ impl App {
 				*
 			)
 		}
+
 		on_key_held![
-			Up -> CamUp,
-			Down -> CamDown,
-			Left -> CamLeft,
-			Right-> CamRight
+			Up -> CamUp(1.0f32),
+			Down -> CamDown(1.0f32),
+			Left -> CamLeft(1.0f32),
+			Right-> CamRight(1.0f32),
+			GamepadDPadUp -> CamUp(1.0f32),
+			GamepadDPadDown -> CamDown(1.0f32),
+			GamepadDPadLeft -> CamLeft(1.0f32),
+			GamepadDPadRight -> CamRight(1.0f32)
 		];
 
 		on_key_pressed_once![
 			F5 -> Reload,
 			F1 -> ToggleGui,
 			Space -> ToggleGui,
+			GamepadL3 -> ToggleGui,
 			N0 -> CamReset,
 			Home -> CamReset,
 			KpHome -> CamReset,
 			F6 -> DumpToFile,
 			D -> ToggleDebug,
+			GamepadStart -> ToggleDebug,
 			Z -> DeselectAll,
 			L -> NextLight,
 			B -> NextBackground,
 			K -> PrevLight,
 			V -> PrevBackground,
 			G -> PrevSpeedFactor,
+			GamepadL1 -> PrevSpeedFactor,
 			H -> NextSpeedFactor,
+			GamepadR1 -> NextSpeedFactor,
 			P -> TogglePause,
 			Esc -> AppQuit
 		];
@@ -454,6 +468,20 @@ impl App {
 		} else {
 			None
 		};
+
+		const dead_zone: input::AxisValue = 0.3f32;
+		let left_stick_x = self.input_state.gamepad_axis(0, input::Axis::LStickX);
+		if left_stick_x >= dead_zone {
+			events.push(Event::CamRight(left_stick_x));
+		} else if left_stick_x <= -dead_zone {
+			events.push(Event::CamLeft(-left_stick_x));
+		}
+		let left_stick_y = self.input_state.gamepad_axis(0, input::Axis::LStickY);
+		if left_stick_y >= dead_zone {
+			events.push(Event::CamUp(left_stick_y));
+		} else if left_stick_y <= -dead_zone {
+			events.push(Event::CamDown(-left_stick_y));
+		}
 
 		if self.input_state.key_once(input::Key::MouseMiddle) {
 			if self.input_state.any_ctrl_pressed() {

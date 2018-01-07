@@ -9,6 +9,7 @@ use core::geometry::Position;
 use bit_set::BitSet;
 use std::iter::Iterator;
 use std::collections::HashMap;
+use num::Zero;
 
 #[derive(Clone)]
 enum DragState {
@@ -30,7 +31,7 @@ pub struct GamepadState {
 	pub connected: bool,
 	pub button_pressed: BitSet,
 	pub button_ack: BitSet,
-	pub axis: [f32; MAX_AXIS],
+	pub axis: [AxisValue; MAX_AXIS],
 }
 
 pub struct InputState {
@@ -48,7 +49,7 @@ impl Default for GamepadState {
 			connected: false,
 			button_pressed: BitSet::new(),
 			button_ack: BitSet::new(),
-			axis: [0.0f32; MAX_AXIS],
+			axis: [AxisValue::zero(); MAX_AXIS],
 		}
 	}
 }
@@ -227,12 +228,13 @@ pub enum Axis {
 	R2,
 }
 
+pub type AxisValue = f32;
 
 pub enum Event {
 	Key(State, Key),
 	Mouse(Position),
 	GamepadButton(usize, State, Key),
-	GamepadAxis(usize, f32, Axis),
+	GamepadAxis(usize, AxisValue, Axis),
 }
 
 #[allow(dead_code)]
@@ -245,7 +247,20 @@ impl GamepadState {
 		};
 	}
 
-	fn axis(&mut self, value: f32, axis: Axis) {
+	pub fn button_pressed(&self, b: Key) -> bool {
+		self.button_pressed.contains(b as usize)
+	}
+
+	pub fn button_once(&mut self, b: Key) -> bool {
+		if self.button_ack.contains(b as usize) {
+			false
+		} else {
+			self.button_ack.insert(b as usize);
+			self.button_pressed.contains(b as usize)
+		}
+	}
+
+	fn axis(&mut self, value: AxisValue, axis: Axis) {
 		self.axis[axis as usize] = value;
 	}
 }
@@ -257,7 +272,7 @@ impl InputState {
 			&Event::Key(state, key) => self.key(state, key),
 			&Event::Mouse(position) => self.mouse_at(position),
 			&Event::GamepadButton(id, state, button) => self.gamepad_button(id, state, button),
-			&Event::GamepadAxis(id, axis, position) => self.gamepad_axis(id, axis, position),
+			&Event::GamepadAxis(id, axis, position) => self.gamepad_axis_update(id, axis, position),
 		}
 	}
 
@@ -287,14 +302,19 @@ impl InputState {
 			.or_insert(GamepadState::default())
 	}
 
-	pub fn gamepad_button(&mut self, gamepad_id: usize, state: State, button: Key) {
-		//GamepadAxis(usize, f32, Axis),
+	fn gamepad_button(&mut self, gamepad_id: usize, state: State, button: Key) {
 		self.key(state, button);
 		self.gamepad_mut(gamepad_id).button(state, button);
 	}
 
-	pub fn gamepad_axis(&mut self, gamepad_id: usize, value: f32, axis: Axis) {
+	fn gamepad_axis_update(&mut self, gamepad_id: usize, value: AxisValue, axis: Axis) {
 		self.gamepad_mut(gamepad_id).axis(value, axis);
+	}
+
+	pub fn gamepad_axis(&self, gamepad_id: usize, axis: Axis) -> AxisValue {
+		self.gamepad(gamepad_id)
+			.map(|state| state.axis[axis as usize])
+			.unwrap_or_default()
 	}
 
 	pub fn any_key_pressed(&self, b: &[Key]) -> bool {
@@ -305,6 +325,12 @@ impl InputState {
 	pub fn chord_pressed(&self, b: &[Key]) -> bool {
 		let other: BitSet = b.into_iter().map(|k| *k as usize).collect();
 		self.key_pressed.is_superset(&other)
+	}
+
+	pub fn gamepad_button_once(&mut self, gamepad_id: usize, b: Key) -> bool {
+		self.gamepad.get_mut(&gamepad_id)
+			.map(|gamepad| gamepad.button_once(b))
+			.unwrap_or_default()
 	}
 
 	pub fn key_once(&mut self, b: Key) -> bool {

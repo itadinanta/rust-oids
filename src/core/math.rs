@@ -98,7 +98,7 @@ pub enum Direction {
 }
 
 pub trait Directional<T: cgmath::BaseFloat> {
-	fn push(&mut self, d: Direction);
+	fn push(&mut self, d: Direction, weight: T);
 	fn position(&self) -> cgmath::Vector2<T>;
 	fn unit(d: Direction) -> cgmath::Vector2<T> {
 		match d {
@@ -145,8 +145,8 @@ impl<T> Directional<T> for Inertial<T>
 where
 	T: cgmath::BaseFloat,
 {
-	fn push(&mut self, d: Direction) {
-		let v = Self::unit(d);
+	fn push(&mut self, d: Direction, weight: T) {
+		let v = Self::unit(d) * weight;
 		self.velocity = self.velocity + v * self.impulse;
 		if self.velocity.magnitude() > self.limit {
 			self.velocity.normalize_to(self.limit);
