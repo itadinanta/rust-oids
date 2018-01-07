@@ -469,17 +469,17 @@ impl App {
 			None
 		};
 
-		const dead_zone: input::AxisValue = 0.3f32;
+		const DEAD_ZONE: input::AxisValue = 0.3f32;
 		let left_stick_x = self.input_state.gamepad_axis(0, input::Axis::LStickX);
-		if left_stick_x >= dead_zone {
+		if left_stick_x >= DEAD_ZONE {
 			events.push(Event::CamRight(left_stick_x));
-		} else if left_stick_x <= -dead_zone {
+		} else if left_stick_x <= -DEAD_ZONE {
 			events.push(Event::CamLeft(-left_stick_x));
 		}
 		let left_stick_y = self.input_state.gamepad_axis(0, input::Axis::LStickY);
-		if left_stick_y >= dead_zone {
+		if left_stick_y >= DEAD_ZONE {
 			events.push(Event::CamUp(left_stick_y));
-		} else if left_stick_y <= -dead_zone {
+		} else if left_stick_y <= -DEAD_ZONE {
 			events.push(Event::CamDown(-left_stick_y));
 		}
 
