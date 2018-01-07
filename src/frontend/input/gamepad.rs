@@ -12,6 +12,10 @@ pub struct GamepadEventLoop {
 
 impl input::EventMapper<gilrs::Event> for GamepadEventLoop {
 	fn translate(&self, _e: &gilrs::Event) -> Option<input::Event> {
+
+
+		//&Event::GamepadButton(id, state, button) => self.gamepad_button(id, state, button),
+	//	&Event::GamepadAxis(id, axis, position) => self.gamepad_axis(id, axis, position),
 		None
 	}
 }

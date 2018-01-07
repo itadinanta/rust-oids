@@ -8,6 +8,7 @@ use core::util::History;
 use core::geometry::Position;
 use bit_set::BitSet;
 use std::iter::Iterator;
+use std::collections::HashMap;
 
 #[derive(Clone)]
 enum DragState {
@@ -23,18 +24,18 @@ pub enum Dragging {
 }
 
 const MAX_GAMEPADS: usize = 2;
-const MAX_AXIS: usize = 2;
+const MAX_AXIS: usize = 6;
 
 #[derive(Clone)]
 pub struct GamepadState {
 	pub connected: bool,
 	pub button_pressed: BitSet,
 	pub button_ack: BitSet,
-	pub axis: [Position; MAX_AXIS],
+	pub axis: [f32; MAX_AXIS],
 }
 
 pub struct InputState {
-	gamepad: Vec<GamepadState>,
+	gamepad: HashMap<usize, GamepadState>,
 	key_pressed: BitSet,
 	key_ack: BitSet,
 	drag_state: DragState,
@@ -46,9 +47,9 @@ impl Default for GamepadState {
 	fn default() -> Self {
 		GamepadState {
 			connected: false,
-			button_pressed: BitSet::default(),
-			button_ack: BitSet::default(),
-			axis: [Position::new(0.0, 0.0); MAX_AXIS],
+			button_pressed: BitSet::new(),
+			button_ack: BitSet::new(),
+			axis: [0.0f32; MAX_AXIS],
 		}
 	}
 }
@@ -56,7 +57,7 @@ impl Default for GamepadState {
 impl Default for InputState {
 	fn default() -> Self {
 		InputState {
-			gamepad: vec![GamepadState::default(); MAX_GAMEPADS],
+			gamepad: HashMap::new(),
 			key_pressed: BitSet::new(),
 			key_ack: BitSet::new(),
 			drag_state: DragState::Nothing,
@@ -187,25 +188,31 @@ pub enum Key {
 	MouseMiddle,
 	MouseScrollUp,
 	MouseScrollDown,
-}
 
-#[allow(unused)]
-#[derive(Copy, Clone, Eq, PartialEq)]
-pub enum Button {
-	North,
-	East,
-	South,
-	West,
-	DPadUp,
-	DpadRight,
-	DPadDown,
-	DpadLeft,
-	RT,
-	LT,
-	RB,
-	LB,
-	RC,
-	LC,
+	GamepadEast,
+	GamepadNorth,
+	GamepadWest,
+	GamepadSouth,
+	GamepadDPadRight,
+	GamepadDPadUp,
+	GamepadDPadLeft,
+	GamepadDPadDown,
+	GamepadR1,
+	GamepadL1,
+	GamepadR2,
+	GamepadL2,
+	GamepadR3,
+	GamepadL3,
+
+	GamepadLStickLeft,
+	GamepadLStickUp,
+	GamepadLStickRight,
+	GamepadLStickDown,
+
+	GamepadRStickLeft,
+	GamepadRStickUp,
+	GamepadRStickRight,
+	GamepadRStickDown,
 }
 
 #[allow(unused)]
@@ -215,17 +222,31 @@ pub enum Axis {
 	LY,
 	RX,
 	RY,
-	LT,
-	RB,
-	LB,
+	L2,
+	R2,
 }
 
 
 pub enum Event {
 	Key(State, Key),
 	Mouse(Position),
-	GamepadButton(usize, State, Button),
+	GamepadButton(usize, State, Key),
 	GamepadAxis(usize, f32, Axis),
+}
+
+#[allow(dead_code)]
+impl GamepadState {
+	fn button(&mut self, state: State, b: Key) {
+		self.button_ack.remove(b as usize);
+		match state {
+			State::Down => self.button_pressed.insert(b as usize),
+			State::Up => self.button_pressed.remove(b as usize),
+		};
+	}
+
+	fn axis(&mut self, value: f32, axis: Axis) {
+		self.axis[axis as usize] = value;
+	}
 }
 
 #[allow(dead_code)]
@@ -255,12 +276,24 @@ impl InputState {
 		self.any_key_pressed(&[Key::LSuper, Key::RSuper])
 	}
 
-	pub fn gamepad_button(&mut self, _gamepad_id: usize, _button_state: State, _button: Button) {
-		//GamepadAxis(usize, f32, Axis),
+	fn gamepad(&self, gamepad_id: usize) -> Option<&GamepadState> {
+		self.gamepad.get(&gamepad_id)
 	}
 
-	pub fn gamepad_axis(&mut self, _gamepad_id: usize, _value: f32, _axis: Axis) {
-		//
+	fn gamepad_mut(&mut self, gamepad_id: usize) -> &mut GamepadState {
+		self.gamepad
+			.entry(gamepad_id)
+			.or_insert(GamepadState::default())
+	}
+
+	pub fn gamepad_button(&mut self, gamepad_id: usize, state: State, button: Key) {
+		//GamepadAxis(usize, f32, Axis),
+		self.key(state, button);
+		self.gamepad_mut(gamepad_id).button(state, button);
+	}
+
+	pub fn gamepad_axis(&mut self, gamepad_id: usize, value: f32, axis: Axis) {
+		self.gamepad_mut(gamepad_id).axis(value, axis);
 	}
 
 	pub fn any_key_pressed(&self, b: &[Key]) -> bool {
