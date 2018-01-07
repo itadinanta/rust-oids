@@ -2,7 +2,7 @@ use std::path;
 
 use frontend::render;
 use frontend::input::EventMapper;
-use frontend::input::Event;
+use frontend::input::GamepadEventLoop;
 use frontend::render::{formats, Renderer, Overlay};
 use frontend::audio::{self, SoundSystem};
 use frontend::ui;
@@ -26,6 +26,7 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 	const HEIGHT: u32 = 1024;
 
 	let mut events_loop = glutin::EventsLoop::new();
+	let mut gamepad = GamepadEventLoop::new();
 
 	let builder = glutin::WindowBuilder::new()
 		.with_title("Rust-oids".to_string());
@@ -60,6 +61,7 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 
 	let renderer = &mut render::ForwardRenderer::new(&mut factory, &mut encoder, &res, &frame_buffer).unwrap();
 	let mapper = GlutinEventMapper::new();
+
 	// Create a new game and run it.
 	let mut app = app::App::new(w as u32, h as u32, 100.0, &res, minion_gene_pool);
 
@@ -73,7 +75,8 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 	app.init();
 
 	'main: loop {
-		app.on_input_event(&Event::GamepadPoll(0));
+		gamepad.poll_events(|event| app.on_input_event(&event));
+
 		events_loop.poll_events(|event| {
 			if app.has_ui_overlay() {
 				if let Some(event) = conrod::backend::winit::convert_event(event.clone(), window.window()) {

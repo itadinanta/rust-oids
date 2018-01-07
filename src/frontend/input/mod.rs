@@ -1,5 +1,7 @@
 //! Input state, including current mouse position and button click
-mod gamepad;
+pub mod gamepad;
+
+pub use self::gamepad::GamepadEventLoop;
 
 use core::geometry;
 use core::util::History;
@@ -20,16 +22,16 @@ pub enum Dragging {
 	End(Key, Position, Position, Position),
 }
 
-#[derive(Default, Clone)]
-pub struct GamepadState {
-	connected: bool,
-	button_pressed: BitSet,
-	button_ack: BitSet,
-	x: f32,
-	y: f32,
-}
-
 const MAX_GAMEPADS: usize = 2;
+const MAX_AXIS: usize = 2;
+
+#[derive(Clone)]
+pub struct GamepadState {
+	pub connected: bool,
+	pub button_pressed: BitSet,
+	pub button_ack: BitSet,
+	pub axis: [Position; MAX_AXIS],
+}
 
 pub struct InputState {
 	gamepad: Vec<GamepadState>,
@@ -38,6 +40,17 @@ pub struct InputState {
 	drag_state: DragState,
 	mouse_history: History<Position>,
 	mouse_position: Position,
+}
+
+impl Default for GamepadState {
+	fn default() -> Self {
+		GamepadState {
+			connected: false,
+			button_pressed: BitSet::default(),
+			button_ack: BitSet::default(),
+			axis: [Position::new(0.0, 0.0); MAX_AXIS],
+		}
+	}
 }
 
 impl Default for InputState {
@@ -176,10 +189,43 @@ pub enum Key {
 	MouseScrollDown,
 }
 
+#[allow(unused)]
+#[derive(Copy, Clone, Eq, PartialEq)]
+pub enum Button {
+	North,
+	East,
+	South,
+	West,
+	DPadUp,
+	DpadRight,
+	DPadDown,
+	DpadLeft,
+	RT,
+	LT,
+	RB,
+	LB,
+	RC,
+	LC,
+}
+
+#[allow(unused)]
+#[derive(Copy, Clone, Eq, PartialEq)]
+pub enum Axis {
+	LX,
+	LY,
+	RX,
+	RY,
+	LT,
+	RB,
+	LB,
+}
+
+
 pub enum Event {
 	Key(State, Key),
 	Mouse(Position),
-	GamepadPoll(usize),
+	GamepadButton(usize, State, Button),
+	GamepadAxis(usize, f32, Axis),
 }
 
 #[allow(dead_code)]
@@ -188,7 +234,8 @@ impl InputState {
 		match event {
 			&Event::Key(state, key) => self.key(state, key),
 			&Event::Mouse(position) => self.mouse_at(position),
-			&Event::GamepadPoll(id) => self.gamepad_poll(id),
+			&Event::GamepadButton(id, state, button) => self.gamepad_button(id, state, button),
+			&Event::GamepadAxis(id, axis, position) => self.gamepad_axis(id, axis, position),
 		}
 	}
 
@@ -208,7 +255,13 @@ impl InputState {
 		self.any_key_pressed(&[Key::LSuper, Key::RSuper])
 	}
 
-	pub fn gamepad_poll(&mut self, id: usize) {}
+	pub fn gamepad_button(&mut self, _gamepad_id: usize, _button_state: State, _button: Button) {
+		//GamepadAxis(usize, f32, Axis),
+	}
+
+	pub fn gamepad_axis(&mut self, _gamepad_id: usize, _value: f32, _axis: Axis) {
+		//
+	}
 
 	pub fn any_key_pressed(&self, b: &[Key]) -> bool {
 		let other: BitSet = b.into_iter().map(|k| *k as usize).collect();
