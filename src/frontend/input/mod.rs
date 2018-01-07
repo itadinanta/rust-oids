@@ -23,7 +23,6 @@ pub enum Dragging {
 	End(Key, Position, Position, Position),
 }
 
-const MAX_GAMEPADS: usize = 2;
 const MAX_AXIS: usize = 6;
 
 #[derive(Clone)]
@@ -197,6 +196,8 @@ pub enum Key {
 	GamepadDPadUp,
 	GamepadDPadLeft,
 	GamepadDPadDown,
+	GamepadSelect,
+	GamepadStart,
 	GamepadR1,
 	GamepadL1,
 	GamepadR2,
@@ -218,10 +219,10 @@ pub enum Key {
 #[allow(unused)]
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub enum Axis {
-	LX,
-	LY,
-	RX,
-	RY,
+	LStickX,
+	LStickY,
+	RStickX,
+	RStickY,
 	L2,
 	R2,
 }

@@ -3,7 +3,7 @@ use gilrs::Gilrs;
 // use gilrs::ev::filter::{Filter, Repeat};
 
 use frontend::input;
-use frontend::input::EventMapper;
+use frontend::input::EventMapper ;
 
 pub struct GamepadEventLoop {
 	//	repeat_filter: Repeat,
@@ -11,12 +11,56 @@ pub struct GamepadEventLoop {
 }
 
 impl input::EventMapper<gilrs::Event> for GamepadEventLoop {
-	fn translate(&self, _e: &gilrs::Event) -> Option<input::Event> {
+	fn translate(&self, e: &gilrs::Event) -> Option<input::Event> {
+		#[inline]
+		fn to_key(button: gilrs::Button) -> Option<input::Key> {
+			use frontend::input::Key::*;
+			match button {
+				gilrs::Button::South => Some(GamepadSouth),
+				gilrs::Button::East => Some(GamepadEast),
+				gilrs::Button::North => Some(GamepadNorth),
+				gilrs::Button::West => Some(GamepadWest),
+				// Triggers
+				gilrs::Button::LeftTrigger => Some(GamepadL1),
+				gilrs::Button::RightTrigger => Some(GamepadR1),
+				// Menu Pad
+				gilrs::Button::Select => Some(GamepadSelect),
+				gilrs::Button::Start => Some(GamepadStart),
+				// Sticks
+				gilrs::Button::LeftThumb => Some(GamepadL3),
+				gilrs::Button::RightThumb => Some(GamepadR3),
+				// D-Pad
+				gilrs::Button::DPadUp => Some(GamepadDPadUp),
+				gilrs::Button::DPadDown => Some(GamepadDPadDown),
+				gilrs::Button::DPadLeft => Some(GamepadDPadLeft),
+				gilrs::Button::DPadRight => Some(GamepadDPadRight),
 
+				_ => None
+			}
+		}
 
-		//&Event::GamepadButton(id, state, button) => self.gamepad_button(id, state, button),
-	//	&Event::GamepadAxis(id, axis, position) => self.gamepad_axis(id, axis, position),
-		None
+		fn to_axis(axis: gilrs::Axis) -> Option<input::Axis> {
+			use frontend::input::Axis::*;
+			match axis {
+				gilrs::Axis::LeftStickX => Some(LStickX),
+				gilrs::Axis::LeftStickY => Some(LStickY),
+				gilrs::Axis::RightStickX => Some(RStickX),
+				gilrs::Axis::RightStickY => Some(RStickY),
+				gilrs::Axis::LeftTrigger => Some(L2),
+				gilrs::Axis::RightTrigger => Some(R2),
+				_ => None
+			}
+		}
+
+		match e.event {
+			gilrs::EventType::ButtonPressed(button, _) =>
+				to_key(button).map(|key| input::Event::GamepadButton(e.id, input::State::Down, key)),
+			gilrs::EventType::ButtonReleased(button, _) =>
+				to_key(button).map(|key| input::Event::GamepadButton(e.id, input::State::Up, key)),
+			gilrs::EventType::AxisChanged(axis, value, _) =>
+				to_axis(axis).map(|axis| input::Event::GamepadAxis(e.id, value, axis)),
+			_ => None
+		}
 	}
 }
 
