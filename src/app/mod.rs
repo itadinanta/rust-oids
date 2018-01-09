@@ -43,6 +43,9 @@ pub enum Event {
 	CamLeft(f32),
 	CamRight(f32),
 
+	VectorThrust(Position),
+	LookAt(Position),
+
 	CamReset,
 
 	NextLight,
@@ -359,6 +362,9 @@ impl App {
 			Event::CamDown(w) => self.camera.push(math::Direction::Down, w),
 			Event::CamLeft(w) => self.camera.push(math::Direction::Left, w),
 			Event::CamRight(w) => self.camera.push(math::Direction::Right, w),
+
+			Event::VectorThrust(_) => {}
+			Event::LookAt(_) => {}
 
 			Event::CamReset => { self.camera.reset(); }
 			Event::NextLight => { self.lights.next(); }
