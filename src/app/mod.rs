@@ -431,14 +431,14 @@ impl App {
 		}
 
 		on_key_held![
-			Up -> CamUp(1.0f32),
-			Down -> CamDown(1.0f32),
-			Left -> CamLeft(1.0f32),
-			Right-> CamRight(1.0f32),
-			GamepadDPadUp -> CamUp(1.0f32),
-			GamepadDPadDown -> CamDown(1.0f32),
-			GamepadDPadLeft -> CamLeft(1.0f32),
-			GamepadDPadRight -> CamRight(1.0f32)
+			Up -> CamUp(1.),
+			Down -> CamDown(1.),
+			Left -> CamLeft(1.),
+			Right-> CamRight(1.),
+			GamepadDPadUp -> CamUp(1.),
+			GamepadDPadDown -> CamDown(1.),
+			GamepadDPadLeft -> CamLeft(1.),
+			GamepadDPadRight -> CamRight(1.)
 		];
 
 		on_key_pressed_once![
@@ -788,7 +788,7 @@ impl App {
 			count: self.frame_count,
 			elapsed: self.frame_elapsed.seconds(),
 			duration_smooth: frame_time_smooth,
-			fps: 1.0f32 / target_duration as f32,
+			fps: 1. / target_duration as f32,
 			simulation: simulation_update,
 		}
 	}

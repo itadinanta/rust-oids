@@ -401,47 +401,47 @@ impl Multiplexer {
 			};
 
 			map_effect(SoundEffect::Startup, SignalBuilder::from_oscillator(
-				Oscillator::harmonics(&[0.0f32, 0.1f32, 0.0f32, 0.2f32], &[0.6f32]))
-				.with_tone(Tone::note_octave(Letter::A, 3, seconds(2.0), 0.3f32))
+				Oscillator::harmonics(&[0., 0.1, 0., 0.2], &[0.6]))
+				.with_tone(Tone::note_octave(Letter::A, 3, seconds(2.), 0.3))
 				.with_envelope(Envelope::adsr(0.01, 0.5, 0.5, 0.5))
-				.with_pan(0.25f32)
+				.with_pan(0.25)
 				.with_delay_time(seconds(1.0))
 				.render(&mut wave_table));
 
 			map_effect(SoundEffect::SelectMinion, SignalBuilder::from_oscillator(Oscillator::square())
-				.with_tone(Tone::note_octave(Letter::G, 5, seconds(0.1), 0.1f32))
-				.with_pan(0.8f32)
+				.with_tone(Tone::note_octave(Letter::G, 5, seconds(0.1), 0.1))
+				.with_pan(0.8)
 				.with_delay_time(seconds(0.05))
 				.render(&mut wave_table));
 
 			map_effect(SoundEffect::UserOption, SignalBuilder::from_oscillator(Oscillator::triangle(1.0))
-				.with_tone(Tone::note_octave(Letter::C, 6, seconds(0.1), 0.1f32))
+				.with_tone(Tone::note_octave(Letter::C, 6, seconds(0.1), 0.1))
 				.with_envelope(Envelope::adsr(0.01, 0.05, 0.9, 0.05))
-				.with_pan(0.6f32)
+				.with_pan(0.6)
 				.with_delay_time(seconds(0.1))
 				.render(&mut wave_table));
 
 			map_effect(SoundEffect::Fertilised, SignalBuilder::from_oscillator(Oscillator::sin())
-				.with_tone(Tone::note_octave(Letter::C, 4, seconds(0.3), 0.1f32))
-				.with_pan(0.6f32)
+				.with_tone(Tone::note_octave(Letter::C, 4, seconds(0.3), 0.1))
+				.with_pan(0.6)
 				.with_delay_time(seconds(0.25))
 				.render(&mut wave_table));
 
 			map_effect(SoundEffect::NewSpore, SignalBuilder::from_oscillator(
-				Oscillator::harmonics(&[0.0f32, 0.3f32, 0.0f32, 0.1f32], &[0.6f32]))
-				.with_tone(Tone::note_octave(Letter::F, 5, seconds(0.3), 0.1f32))
-				.with_pan(0.3f32)
+				Oscillator::harmonics(&[0., 0.3, 0., 0.1], &[0.6]))
+				.with_tone(Tone::note_octave(Letter::F, 5, seconds(0.3), 0.1))
+				.with_pan(0.3)
 				.with_delay_time(seconds(0.33))
 				.render(&mut wave_table));
 
 			map_effect(SoundEffect::NewMinion, SignalBuilder::from_oscillator(Oscillator::sin())
-				.with_tone(Tone::note_octave(Letter::A, 4, seconds(0.5), 0.1f32))
-				.with_pan(0.55f32).with_delay_time(seconds(0.25))
+				.with_tone(Tone::note_octave(Letter::A, 4, seconds(0.5), 0.1))
+				.with_pan(0.55).with_delay_time(seconds(0.25))
 				.render(&mut wave_table));
 
 			map_effect(SoundEffect::DieMinion, SignalBuilder::from_oscillator(Oscillator::sin())
-				.with_tone(Tone::note_octave(Letter::Eb, 3, seconds(1.0), 0.2f32))
-				.with_pan(1f32)
+				.with_tone(Tone::note_octave(Letter::Eb, 3, seconds(1.), 0.2))
+				.with_pan(1.)
 				.with_delay_time(seconds(0.5))
 				.render(&mut wave_table));
 		}

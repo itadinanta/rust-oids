@@ -455,7 +455,7 @@ impl Agent {
 				flags: Flags::ACTIVE,
 				lifecycle: Hourglass::new(timer, Seconds::new(5.)),
 				energy: max_energy * 0.5,
-				phase: 0.0f32,
+				phase: 0.,
 				target: None,
 				target_position: segments[0].transform.position,
 				limits: Limits { max_energy },
