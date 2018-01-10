@@ -218,6 +218,22 @@ impl World {
 		}
 	}
 
+	// TODO: just copied simple phen from Resource
+	pub fn spawn_player(&mut self, pos: Position, motion: Option<&Motion>) -> obj::Id {
+		let angle = consts::PI / 2. + f32::atan2(pos.y, pos.x);
+		let mut gen = gen::Genome::new(&[]);
+		let id = self.swarm_mut(&AgentType::Player).spawn::<phen::Player>(
+			&mut gen,
+			&Transform::new(
+				pos,
+				angle,
+			),
+			motion,
+			0.3,
+		);
+		self.register(id)
+	}
+
 	pub fn new_minion(&mut self, pos: Position, motion: Option<&Motion>) -> obj::Id {
 		let angle = consts::PI / 2. + f32::atan2(pos.y, pos.x);
 		let mut gen = self.minion_gene_pool.next();

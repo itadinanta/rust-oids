@@ -26,6 +26,8 @@ pub struct Resource {}
 
 pub struct Minion {}
 
+pub struct Player {}
+
 pub struct Spore {}
 
 impl Phenotype for Resource {
@@ -50,6 +52,31 @@ impl Phenotype for Resource {
 		builder.start(transform, motion, &body).build()
 	}
 }
+
+
+impl Phenotype for Player {
+	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, clock: SharedTimer<SimulationTimer>) -> agent::Agent {
+		gen.next_integer::<u8>(0, 3);
+		let albedo = color::YPbPr::new(0.5, gen.next_float(-0.5, 0.5), gen.next_float(-0.5, 0.5));
+		let body = gen.eq_triangle();
+		let mut builder = AgentBuilder::new(
+			id,
+			Material {
+				density: 1.0,
+				..Default::default()
+			},
+			Livery {
+				albedo: albedo.to_rgba(),
+				..Default::default()
+			},
+			gen.dna(),
+			segment::State::with_charge(charge, 0., charge),
+			clock,
+		);
+		builder.start(transform, motion, &body).build()
+	}
+}
+
 
 impl Phenotype for Minion {
 	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, clock: SharedTimer<SimulationTimer>) -> agent::Agent {
@@ -231,7 +258,7 @@ pub struct AgentBuilder {
 	dna: Dna,
 	state: segment::State,
 	segments: Vec<Segment>,
-	clock: SharedTimer<clock::SimulationTimer>
+	clock: SharedTimer<clock::SimulationTimer>,
 }
 
 impl AgentBuilder {
@@ -271,7 +298,7 @@ impl AgentBuilder {
 
 	#[inline]
 	pub fn add(&mut self, parent_index: SegmentIndex, attachment_index_offset: isize, shape: &Shape, flags: segment::Flags)
-	           -> &mut Self {
+			   -> &mut Self {
 		self.addw(
 			parent_index,
 			attachment_index_offset,
@@ -282,7 +309,7 @@ impl AgentBuilder {
 	}
 	#[inline]
 	pub fn addl(&mut self, parent_index: SegmentIndex, attachment_index_offset: isize, shape: &Shape, flags: segment::Flags)
-	            -> &mut Self {
+				-> &mut Self {
 		self.addw(
 			parent_index,
 			attachment_index_offset,
@@ -293,7 +320,7 @@ impl AgentBuilder {
 	}
 	#[inline]
 	pub fn addr(&mut self, parent_index: SegmentIndex, attachment_index_offset: isize, shape: &Shape, flags: segment::Flags)
-	            -> &mut Self {
+				-> &mut Self {
 		self.addw(
 			parent_index,
 			attachment_index_offset,
@@ -305,7 +332,7 @@ impl AgentBuilder {
 
 	pub fn addw(
 		&mut self, parent_index: SegmentIndex, attachment_index_offset: isize, shape: &Shape, winding: Winding,
-		flags: segment::Flags
+		flags: segment::Flags,
 	) -> &mut Self {
 		let parent = self.segments[parent_index as usize].clone(); //urgh!;
 		let parent_pos = parent.transform.position;
@@ -386,7 +413,7 @@ impl AgentBuilder {
 
 	fn new_segment(
 		&mut self, shape: &Shape, winding: Winding, transform: &Transform, motion: Option<&Motion>,
-		attachment: Option<segment::Attachment>, flags: segment::Flags
+		attachment: Option<segment::Attachment>, flags: segment::Flags,
 	) -> segment::Segment {
 		segment::Segment {
 			index: self.segments.len() as SegmentIndex,
