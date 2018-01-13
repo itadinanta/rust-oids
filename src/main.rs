@@ -32,6 +32,9 @@ extern crate num;
 extern crate num_traits;
 extern crate itertools;
 
+#[cfg(profiler)]
+extern crate cpuprofiler;
+
 #[macro_use]
 extern crate enum_primitive;
 extern crate conrod;
@@ -71,5 +74,13 @@ fn main() {
 			log::LevelFilter::Info,
 		));
 	log4rs::init_config(config.unwrap()).unwrap();
+
+
+	#[cfg(profiler)]
+		cpuprofiler::PROFILER.lock().unwrap().start("./rust-oids.profile").unwrap();
+
 	app::run(&args);
+
+	#[cfg(profiler)]
+		cpuprofiler::PROFILER.lock().unwrap().stop().unwrap();
 }
