@@ -65,7 +65,21 @@ gfx_defines!(
         color_target: gfx::BlendTarget<formats::RenderColorFormat> = ("o_Color", gfx::state::MASK_ALL, gfx::preset::blend::ADD),
         depth_target: gfx::DepthTarget<formats::RenderDepthFormat> = gfx::preset::depth::LESS_EQUAL_WRITE,
     }
+
+    pipeline blend {
+        vbuf: gfx::VertexBuffer<VertexPosNormal> = (),
+        camera_args: gfx::ConstantBuffer<CameraArgs> = "cb_CameraArgs",
+        model_args: gfx::ConstantBuffer<ModelArgs> = "cb_ModelArgs",
+        fragment_args: gfx::ConstantBuffer<FragmentArgs> = "cb_FragmentArgs",
+        material_args: gfx::ConstantBuffer<MaterialArgs> = "cb_MaterialArgs",
+        lights: gfx::ConstantBuffer<PointLight> = "u_Lights",
+        color_target: gfx::BlendTarget<formats::RenderColorFormat> = ("o_Color", gfx::state::MASK_ALL, gfx::preset::blend::ALPHA),
+        depth_target: gfx::DepthTarget<formats::RenderDepthFormat> = gfx::preset::depth::LESS_EQUAL_WRITE,
+    }
+
 );
+
+pub type ShadedInit<'f> = shaded::Init<'f>;
 
 use std::marker::PhantomData;
 
@@ -78,20 +92,22 @@ pub enum Shader {
 	Count = 5,
 }
 
-pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
+pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>, D>
+	where D: gfx::pso::PipelineInit {
 	camera: gfx::handle::Buffer<R, CameraArgs>,
 	model: gfx::handle::Buffer<R, ModelArgs>,
 	fragment: gfx::handle::Buffer<R, FragmentArgs>,
 	material: gfx::handle::Buffer<R, MaterialArgs>,
 	lights: gfx::handle::Buffer<R, PointLight>,
-	pso: [gfx::pso::PipelineState<R, shaded::Meta>; Shader::Count as usize],
+	pso: [gfx::pso::PipelineState<R, D::Meta>; Shader::Count as usize],
 	_buffer: PhantomData<C>,
 }
 
-impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
-	pub fn new<F>(factory: &mut F, res: &resource::ResourceLoader<u8>) -> Result<ForwardLighting<R, C>>
-	where
-		F: gfx::Factory<R>, {
+impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
+	where D: gfx::pso::PipelineInit + Clone {
+	pub fn new<F>(factory: &mut F, res: &resource::ResourceLoader<u8>, init: D) -> Result<ForwardLighting<R, C, D>>
+		where
+			F: gfx::Factory<R>, {
 		let lights = factory.create_constant_buffer(MAX_NUM_TOTAL_LIGHTS);
 		let camera = factory.create_constant_buffer(1);
 		let model = factory.create_constant_buffer(1);
@@ -133,30 +149,35 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 			&ball_shaders,
 			gfx::Primitive::TriangleList,
 			solid_rasterizer,
+			init.clone(),
 		)?;
 		let poly_pso = Self::new_pso(
 			factory,
 			&solid_shaders,
 			gfx::Primitive::TriangleList,
 			solid_rasterizer,
+			init.clone(),
 		)?;
 		let wireframe_pso = Self::new_pso(
 			factory,
 			&solid_shaders,
 			gfx::Primitive::TriangleList,
 			line_rasterizer,
+			init.clone(),
 		)?;
 		let lines_pso = Self::new_pso(
 			factory,
 			&flat_shaders,
 			gfx::Primitive::LineStrip,
 			line_rasterizer,
+			init.clone(),
 		)?;
 		let debug_lines_pso = Self::new_pso(
 			factory,
 			&flat_shaders,
 			gfx::Primitive::LineStrip,
 			debug_line_rasterizer,
+			init.clone(),
 		)?;
 		Ok(ForwardLighting {
 			camera,
@@ -175,11 +196,11 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 		})
 	}
 
-	fn new_pso<F>(factory: &mut F, shaders: &gfx::ShaderSet<R>, primitive: gfx::Primitive, rasterizer: gfx::state::Rasterizer)
-		-> result::Result<gfx::pso::PipelineState<R, shaded::Meta>, gfx::PipelineStateError<String>>
-	where
-		F: gfx::Factory<R>, {
-		factory.create_pipeline_state(&shaders, primitive, rasterizer, shaded::new())
+	fn new_pso<F>(factory: &mut F, shaders: &gfx::ShaderSet<R>, primitive: gfx::Primitive, rasterizer: gfx::state::Rasterizer, init: D)
+				  -> result::Result<gfx::pso::PipelineState<R, D::Meta>, gfx::PipelineStateError<String>>
+		where
+			F: gfx::Factory<R>, {
+		factory.create_pipeline_state(&shaders, primitive, rasterizer, init)
 	}
 
 	pub fn setup(&self, encoder: &mut gfx::Encoder<R, C>, camera_projection: M44, camera_view: M44, lights: &Vec<PointLight>) {
@@ -205,12 +226,14 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C> {
 			encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32 });
 		}
 	}
+}
 
+impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C, shaded::Init<'static>> {
 	pub fn draw_primitives(
 		&self, shader: Shader, encoder: &mut gfx::Encoder<R, C>, vertices: gfx::handle::Buffer<R, VertexPosNormal>,
 		indices: &gfx::Slice<R>, transform: &M44, color: [f32; 4], effect: [f32; 4],
 		color_buffer: &gfx::handle::RenderTargetView<R, formats::RenderColorFormat>,
-		depth_buffer: &gfx::handle::DepthStencilView<R, formats::RenderDepthFormat>
+		depth_buffer: &gfx::handle::DepthStencilView<R, formats::RenderDepthFormat>,
 	) {
 		encoder.update_constant_buffer(&self.model, &ModelArgs { model: (*transform).into() });
 		encoder.update_constant_buffer(

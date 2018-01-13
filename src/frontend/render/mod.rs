@@ -237,7 +237,7 @@ pub struct ForwardRenderer<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer
 	base_vertices: gfx::handle::Buffer<R, Vertex>,
 	base_indices: gfx::Slice<R>,
 
-	pass_forward_lighting: forward::ForwardLighting<R, C>,
+	pass_forward_lighting: forward::ForwardLighting<R, C, forward::ShadedInit<'static>>,
 	pass_effects: effects::PostLighting<R, C>,
 
 	background_color: formats::Rgba,
@@ -256,7 +256,7 @@ ForwardRenderer<'e, 'l, R, C, F, L> {
 		let (w, h, _, _) = frame_buffer.get_dimensions();
 		let (hdr_srv, hdr_color_buffer, depth_buffer) = factory.create_msaa_surfaces(w, h)?;
 
-		let forward = forward::ForwardLighting::new(factory, res)?;
+		let forward = forward::ForwardLighting::new(factory, res, forward::shaded::new())?;
 		let effects = effects::PostLighting::new(factory, res, w, h)?;
 
 		Ok(ForwardRenderer {
@@ -283,7 +283,7 @@ ForwardRenderer<'e, 'l, R, C, F, L> {
 		let factory = &mut self.factory;
 
 		let (w, h, _, _) = self.frame_buffer.get_dimensions();
-		let pass_forward_lighting = forward::ForwardLighting::new(factory, self.res)?;
+		let pass_forward_lighting = forward::ForwardLighting::new(factory, self.res, forward::shaded::new())?;
 		let pass_effects = effects::PostLighting::new(factory, self.res, w, h)?;
 		self.pass_forward_lighting = pass_forward_lighting;
 		self.pass_effects = pass_effects;
