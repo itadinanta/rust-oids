@@ -46,6 +46,7 @@ pub struct World {
 	swarms: HashMap<AgentType, Swarm>,
 	emitters: Vec<Emitter>,
 	registered: HashSet<Id>,
+	registered_player_id: Option<Id>,
 	regenerations: usize,
 	minion_gene_pool: gen::GenePool,
 	resource_gene_pool: gen::GenePool,
@@ -141,6 +142,7 @@ impl World {
 				.unwrap_or_else(default_gene_pool),
 			resource_gene_pool: gen::GenePool::parse_from_base64(&["GyA21QoQ", "M00sWS0M"]),
 			registered: HashSet::new(),
+			registered_player_id: None,
 			regenerations: 0usize,
 			clock,
 			alerts: Vec::new(),
@@ -218,17 +220,20 @@ impl World {
 		}
 	}
 
+	pub fn init_players(&mut self) {
+		self.registered_player_id = Some(self.spawn_player(Position::new(0., 0.), None))
+	}
+
 	// TODO: just copied simple phen from Resource
 	pub fn spawn_player(&mut self, pos: Position, motion: Option<&Motion>) -> obj::Id {
-		let angle = consts::PI / 2. + f32::atan2(pos.y, pos.x);
-		let mut gen = gen::Genome::new(&[]);
+		let mut gen = gen::Genome::new(&[0, 0, 0, 0]);
 		let id = self.swarm_mut(&AgentType::Player).spawn::<phen::Player>(
 			&mut gen,
 			&Transform::new(
 				pos,
-				angle,
+				0.,
 			),
-			motion,
+			None,
 			0.3,
 		);
 		self.register(id)

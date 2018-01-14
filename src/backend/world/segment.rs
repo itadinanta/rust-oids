@@ -14,6 +14,7 @@ pub enum Intent {
 	Move(Position),
 	Brake(Position),
 	RunAway(Position),
+	MoveAndRotateTo(Position, Angle),
 }
 
 #[derive(Clone)]

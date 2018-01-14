@@ -65,7 +65,7 @@ gfx_defines!(
         color_target: gfx::BlendTarget<formats::RenderColorFormat> = ("o_Color", gfx::state::MASK_ALL, gfx::preset::blend::ADD),
         depth_target: gfx::DepthTarget<formats::RenderDepthFormat> = gfx::preset::depth::LESS_EQUAL_WRITE,
     }
-
+/*
     pipeline blend {
         vbuf: gfx::VertexBuffer<VertexPosNormal> = (),
         camera_args: gfx::ConstantBuffer<CameraArgs> = "cb_CameraArgs",
@@ -76,6 +76,7 @@ gfx_defines!(
         color_target: gfx::BlendTarget<formats::RenderColorFormat> = ("o_Color", gfx::state::MASK_ALL, gfx::preset::blend::ALPHA),
         depth_target: gfx::DepthTarget<formats::RenderDepthFormat> = gfx::preset::depth::LESS_EQUAL_WRITE,
     }
+*/
 
 );
 

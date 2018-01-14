@@ -35,6 +35,7 @@ pub struct PhysicsSystem {
 impl Updateable for PhysicsSystem {
 	fn update(&mut self, state: &world::WorldState, dt_sec: Seconds) {
 		let mut forces = Vec::new();
+		let mut torques = Vec::new();
 		let mut impulses = Vec::new();
 		let dt: f32 = dt_sec.into();
 		for (h, b) in self.world.bodies() {
@@ -44,21 +45,32 @@ impl Updateable for PhysicsSystem {
 			if let Some(segment) = state.agent(key.agent_id).and_then(
 				|c| c.segment(key.segment_index),
 			)
-			{
-				match segment.state.intent {
-					Intent::Move(force) => forces.push((h, center, force)),
-					Intent::Brake(force) => {
-						let linear_velocity = PhysicsSystem::from_vec2((*body).linear_velocity());
-						let comp = force.dot(linear_velocity);
-						if comp < 0. {
-							forces.push((h, center, force));
+				{
+					match segment.state.intent {
+						Intent::Move(force) => forces.push((h, center, force)),
+						Intent::Brake(force) => {
+							let linear_velocity = PhysicsSystem::from_vec2((*body).linear_velocity());
+							let comp = force.dot(linear_velocity);
+							if comp < 0. {
+								forces.push((h, center, force));
+							}
 						}
+						Intent::MoveAndRotateTo(force, angle) => {
+							let original_angle = (*body).angle();
+							forces.push((h, center, force));
+							torques.push((h, (original_angle - angle) * dt));
+						}
+						Intent::RunAway(impulse) => impulses.push((h, center, impulse * dt)),
+						_ => {}
 					}
-					Intent::RunAway(impulse) => impulses.push((h, center, impulse * dt)),
-					_ => {}
 				}
-			}
 		}
+
+		for (h, torque) in torques {
+			let b = &mut self.world.body_mut(h);
+			b.apply_torque(torque, true);
+		}
+
 		for (h, center, force) in forces {
 			let b = &mut self.world.body_mut(h);
 			b.apply_force(&PhysicsSystem::to_vec2(&force), &center, true);
@@ -308,17 +320,17 @@ impl PhysicsSystem {
 			flags,
 			..
 		} in joint_refs
-		{
-			if let Some(attachment) = attachment {
-				let upstream = &joint_refs[attachment.index as usize];
-				let medial = upstream.handle;
-				let angle_delta = world.body(distal).angle() - world.body(medial).angle();
+			{
+				if let Some(attachment) = attachment {
+					let upstream = &joint_refs[attachment.index as usize];
+					let medial = upstream.handle;
+					let angle_delta = world.body(distal).angle() - world.body(medial).angle();
 
-				let v0 = upstream.mesh.vertices[attachment.attachment_point as usize] * upstream.mesh.shape.radius();
-				let v1 = mesh.vertices[0] * mesh.shape.radius();
-				let a = b2::Vec2 { x: v0.x, y: v0.y };
-				let b = b2::Vec2 { x: v1.x, y: v1.y };
-				macro_rules! common_joint (
+					let v0 = upstream.mesh.vertices[attachment.attachment_point as usize] * upstream.mesh.shape.radius();
+					let v1 = mesh.vertices[0] * mesh.shape.radius();
+					let a = b2::Vec2 { x: v0.x, y: v0.y };
+					let b = b2::Vec2 { x: v1.x, y: v1.y };
+					macro_rules! common_joint (
 					($joint:ident) => {
 						$joint.collide_connected = false;
 						$joint.reference_angle = angle_delta;
@@ -327,24 +339,24 @@ impl PhysicsSystem {
 						world.create_joint_with(&$joint, ())
 					}
 				);
-				if flags.contains(world::segment::Flags::JOINT) {
-					let mut joint = b2::RevoluteJointDef::new(medial, distal);
-					joint.enable_limit = true;
-					joint.upper_angle = consts::PI / 6.;
-					joint.lower_angle = -consts::PI / 6.;
-					common_joint!(joint);
-				} else {
-					let mut joint = b2::WeldJointDef::new(medial, distal);
-					joint.frequency = 5.0;
-					joint.damping_ratio = 0.9;
-					common_joint!(joint);
+					if flags.contains(world::segment::Flags::JOINT) {
+						let mut joint = b2::RevoluteJointDef::new(medial, distal);
+						joint.enable_limit = true;
+						joint.upper_angle = consts::PI / 6.;
+						joint.lower_angle = -consts::PI / 6.;
+						common_joint!(joint);
+					} else {
+						let mut joint = b2::WeldJointDef::new(medial, distal);
+						joint.frequency = 5.0;
+						joint.damping_ratio = 0.9;
+						common_joint!(joint);
+					}
 				}
 			}
-		}
 	}
 
 	fn new_world(touched: ContactSet) -> b2::World<AgentData> {
-		let mut world = b2::World::new(&b2::Vec2 { x: 0.0, y: -0.5 });
+		let mut world = b2::World::new(&b2::Vec2 { x: 0.0, y: -0.0 });
 		world.set_contact_listener(Box::new(ContactListener { touched }));
 		world
 	}

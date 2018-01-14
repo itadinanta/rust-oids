@@ -489,6 +489,26 @@ impl App {
 			events.push(Event::CamDown(-left_stick_y));
 		}
 
+		let thrust_y = if self.input_state.key_pressed(input::Key::W) {
+			1.
+		} else if self.input_state.key_pressed(input::Key::S) {
+			-1.
+		} else {
+			0.
+		};
+
+		let thrust_x = if self.input_state.key_pressed(input::Key::D) {
+			1.
+		} else if self.input_state.key_pressed(input::Key::A) {
+			-1.
+		} else {
+			0.
+		};
+
+		if thrust_x != 0. && thrust_y != 0. {
+			events.push(Event::VectorThrust(Position::new(thrust_x, thrust_y)));
+		}
+
 		if self.input_state.key_once(input::Key::MouseMiddle) {
 			if self.input_state.any_ctrl_pressed() {
 				events.push(Event::RandomizeMinion(mouse_world_pos));
@@ -675,8 +695,7 @@ impl App {
 									&render::Appearance::rgba([0., 0., 2., 1.]),
 								);
 							}
-							segment::Intent::Idle => {}
-							segment::Intent::RunAway(_) => {}
+							_ => {}
 						}
 					}
 				}

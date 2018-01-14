@@ -92,6 +92,10 @@ impl System for GameSystem {
 		if world.agents(agent::AgentType::Minion).is_empty() {
 			world.init_minions();
 		}
+
+		if world.agents(agent::AgentType::Player).is_empty() {
+			world.init_players();
+		}
 	}
 }
 
