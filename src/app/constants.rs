@@ -1,5 +1,6 @@
 use frontend::input::AxisValue;
 use core::clock::SecondsValue;
+use std::f32::consts;
 
 pub const FRAME_SMOOTH_COUNT: usize = 120;
 pub const DEAD_ZONE: AxisValue = 0.3f32;
@@ -9,3 +10,12 @@ pub const MIN_FRAME_LENGTH: SecondsValue = (1.0 / 1000.0) as SecondsValue;
 pub const MAX_FRAME_LENGTH: SecondsValue = (1.0 / 15.0) as SecondsValue;
 pub const THRUST_POWER: f32 = 1500.;
 pub const POWER_BOOST: f32 = 100.;
+pub const DRAG_COEFFICIENT: f32 = 0.00001;
+pub const COMPASS_SPRING_POWER: f32 = 1000.0;
+pub const JOINT_UPPER_ANGLE: f32 = consts::PI / 6.;
+pub const JOINT_LOWER_ANGLE: f32 = -consts::PI / 6.;
+pub const JOINT_FREQUENCY: f32 = 5.0;
+pub const JOINT_DAMPING_RATIO: f32 = 0.9;
+pub const LINEAR_DAMPING: f32 = 0.8;
+pub const ANGULAR_DAMPING: f32 = 0.9;
+pub const PICK_EPS: f32 = 0.001f32;

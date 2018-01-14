@@ -45,9 +45,7 @@ pub enum Event {
 	CamLeft(f32),
 	CamRight(f32),
 
-	VectorThrust(Position),
-	NoThrust,
-	LookAt(Position),
+	VectorThrust(Option<Position>, Option<Position>),
 
 	CamReset,
 
@@ -366,15 +364,14 @@ impl App {
 			Event::CamLeft(w) => self.camera.push(math::Direction::Left, w),
 			Event::CamRight(w) => self.camera.push(math::Direction::Right, w),
 
-			Event::VectorThrust(thrust) => {
-				self.world.set_player_intent(
-					segment::Intent::MoveAndRotateTo(thrust * THRUST_POWER,
-													 0.));
-			}
-			Event::NoThrust => {
+			Event::VectorThrust(None, None) => {
 				self.world.set_player_intent(segment::Intent::Idle);
 			}
-			Event::LookAt(_) => {}
+			Event::VectorThrust(thrust, yaw) => {
+				self.world.set_player_intent(
+					segment::Intent::PilotTo(thrust.map(|v| v * THRUST_POWER),
+											 yaw.map(|v| f32::atan2(v.y, v.x))));
+			}
 
 			Event::CamReset => { self.camera.reset(); }
 			Event::NextLight => { self.lights.next(); }
@@ -517,13 +514,18 @@ impl App {
 			},
 		};
 
+		let yaw = Position {
+			x: self.input_state.gamepad_axis(0, input::Axis::RStickX),
+			y: self.input_state.gamepad_axis(0, input::Axis::RStickY),
+		};
+
 		use cgmath::InnerSpace;
 		let magnitude = thrust.magnitude2();
-		if magnitude >= DEAD_ZONE {
-			events.push(Event::VectorThrust(thrust / magnitude.max(1.)));
-		} else {
-			events.push(Event::NoThrust);
-		}
+		events.push(Event::VectorThrust(
+			if magnitude >= DEAD_ZONE { Some(thrust / magnitude.max(1.)) } else { None },
+			if yaw.magnitude() >= DEAD_ZONE { Some(yaw) } else { None },
+		));
+
 
 		if self.input_state.key_once(input::Key::MouseMiddle) {
 			if self.input_state.any_ctrl_pressed() {

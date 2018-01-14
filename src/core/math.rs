@@ -2,11 +2,23 @@ use cgmath;
 use cgmath::InnerSpace;
 use num::Zero;
 use std::ops::*;
+use num;
+use num::NumCast;
+use num_traits::FloatConst;
 
 pub trait Smooth<S> {
 	fn smooth(&mut self, value: S) -> S {
 		value
 	}
+}
+
+pub fn normalize_rad<S>(angle: S) -> S
+	where S: num::Float + FloatConst {
+	let pi: S = S::PI();
+	(angle
+		+ <S as NumCast>::from(3.).unwrap() * pi)
+		% (<S as NumCast>::from(2.).unwrap() * pi)
+		- pi
 }
 
 pub struct MovingAverage<S> {
@@ -37,8 +49,8 @@ impl<S: Zero + Copy> MovingAverage<S> {
 }
 
 impl<S> Smooth<S> for MovingAverage<S>
-where
-	S: Zero + Sub + Copy + AddAssign + SubAssign + Div<usize, Output = S>,
+	where
+		S: Zero + Sub + Copy + AddAssign + SubAssign + Div<usize, Output=S>,
 {
 	fn smooth(&mut self, value: S) -> S {
 		let len = self.values.len();
@@ -56,9 +68,9 @@ where
 }
 
 impl<S, T> Exponential<S, T>
-where
-	S: Add<S, Output = S> + Mul<T, Output = S> + Copy,
-	T: cgmath::BaseFloat,
+	where
+		S: Add<S, Output=S> + Mul<T, Output=S> + Copy,
+		T: cgmath::BaseFloat,
 {
 	pub fn new(value: S, dt: T, tau: T) -> Self {
 		Exponential {
@@ -79,9 +91,9 @@ where
 }
 
 impl<S, T> Smooth<S> for Exponential<S, T>
-where
-	S: Add<S, Output = S> + Mul<T, Output = S> + Copy,
-	T: cgmath::BaseFloat,
+	where
+		S: Add<S, Output=S> + Mul<T, Output=S> + Copy,
+		T: cgmath::BaseFloat,
 {
 	fn smooth(&mut self, value: S) -> S {
 		let alpha1 = T::exp(-self.dt / self.tau);
@@ -126,8 +138,8 @@ pub struct Inertial<T: cgmath::BaseNum + Neg + Copy> {
 }
 
 impl<T> Default for Inertial<T>
-where
-	T: cgmath::BaseFloat + cgmath::Zero + cgmath::One,
+	where
+		T: cgmath::BaseFloat + cgmath::Zero + cgmath::One,
 {
 	fn default() -> Self {
 		Inertial {
@@ -142,8 +154,8 @@ where
 }
 
 impl<T> Directional<T> for Inertial<T>
-where
-	T: cgmath::BaseFloat,
+	where
+		T: cgmath::BaseFloat,
 {
 	fn push(&mut self, d: Direction, weight: T) {
 		let v = Self::unit(d) * weight;
@@ -158,8 +170,8 @@ where
 }
 
 impl<T> Relative<T> for Inertial<T>
-where
-	T: cgmath::BaseFloat,
+	where
+		T: cgmath::BaseFloat,
 {
 	fn zero(&mut self) {
 		self.zero = self.position;
@@ -173,8 +185,8 @@ where
 
 #[allow(dead_code)]
 impl<T> Inertial<T>
-where
-	T: cgmath::BaseFloat,
+	where
+		T: cgmath::BaseFloat,
 {
 	pub fn new(impulse: T, inertia: T, limit: T) -> Self {
 		Inertial {

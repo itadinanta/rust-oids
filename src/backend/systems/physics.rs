@@ -1,11 +1,12 @@
 use super::*;
-use std::f32::consts;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::cell::RefCell;
+use app::constants::*;
 use wrapped2d::b2;
 use wrapped2d::user_data::*;
 use wrapped2d::dynamics::world::callbacks::ContactAccess;
+use core::math;
 use core::geometry::*;
 use core::geometry::Transform;
 use cgmath::InnerSpace;
@@ -32,53 +33,76 @@ pub struct PhysicsSystem {
 	touched: ContactSet,
 }
 
+enum BodyUpdate {
+	Transform(b2::Vec2, f32),
+	Torque(f32),
+	AngularImpulse(f32),
+	Force(b2::Vec2, b2::Vec2),
+	LinearImpulse(b2::Vec2, b2::Vec2),
+}
+
 impl Updateable for PhysicsSystem {
 	fn update(&mut self, state: &world::WorldState, dt_sec: Seconds) {
-		let mut forces = Vec::new();
-		let mut torques = Vec::new();
-		let mut impulses = Vec::new();
+		use self::BodyUpdate::*;
+		let mut body_updates = Vec::new();
 		let dt: f32 = dt_sec.into();
+		#[inline]
+		fn to_vec2(v: Position) -> b2::Vec2 { PhysicsSystem::to_vec2(&v) };
+		#[inline]
+		fn from_vec2(v: &b2::Vec2) -> Position { PhysicsSystem::from_vec2(v) };
 		for (h, b) in self.world.bodies() {
 			let body = b.borrow();
 			let center = (*body).world_center().clone();
 			let key = (*body).user_data();
-			if let Some(segment) = state.agent(key.agent_id).and_then(
-				|c| c.segment(key.segment_index),
-			)
-				{
-					match segment.state.intent {
-						Intent::Move(force) => forces.push((h, center, force)),
-						Intent::Brake(force) => {
-							let linear_velocity = PhysicsSystem::from_vec2((*body).linear_velocity());
-							let comp = force.dot(linear_velocity);
-							if comp < 0. {
-								forces.push((h, center, force));
-							}
+			if let Some(segment) = state.agent(key.agent_id)
+				.and_then(|c| c.segment(key.segment_index)) {
+				match segment.state.intent {
+					Intent::Move(force) =>
+						body_updates.push((h, Force(center, to_vec2(force)))),
+					Intent::Brake(force) => {
+						let linear_velocity = from_vec2((*body).linear_velocity());
+						let comp = force.dot(linear_velocity);
+						if comp < 0. {
+							body_updates.push((h, Force(center, to_vec2(force))));
 						}
-						Intent::MoveAndRotateTo(force, angle) => {
-							let original_angle = (*body).angle();
-							forces.push((h, center, force));
-							torques.push((h, (original_angle - angle) * dt));
-						}
-						Intent::RunAway(impulse) => impulses.push((h, center, impulse * dt)),
-						_ => {}
 					}
+					Intent::PilotTo(force, target_angle) => {
+						if let Some(force) = force {
+							let linear_velocity = from_vec2((*body).linear_velocity());
+							let speed = linear_velocity.magnitude2();
+							let drag_factor = (1. - (speed * speed) * DRAG_COEFFICIENT).min(1.).max(0.);
+							body_updates.push((h, Force(center, to_vec2(force * drag_factor))));
+						}
+						if let Some(target_angle) = target_angle {
+							body_updates.push((h, Transform(*(*body).position(), target_angle)));
+
+							//let angle = (*body).angle();
+							//let norm_diff = math::normalize_rad(target_angle - angle);
+							//body_updates.push((h, Torque(norm_diff * COMPASS_SPRING_POWER)))
+//								torques.push((h, norm_diff * COMPASS_SPRING_POWER));
+						}
+					}
+					Intent::RunAway(impulse) =>
+						body_updates.push((h, LinearImpulse(center, to_vec2(impulse * dt)))),
+					_ => {}
 				}
+			}
 		}
 
-		for (h, torque) in torques {
+		for (h, update) in body_updates {
 			let b = &mut self.world.body_mut(h);
-			b.apply_torque(torque, true);
-		}
-
-		for (h, center, force) in forces {
-			let b = &mut self.world.body_mut(h);
-			b.apply_force(&PhysicsSystem::to_vec2(&force), &center, true);
-		}
-
-		for (h, center, impulse) in impulses {
-			let b = &mut self.world.body_mut(h);
-			b.apply_linear_impulse(&PhysicsSystem::to_vec2(&impulse), &center, true);
+			match update {
+				BodyUpdate::Torque(torque) =>
+					b.apply_torque(torque, true),
+				BodyUpdate::AngularImpulse(impulse) =>
+					b.apply_angular_impulse(impulse, true),
+				BodyUpdate::Force(application_point, force) =>
+					b.apply_force(&force, &application_point, true),
+				BodyUpdate::LinearImpulse(application_point, impulse) =>
+					b.apply_linear_impulse(&impulse, &application_point, true),
+				BodyUpdate::Transform(translation, rotation) =>
+					b.set_transform(&translation, rotation),
+			}
 		}
 		self.world.step(dt, 8, 3);
 	}
@@ -204,8 +228,8 @@ impl PhysicsSystem {
 				let transform = segment.transform();
 				let mut b_def = b2::BodyDef::new();
 				b_def.body_type = b2::BodyType::Dynamic;
-				b_def.linear_damping = 0.8;
-				b_def.angular_damping = 0.9;
+				b_def.linear_damping = LINEAR_DAMPING;
+				b_def.angular_damping = ANGULAR_DAMPING;
 				b_def.angle = transform.angle;
 				b_def.position = Self::vec2(&transform.position, 1.);
 				if let Some(Motion { velocity, spin }) = segment.motion {
@@ -342,13 +366,13 @@ impl PhysicsSystem {
 					if flags.contains(world::segment::Flags::JOINT) {
 						let mut joint = b2::RevoluteJointDef::new(medial, distal);
 						joint.enable_limit = true;
-						joint.upper_angle = consts::PI / 6.;
-						joint.lower_angle = -consts::PI / 6.;
+						joint.upper_angle = JOINT_UPPER_ANGLE;
+						joint.lower_angle = JOINT_LOWER_ANGLE;
 						common_joint!(joint);
 					} else {
 						let mut joint = b2::WeldJointDef::new(medial, distal);
-						joint.frequency = 5.0;
-						joint.damping_ratio = 0.9;
+						joint.frequency = JOINT_FREQUENCY;
+						joint.damping_ratio = JOINT_DAMPING_RATIO;
 						common_joint!(joint);
 					}
 				}
@@ -363,7 +387,7 @@ impl PhysicsSystem {
 
 	pub fn pick(&self, pos: Position) -> Option<Id> {
 		let point = Self::to_vec2(&pos);
-		let eps = 0.001f32;
+		let eps = PICK_EPS;
 		let aabb = b2::AABB {
 			lower: b2::Vec2 {
 				x: pos.x - eps,

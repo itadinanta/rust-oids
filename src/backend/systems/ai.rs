@@ -155,7 +155,7 @@ impl AiSystem {
 							Intent::Move(_) => segment.state.set_target_charge(brain.thrust()),
 							Intent::Brake(_) => segment.state.set_target_charge(brain.thrust()),
 							Intent::RunAway(_) => segment.state.set_charge(brain.thrust()),
-							Intent::MoveAndRotateTo(_, _) => {}
+							Intent::PilotTo(_, _) => {}
 						}
 						segment.state.intent = intent;
 					}
