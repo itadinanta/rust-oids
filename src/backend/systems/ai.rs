@@ -13,6 +13,7 @@ use backend::world::segment::Intent;
 use cgmath::*;
 use core::geometry::Position;
 use itertools::Itertools;
+use app::constants::*;
 
 type IdPositionMap = HashMap<obj::Id, Position>;
 
@@ -119,7 +120,6 @@ impl AiSystem {
 				let r = agent.brain().response(
 					&[neck_angle, t.dot(s), t.perp_dot(s), 0.],
 				);
-				const POWER_BOOST: f32 = 100.;
 
 				let segments = &mut agent.segments_mut();
 				for segment in segments.iter_mut() {

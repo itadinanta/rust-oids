@@ -1,5 +1,6 @@
 mod main;
 mod ev;
+pub mod constants;
 
 use std::process;
 use std::rc::Rc;
@@ -28,9 +29,10 @@ use backend::systems::System;
 use frontend::input;
 use frontend::render;
 use frontend::ui;
-
 use getopts::Options;
 use std::ffi::OsString;
+
+use app::constants::*;
 
 use num;
 use cgmath;
@@ -256,7 +258,7 @@ impl App {
 			frame_elapsed: SimulationTimer::new(),
 			frame_stopwatch: TimerStopwatch::new(system_timer.clone()),
 			wall_clock: system_timer,
-			frame_smooth: math::MovingAverage::new(120),
+			frame_smooth: math::MovingAverage::new(FRAME_SMOOTH_COUNT),
 			is_running: true,
 			is_paused: false,
 			// debug
@@ -365,7 +367,9 @@ impl App {
 			Event::CamRight(w) => self.camera.push(math::Direction::Right, w),
 
 			Event::VectorThrust(thrust) => {
-				self.world.set_player_intent(segment::Intent::MoveAndRotateTo(thrust, 0.));
+				self.world.set_player_intent(
+					segment::Intent::MoveAndRotateTo(thrust * THRUST_POWER,
+													 0.));
 			}
 			Event::NoThrust => {
 				self.world.set_player_intent(segment::Intent::Idle);
@@ -480,39 +484,43 @@ impl App {
 		} else {
 			None
 		};
+		/*
+			let left_stick_x = self.input_state.gamepad_axis(0, input::Axis::LStickX);
+			if left_stick_x >= DEAD_ZONE {
+				events.push(Event::CamRight(left_stick_x));
+			} else if left_stick_x <= -DEAD_ZONE {
+				events.push(Event::CamLeft(-left_stick_x));
+			}
+			let left_stick_y = self.input_state.gamepad_axis(0, input::Axis::LStickY);
+			if left_stick_y >= DEAD_ZONE {
+				events.push(Event::CamUp(left_stick_y));
+			} else if left_stick_y <= -DEAD_ZONE {
+				events.push(Event::CamDown(-left_stick_y));
+			}
+		*/
 
-		const DEAD_ZONE: input::AxisValue = 0.3f32;
-		let left_stick_x = self.input_state.gamepad_axis(0, input::Axis::LStickX);
-		if left_stick_x >= DEAD_ZONE {
-			events.push(Event::CamRight(left_stick_x));
-		} else if left_stick_x <= -DEAD_ZONE {
-			events.push(Event::CamLeft(-left_stick_x));
-		}
-		let left_stick_y = self.input_state.gamepad_axis(0, input::Axis::LStickY);
-		if left_stick_y >= DEAD_ZONE {
-			events.push(Event::CamUp(left_stick_y));
-		} else if left_stick_y <= -DEAD_ZONE {
-			events.push(Event::CamDown(-left_stick_y));
-		}
+		let thrust = Position {
+			x: if self.input_state.key_pressed(input::Key::D) {
+				1.
+			} else if self.input_state.key_pressed(input::Key::A) {
+				-1.
+			} else {
+				self.input_state.gamepad_axis(0, input::Axis::LStickX)
+			},
 
-		let thrust_y = if self.input_state.key_pressed(input::Key::W) {
-			1.
-		} else if self.input_state.key_pressed(input::Key::S) {
-			-1.
-		} else {
-			0.
+			y: if self.input_state.key_pressed(input::Key::W) {
+				1.
+			} else if self.input_state.key_pressed(input::Key::S) {
+				-1.
+			} else {
+				self.input_state.gamepad_axis(0, input::Axis::LStickY)
+			},
 		};
 
-		let thrust_x = if self.input_state.key_pressed(input::Key::D) {
-			1.
-		} else if self.input_state.key_pressed(input::Key::A) {
-			-1.
-		} else {
-			0.
-		};
-		use num::Float;
-		if thrust_x.abs() >= DEAD_ZONE || thrust_y.abs() >= DEAD_ZONE {
-			events.push(Event::VectorThrust(Position::new(thrust_x * 2000., thrust_y * 2000.)));
+		use cgmath::InnerSpace;
+		let magnitude = thrust.magnitude2();
+		if magnitude >= DEAD_ZONE {
+			events.push(Event::VectorThrust(thrust / magnitude.max(1.)));
 		} else {
 			events.push(Event::NoThrust);
 		}
@@ -687,7 +695,7 @@ impl App {
 						match segment.state.intent {
 							segment::Intent::Brake(v) => {
 								let p0 = segment.transform.position;
-								let p1 = p0 + v * 0.05;
+								let p1 = p0 + v * DEBUG_DRAW_BRAKE_SCALE;
 								renderer.draw_debug_lines(
 									&Matrix4::identity(),
 									&[p0, p1],
@@ -696,7 +704,7 @@ impl App {
 							}
 							segment::Intent::Move(v) => {
 								let p0 = segment.transform.position;
-								let p1 = p0 + v * 0.05;
+								let p1 = p0 + v * DEBUG_DRAW_MOVE_SCALE;
 								renderer.draw_debug_lines(
 									&Matrix4::identity(),
 									&[p0, p1],
@@ -779,9 +787,6 @@ impl App {
 	}
 
 	pub fn update(&mut self) -> FrameUpdate {
-		const MIN_FRAME_LENGTH: SecondsValue = (1.0 / 1000.0) as SecondsValue;
-		const MAX_FRAME_LENGTH: SecondsValue = (1.0 / 15.0) as SecondsValue;
-
 		let frame_time = self.frame_stopwatch.restart();
 		self.frame_elapsed.tick(frame_time);
 
