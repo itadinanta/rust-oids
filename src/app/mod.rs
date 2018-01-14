@@ -44,6 +44,7 @@ pub enum Event {
 	CamRight(f32),
 
 	VectorThrust(Position),
+	NoThrust,
 	LookAt(Position),
 
 	CamReset,
@@ -363,7 +364,12 @@ impl App {
 			Event::CamLeft(w) => self.camera.push(math::Direction::Left, w),
 			Event::CamRight(w) => self.camera.push(math::Direction::Right, w),
 
-			Event::VectorThrust(_) => {}
+			Event::VectorThrust(thrust) => {
+				self.world.set_player_intent(segment::Intent::MoveAndRotateTo(thrust, 0.));
+			}
+			Event::NoThrust => {
+				self.world.set_player_intent(segment::Intent::Idle);
+			}
 			Event::LookAt(_) => {}
 
 			Event::CamReset => { self.camera.reset(); }
@@ -504,9 +510,11 @@ impl App {
 		} else {
 			0.
 		};
-
-		if thrust_x != 0. && thrust_y != 0. {
-			events.push(Event::VectorThrust(Position::new(thrust_x, thrust_y)));
+		use num::Float;
+		if thrust_x.abs() >= DEAD_ZONE || thrust_y.abs() >= DEAD_ZONE {
+			events.push(Event::VectorThrust(Position::new(thrust_x * 2000., thrust_y * 2000.)));
+		} else {
+			events.push(Event::NoThrust);
 		}
 
 		if self.input_state.key_once(input::Key::MouseMiddle) {

@@ -76,11 +76,13 @@ fn main() {
 	log4rs::init_config(config.unwrap()).unwrap();
 
 
-	#[cfg(profiler)]
+	#[cfg(profiler)] {
 		cpuprofiler::PROFILER.lock().unwrap().start("./rust-oids.profile").unwrap();
-
+	}
+	
 	app::run(&args);
 
-	#[cfg(profiler)]
+	#[cfg(profiler)] {
 		cpuprofiler::PROFILER.lock().unwrap().stop().unwrap();
+	}
 }

@@ -239,6 +239,16 @@ impl World {
 		self.register(id)
 	}
 
+	pub fn set_player_intent(&mut self, intent: segment::Intent) {
+		self.registered_player_id.map(|id| {
+			self.agent_mut(id).map(|player_agent| {
+				player_agent.segment_mut(0).map(|segment| {
+					segment.state.intent = intent;
+				})
+			})
+		});
+	}
+
 	pub fn new_minion(&mut self, pos: Position, motion: Option<&Motion>) -> obj::Id {
 		let angle = consts::PI / 2. + f32::atan2(pos.y, pos.x);
 		let mut gen = self.minion_gene_pool.next();
