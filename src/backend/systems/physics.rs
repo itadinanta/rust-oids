@@ -6,7 +6,6 @@ use app::constants::*;
 use wrapped2d::b2;
 use wrapped2d::user_data::*;
 use wrapped2d::dynamics::world::callbacks::ContactAccess;
-use core::math;
 use core::geometry::*;
 use core::geometry::Transform;
 use cgmath::InnerSpace;

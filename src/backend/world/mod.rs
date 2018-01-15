@@ -20,6 +20,7 @@ use std::io;
 use std::io::Write;
 use std::fs;
 
+use app::constants::*;
 use core::clock::*;
 use core::geometry::*;
 use core::geometry::Transform;
@@ -118,29 +119,22 @@ impl World {
 			swarms.insert(*t, Swarm::new(*t, clock.clone()));
 		}
 		fn default_gene_pool(_: io::Error) -> gen::GenePool {
-			gen::GenePool::parse_from_base64(
-				&[
-					"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-					"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-					"GzB2lQVwM00tTAm5gwajjf4wc0a5GzB2lQVwM00tTAm5gwajjf4wc0a5",
-					"GzB2lQdwM10vQEu5zwaPgDhfq2v8GzB2lQdwM10vQEu5zwaPgDhfq2v8",
-				],
-			)
+			gen::GenePool::parse_from_base64(DEFAULT_MINION_GENE_POOL)
 		}
-		let emitter_rate = Seconds::new(0.4);
+		let emitter_rate = Seconds::new(EMITTER_PERIOD);
 		World {
-			extent: Rect::new(-80., -80., 80., 80.),
+			extent: Rect::new(-WORLD_RADIUS, -WORLD_RADIUS, WORLD_RADIUS, WORLD_RADIUS),
 			swarms,
 			emitters: vec![
-				Emitter::new(-20., -20., emitter_rate, Emission::CW(consts::PI / 12.)),
-				Emitter::new(-20., 20., emitter_rate, Emission::Random),
-				Emitter::new(20., 20., emitter_rate, Emission::CCW(consts::PI / 12.)),
-				Emitter::new(20., -20., emitter_rate, Emission::Random),
+				Emitter::new(-EMITTER_DISTANCE, -EMITTER_DISTANCE, emitter_rate, Emission::CW(EMITTER_SPREAD_ANGLE)),
+				Emitter::new(-EMITTER_DISTANCE, EMITTER_DISTANCE, emitter_rate, Emission::Random),
+				Emitter::new(EMITTER_DISTANCE, EMITTER_DISTANCE, emitter_rate, Emission::CCW(EMITTER_SPREAD_ANGLE)),
+				Emitter::new(EMITTER_DISTANCE, -EMITTER_DISTANCE, emitter_rate, Emission::Random),
 			],
 			minion_gene_pool: res.load(minion_gene_pool)
 				.map(|data| gen::GenePool::parse_from_resource(&data))
 				.unwrap_or_else(default_gene_pool),
-			resource_gene_pool: gen::GenePool::parse_from_base64(&["GyA21QoQ", "M00sWS0M"]),
+			resource_gene_pool: gen::GenePool::parse_from_base64(DEFAULT_RESOURCE_GENE_POOL),
 			registered: HashSet::new(),
 			registered_player_id: None,
 			regenerations: 0usize,
@@ -164,13 +158,13 @@ impl World {
 	pub fn new_resource(&mut self, transform: &Transform, motion: Option<&Motion>) -> obj::Id {
 		let mut gen = &mut self.resource_gene_pool.next();
 		let id = self.swarm_mut(&AgentType::Resource)
-			.spawn::<phen::Resource>(&mut gen, transform, motion, 0.8);
+			.spawn::<phen::Resource>(&mut gen, transform, motion, DEFAULT_RESOURCE_CHARGE);
 		self.register(id)
 	}
 
 	pub fn decay_to_resource(&mut self, transform: &Transform, dna: &gen::Dna) -> obj::Id {
 		let id = self.swarm_mut(&AgentType::Resource)
-			.spawn::<phen::Resource>(&mut gen::Genome::new(dna), transform, None, 0.8);
+			.spawn::<phen::Resource>(&mut gen::Genome::new(dna), transform, None, DEFAULT_RESOURCE_CHARGE);
 		self.register(id)
 	}
 
@@ -179,7 +173,7 @@ impl World {
 			&mut gen::Genome::new(dna).mutate(&mut rand::thread_rng()),
 			transform,
 			None,
-			0.8,
+			DEFAULT_SPORE_CHARGE,
 		);
 		self.register(id)
 	}
@@ -189,7 +183,7 @@ impl World {
 			&mut gen::Genome::new(dna),
 			transform,
 			None,
-			0.3,
+			DEFAULT_MINION_CHARGE,
 		);
 		self.register(id)
 	}
@@ -202,9 +196,9 @@ impl World {
 	pub fn init_minions(&mut self) {
 		self.regenerations += 1;
 		let n = self.minion_gene_pool.len();
-		let mut r = self.extent.top_right().x * 0.25;
+		let mut r = self.extent.top_right().x * INITIAL_SPAWN_RADIUS_RATIO;
 		let mut angle = 0.0f32;
-		let angle_delta = consts::PI * 2. / 16. as f32;
+		let angle_delta = consts::PI * 2. / INITIAL_SPAWN_RADIUS_SLICES as f32;
 		for _ in 0..n {
 			let pos = Position::new(r * angle.cos(), r * angle.sin());
 			let mut gen = self.minion_gene_pool.next();
@@ -212,7 +206,7 @@ impl World {
 				&mut gen,
 				&Transform::new(pos, angle + consts::PI / 2.),
 				None,
-				0.3,
+				DEFAULT_MINION_CHARGE,
 			);
 			self.register(id);
 			angle += angle_delta;
@@ -225,7 +219,7 @@ impl World {
 	}
 
 	// TODO: just copied simple phen from Resource
-	pub fn spawn_player(&mut self, pos: Position, motion: Option<&Motion>) -> obj::Id {
+	pub fn spawn_player(&mut self, pos: Position, _motion: Option<&Motion>) -> obj::Id {
 		let mut gen = gen::Genome::new(&[0, 0, 0, 0]);
 		let id = self.swarm_mut(&AgentType::Player).spawn::<phen::Player>(
 			&mut gen,
@@ -234,18 +228,32 @@ impl World {
 				0.,
 			),
 			None,
-			0.3,
+			DEFAULT_MINION_CHARGE,
 		);
 		self.register(id)
 	}
 
+	fn get_player_segment(&mut self) -> Option<&mut segment::Segment> {
+		self.registered_player_id.and_then(move |id|
+			self.agent_mut(id).and_then(|player_agent|
+				player_agent.segment_mut(0)
+			)
+		)
+	}
+
+	pub fn primary_fire(&mut self) {
+		let transform = self.get_player_segment().map(move |segment| {
+			let position = segment.transform.position.clone();
+			let angle = segment.transform.angle.clone();
+			Transform::new(position +
+							   Position::new(10. * f32::sin(angle), 10. * f32::cos(angle)), angle)
+		});
+		transform.map(|t| { self.new_resource(&t, None); });
+	}
+
 	pub fn set_player_intent(&mut self, intent: segment::Intent) {
-		self.registered_player_id.map(|id| {
-			self.agent_mut(id).map(|player_agent| {
-				player_agent.segment_mut(0).map(|segment| {
-					segment.state.intent = intent;
-				})
-			})
+		self.get_player_segment().map(|segment| {
+			segment.state.intent = intent;
 		});
 	}
 
@@ -334,7 +342,7 @@ impl World {
 
 	pub fn dump(&self) -> io::Result<String> {
 		let now: DateTime<Utc> = Utc::now();
-		let file_name = now.format("resources/%Y%m%d_%H%M%S.csv").to_string();
+		let file_name = now.format(DUMP_FILE_PATTERN).to_string();
 		let mut f = fs::File::create(&file_name)?;
 		for (_, agent) in self.agents(agent::AgentType::Minion).iter() {
 			info!("{}", agent.dna().to_base64(base64::STANDARD));

@@ -19,3 +19,25 @@ pub const JOINT_DAMPING_RATIO: f32 = 0.9;
 pub const LINEAR_DAMPING: f32 = 0.8;
 pub const ANGULAR_DAMPING: f32 = 0.9;
 pub const PICK_EPS: f32 = 0.001f32;
+pub const DEFAULT_RESOURCE_CHARGE: f32 = 0.8;
+pub const DEFAULT_SPORE_CHARGE: f32 = 0.8;
+pub const DEFAULT_MINION_CHARGE: f32 = 0.3;
+pub const INITIAL_SPAWN_RADIUS_RATIO: f32 = 0.25;
+pub const INITIAL_SPAWN_RADIUS_SLICES: f32 = 16.;
+pub const WORLD_RADIUS: f32 = 80.;
+pub const EMITTER_DISTANCE: f32 = 20.;
+pub const EMITTER_PERIOD: SecondsValue = 0.4;
+pub const EMITTER_SPREAD_ANGLE: f32 = consts::PI / 12.;
+pub const DEFAULT_MINION_GENE_POOL: &'static [&'static str] = &[
+	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+	"GzB2lQVwM00tTAm5gwajjf4wc0a5GzB2lQVwM00tTAm5gwajjf4wc0a5",
+	"GzB2lQdwM10vQEu5zwaPgDhfq2v8GzB2lQdwM10vQEu5zwaPgDhfq2v8",
+];
+
+pub const DEFAULT_RESOURCE_GENE_POOL: &'static [&'static str] = &[
+	"GyA21QoQ",
+	"M00sWS0M"
+];
+
+pub const DUMP_FILE_PATTERN: &'static str = "resources/%Y%m%d_%H%M%S.csv";

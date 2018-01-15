@@ -46,6 +46,7 @@ pub enum Event {
 	CamRight(f32),
 
 	VectorThrust(Option<Position>, Option<Position>),
+	PrimaryFire,
 
 	CamReset,
 
@@ -326,6 +327,14 @@ impl App {
 		self.world.new_minion(pos, None);
 	}
 
+	fn primary_fire(&mut self) {
+		self.world.primary_fire()
+	}
+
+	pub fn set_player_intent(&mut self, intent: segment::Intent) {
+		self.world.set_player_intent(intent)
+	}
+
 	fn deselect_all(&mut self) {
 		self.world.for_all_agents(
 			&mut |agent| agent.state.deselect(),
@@ -372,7 +381,7 @@ impl App {
 					segment::Intent::PilotTo(thrust.map(|v| v * THRUST_POWER),
 											 yaw.map(|v| f32::atan2(v.y, v.x))));
 			}
-
+			Event::PrimaryFire => { self.primary_fire(); }
 			Event::CamReset => { self.camera.reset(); }
 			Event::NextLight => { self.lights.next(); }
 			Event::PrevLight => { self.lights.prev(); }
@@ -469,7 +478,8 @@ impl App {
 			H -> NextSpeedFactor,
 			GamepadR1 -> NextSpeedFactor,
 			P -> TogglePause,
-			Esc -> AppQuit
+			Esc -> AppQuit,
+			GamepadSouth -> PrimaryFire
 		];
 
 		let mouse_window_pos = self.input_state.mouse_position();
