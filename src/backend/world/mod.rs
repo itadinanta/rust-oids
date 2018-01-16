@@ -241,14 +241,18 @@ impl World {
 		)
 	}
 
-	pub fn primary_fire(&mut self) {
-		let transform = self.get_player_segment().map(move |segment| {
-			let position = segment.transform.position.clone();
+	pub fn primary_fire(&mut self, bullet_speed: f32) {
+		self.get_player_segment().map(move |segment| {
 			let angle = segment.transform.angle.clone();
-			Transform::new(position +
-							   Position::new(10. * f32::sin(angle), 10. * f32::cos(angle)), angle)
-		});
-		transform.map(|t| { self.new_resource(&t, None); });
+			let scale = segment.mesh().shape.radius();
+			let zero_dir = Position::unit_x();
+			(Transform::new(segment.transform.apply(scale * zero_dir), angle),
+			 Motion::new(segment.transform.apply_rotation(bullet_speed * zero_dir), 0.))
+		})
+			.map(|(t, v)| {
+				self.alert(Alert::NewBullet(0));
+				self.new_resource(&t, Some(&v));
+			});
 	}
 
 	pub fn set_player_intent(&mut self, intent: segment::Intent) {

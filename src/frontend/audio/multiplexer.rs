@@ -421,6 +421,13 @@ impl Multiplexer {
 				.with_delay_time(seconds(0.1))
 				.render(&mut wave_table));
 
+			map_effect(SoundEffect::Bullet(0), SignalBuilder::from_oscillator(Oscillator::triangle(0.75))
+				.with_tone(Tone::note_octave(Letter::F, 6, seconds(0.05), 0.1))
+				.with_envelope(Envelope::adsr(0., 0.01, 0.8, 0.))
+				.with_pan(0.5)
+				.with_delay_time(seconds(0.016))
+				.render(&mut wave_table));
+
 			map_effect(SoundEffect::Fertilised, SignalBuilder::from_oscillator(Oscillator::sin())
 				.with_tone(Tone::note_octave(Letter::C, 4, seconds(0.3), 0.1))
 				.with_pan(0.6)

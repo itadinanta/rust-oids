@@ -23,8 +23,8 @@ use backend::world::Alert;
 
 const CHANNELS: usize = 2;
 const SAMPLE_HZ: f64 = 48000.0;
-const FRAMES: u32 = 256;
-const MAX_VOICES: usize = 16;
+const FRAMES: u32 = 200;
+const MAX_VOICES: usize = 64;
 
 #[allow(unused)]
 #[derive(Clone, Debug, Copy)]
@@ -39,6 +39,7 @@ pub enum Error {
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
 pub enum SoundEffect {
 	Startup,
+	Bullet(usize),
 	Click(usize),
 	Release(usize),
 	NewSpore,
@@ -114,6 +115,7 @@ impl AlertPlayer<AlertEvent, self::Error> for SoundSystemAlertPlayer<ThreadedSou
 			Alert::NewSpore => SoundEffect::NewSpore,
 			Alert::Fertilised => SoundEffect::Fertilised,
 			Alert::DieMinion => SoundEffect::DieMinion,
+			Alert::NewBullet(id) => SoundEffect::Bullet(id),
 			_ => SoundEffect::None,
 		};
 		trace!("Playing alert: {:?}", alert.alert);

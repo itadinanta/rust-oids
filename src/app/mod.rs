@@ -46,7 +46,7 @@ pub enum Event {
 	CamRight(f32),
 
 	VectorThrust(Option<Position>, Option<Position>),
-	PrimaryFire,
+	PrimaryFire(f32, f32),
 
 	CamReset,
 
@@ -327,8 +327,8 @@ impl App {
 		self.world.new_minion(pos, None);
 	}
 
-	fn primary_fire(&mut self) {
-		self.world.primary_fire()
+	fn primary_fire(&mut self, bullet_speed: f32) {
+		self.world.primary_fire(bullet_speed)
 	}
 
 	pub fn set_player_intent(&mut self, intent: segment::Intent) {
@@ -381,7 +381,7 @@ impl App {
 					segment::Intent::PilotTo(thrust.map(|v| v * THRUST_POWER),
 											 yaw.map(|v| f32::atan2(v.y, v.x))));
 			}
-			Event::PrimaryFire => { self.primary_fire(); }
+			Event::PrimaryFire(speed, rate) => { self.primary_fire(BULLET_SPEED * speed); }
 			Event::CamReset => { self.camera.reset(); }
 			Event::NextLight => { self.lights.next(); }
 			Event::PrevLight => { self.lights.prev(); }
@@ -478,8 +478,7 @@ impl App {
 			H -> NextSpeedFactor,
 			GamepadR1 -> NextSpeedFactor,
 			P -> TogglePause,
-			Esc -> AppQuit,
-			GamepadSouth -> PrimaryFire
+			Esc -> AppQuit
 		];
 
 		let mouse_window_pos = self.input_state.mouse_position();
@@ -505,6 +504,11 @@ impl App {
 				events.push(Event::CamDown(-left_stick_y));
 			}
 		*/
+
+		let firepower = 0.5 - 0.5 * self.input_state.gamepad_axis(0, input::Axis::R2);
+		if firepower >= DEAD_ZONE {
+			events.push(Event::PrimaryFire(firepower, 1.));
+		}
 
 		let thrust = Position {
 			x: if self.input_state.key_pressed(input::Key::D) {
@@ -535,7 +539,6 @@ impl App {
 			if magnitude >= DEAD_ZONE { Some(thrust / magnitude.max(1.)) } else { None },
 			if yaw.magnitude() >= DEAD_ZONE { Some(yaw) } else { None },
 		));
-
 
 		if self.input_state.key_once(input::Key::MouseMiddle) {
 			if self.input_state.any_ctrl_pressed() {

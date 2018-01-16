@@ -7,6 +7,7 @@ pub enum Alert {
 	NewMinion,
 	NewSpore,
 	NewResource,
+	NewBullet(usize),
 	DieMinion,
 	DieResource,
 	Fertilised,

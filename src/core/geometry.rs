@@ -91,6 +91,42 @@ impl Transform {
 			..Transform::default()
 		}
 	}
+	pub fn apply_rotation(&self, position: Position) -> Position {
+		if self.angle != 0. {
+			let ca = self.angle.cos();
+			let sa = self.angle.sin();
+
+			Position::new(ca * position.x - sa * position.y,
+						  sa * position.x + ca * position.y)
+		} else {
+			position
+		}
+	}
+
+	pub fn apply_translation(&self, position: Position) -> Position {
+		self.position + position
+	}
+
+	pub fn apply(&self, position: Position) -> Position {
+		if self.angle != 0. {
+			let ca = self.angle.cos();
+			let sa = self.angle.sin();
+
+			self.position + Position::new(ca * position.x - sa * position.y,
+										  sa * position.x + ca * position.y)
+		} else {
+			self.position + position
+		}
+	}
+}
+
+impl Motion {
+	pub fn new(velocity: Position, spin: f32) -> Self {
+		Motion {
+			velocity,
+			spin,
+		}
+	}
 }
 
 pub fn origin() -> Position {

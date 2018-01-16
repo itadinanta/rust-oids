@@ -9,7 +9,6 @@ use core::geometry::Position;
 use bit_set::BitSet;
 use std::iter::Iterator;
 use std::collections::HashMap;
-use num::Zero;
 
 #[derive(Clone)]
 enum DragState {
@@ -49,7 +48,7 @@ impl Default for GamepadState {
 			connected: false,
 			button_pressed: BitSet::new(),
 			button_ack: BitSet::new(),
-			axis: [AxisValue::zero(); MAX_AXIS],
+			axis: [0., 0., 0., 0., 1., 1.], // for some reason R button 1 is notpressed
 		}
 	}
 }
