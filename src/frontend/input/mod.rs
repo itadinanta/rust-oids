@@ -55,8 +55,10 @@ impl Default for GamepadState {
 
 impl Default for InputState {
 	fn default() -> Self {
+		let mut default_map = HashMap::new();
+		default_map.insert(0usize, GamepadState::default());
 		InputState {
-			gamepad: HashMap::new(),
+			gamepad: default_map,
 			key_pressed: BitSet::new(),
 			key_ack: BitSet::new(),
 			drag_state: DragState::Nothing,
@@ -312,6 +314,7 @@ impl InputState {
 
 	pub fn gamepad_axis(&self, gamepad_id: usize, axis: Axis) -> AxisValue {
 		self.gamepad(gamepad_id)
+			.or_else(|| self.gamepad(0))
 			.map(|state| state.axis[axis as usize])
 			.unwrap_or_default()
 	}

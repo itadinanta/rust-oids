@@ -246,7 +246,7 @@ impl World {
 			let angle = segment.transform.angle.clone();
 			let scale = segment.mesh().shape.radius();
 			let zero_dir = Position::unit_x();
-			(Transform::new(segment.transform.apply(scale * zero_dir), angle),
+			(Transform::new(segment.transform.apply(scale * zero_dir), angle + consts::PI / 6.),
 			 Motion::new(segment.transform.apply_rotation(bullet_speed * zero_dir), 0.))
 		})
 			.map(|(t, v)| {
