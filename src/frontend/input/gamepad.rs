@@ -81,7 +81,7 @@ impl GamepadEventLoop {
 		where F: FnMut(input::Event) {
 		while let Some(ev) = self.gilrs.next_event() {
 			self.gilrs.update(&ev);
-			info!("{:?}", ev);
+			trace!("{:?}", ev);
 			self.translate(&ev).map(&mut on_input_event);
 		};
 		self.gilrs.inc();

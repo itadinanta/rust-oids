@@ -505,7 +505,7 @@ impl Multiplexer {
 		}
 		for voice_index in &terminated_voices {
 			self.free_voice(voice_index);
-			info!("Voice {} stopped", voice_index);
+			trace!("Voice {} stopped", voice_index);
 		}
 	}
 
@@ -513,7 +513,10 @@ impl Multiplexer {
 		if let Some(signal_index) = self.sample_map.get(&effect).map(|t| *t) {
 			let signal_length = self.wave_table[signal_index].len();
 			if let Some(index) = self.allocate_voice(Voice::new(signal_index, signal_length)) {
-				info!("Voice {} playing, {:?}", index, effect);
+				trace!("Voice {} playing, {:?}", index, effect);
+			}
+			else {
+				warn!("Not enough voices, skipped {:?}", effect);
 			}
 		}
 	}
