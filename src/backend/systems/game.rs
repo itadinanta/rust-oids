@@ -16,6 +16,7 @@ pub struct PlayerState {
 	trigger_held: bool,
 	bullet_speed: f32,
 	bullet_ready: bool,
+	firing_rate: SecondsValue,
 	bullet_charge: SecondsValue,
 }
 
@@ -69,7 +70,8 @@ impl Updateable for GameSystem {
 		self.playerstate.bullet_charge = if self.playerstate.bullet_ready {
 			0.
 		} else {
-			BULLET_FULL_CHARGE.min(self.playerstate.bullet_charge + dt.get() * BULLET_FIRE_RATE)
+			BULLET_FULL_CHARGE.min(self.playerstate.bullet_charge +
+				dt.get() * BULLET_FIRE_RATE * self.playerstate.firing_rate)
 		};
 
 		self.playerstate.trigger_held = false;
@@ -137,8 +139,9 @@ impl Default for GameSystem {
 }
 
 impl GameSystem {
-	pub fn primary_fire(&mut self, bullet_speed: f32) {
+	pub fn primary_fire(&mut self, bullet_speed: f32, firing_rate: SecondsValue) {
 		self.playerstate.bullet_speed = bullet_speed;
+		self.playerstate.firing_rate = firing_rate;
 		self.playerstate.trigger_held = true;
 	}
 }

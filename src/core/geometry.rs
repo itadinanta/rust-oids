@@ -77,6 +77,7 @@ impl Default for Transform {
 	}
 }
 
+#[allow(unused)]
 impl Transform {
 	pub fn new(position: Position, angle: f32) -> Self {
 		Transform {

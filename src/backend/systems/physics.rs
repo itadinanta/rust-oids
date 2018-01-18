@@ -31,7 +31,7 @@ pub struct PhysicsSystem {
 	handles: HashMap<agent::Key, b2::BodyHandle>,
 	touched: ContactSet,
 }
-
+#[allow(unused)]
 enum BodyUpdate {
 	Transform(b2::Vec2, f32),
 	Torque(f32),

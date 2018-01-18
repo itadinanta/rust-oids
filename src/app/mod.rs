@@ -46,7 +46,7 @@ pub enum Event {
 	CamRight(f32),
 
 	VectorThrust(Option<Position>, Option<Position>),
-	PrimaryFire(f32, f32),
+	PrimaryFire(f32, SecondsValue),
 
 	CamReset,
 
@@ -327,8 +327,8 @@ impl App {
 		self.world.new_minion(pos, None);
 	}
 
-	fn primary_fire(&mut self, bullet_speed: f32) {
-		self.systems.game.primary_fire(bullet_speed)
+	fn primary_fire(&mut self, bullet_speed: f32, rate: SecondsValue) {
+		self.systems.game.primary_fire(bullet_speed, rate)
 	}
 
 	pub fn set_player_intent(&mut self, intent: segment::Intent) {
@@ -381,7 +381,10 @@ impl App {
 					segment::Intent::PilotTo(thrust.map(|v| v * THRUST_POWER),
 											 yaw.map(|v| f32::atan2(v.y, v.x))));
 			}
-			Event::PrimaryFire(speed, rate) => { self.primary_fire(BULLET_SPEED * speed); }
+			Event::PrimaryFire(speed, rate) => {
+				self.primary_fire(BULLET_SPEED_SCALE * speed,
+								  BULLET_FIRE_RATE_SCALE * rate + (1. - BULLET_FIRE_RATE_SCALE));
+			}
 			Event::CamReset => { self.camera.reset(); }
 			Event::NextLight => { self.lights.next(); }
 			Event::PrevLight => { self.lights.prev(); }
@@ -490,24 +493,11 @@ impl App {
 		} else {
 			None
 		};
-		/*
-			let left_stick_x = self.input_state.gamepad_axis(0, input::Axis::LStickX);
-			if left_stick_x >= DEAD_ZONE {
-				events.push(Event::CamRight(left_stick_x));
-			} else if left_stick_x <= -DEAD_ZONE {
-				events.push(Event::CamLeft(-left_stick_x));
-			}
-			let left_stick_y = self.input_state.gamepad_axis(0, input::Axis::LStickY);
-			if left_stick_y >= DEAD_ZONE {
-				events.push(Event::CamUp(left_stick_y));
-			} else if left_stick_y <= -DEAD_ZONE {
-				events.push(Event::CamDown(-left_stick_y));
-			}
-		*/
 
-		let firepower = 0.5 - 0.5 * self.input_state.gamepad_axis(0, input::Axis::R2);
+		let firerate = 0.5 + 0.5 * self.input_state.gamepad_axis(0, input::Axis::L2);
+		let firepower = 0.5 - /* ??? */ 0.5 * self.input_state.gamepad_axis(0, input::Axis::R2);
 		if firepower >= DEAD_ZONE {
-			events.push(Event::PrimaryFire(firepower, 1.));
+			events.push(Event::PrimaryFire(firepower, firerate as f64));
 		}
 
 		let thrust = Position {
