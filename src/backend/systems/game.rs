@@ -62,14 +62,14 @@ impl Updateable for GameSystem {
 		// Byzantine way of processing trigger presses without trigger releases
 		// I should think of something less convoluted
 		if !self.playerstate.trigger_held {
-			self.playerstate.bullet_charge = BULLET_CHARGE;
+			self.playerstate.bullet_charge = BULLET_FULL_CHARGE;
 		}
 		self.playerstate.bullet_ready = self.playerstate.trigger_held &&
-			self.playerstate.bullet_charge >= BULLET_CHARGE;
+			self.playerstate.bullet_charge >= BULLET_FULL_CHARGE;
 		self.playerstate.bullet_charge = if self.playerstate.bullet_ready {
 			0.
 		} else {
-			BULLET_CHARGE.min(self.playerstate.bullet_charge + dt.get() * BULLET_CHARGE_RATE)
+			BULLET_FULL_CHARGE.min(self.playerstate.bullet_charge + dt.get() * BULLET_FIRE_RATE)
 		};
 
 		self.playerstate.trigger_held = false;
