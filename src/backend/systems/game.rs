@@ -2,6 +2,7 @@ use super::*;
 use std::f32::consts;
 use rand;
 use rand::Rng;
+use app::constants::*;
 use core::clock::*;
 use core::geometry::*;
 use core::geometry::Transform;
@@ -10,7 +11,16 @@ use backend::world;
 use backend::world::agent;
 use backend::world::Emission;
 
+#[derive(Default)]
+pub struct PlayerState {
+	trigger_held: bool,
+	bullet_speed: f32,
+	bullet_ready: bool,
+	bullet_charge: SecondsValue,
+}
+
 pub struct GameSystem {
+	playerstate: PlayerState,
 	emitters: Vec<Emitter>,
 }
 
@@ -39,7 +49,7 @@ impl Emitter where {
 }
 
 impl Updateable for GameSystem {
-	fn update(&mut self, _: &world::WorldState, _: Seconds) {
+	fn update(&mut self, _: &world::WorldState, dt: Seconds) {
 		for e in &mut self.emitters {
 			e.spawned = e.to_spawn;
 		}
@@ -49,13 +59,27 @@ impl Updateable for GameSystem {
 				e.to_spawn += 1;
 			}
 		}
+		// Byzantine way of processing trigger presses without trigger releases
+		// I should think of something less convoluted
+		if !self.playerstate.trigger_held {
+			self.playerstate.bullet_charge = BULLET_CHARGE;
+		}
+		self.playerstate.bullet_ready = self.playerstate.trigger_held &&
+			self.playerstate.bullet_charge >= BULLET_CHARGE;
+		self.playerstate.bullet_charge = if self.playerstate.bullet_ready {
+			0.
+		} else {
+			BULLET_CHARGE.min(self.playerstate.bullet_charge + dt.get() * BULLET_CHARGE_RATE)
+		};
+
+		self.playerstate.trigger_held = false;
 	}
 }
 
 impl System for GameSystem {
 	fn get_from_world(&mut self, world: &world::World) {
 		let source = world.emitters();
-		// Add missing emitters - deletion not supported
+// Add missing emitters - deletion not supported
 		for i in self.emitters.len()..source.len() {
 			let s = &source[i];
 			self.emitters.push(Emitter::new(
@@ -88,7 +112,11 @@ impl System for GameSystem {
 				);
 			}
 		}
-		// if there are no minions, spawn some
+
+		if self.playerstate.bullet_ready {
+			world.primary_fire(self.playerstate.bullet_speed);
+		}
+// if there are no minions, spawn some
 		if world.agents(agent::AgentType::Minion).is_empty() {
 			world.init_minions();
 		}
@@ -99,11 +127,18 @@ impl System for GameSystem {
 	}
 }
 
-
 impl Default for GameSystem {
 	fn default() -> Self {
-		GameSystem { emitters: Vec::new() }
+		GameSystem {
+			playerstate: PlayerState::default(),
+			emitters: Vec::new(),
+		}
 	}
 }
 
-impl GameSystem {}
+impl GameSystem {
+	pub fn primary_fire(&mut self, bullet_speed: f32) {
+		self.playerstate.bullet_speed = bullet_speed;
+		self.playerstate.trigger_held = true;
+	}
+}

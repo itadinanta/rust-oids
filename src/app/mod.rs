@@ -328,7 +328,7 @@ impl App {
 	}
 
 	fn primary_fire(&mut self, bullet_speed: f32) {
-		self.world.primary_fire(bullet_speed)
+		self.systems.game.primary_fire(bullet_speed)
 	}
 
 	pub fn set_player_intent(&mut self, intent: segment::Intent) {
