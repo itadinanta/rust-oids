@@ -5,14 +5,18 @@ layout (std140) uniform cb_CameraArgs {
 	uniform mat4 u_View;
 };
 
-layout (std140) uniform cb_ModelArgs {
-	uniform mat4 u_Model;
+
+layout (std140) uniform u_ModelArgs {
+	struct {
+		mat4 transform;
+	} u_Model[1];
 };
 
 in vec3 a_Pos;
 in vec3 a_Normal;
 in vec3 a_Tangent;
 in vec2 a_TexCoord;
+in int a_PrimIndex;
 
 out VertexData {
 	vec4 Position;
@@ -22,8 +26,9 @@ out VertexData {
 }v_Out;
 
 void main() {
-	v_Out.Position = u_Model * vec4(a_Pos, 1.0);
-	mat3 model = mat3(u_Model);
+	mat4 model4 = u_Model[a_PrimIndex].transform;
+	mat3 model = mat3(model4);
+	v_Out.Position = model4 * vec4(a_Pos, 1.0);
 	vec3 normal = normalize(model * a_Normal);
 
 	v_Out.Normal = normal;

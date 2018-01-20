@@ -1,5 +1,6 @@
 pub mod formats;
 mod effects;
+#[macro_use]
 mod forward;
 
 use std::clone::Clone;
@@ -45,53 +46,18 @@ impl Appearance {
 pub const BACKGROUND: formats::Rgba = [0.01, 0.01, 0.01, 1.0];
 
 const QUAD_VERTICES: [Vertex; 4] = [
-	Vertex {
-		pos: [-1.0, -1.0, 0.0],
-		normal: [0.0, 0.0, 1.0],
-		tangent: [1.0, 0.0, 0.0],
-		tex_coord: [0.0, 0.0],
-	},
-	Vertex {
-		pos: [1.0, -1.0, 0.0],
-		normal: [0.0, 0.0, 1.0],
-		tangent: [1.0, 0.0, 0.0],
-		tex_coord: [1.0, 0.0],
-	},
-	Vertex {
-		pos: [1.0, 1.0, 0.0],
-		normal: [0.0, 0.0, 1.0],
-		tangent: [1.0, 0.0, 0.0],
-		tex_coord: [1.0, 1.0],
-	},
-	Vertex {
-		pos: [-1.0, 1.0, 0.0],
-		normal: [0.0, 0.0, 1.0],
-		tangent: [1.0, 0.0, 0.0],
-		tex_coord: [0.0, 1.0],
-	},
+	new_vertex!([-1.0, -1.0, 0.0], [0.0, 0.0]),
+	new_vertex!([1.0, -1.0, 0.0], [1.0, 0.0]),
+	new_vertex!([1.0, 1.0, 0.0], [1.0, 1.0]),
+	new_vertex!([-1.0, 1.0, 0.0], [0.0, 1.0]),
 ];
 
 const QUAD_INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
 
 const BASE_VERTICES: [Vertex; 3] = [
-	Vertex {
-		pos: [0.0, 0.0, 0.0],
-		normal: [0.0, 0.0, 1.0],
-		tangent: [1.0, 0.0, 0.0],
-		tex_coord: [0.5, 0.5],
-	},
-	Vertex {
-		pos: [1.0, 0.0, 0.0],
-		normal: [0.0, 0.0, 1.0],
-		tangent: [1.0, 0.0, 0.0],
-		tex_coord: [1.0, 0.5],
-	},
-	Vertex {
-		pos: [0.0, 1.0, 0.0],
-		normal: [0.0, 0.0, 1.0],
-		tangent: [1.0, 0.0, 0.0],
-		tex_coord: [0.5, 1.0],
-	},
+	new_vertex!([0.0, 0.0, 0.0], [0.5, 0.5]),
+	new_vertex!([1.0, 0.0, 0.0], [1.0, 0.5]),
+	new_vertex!([0.0, 1.0, 0.0], [0.5, 1.0]),
 ];
 
 pub struct Camera {
@@ -205,13 +171,13 @@ pub trait Draw {
 
 pub trait Overlay<R, F, C>
 	where R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> {
-	fn overlay<O>(&mut self, callback: O) where O: FnMut( & mut F, & mut gfx::Encoder < R, C > );
+	fn overlay<O>(&mut self, callback: O) where O: FnMut(&mut F, &mut gfx::Encoder<R, C>);
 }
 
 pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>>: Draw {
 	fn setup_frame(
 		&mut self, camera: &Camera, background_color: formats::Rgba, light_color: formats::Rgba,
-		light_position: &[Position]
+		light_position: &[Position],
 	);
 	fn begin_frame(&mut self);
 	fn resolve_frame_buffer(&mut self);
@@ -247,7 +213,7 @@ impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone,
 ForwardRenderer<'e, 'l, R, C, F, L> {
 	pub fn new(
 		factory: &mut F, encoder: &'e mut gfx::Encoder<R, C>, res: &'l L,
-		frame_buffer: &gfx::handle::RenderTargetView<R, formats::ScreenColorFormat>
+		frame_buffer: &gfx::handle::RenderTargetView<R, formats::ScreenColorFormat>,
 	) -> Result<ForwardRenderer<'e, 'l, R, C, F, L>> {
 		let my_factory = factory.clone();
 		let (quad_vertices, quad_indices) = factory.create_vertex_buffer_with_slice(&QUAD_VERTICES, &QUAD_INDICES[..]);
@@ -309,12 +275,7 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 	fn draw_star(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], appearance: &Appearance) {
 		let mut v: Vec<_> = vertices
 			.iter()
-			.map(|v| Vertex {
-				pos: [v.x, v.y, 0.0],
-				normal: [0.0, 0.0, 1.0],
-				tangent: [1.0, 0.0, 0.0],
-				tex_coord: [0.5 + v.x * 0.5, 0.5 + v.y * 0.5],
-			})
+			.map(|v| Vertex::new([v.x, v.y, 0.0], [0.5 + v.x * 0.5, 0.5 + v.y * 0.5]))
 			.collect();
 		let n = v.len();
 		v.push(Vertex::default());
@@ -348,14 +309,7 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 	fn draw_lines(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], appearance: &Appearance) {
 		let v: Vec<_> = vertices
 			.iter()
-			.map(|v| {
-				Vertex {
-					pos: [v.x, v.y, 0.0],
-					normal: [0.0, 0.0, 1.0],
-					tangent: [1.0, 0.0, 0.0],
-					tex_coord: [0.5, 0.5],
-				}
-			})
+			.map(|v| Vertex::new([v.x, v.y, 0.0], [0.5, 0.5]))
 			.collect();
 		let (vertex_buffer, index_buffer) = self.factory.create_vertex_buffer_with_slice(
 			v.as_slice(),
@@ -378,14 +332,7 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 	fn draw_debug_lines(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], appearance: &Appearance) {
 		let v: Vec<_> = vertices
 			.iter()
-			.map(|v| {
-				Vertex {
-					pos: [v.x, v.y, 0.0],
-					normal: [0.0, 0.0, 1.0],
-					tangent: [1.0, 0.0, 0.0],
-					tex_coord: [0.5, 0.5],
-				}
-			})
+			.map(|v| Vertex::new([v.x, v.y, 0.0], [0.5, 0.5]))
 			.collect();
 		let (vertex_buffer, index_buffer) = self.factory.create_vertex_buffer_with_slice(
 			v.as_slice(),
@@ -421,30 +368,10 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 
 	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>, ratio: f32, appearance: &Appearance) {
 		let v = &[
-			Vertex {
-				pos: [-ratio, -1.0, 0.0],
-				normal: [0.0, 0.0, 1.0],
-				tangent: [1.0, 0.0, 0.0],
-				tex_coord: [0.5 - ratio * 0.5, 0.0],
-			},
-			Vertex {
-				pos: [ratio, -1.0, 0.0],
-				normal: [0.0, 0.0, 1.0],
-				tangent: [1.0, 0.0, 0.0],
-				tex_coord: [0.5 + ratio * 0.5, 0.0],
-			},
-			Vertex {
-				pos: [ratio, 1.0, 0.0],
-				normal: [0.0, 0.0, 1.0],
-				tangent: [1.0, 0.0, 0.0],
-				tex_coord: [0.5 + ratio * 0.5, 1.0],
-			},
-			Vertex {
-				pos: [-ratio, 1.0, 0.0],
-				normal: [0.0, 0.0, 1.0],
-				tangent: [1.0, 0.0, 0.0],
-				tex_coord: [0.5 - ratio * 0.5, 1.0],
-			},
+			Vertex::new([-ratio, -1.0, 0.0], [0.5 - ratio * 0.5, 0.0]),
+			Vertex::new([ratio, -1.0, 0.0], [0.5 + ratio * 0.5, 0.0]),
+			Vertex::new([ratio, 1.0, 0.0], [0.5 + ratio * 0.5, 1.0]),
+			Vertex::new([-ratio, 1.0, 0.0], [0.5 - ratio * 0.5, 1.0]),
 		];
 
 		let vertex_buffer = self.factory.create_vertex_buffer(v);
@@ -465,21 +392,9 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 	fn draw_triangle(&mut self, transform: &cgmath::Matrix4<f32>, p: &[Position], appearance: &Appearance) {
 		if p.len() >= 3 {
 			let v = &[
-				Vertex {
-					pos: [p[0].x, p[0].y, 0.0],
-					tex_coord: [0.5 + p[0].x * 0.5, 0.5 + p[0].y * 0.5],
-					..Vertex::default()
-				},
-				Vertex {
-					pos: [p[1].x, p[1].y, 0.0],
-					tex_coord: [0.5 + p[1].x * 0.5, 0.5 + p[1].y * 0.5],
-					..Vertex::default()
-				},
-				Vertex {
-					pos: [p[2].x, p[2].y, 0.0],
-					tex_coord: [0.5 + p[2].x * 0.5, 0.5 + p[2].y * 0.5],
-					..Vertex::default()
-				},
+				Vertex::new([p[0].x, p[0].y, 0.0], [0.5 + p[0].x * 0.5, 0.5 + p[0].y * 0.5]),
+				Vertex::new([p[1].x, p[1].y, 0.0], [0.5 + p[1].x * 0.5, 0.5 + p[1].y * 0.5]),
+				Vertex::new([p[2].x, p[2].y, 0.0], [0.5 + p[2].x * 0.5, 0.5 + p[2].y * 0.5]),
 			];
 
 			let (vertices, indices) = self.factory.create_vertex_buffer_with_slice(v, ());
@@ -507,7 +422,7 @@ impl<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>, L:
 for ForwardRenderer<'e, 'l, R, C, F, L> {
 	fn setup_frame(
 		&mut self, camera: &Camera, background_color: formats::Rgba, light_color: formats::Rgba,
-		light_position: &[Position]
+		light_position: &[Position],
 	) {
 		self.background_color = background_color;
 		// 		self.light_color = light_color;

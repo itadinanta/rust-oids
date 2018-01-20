@@ -12,71 +12,86 @@ gfx_vertex_struct!(VertexPosNormal {
 	normal: [f32; 3] = "a_Normal",
 	tangent: [f32; 3] = "a_Tangent",
 	tex_coord: [f32; 2] = "a_TexCoord",
+	primitive_index: i16 = "a_PrimIndex",
 });
 
-impl Default for VertexPosNormal {
-	fn default() -> Self {
-		VertexPosNormal {
-			pos: [0.; 3],
+pub type Vertex = VertexPosNormal;
+
+macro_rules! new_vertex {
+	($pos:expr, $tex_coord:expr) => {
+		Vertex {
+			pos: $pos,
 			normal: [0., 0., 1.],
 			tangent: [1., 0., 0.],
-			tex_coord: [0.5, 0.5],
+			tex_coord: $tex_coord,
+			primitive_index: 0,
 		}
 	}
 }
 
-pub type Vertex = VertexPosNormal;
+impl Default for VertexPosNormal {
+	fn default() -> Self {
+		new_vertex!([0.; 3], [0.5, 0.5])
+	}
+}
+
+impl VertexPosNormal {
+	pub fn new(pos: [f32; 3], tex_coord: [f32; 2]) -> VertexPosNormal {
+		new_vertex!(pos, tex_coord)
+	}
+}
+
 pub type M44 = cgmath::Matrix4<f32>;
 
 const MAX_NUM_TOTAL_LIGHTS: usize = 16;
 
 gfx_defines!(
-    constant PointLight {
-        propagation: [f32; 4] = "propagation",
-        center: [f32; 4] = "center",
-        color: [f32; 4] = "color",
-    }
+	constant PointLight {
+		propagation: [f32; 4] = "propagation",
+		center: [f32; 4] = "center",
+		color: [f32; 4] = "color",
+	}
 
-    constant CameraArgs {
-        proj: [[f32; 4]; 4] = "u_Proj",
-        view: [[f32; 4]; 4] = "u_View",
-    }
+	constant CameraArgs {
+		proj: [[f32; 4]; 4] = "u_Proj",
+		view: [[f32; 4]; 4] = "u_View",
+	}
 
-    constant ModelArgs {
-        model: [[f32; 4]; 4] = "u_Model",
-    }
+	constant ModelArgs {
+		transform: [[f32; 4]; 4] = "transform",
+	}
 
-    constant FragmentArgs {
-        light_count: i32 = "u_LightCount",
-    }
+	constant FragmentArgs {
+		light_count: i32 = "u_LightCount",
+	}
 
 	constant MaterialArgs {
 		emissive: [f32; 4] = "u_Emissive",
 		effect: [f32; 4] = "u_Effect",
 	}
 
-    pipeline shaded {
-        vbuf: gfx::VertexBuffer<VertexPosNormal> = (),
-        camera_args: gfx::ConstantBuffer<CameraArgs> = "cb_CameraArgs",
-        model_args: gfx::ConstantBuffer<ModelArgs> = "cb_ModelArgs",
-        fragment_args: gfx::ConstantBuffer<FragmentArgs> = "cb_FragmentArgs",
-        material_args: gfx::ConstantBuffer<MaterialArgs> = "cb_MaterialArgs",
-        lights: gfx::ConstantBuffer<PointLight> = "u_Lights",
-        color_target: gfx::BlendTarget<formats::RenderColorFormat> = ("o_Color", gfx::state::MASK_ALL, gfx::preset::blend::ADD),
-        depth_target: gfx::DepthTarget<formats::RenderDepthFormat> = gfx::preset::depth::LESS_EQUAL_WRITE,
-    }
-/*
-    pipeline blend {
-        vbuf: gfx::VertexBuffer<VertexPosNormal> = (),
-        camera_args: gfx::ConstantBuffer<CameraArgs> = "cb_CameraArgs",
-        model_args: gfx::ConstantBuffer<ModelArgs> = "cb_ModelArgs",
-        fragment_args: gfx::ConstantBuffer<FragmentArgs> = "cb_FragmentArgs",
-        material_args: gfx::ConstantBuffer<MaterialArgs> = "cb_MaterialArgs",
-        lights: gfx::ConstantBuffer<PointLight> = "u_Lights",
-        color_target: gfx::BlendTarget<formats::RenderColorFormat> = ("o_Color", gfx::state::MASK_ALL, gfx::preset::blend::ALPHA),
-        depth_target: gfx::DepthTarget<formats::RenderDepthFormat> = gfx::preset::depth::LESS_EQUAL_WRITE,
-    }
-*/
+	pipeline shaded {
+		vbuf: gfx::VertexBuffer < VertexPosNormal > = (),
+		camera_args: gfx::ConstantBuffer < CameraArgs > = "cb_CameraArgs",
+		model_args: gfx::ConstantBuffer < ModelArgs> = "u_ModelArgs",
+		fragment_args: gfx::ConstantBuffer <FragmentArgs > = "cb_FragmentArgs",
+		material_args: gfx::ConstantBuffer< MaterialArgs > = "cb_MaterialArgs",
+		lights: gfx::ConstantBuffer < PointLight > = "u_Lights",
+		color_target: gfx::BlendTarget < formats::RenderColorFormat > = ("o_Color", gfx::state::MASK_ALL, gfx::preset::blend::ADD),
+		depth_target: gfx::DepthTarget < formats::RenderDepthFormat > = gfx::preset::depth::LESS_EQUAL_WRITE,
+	}
+	/*
+		pipeline blend {
+			vbuf: gfx::VertexBuffer<VertexPosNormal> = (),
+			camera_args: gfx::ConstantBuffer<CameraArgs> = "cb_CameraArgs",
+			model_args: gfx::ConstantBuffer<ModelArgs> = "cb_ModelArgs",
+			fragment_args: gfx::ConstantBuffer<FragmentArgs> = "cb_FragmentArgs",
+			material_args: gfx::ConstantBuffer<MaterialArgs> = "cb_MaterialArgs",
+			lights: gfx::ConstantBuffer<PointLight> = "u_Lights",
+			color_target: gfx::BlendTarget<formats::RenderColorFormat> = ("o_Color", gfx::state::MASK_ALL, gfx::preset::blend::ALPHA),
+			depth_target: gfx::DepthTarget<formats::RenderDepthFormat> = gfx::preset::depth::LESS_EQUAL_WRITE,
+		}
+	*/
 
 );
 
@@ -116,16 +131,16 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 		let material = factory.create_constant_buffer(1);
 
 		macro_rules! load_shaders {
-			($v:expr, $f:expr) => { factory.create_shader_set(
-					&res.load(concat!("shaders/forward/", $v, ".vert"))?,
-					&res.load(concat!("shaders/forward/", $f, ".frag"))?) };
+( $ v: expr, $ f: expr) => { factory.create_shader_set(
+& res.load(concat! ("shaders/forward/", $ v, ".vert"))?,
+& res.load(concat ! ("shaders/forward/", $ f, ".frag")) ? ) };
 
-			($g:expr, $v:expr, $f:expr) => { factory.create_shader_set_with_geometry(
-					&res.load(concat!("shaders/forward/", $g, ".geom"))?,
-					&res.load(concat!("shaders/forward/", $v, ".vert"))?,
-					&res.load(concat!("shaders/forward/", $f, ".frag"))?)
-				 }
-		};
+( $ g: expr, $ v:expr, $ f: expr) => { factory.create_shader_set_with_geometry(
+& res.load(concat! ("shaders/forward/", $ g, ".geom"))?,
+& res.load(concat ! ("shaders/forward/", $ v, ".vert")) ?,
+& res.load(concat ! ("shaders/forward/", $ f, ".frag")) ? )
+}
+};
 
 		let flat_shaders = load_shaders!("lighting", "lighting_flat")?;
 		let solid_shaders = load_shaders!("lighting", "lighting_poly")?;
@@ -236,7 +251,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C, shaded::
 		color_buffer: &gfx::handle::RenderTargetView<R, formats::RenderColorFormat>,
 		depth_buffer: &gfx::handle::DepthStencilView<R, formats::RenderDepthFormat>,
 	) {
-		encoder.update_constant_buffer(&self.model, &ModelArgs { model: (*transform).into() });
+		let models = vec![ModelArgs { transform: (*transform).into() }];
+		encoder.update_buffer(&self.model, &models, 0);
 		encoder.update_constant_buffer(
 			&self.material,
 			&MaterialArgs {

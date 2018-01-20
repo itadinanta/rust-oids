@@ -9,14 +9,13 @@ layout (std140) uniform cb_FragmentArgs {
 	int u_LightCount;
 };
 
-struct Light {
-	vec4 propagation;
-	vec4 center;
-	vec4 color;
-};
 
 layout (std140) uniform u_Lights {
-	Light light[MAX_NUM_TOTAL_LIGHTS];
+	struct {
+		vec4 propagation;
+		vec4 center;
+		vec4 color;
+	} light[MAX_NUM_TOTAL_LIGHTS];
 };
 
 layout (std140) uniform cb_MaterialArgs {
