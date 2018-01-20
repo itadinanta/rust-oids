@@ -5,7 +5,6 @@ layout (std140) uniform cb_CameraArgs {
 	uniform mat4 u_View;
 };
 
-
 layout (std140) uniform u_ModelArgs {
 	struct {
 		mat4 transform;

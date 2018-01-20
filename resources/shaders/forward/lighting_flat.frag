@@ -9,7 +9,6 @@ layout (std140) uniform cb_FragmentArgs {
 	int u_LightCount;
 };
 
-
 layout (std140) uniform u_Lights {
 	struct {
 		vec4 propagation;
