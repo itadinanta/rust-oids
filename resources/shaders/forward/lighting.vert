@@ -22,6 +22,7 @@ out VertexData {
 	vec3 Normal;
 	mat3 TBN;
 	vec2 TexCoord;
+	flat int PrimIndex;
 }v_Out;
 
 void main() {

@@ -8,6 +8,7 @@ in VertexData {
 	vec3 Normal;
 	mat3 TBN;
 	vec2 TexCoord;
+	flat int PrimIndex;
 }v_In[3];
 
 out VertexData {
@@ -15,6 +16,7 @@ out VertexData {
 	vec3 Normal;
 	mat3 TBN;
 	vec2 TexCoord;
+	flat int PrimIndex;
 }v_Out;
 
 struct V {
@@ -23,6 +25,7 @@ struct V {
 	vec3 Normal;
 	mat3 TBN;
 	vec2 TexCoord;
+	int PrimIndex;
 };
 
 void emit_vertex(V v) {
@@ -31,6 +34,7 @@ void emit_vertex(V v) {
 	v_Out.Normal = v.Normal;
 	v_Out.TBN = v.TBN;
 	v_Out.TexCoord = v.TexCoord;
+	v_Out.PrimIndex = v.PrimIndex;
 	EmitVertex();
 }
 
@@ -46,6 +50,7 @@ V read_vert(int i) {
 	result.TexCoord = v_In[i].TexCoord;
 	result.Normal = v_In[i].Normal;
 	result.TBN = v_In[i].TBN;
+	result.PrimIndex = v_In[i].PrimIndex;
 	return result;
 }
 

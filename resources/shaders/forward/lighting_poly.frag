@@ -18,8 +18,10 @@ layout (std140) uniform u_Lights {
 };
 
 layout (std140) uniform cb_MaterialArgs {
-	uniform vec4 u_Emissive;
-	uniform vec4 u_Effect;
+	struct {
+		vec4 u_Emissive;
+		vec4 u_Effect;
+	} material[1];
 };
 
 in VertexData {
@@ -27,6 +29,7 @@ in VertexData {
 	vec3 Normal;
 	mat3 TBN;
 	vec2 TexCoord;
+	flat int PrimIndex;
 }v_In;
 
 out vec4 o_Color;
@@ -39,6 +42,9 @@ void main() {
 	float dx = 2 * clamp(v_In.TexCoord.x, 0, 1) - 1;
 	float dy = 2 * clamp(v_In.TexCoord.y, 0, 1) - 1;
 	float r = min(1, dx * dx + dy * dy);
+
+	vec4 u_Emissive = material[v_In.PrimIndex].u_Emissive;
+	vec4 u_Effect = material[v_In.PrimIndex].u_Effect;
 
 	float f = clamp(u_Effect.x * 2, 0, 1);
 	float e = clamp(abs(cos(r - u_Effect.y) + sin(dy - 2 * u_Effect.y)), 0, 1);
