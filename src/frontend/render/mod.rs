@@ -10,6 +10,8 @@ use core::geometry::M44;
 use core::geometry::Position;
 
 use cgmath;
+use frontend::render::forward::VertexIndex;
+use frontend::render::forward::PrimitiveIndex;
 use frontend::render::forward::Vertex;
 
 use std::convert;
@@ -20,12 +22,13 @@ use gfx;
 use gfx::Factory;
 use gfx::traits::FactoryExt;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Appearance {
 	color: formats::Rgba,
 	effect: formats::Float4,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Shader {
 	Ball = 0,
 	Flat = 1,
@@ -62,7 +65,7 @@ const QUAD_VERTICES: [Vertex; 4] = [
 	new_vertex!([-1.0, 1.0, 0.0], [0.0, 1.0]),
 ];
 
-const QUAD_INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
+const QUAD_INDICES: [VertexIndex; 6] = [0, 1, 2, 0, 2, 3];
 
 const TRI_VERTICES: [Vertex; 3] = [
 	new_vertex!([0.0, 0.0, 0.0], [0.5, 0.5]),
@@ -70,7 +73,7 @@ const TRI_VERTICES: [Vertex; 3] = [
 	new_vertex!([0.0, 1.0, 0.0], [0.5, 1.0]),
 ];
 
-const TRI_INDICES: [u16; 3] = [0, 1, 2];
+const TRI_INDICES: [VertexIndex; 3] = [0, 1, 2];
 
 pub struct Camera {
 	pub projection: M44,
@@ -98,7 +101,9 @@ impl Camera {
 
 #[derive(Debug)]
 pub enum RenderError {
-	Shader(String)
+	Shader(String),
+	ShaderMismatch(Shader, Shader),
+	PrimitiveIndexOverflow,
 }
 
 pub type Result<T> = result::Result<T, RenderError>;
@@ -171,22 +176,154 @@ trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 impl<R: gfx::Resources, E: gfx::traits::FactoryExt<R>> RenderFactoryExt<R> for E {}
 
 pub trait Draw {
-	fn draw_triangle(&mut self, transform: cgmath::Matrix4<f32>, p: &[Position], appearance: Appearance);
-	fn draw_quad(&mut self, transform: cgmath::Matrix4<f32>, ratio: f32, appearance: Appearance);
-	fn draw_star(&mut self, transform: cgmath::Matrix4<f32>, vertices: &[Position], appearance: Appearance);
-	fn draw_lines(&mut self, transform: cgmath::Matrix4<f32>, vertices: &[Position], appearance: Appearance);
-	fn draw_debug_lines(&mut self, transform: cgmath::Matrix4<f32>, vertices: &[Position], appearance: Appearance);
-	fn draw_ball(&mut self, transform: cgmath::Matrix4<f32>, appearance: Appearance);
+	fn draw_triangle(&mut self, transform: M44, p: &[Position], appearance: Appearance);
+	fn draw_quad(&mut self, transform: M44, ratio: f32, appearance: Appearance);
+	fn draw_star(&mut self, transform: M44, vertices: &[Position], appearance: Appearance);
+	fn draw_lines(&mut self, transform: M44, vertices: &[Position], appearance: Appearance);
+	fn draw_debug_lines(&mut self, transform: M44, vertices: &[Position], appearance: Appearance);
+	fn draw_ball(&mut self, transform: M44, appearance: Appearance);
 	fn draw_text(&mut self, text: &str, screen_position: [i32; 2], text_color: formats::Rgba);
 }
 
-pub trait DrawPrimitive {
-	fn draw_primitive(&mut self,
+pub trait PrimitiveSequence {
+	fn push_primitive(&mut self,
 					  shader: Shader,
 					  vertices: Vec<Vertex>,
-					  indices: Vec<u16>,
+					  indices: Vec<VertexIndex>,
 					  transform: M44,
 					  appearance: Appearance) -> Result<()>;
+}
+
+impl<T> Draw for T where T: PrimitiveSequence {
+	fn draw_star(&mut self, transform: M44, vertices: &[Position], appearance: Appearance) {
+		let mut v: Vec<_> = vertices
+			.iter()
+			.map(|v| Vertex::new([v.x, v.y, 0.0], [0.5 + v.x * 0.5, 0.5 + v.y * 0.5]))
+			.collect();
+		let n = v.len();
+		v.push(Vertex::default());
+
+		let mut i: Vec<VertexIndex> = Vec::new();
+		for k in 0..n {
+			i.push(n as VertexIndex);
+			i.push(((k + 1) % n) as VertexIndex);
+			i.push(k as VertexIndex);
+		}
+
+		self.push_primitive(Shader::Wireframe, v, i, transform, appearance)
+			.expect("Unable to draw star")
+	}
+
+	fn draw_lines(&mut self, transform: M44, vertices: &[Position], appearance: Appearance) {
+		let v: Vec<_> = vertices
+			.iter()
+			.map(|v| Vertex::new([v.x, v.y, 0.0], [0.5, 0.5]))
+			.collect();
+
+		let i: Vec<_> = (0..vertices.len() as VertexIndex).collect();
+
+		self.push_primitive(Shader::Lines, v, i, transform, appearance)
+			.expect("Unable to draw lines");
+	}
+
+	fn draw_debug_lines(&mut self, transform: M44, vertices: &[Position], appearance: Appearance) {
+		let v: Vec<_> = vertices
+			.iter()
+			.map(|v| Vertex::new([v.x, v.y, 0.0], [0.5, 0.5]))
+			.collect();
+
+		let i: Vec<_> = (0..vertices.len() as VertexIndex).collect();
+
+		self.push_primitive(Shader::DebugLines, v, i, transform, appearance)
+			.expect("Unable to draw debug lines");
+	}
+
+	fn draw_ball(&mut self, transform: M44, appearance: Appearance) {
+		self.push_primitive(Shader::Ball, TRI_VERTICES.to_vec(), TRI_INDICES.to_vec(), transform, appearance)
+			.expect("Unable to draw ball");
+	}
+
+	fn draw_quad(&mut self, transform: M44, ratio: f32, appearance: Appearance) {
+		let v = vec![
+			Vertex::new([-ratio, -1.0, 0.0], [0.5 - ratio * 0.5, 0.0]),
+			Vertex::new([ratio, -1.0, 0.0], [0.5 + ratio * 0.5, 0.0]),
+			Vertex::new([ratio, 1.0, 0.0], [0.5 + ratio * 0.5, 1.0]),
+			Vertex::new([-ratio, 1.0, 0.0], [0.5 - ratio * 0.5, 1.0]),
+		];
+
+		self.push_primitive(Shader::Flat, v, QUAD_INDICES.to_vec(), transform, appearance)
+			.expect("Unable to draw quad");
+	}
+
+	fn draw_triangle(&mut self, transform: M44, p: &[Position], appearance: Appearance) {
+		if p.len() >= 3 {
+			let v = vec![
+				Vertex::new([p[0].x, p[0].y, 0.0], [0.5 + p[0].x * 0.5, 0.5 + p[0].y * 0.5]),
+				Vertex::new([p[1].x, p[1].y, 0.0], [0.5 + p[1].x * 0.5, 0.5 + p[1].y * 0.5]),
+				Vertex::new([p[2].x, p[2].y, 0.0], [0.5 + p[2].x * 0.5, 0.5 + p[2].y * 0.5]),
+			];
+
+			let i = vec![0, 1, 2];
+
+			self.push_primitive(Shader::Wireframe, v, i, transform, appearance)
+				.expect("Unable to draw triangle");
+		}
+	}
+
+	fn draw_text(&mut self, _text: &str, _screen_position: [i32; 2], _text_color: formats::Rgba) {
+		warn!("draw_text to be implemented in rusttype");
+	}
+}
+
+pub struct PrimitiveBatch {
+	shader: Option<Shader>,
+	appearances: Vec<Appearance>,
+	vertices: Vec<Vertex>,
+	indices: Vec<VertexIndex>,
+	transforms: Vec<M44>,
+}
+
+impl PrimitiveBatch {
+	pub fn new() -> PrimitiveBatch {
+		PrimitiveBatch {
+			shader: None,
+			appearances: Vec::new(),
+			vertices: Vec::new(),
+			indices: Vec::new(),
+			transforms: Vec::new(),
+		}
+	}
+}
+
+impl PrimitiveSequence for PrimitiveBatch {
+	fn push_primitive(&mut self,
+					  shader: Shader,
+					  mut vertices: Vec<Vertex>,
+					  mut indices: Vec<VertexIndex>,
+					  transform: M44,
+					  appearance: Appearance) -> Result<()>
+	{
+		if self.shader.is_none() {
+			self.shader = Some(shader);
+		}
+		let primitive_offset = self.transforms.len();
+		if primitive_offset > PrimitiveIndex::max_value() as usize {
+			Err(RenderError::PrimitiveIndexOverflow)
+		} else {
+			let vertex_offset = self.vertices.len() as VertexIndex;
+			for v in &mut vertices {
+				v.primitive_index = primitive_offset as PrimitiveIndex;
+			}
+			for i in &mut indices {
+				*i += vertex_offset;
+			}
+			self.appearances.push(appearance);
+			self.transforms.push(transform);
+			self.indices.append(&mut indices);
+			self.vertices.append(&mut vertices);
+			Ok(())
+		}
+	}
 }
 
 pub trait Overlay<R, F, C>
@@ -208,18 +345,13 @@ pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>>: Draw {
 pub struct ForwardRenderer<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: gfx::Factory<R>, L: 'l + ResourceLoader<u8>> {
 	factory: F,
 	pub encoder: &'e mut gfx::Encoder<R, C>,
-
 	res: &'l L,
-
 	frame_buffer: gfx::handle::RenderTargetView<R, formats::ScreenColorFormat>,
 	depth: gfx::handle::DepthStencilView<R, formats::RenderDepthFormat>,
-
 	hdr_srv: gfx::handle::ShaderResourceView<R, formats::Rgba>,
 	hdr_color: gfx::handle::RenderTargetView<R, formats::RenderColorFormat>,
-
 	pass_forward_lighting: forward::ForwardLighting<R, C, forward::ShadedInit<'static>>,
 	pass_effects: effects::PostLighting<R, C>,
-
 	background_color: formats::Rgba,
 }
 
@@ -276,25 +408,25 @@ ForwardRenderer<'e, 'l, R, C, F, L> {
 	}
 }
 
-impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> DrawPrimitive
+impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> PrimitiveSequence
 for ForwardRenderer<'e, 'l, R, C, F, L> {
-	fn draw_primitive(&mut self,
+	fn push_primitive(&mut self,
 					  shader: Shader,
 					  vertices: Vec<Vertex>,
-					  indices: Vec<u16>,
+					  indices: Vec<VertexIndex>,
 					  transform: M44,
 					  appearance: Appearance) -> Result<()> {
 		let (vertex_buffer, index_buffer) = self.factory.create_vertex_buffer_with_slice(
 			vertices.as_slice(),
 			indices.as_slice(),
 		);
-
-		self.pass_forward_lighting.draw_primitive(
+		let models = vec![forward::ModelArgs { transform: transform.into() }];
+		self.pass_forward_lighting.draw_primitives(
 			shader,
 			&mut self.encoder,
 			vertex_buffer,
 			&index_buffer,
-			&transform,
+			&models,
 			appearance.color,
 			appearance.effect,
 			&mut self.hdr_color,
@@ -302,89 +434,6 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 		)?;
 
 		Ok(())
-	}
-}
-
-impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> Draw
-for ForwardRenderer<'e, 'l, R, C, F, L> {
-	fn draw_star(&mut self, transform: cgmath::Matrix4<f32>, vertices: &[Position], appearance: Appearance) {
-		let mut v: Vec<_> = vertices
-			.iter()
-			.map(|v| Vertex::new([v.x, v.y, 0.0], [0.5 + v.x * 0.5, 0.5 + v.y * 0.5]))
-			.collect();
-		let n = v.len();
-		v.push(Vertex::default());
-
-		// TODO: these can be cached
-		let mut i: Vec<u16> = Vec::new();
-		for k in 0..n {
-			i.push(n as u16);
-			i.push(((k + 1) % n) as u16);
-			i.push(k as u16);
-		}
-
-		self.draw_primitive(Shader::Wireframe, v, i, transform, appearance)
-			.expect("Unable to draw star")
-	}
-
-	fn draw_lines(&mut self, transform: cgmath::Matrix4<f32>, vertices: &[Position], appearance: Appearance) {
-		let v: Vec<_> = vertices
-			.iter()
-			.map(|v| Vertex::new([v.x, v.y, 0.0], [0.5, 0.5]))
-			.collect();
-
-		let i: Vec<_> = (0..vertices.len() as u16).collect();
-
-		self.draw_primitive(Shader::Lines, v, i, transform, appearance)
-			.expect("Unable to draw lines");
-	}
-
-	fn draw_debug_lines(&mut self, transform: cgmath::Matrix4<f32>, vertices: &[Position], appearance: Appearance) {
-		let v: Vec<_> = vertices
-			.iter()
-			.map(|v| Vertex::new([v.x, v.y, 0.0], [0.5, 0.5]))
-			.collect();
-
-		let i: Vec<_> = (0..vertices.len() as u16).collect();
-
-		self.draw_primitive(Shader::DebugLines, v, i, transform, appearance)
-			.expect("Unable to draw debug lines");
-	}
-
-	fn draw_ball(&mut self, transform: cgmath::Matrix4<f32>, appearance: Appearance) {
-		self.draw_primitive(Shader::Ball, TRI_VERTICES.to_vec(), TRI_INDICES.to_vec(), transform, appearance)
-			.expect("Unable to draw ball");
-	}
-
-	fn draw_quad(&mut self, transform: cgmath::Matrix4<f32>, ratio: f32, appearance: Appearance) {
-		let v = vec![
-			Vertex::new([-ratio, -1.0, 0.0], [0.5 - ratio * 0.5, 0.0]),
-			Vertex::new([ratio, -1.0, 0.0], [0.5 + ratio * 0.5, 0.0]),
-			Vertex::new([ratio, 1.0, 0.0], [0.5 + ratio * 0.5, 1.0]),
-			Vertex::new([-ratio, 1.0, 0.0], [0.5 - ratio * 0.5, 1.0]),
-		];
-
-		self.draw_primitive(Shader::Flat, v, QUAD_INDICES.to_vec(), transform, appearance)
-			.expect("Unable to draw quad");
-	}
-
-	fn draw_triangle(&mut self, transform: cgmath::Matrix4<f32>, p: &[Position], appearance: Appearance) {
-		if p.len() >= 3 {
-			let v = vec![
-				Vertex::new([p[0].x, p[0].y, 0.0], [0.5 + p[0].x * 0.5, 0.5 + p[0].y * 0.5]),
-				Vertex::new([p[1].x, p[1].y, 0.0], [0.5 + p[1].x * 0.5, 0.5 + p[1].y * 0.5]),
-				Vertex::new([p[2].x, p[2].y, 0.0], [0.5 + p[2].x * 0.5, 0.5 + p[2].y * 0.5]),
-			];
-
-			let i = vec![0, 1, 2];
-
-			self.draw_primitive(Shader::Wireframe, v, i, transform, appearance)
-				.expect("Unable to draw triangle");
-		}
-	}
-
-	fn draw_text(&mut self, _text: &str, _screen_position: [i32; 2], _text_color: formats::Rgba) {
-		warn!("draw_text to be implemented in rusttype");
 	}
 }
 

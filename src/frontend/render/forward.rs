@@ -8,12 +8,16 @@ use frontend::render::RenderFactoryExt;
 use frontend::render::formats;
 use core::resource;
 
+pub type PrimitiveIndex = i16;
+pub type VertexIndex = u16;
+
+
 gfx_vertex_struct!(VertexPosNormal {
 	pos: [f32; 3] = "a_Pos",
 	normal: [f32; 3] = "a_Normal",
 	tangent: [f32; 3] = "a_Tangent",
 	tex_coord: [f32; 2] = "a_TexCoord",
-	primitive_index: i16 = "a_PrimIndex",
+	primitive_index: PrimitiveIndex = "a_PrimIndex",
 });
 
 pub type Vertex = VertexPosNormal;
@@ -99,7 +103,6 @@ gfx_defines!(
 pub type ShadedInit<'f> = shaded::Init<'f>;
 
 use std::marker::PhantomData;
-
 
 pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>, D>
 	where D: gfx::pso::PipelineInit {
@@ -240,32 +243,22 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 }
 
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C, shaded::Init<'static>> {
-	pub fn draw_primitive(
-		&self, shader: Shader, encoder: &mut gfx::Encoder<R, C>, vertices: gfx::handle::Buffer<R, VertexPosNormal>,
-		indices: &gfx::Slice<R>, transform: &M44, color: [f32; 4], effect: [f32; 4],
-		color_buffer: &gfx::handle::RenderTargetView<R, formats::RenderColorFormat>,
-		depth_buffer: &gfx::handle::DepthStencilView<R, formats::RenderDepthFormat>,
-	) -> Result<()> {
-		let models = vec![ModelArgs { transform: (*transform).into() }];
-		self.draw_primitives(shader, encoder, vertices, indices, &models, color, effect, color_buffer, depth_buffer)
-	}
-
 	pub fn draw_primitives(
 		&self, shader: Shader, encoder: &mut gfx::Encoder<R, C>, vertices: gfx::handle::Buffer<R, VertexPosNormal>,
 		indices: &gfx::Slice<R>, models: &[ModelArgs], color: [f32; 4], effect: [f32; 4],
 		color_buffer: &gfx::handle::RenderTargetView<R, formats::RenderColorFormat>,
 		depth_buffer: &gfx::handle::DepthStencilView<R, formats::RenderDepthFormat>,
 	) -> Result<()> {
-		encoder.update_buffer(
-			&self.model,
-			&models,
-			0)?;
 		encoder.update_constant_buffer(
 			&self.material,
 			&MaterialArgs {
 				emissive: color,
 				effect,
 			});
+		encoder.update_buffer(
+			&self.model,
+			&models,
+			0)?;
 		encoder.draw(
 			indices,
 			&self.pso[shader as usize],

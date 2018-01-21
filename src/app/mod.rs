@@ -565,6 +565,7 @@ impl App {
 	fn render_minions(&self, renderer: &mut render::Draw) {
 		for (_, swarm) in self.world.swarms().iter() {
 			for (_, agent) in swarm.agents().iter() {
+				let mut batch = render::PrimitiveBatch::new();
 				let energy_left = agent.state.energy_ratio();
 				let phase = agent.state.phase();
 				for segment in agent.segments() {
