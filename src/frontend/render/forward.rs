@@ -2,6 +2,7 @@ use std::result;
 use cgmath;
 use gfx;
 use gfx::traits::FactoryExt;
+use frontend::render::Shader;
 use frontend::render::Result;
 use frontend::render::RenderFactoryExt;
 use frontend::render::formats;
@@ -99,14 +100,6 @@ pub type ShadedInit<'f> = shaded::Init<'f>;
 
 use std::marker::PhantomData;
 
-pub enum Shader {
-	Ball = 0,
-	Flat = 1,
-	Wireframe = 2,
-	Lines = 3,
-	DebugLines = 4,
-	Count = 5,
-}
 
 pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>, D>
 	where D: gfx::pso::PipelineInit {

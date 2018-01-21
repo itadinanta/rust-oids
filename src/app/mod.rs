@@ -578,19 +578,19 @@ impl App {
 
 					match mesh.shape {
 						obj::Shape::Ball { .. } => {
-							renderer.draw_ball(&transform, &appearance);
+							renderer.draw_ball(transform, appearance);
 						}
 						obj::Shape::Star { .. } => {
-							renderer.draw_star(&transform, &mesh.vertices[..], &appearance);
+							renderer.draw_star(transform, &mesh.vertices[..], appearance);
 						}
 						obj::Shape::Poly { .. } => {
-							renderer.draw_star(&transform, &mesh.vertices[..], &appearance);
+							renderer.draw_star(transform, &mesh.vertices[..], appearance);
 						}
 						obj::Shape::Box { ratio, .. } => {
-							renderer.draw_quad(&transform, ratio, &appearance);
+							renderer.draw_quad(transform, ratio, appearance);
 						}
 						obj::Shape::Triangle { .. } => {
-							renderer.draw_triangle(&transform, &mesh.vertices[0..3], &appearance);
+							renderer.draw_triangle(transform, &mesh.vertices[0..3], appearance);
 						}
 					}
 				}
@@ -608,21 +608,21 @@ impl App {
 			extent.min,
 		];
 		renderer.draw_lines(
-			&Matrix4::identity(),
+			Matrix4::identity(),
 			points,
-			&render::Appearance::rgba(self.lights.get()),
+			render::Appearance::rgba(self.lights.get()),
 		);
 		renderer.draw_quad(
-			&Matrix4::from_scale(extent.max.x - extent.min.x),
+			Matrix4::from_scale(extent.max.x - extent.min.x),
 			1.,
-			&render::Appearance::rgba(self.backgrounds.get()),
+			render::Appearance::rgba(self.backgrounds.get()),
 		);
 	}
 
 	fn render_hud(&self, renderer: &mut render::Draw) {
 		for e in self.world.emitters() {
 			let transform = Self::from_position(&e.transform().position);
-			renderer.draw_ball(&transform, &render::Appearance::rgba(self.lights.get()));
+			renderer.draw_ball(transform, render::Appearance::rgba(self.lights.get()));
 		}
 		if self.debug_flags.contains(DebugFlags::DEBUG_TARGETS) {
 			use cgmath::*;
@@ -634,9 +634,9 @@ impl App {
 					let radar_range = sensor.mesh.shape.radius() * 10.;
 					let p1 = *agent.state.target_position();
 					renderer.draw_debug_lines(
-						&Matrix4::identity(),
+						Matrix4::identity(),
 						&[p0, p1],
-						&render::Appearance::rgba([1., 1., 0., 1.]),
+						render::Appearance::rgba([1., 1., 0., 1.]),
 					);
 
 					let t0 = p1 - p0;
@@ -646,22 +646,22 @@ impl App {
 					let v = m * (-Position::unit_y());
 					let p2 = p0 + v.normalize_to(t.dot(v));
 					renderer.draw_debug_lines(
-						&Matrix4::identity(),
+						Matrix4::identity(),
 						&[p0, p2],
-						&render::Appearance::rgba([0., 1., 0., 1.]),
+						render::Appearance::rgba([0., 1., 0., 1.]),
 					);
 
 					let u = m * (-Position::unit_x());
 					let p3 = p0 + u.normalize_to(t.perp_dot(v));
 					renderer.draw_debug_lines(
-						&Matrix4::identity(),
+						Matrix4::identity(),
 						&[p0, p3],
-						&render::Appearance::rgba([0., 1., 0., 1.]),
+						render::Appearance::rgba([0., 1., 0., 1.]),
 					);
 
 					let trajectory = agent.state.trajectory();
 					let appearance = render::Appearance::new(sensor.color(), [2.0, 1.0, 0., 0.]);
-					renderer.draw_debug_lines(&Matrix4::identity(), &trajectory, &appearance);
+					renderer.draw_debug_lines(Matrix4::identity(), &trajectory, appearance);
 
 					for segment in agent.segments().iter() {
 						match segment.state.intent {
@@ -669,18 +669,18 @@ impl App {
 								let p0 = segment.transform.position;
 								let p1 = p0 + v * DEBUG_DRAW_BRAKE_SCALE;
 								renderer.draw_debug_lines(
-									&Matrix4::identity(),
+									Matrix4::identity(),
 									&[p0, p1],
-									&render::Appearance::rgba([2., 0., 0., 1.]),
+									render::Appearance::rgba([2., 0., 0., 1.]),
 								);
 							}
 							segment::Intent::Move(v) => {
 								let p0 = segment.transform.position;
 								let p1 = p0 + v * DEBUG_DRAW_MOVE_SCALE;
 								renderer.draw_debug_lines(
-									&Matrix4::identity(),
+									Matrix4::identity(),
 									&[p0, p1],
-									&render::Appearance::rgba([0., 0., 2., 1.]),
+									render::Appearance::rgba([0., 0., 2., 1.]),
 								);
 							}
 							_ => {}
