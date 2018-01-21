@@ -87,6 +87,7 @@ impl Camera {
 #[derive(Debug)]
 pub enum RenderError {
 	Shader(String),
+	BufferSize,
 	//TextRenderer,
 }
 
@@ -293,7 +294,7 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 			i.as_slice(),
 		);
 
-		self.pass_forward_lighting.draw_primitives(
+		self.pass_forward_lighting.draw_primitive(
 			forward::Shader::Wireframe,
 			&mut self.encoder,
 			vertex_buffer,
@@ -303,7 +304,7 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 			appearance.effect,
 			&mut self.hdr_color,
 			&mut self.depth,
-		);
+		).expect("Unable to draw star")
 	}
 
 	fn draw_lines(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], appearance: &Appearance) {
@@ -316,7 +317,7 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 			(),
 		);
 
-		self.pass_forward_lighting.draw_primitives(
+		self.pass_forward_lighting.draw_primitive(
 			forward::Shader::Lines,
 			&mut self.encoder,
 			vertex_buffer,
@@ -326,7 +327,7 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 			appearance.effect,
 			&mut self.hdr_color,
 			&mut self.depth,
-		);
+		).expect("Unable to draw lines");
 	}
 
 	fn draw_debug_lines(&mut self, transform: &cgmath::Matrix4<f32>, vertices: &[Position], appearance: &Appearance) {
@@ -339,7 +340,7 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 			(),
 		);
 
-		self.pass_forward_lighting.draw_primitives(
+		self.pass_forward_lighting.draw_primitive(
 			forward::Shader::DebugLines,
 			&mut self.encoder,
 			vertex_buffer,
@@ -349,11 +350,11 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 			appearance.effect,
 			&mut self.hdr_color,
 			&mut self.depth,
-		);
+		).expect("Unable to draw debug lines");
 	}
 
 	fn draw_ball(&mut self, transform: &cgmath::Matrix4<f32>, appearance: &Appearance) {
-		self.pass_forward_lighting.draw_primitives(
+		self.pass_forward_lighting.draw_primitive(
 			forward::Shader::Ball,
 			&mut self.encoder,
 			self.base_vertices.clone(),
@@ -363,7 +364,7 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 			appearance.effect,
 			&mut self.hdr_color,
 			&mut self.depth,
-		);
+		).expect("Unable to draw ball");
 	}
 
 	fn draw_quad(&mut self, transform: &cgmath::Matrix4<f32>, ratio: f32, appearance: &Appearance) {
@@ -376,7 +377,7 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 
 		let vertex_buffer = self.factory.create_vertex_buffer(v);
 
-		self.pass_forward_lighting.draw_primitives(
+		self.pass_forward_lighting.draw_primitive(
 			forward::Shader::Flat,
 			&mut self.encoder,
 			vertex_buffer,
@@ -386,7 +387,7 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 			appearance.effect,
 			&mut self.hdr_color,
 			&mut self.depth,
-		);
+		).expect("Unable to draw quad");
 	}
 
 	fn draw_triangle(&mut self, transform: &cgmath::Matrix4<f32>, p: &[Position], appearance: &Appearance) {
@@ -399,7 +400,7 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 
 			let (vertices, indices) = self.factory.create_vertex_buffer_with_slice(v, ());
 
-			self.pass_forward_lighting.draw_primitives(
+			self.pass_forward_lighting.draw_primitive(
 				forward::Shader::Wireframe,
 				&mut self.encoder,
 				vertices,
@@ -409,7 +410,7 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 				appearance.effect,
 				&mut self.hdr_color,
 				&mut self.depth,
-			);
+			).expect("Unable to draw triangle");
 		}
 	}
 
@@ -447,7 +448,7 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 			camera.projection,
 			camera.view,
 			&lights,
-		);
+		).expect("Unable to setup lighting");
 	}
 
 	fn begin_frame(&mut self) {

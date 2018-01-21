@@ -271,48 +271,15 @@ impl App {
 	}
 
 	fn init_lights() -> Cycle<[f32; 4]> {
-		Cycle::new(
-			&[
-				[1.0, 1.0, 1.0, 1.0],
-				[3.1, 3.1, 3.1, 1.0],
-				[10.0, 10.0, 10.0, 1.0],
-				[31.0, 31.0, 31.0, 1.0],
-				[100.0, 100.0, 100.0, 1.0],
-				[0.001, 0.001, 0.001, 1.0],
-				[0.01, 0.01, 0.01, 1.0],
-				[0.1, 0.1, 0.1, 1.0],
-				[0.31, 0.31, 0.31, 0.5],
-			],
-		)
+		Cycle::new(constants::AMBIENT_LIGHTS)
 	}
 
 	fn init_speed_factors() -> Cycle<SpeedFactor> {
-		Cycle::new(
-			&[
-				1.0,
-				0.5,
-				0.2,
-				0.1,
-				1.0,
-				2.0,
-				5.0,
-				10.0,
-			]
-		)
+		Cycle::new(constants::SPEED_FACTORS)
 	}
 
 	fn init_backgrounds() -> Cycle<[f32; 4]> {
-		Cycle::new(
-			&[
-				[0.05, 0.07, 0.1, 1.0],
-				[0.5, 0.5, 0.5, 0.5],
-				[1.0, 1.0, 1.0, 1.0],
-				[3.1, 3.1, 3.1, 1.0],
-				[10.0, 10.0, 10.0, 1.0],
-				[0., 0., 0., 1.0],
-				[0.01, 0.01, 0.01, 1.0],
-			],
-		)
+		Cycle::new(constants::BACKGROUNDS)
 	}
 
 	pub fn pick_minion(&self, pos: Position) -> Option<Id> {

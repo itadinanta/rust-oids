@@ -131,16 +131,16 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 		let material = factory.create_constant_buffer(1);
 
 		macro_rules! load_shaders {
-( $ v: expr, $ f: expr) => { factory.create_shader_set(
-& res.load(concat! ("shaders/forward/", $ v, ".vert"))?,
-& res.load(concat ! ("shaders/forward/", $ f, ".frag")) ? ) };
+		( $ v: expr, $ f: expr) => { factory.create_shader_set(
+				& res.load(concat! ("shaders/forward/", $ v, ".vert"))?,
+				& res.load(concat ! ("shaders/forward/", $ f, ".frag")) ? ) };
 
-( $ g: expr, $ v:expr, $ f: expr) => { factory.create_shader_set_with_geometry(
-& res.load(concat! ("shaders/forward/", $ g, ".geom"))?,
-& res.load(concat ! ("shaders/forward/", $ v, ".vert")) ?,
-& res.load(concat ! ("shaders/forward/", $ f, ".frag")) ? )
-}
-};
+				( $ g: expr, $ v:expr, $ f: expr) => { factory.create_shader_set_with_geometry(
+				& res.load(concat! ("shaders/forward/", $ g, ".geom"))?,
+				& res.load(concat ! ("shaders/forward/", $ v, ".vert")) ?,
+				& res.load(concat ! ("shaders/forward/", $ f, ".frag")) ? )
+			}
+		};
 
 		let flat_shaders = load_shaders!("lighting", "lighting_flat")?;
 		let solid_shaders = load_shaders!("lighting", "lighting_poly")?;
@@ -219,7 +219,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 		factory.create_pipeline_state(&shaders, primitive, rasterizer, init)
 	}
 
-	pub fn setup(&self, encoder: &mut gfx::Encoder<R, C>, camera_projection: M44, camera_view: M44, lights: &Vec<PointLight>) {
+	pub fn setup(&self, encoder: &mut gfx::Encoder<R, C>, camera_projection: M44, camera_view: M44, lights: &Vec<PointLight>) -> Result<()> {
 		let mut lights_buf = lights.clone();
 
 		let count = lights_buf.len();
@@ -231,35 +231,48 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 			})
 		}
 
-		if let Ok(_) = encoder.update_buffer(&self.lights, &lights_buf[..], 0) {
-			encoder.update_constant_buffer(
-				&self.camera,
-				&CameraArgs {
-					proj: camera_projection.into(),
-					view: camera_view.into(),
-				},
-			);
-			encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32 });
-		}
+		encoder.update_buffer(
+			&self.lights,
+			&lights_buf[..],
+			0)?;
+		encoder.update_constant_buffer(
+			&self.camera,
+			&CameraArgs {
+				proj: camera_projection.into(),
+				view: camera_view.into(),
+			});
+		encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32 });
+		Ok(())
 	}
 }
 
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C, shaded::Init<'static>> {
-	pub fn draw_primitives(
+	pub fn draw_primitive(
 		&self, shader: Shader, encoder: &mut gfx::Encoder<R, C>, vertices: gfx::handle::Buffer<R, VertexPosNormal>,
 		indices: &gfx::Slice<R>, transform: &M44, color: [f32; 4], effect: [f32; 4],
 		color_buffer: &gfx::handle::RenderTargetView<R, formats::RenderColorFormat>,
 		depth_buffer: &gfx::handle::DepthStencilView<R, formats::RenderDepthFormat>,
-	) {
+	) -> Result<()> {
 		let models = vec![ModelArgs { transform: (*transform).into() }];
-		encoder.update_buffer(&self.model, &models, 0);
+		self.draw_primitives(shader, encoder, vertices, indices, &models, color, effect, color_buffer, depth_buffer)
+	}
+
+	pub fn draw_primitives(
+		&self, shader: Shader, encoder: &mut gfx::Encoder<R, C>, vertices: gfx::handle::Buffer<R, VertexPosNormal>,
+		indices: &gfx::Slice<R>, models: &[ModelArgs], color: [f32; 4], effect: [f32; 4],
+		color_buffer: &gfx::handle::RenderTargetView<R, formats::RenderColorFormat>,
+		depth_buffer: &gfx::handle::DepthStencilView<R, formats::RenderDepthFormat>,
+	) -> Result<()> {
+		encoder.update_buffer(
+			&self.model,
+			&models,
+			0)?;
 		encoder.update_constant_buffer(
 			&self.material,
 			&MaterialArgs {
 				emissive: color,
 				effect,
-			},
-		);
+			});
 		encoder.draw(
 			indices,
 			&self.pso[shader as usize],
@@ -272,7 +285,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C, shaded::
 				lights: self.lights.clone(),
 				color_target: color_buffer.clone(),
 				depth_target: depth_buffer.clone(),
-			},
-		);
+			});
+		Ok(())
 	}
 }
