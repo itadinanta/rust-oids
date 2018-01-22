@@ -1,5 +1,7 @@
 #version 150 core
 
+#define MAX_NUM_SHAPES 256
+
 layout (std140) uniform cb_CameraArgs {
 	uniform mat4 u_Proj;
 	uniform mat4 u_View;
@@ -8,7 +10,7 @@ layout (std140) uniform cb_CameraArgs {
 layout (std140) uniform u_ModelArgs {
 	struct {
 		mat4 transform;
-	} u_Model[1];
+	} u_Model[MAX_NUM_SHAPES];
 };
 
 in vec3 a_Pos;

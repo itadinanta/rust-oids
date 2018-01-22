@@ -28,6 +28,8 @@ use backend::systems::System;
 
 use frontend::input;
 use frontend::render;
+use frontend::render::Draw;
+use frontend::render::DrawBatch;
 use frontend::ui;
 use getopts::Options;
 use std::ffi::OsString;
@@ -562,7 +564,7 @@ impl App {
 		Matrix4::from_translation(cgmath::Vector3::new(position.x, position.y, 0.0))
 	}
 
-	fn render_minions(&self, renderer: &mut render::Draw) {
+	fn render_minions<R>(&self, renderer: &mut R) where R: render::Draw + render::DrawBatch {
 		for (_, swarm) in self.world.swarms().iter() {
 			for (_, agent) in swarm.agents().iter() {
 				let mut batch = render::PrimitiveBatch::new();
@@ -579,27 +581,29 @@ impl App {
 
 					match mesh.shape {
 						obj::Shape::Ball { .. } => {
-							renderer.draw_ball(transform, appearance);
+							batch.draw_ball(transform, appearance);
 						}
 						obj::Shape::Star { .. } => {
-							renderer.draw_star(transform, &mesh.vertices[..], appearance);
+							batch.draw_star(transform, &mesh.vertices[..], appearance);
 						}
 						obj::Shape::Poly { .. } => {
-							renderer.draw_star(transform, &mesh.vertices[..], appearance);
+							batch.draw_star(transform, &mesh.vertices[..], appearance);
 						}
 						obj::Shape::Box { ratio, .. } => {
-							renderer.draw_quad(transform, ratio, appearance);
+							batch.draw_quad(transform, ratio, appearance);
 						}
 						obj::Shape::Triangle { .. } => {
-							renderer.draw_triangle(transform, &mesh.vertices[0..3], appearance);
+							batch.draw_triangle(transform, &mesh.vertices[0..3], appearance);
 						}
 					}
 				}
+				renderer.draw_batch(batch);
 			}
 		}
 	}
 
-	fn render_extent(&self, renderer: &mut render::Draw) {
+	fn render_extent<R>(&self, renderer: &mut R)
+		where R: render::Draw {
 		let extent = &self.world.extent;
 		let points = &[
 			extent.min,
@@ -620,7 +624,8 @@ impl App {
 		);
 	}
 
-	fn render_hud(&self, renderer: &mut render::Draw) {
+	fn render_hud<R>(&self, renderer: &mut R)
+		where R: render::Draw {
 		for e in self.world.emitters() {
 			let transform = Self::from_position(&e.transform().position);
 			renderer.draw_ball(transform, render::Appearance::rgba(self.lights.get()));
@@ -692,7 +697,8 @@ impl App {
 		}
 	}
 
-	pub fn render(&self, renderer: &mut render::Draw) {
+	pub fn render<R>(&self, renderer: &mut R)
+		where R: render::Draw + render::DrawBatch {
 		self.render_minions(renderer);
 		self.render_extent(renderer);
 		self.render_hud(renderer);

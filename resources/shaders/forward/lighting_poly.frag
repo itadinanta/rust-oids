@@ -1,6 +1,7 @@
 #version 150 core
 
 #define MAX_NUM_TOTAL_LIGHTS 16
+#define MAX_NUM_SHAPES 256
 
 const float PI = 3.1415926535897932384626433832795;
 const float PI_2 = 1.57079632679489661923;
@@ -9,19 +10,19 @@ layout (std140) uniform cb_FragmentArgs {
 	int u_LightCount;
 };
 
+layout (std140) uniform cb_MaterialArgs {
+	struct {
+		vec4 u_Emissive;
+		vec4 u_Effect;
+	} material[MAX_NUM_SHAPES];
+};
+
 layout (std140) uniform u_Lights {
 	struct {
 		vec4 propagation;
 		vec4 center;
 		vec4 color;
 	} light[MAX_NUM_TOTAL_LIGHTS];
-};
-
-layout (std140) uniform cb_MaterialArgs {
-	struct {
-		vec4 u_Emissive;
-		vec4 u_Effect;
-	} material[1];
 };
 
 in VertexData {

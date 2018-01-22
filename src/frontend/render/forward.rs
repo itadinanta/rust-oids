@@ -49,6 +49,7 @@ impl VertexPosNormal {
 pub type M44 = cgmath::Matrix4<f32>;
 
 const MAX_NUM_TOTAL_LIGHTS: usize = 16;
+const MAX_NUM_TOTAL_TRANSFORM: usize = 256;
 
 gfx_defines!(
 	constant PointLight {
@@ -122,9 +123,9 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 			F: gfx::Factory<R>, {
 		let lights = factory.create_constant_buffer(MAX_NUM_TOTAL_LIGHTS);
 		let camera = factory.create_constant_buffer(1);
-		let model = factory.create_constant_buffer(1);
 		let fragment = factory.create_constant_buffer(1);
-		let material = factory.create_constant_buffer(1);
+		let model = factory.create_constant_buffer(MAX_NUM_TOTAL_TRANSFORM);
+		let material = factory.create_constant_buffer(MAX_NUM_TOTAL_TRANSFORM);
 
 		macro_rules! load_shaders {
 		( $ v: expr, $ f: expr) => { factory.create_shader_set(
@@ -244,21 +245,17 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C, shaded::Init<'static>> {
 	pub fn draw_primitives(
-		&self, shader: Shader, encoder: &mut gfx::Encoder<R, C>, vertices: gfx::handle::Buffer<R, VertexPosNormal>,
-		indices: &gfx::Slice<R>, models: &[ModelArgs], color: [f32; 4], effect: [f32; 4],
+		&self, shader: Shader,
+		encoder: &mut gfx::Encoder<R, C>,
+		vertices: gfx::handle::Buffer<R, VertexPosNormal>,
+		indices: &gfx::Slice<R>,
+		models: &[ModelArgs],
+		materials: &[MaterialArgs],
 		color_buffer: &gfx::handle::RenderTargetView<R, formats::RenderColorFormat>,
 		depth_buffer: &gfx::handle::DepthStencilView<R, formats::RenderDepthFormat>,
 	) -> Result<()> {
-		encoder.update_constant_buffer(
-			&self.material,
-			&MaterialArgs {
-				emissive: color,
-				effect,
-			});
-		encoder.update_buffer(
-			&self.model,
-			&models,
-			0)?;
+		encoder.update_buffer(&self.model, &models, 0)?;
+		encoder.update_buffer(&self.material, &materials, 0)?;
 		encoder.draw(
 			indices,
 			&self.pso[shader as usize],

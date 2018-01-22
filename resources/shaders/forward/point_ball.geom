@@ -1,7 +1,7 @@
 #version 150 core
 
 layout(triangles) in;
-layout(triangle_strip, max_vertices = 50) out;
+layout(triangle_strip, max_vertices = 30) out;
 
 in VertexData {
 	vec4 Position;

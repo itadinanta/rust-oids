@@ -175,6 +175,15 @@ trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 
 impl<R: gfx::Resources, E: gfx::traits::FactoryExt<R>> RenderFactoryExt<R> for E {}
 
+#[derive(Clone)]
+pub struct PrimitiveBatch {
+	shader: Shader,
+	vertices: Vec<Vertex>,
+	indices: Vec<VertexIndex>,
+	transforms: Vec<M44>,
+	appearances: Vec<Appearance>,
+}
+
 pub trait Draw {
 	fn draw_triangle(&mut self, transform: M44, p: &[Position], appearance: Appearance);
 	fn draw_quad(&mut self, transform: M44, ratio: f32, appearance: Appearance);
@@ -182,10 +191,17 @@ pub trait Draw {
 	fn draw_lines(&mut self, transform: M44, vertices: &[Position], appearance: Appearance);
 	fn draw_debug_lines(&mut self, transform: M44, vertices: &[Position], appearance: Appearance);
 	fn draw_ball(&mut self, transform: M44, appearance: Appearance);
-	fn draw_text(&mut self, text: &str, screen_position: [i32; 2], text_color: formats::Rgba);
+}
+
+pub trait DrawBatch {
+	fn draw_batch(&mut self, batch: PrimitiveBatch);
 }
 
 pub trait PrimitiveSequence {
+	// Optimized batch
+	fn push_batch(&mut self, batch: PrimitiveBatch) -> Result<()>;
+	// Single entry.
+	// TODO: do I want to maintain both?
 	fn push_primitive(&mut self,
 					  shader: Shader,
 					  vertices: Vec<Vertex>,
@@ -269,43 +285,55 @@ impl<T> Draw for T where T: PrimitiveSequence {
 				.expect("Unable to draw triangle");
 		}
 	}
-
-	fn draw_text(&mut self, _text: &str, _screen_position: [i32; 2], _text_color: formats::Rgba) {
-		warn!("draw_text to be implemented in rusttype");
-	}
 }
 
-pub struct PrimitiveBatch {
-	shader: Option<Shader>,
-	appearances: Vec<Appearance>,
-	vertices: Vec<Vertex>,
-	indices: Vec<VertexIndex>,
-	transforms: Vec<M44>,
-}
+pub struct PrimitiveBuffer {}
 
 impl PrimitiveBatch {
 	pub fn new() -> PrimitiveBatch {
 		PrimitiveBatch {
-			shader: None,
-			appearances: Vec::new(),
+			shader: Shader::Flat,
 			vertices: Vec::new(),
 			indices: Vec::new(),
 			transforms: Vec::new(),
+			appearances: Vec::new(),
 		}
 	}
 }
 
 impl PrimitiveSequence for PrimitiveBatch {
+	fn push_batch(&mut self, mut batch: PrimitiveBatch) -> Result<()> {
+		self.push_primitive_buffers(batch.shader, batch.vertices, batch.indices)?;
+		self.transforms.append(&mut batch.transforms);
+		self.appearances.append(&mut batch.appearances);
+		Ok(())
+	}
+
 	fn push_primitive(&mut self,
 					  shader: Shader,
 					  mut vertices: Vec<Vertex>,
 					  mut indices: Vec<VertexIndex>,
-					  transform: M44,
-					  appearance: Appearance) -> Result<()>
+					  mut transform: M44,
+					  mut appearance: Appearance) -> Result<()>
 	{
-		if self.shader.is_none() {
-			self.shader = Some(shader);
-		}
+		self.push_primitive_buffers(shader, vertices, indices)?;
+		self.transforms.push(transform);
+		self.appearances.push(appearance);
+		Ok(())
+	}
+}
+
+impl PrimitiveBatch {
+	pub fn draw_primitives<E>(&self) -> Result<()> {
+		Ok(())
+	}
+
+	fn push_primitive_buffers(&mut self,
+							  shader: Shader,
+							  mut vertices: Vec<Vertex>,
+							  mut indices: Vec<VertexIndex>) -> Result<()>
+	{
+		self.shader = shader;
 		let primitive_offset = self.transforms.len();
 		if primitive_offset > PrimitiveIndex::max_value() as usize {
 			Err(RenderError::PrimitiveIndexOverflow)
@@ -317,8 +345,6 @@ impl PrimitiveSequence for PrimitiveBatch {
 			for i in &mut indices {
 				*i += vertex_offset;
 			}
-			self.appearances.push(appearance);
-			self.transforms.push(transform);
 			self.indices.append(&mut indices);
 			self.vertices.append(&mut vertices);
 			Ok(())
@@ -408,27 +434,60 @@ ForwardRenderer<'e, 'l, R, C, F, L> {
 	}
 }
 
+impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> DrawBatch
+for ForwardRenderer<'e, 'l, R, C, F, L> {
+	fn draw_batch(&mut self, mut batch: PrimitiveBatch) {
+		self.push_batch(batch)
+			.expect("Could not draw batch");
+	}
+}
+
 impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> PrimitiveSequence
 for ForwardRenderer<'e, 'l, R, C, F, L> {
+	fn push_batch(&mut self, mut batch: PrimitiveBatch) -> Result<()> {
+		let models: Vec<forward::ModelArgs> = batch.transforms.iter()
+			.map(|transform| forward::ModelArgs { transform: (*transform).into() })
+			.collect();
+		let materials: Vec<forward::MaterialArgs> = batch.appearances.iter()
+			.map(|appearance| forward::MaterialArgs { emissive: appearance.color, effect: appearance.effect })
+			.collect();
+		let (vertex_buffer, index_buffer) = self.factory.create_vertex_buffer_with_slice(
+			batch.vertices.as_slice(),
+			batch.indices.as_slice(),
+		);
+		self.pass_forward_lighting.draw_primitives(
+			batch.shader,
+			&mut self.encoder,
+			vertex_buffer,
+			&index_buffer,
+			&models,
+			&materials,
+			&mut self.hdr_color,
+			&mut self.depth,
+		)?;
+
+		Ok(())
+	}
+
 	fn push_primitive(&mut self,
 					  shader: Shader,
 					  vertices: Vec<Vertex>,
 					  indices: Vec<VertexIndex>,
 					  transform: M44,
 					  appearance: Appearance) -> Result<()> {
+		let models = vec![forward::ModelArgs { transform: transform.into() }];
+		let materials = vec![forward::MaterialArgs { emissive: appearance.color, effect: appearance.effect }];
 		let (vertex_buffer, index_buffer) = self.factory.create_vertex_buffer_with_slice(
 			vertices.as_slice(),
 			indices.as_slice(),
 		);
-		let models = vec![forward::ModelArgs { transform: transform.into() }];
 		self.pass_forward_lighting.draw_primitives(
 			shader,
 			&mut self.encoder,
 			vertex_buffer,
 			&index_buffer,
 			&models,
-			appearance.color,
-			appearance.effect,
+			&materials,
 			&mut self.hdr_color,
 			&mut self.depth,
 		)?;
