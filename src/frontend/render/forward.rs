@@ -2,7 +2,7 @@ use std::result;
 use cgmath;
 use gfx;
 use gfx::traits::FactoryExt;
-use frontend::render::Shader;
+use frontend::render::Style;
 use frontend::render::Result;
 use frontend::render::RenderFactoryExt;
 use frontend::render::formats;
@@ -112,7 +112,7 @@ pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>, D>
 	fragment: gfx::handle::Buffer<R, FragmentArgs>,
 	material: gfx::handle::Buffer<R, MaterialArgs>,
 	lights: gfx::handle::Buffer<R, PointLight>,
-	pso: [gfx::pso::PipelineState<R, D::Meta>; Shader::Count as usize],
+	pso: [gfx::pso::PipelineState<R, D::Meta>; Style::Count as usize],
 	_buffer: PhantomData<C>,
 }
 
@@ -245,7 +245,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C, shaded::Init<'static>> {
 	pub fn draw_primitives(
-		&self, shader: Shader,
+		&self, shader: Style,
 		encoder: &mut gfx::Encoder<R, C>,
 		vertices: gfx::handle::Buffer<R, VertexPosNormal>,
 		indices: &gfx::Slice<R>,

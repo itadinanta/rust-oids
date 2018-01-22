@@ -29,7 +29,7 @@ pub struct Appearance {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Shader {
+pub enum Style {
 	Ball = 0,
 	Flat = 1,
 	Wireframe = 2,
@@ -102,7 +102,7 @@ impl Camera {
 #[derive(Debug)]
 pub enum RenderError {
 	Shader(String),
-	ShaderMismatch(Shader, Shader),
+	ShaderMismatch(Style, Style),
 	PrimitiveIndexOverflow,
 }
 
@@ -177,7 +177,7 @@ impl<R: gfx::Resources, E: gfx::traits::FactoryExt<R>> RenderFactoryExt<R> for E
 
 #[derive(Clone)]
 pub struct PrimitiveBatch {
-	shader: Shader,
+	shader: Style,
 	vertices: Vec<Vertex>,
 	indices: Vec<VertexIndex>,
 	transforms: Vec<M44>,
@@ -185,12 +185,11 @@ pub struct PrimitiveBatch {
 }
 
 pub trait Draw {
-	fn draw_triangle(&mut self, transform: M44, p: &[Position], appearance: Appearance);
-	fn draw_quad(&mut self, transform: M44, ratio: f32, appearance: Appearance);
-	fn draw_star(&mut self, transform: M44, vertices: &[Position], appearance: Appearance);
-	fn draw_lines(&mut self, transform: M44, vertices: &[Position], appearance: Appearance);
-	fn draw_debug_lines(&mut self, transform: M44, vertices: &[Position], appearance: Appearance);
-	fn draw_ball(&mut self, transform: M44, appearance: Appearance);
+	fn draw_triangle(&mut self, style: Option<Style>, transform: M44, p: &[Position], appearance: Appearance);
+	fn draw_quad(&mut self, style: Option<Style>, transform: M44, ratio: f32, appearance: Appearance);
+	fn draw_star(&mut self, style: Option<Style>, transform: M44, vertices: &[Position], appearance: Appearance);
+	fn draw_lines(&mut self, style: Option<Style>, transform: M44, vertices: &[Position], appearance: Appearance);
+	fn draw_ball(&mut self, style: Option<Style>, transform: M44, appearance: Appearance);
 }
 
 pub trait DrawBatch {
@@ -203,7 +202,7 @@ pub trait PrimitiveSequence {
 	// Single entry.
 	// TODO: do I want to maintain both?
 	fn push_primitive(&mut self,
-					  shader: Shader,
+					  shader: Style,
 					  vertices: Vec<Vertex>,
 					  indices: Vec<VertexIndex>,
 					  transform: M44,
@@ -211,7 +210,7 @@ pub trait PrimitiveSequence {
 }
 
 impl<T> Draw for T where T: PrimitiveSequence {
-	fn draw_star(&mut self, transform: M44, vertices: &[Position], appearance: Appearance) {
+	fn draw_star(&mut self, style: Option<Style>, transform: M44, vertices: &[Position], appearance: Appearance) {
 		let mut v: Vec<_> = vertices
 			.iter()
 			.map(|v| Vertex::new([v.x, v.y, 0.0], [0.5 + v.x * 0.5, 0.5 + v.y * 0.5]))
@@ -226,11 +225,11 @@ impl<T> Draw for T where T: PrimitiveSequence {
 			i.push(k as VertexIndex);
 		}
 
-		self.push_primitive(Shader::Wireframe, v, i, transform, appearance)
+		self.push_primitive(style.unwrap_or(Style::Wireframe), v, i, transform, appearance)
 			.expect("Unable to draw star")
 	}
 
-	fn draw_lines(&mut self, transform: M44, vertices: &[Position], appearance: Appearance) {
+	fn draw_lines(&mut self, style: Option<Style>, transform: M44, vertices: &[Position], appearance: Appearance) {
 		let v: Vec<_> = vertices
 			.iter()
 			.map(|v| Vertex::new([v.x, v.y, 0.0], [0.5, 0.5]))
@@ -238,28 +237,16 @@ impl<T> Draw for T where T: PrimitiveSequence {
 
 		let i: Vec<_> = (0..vertices.len() as VertexIndex).collect();
 
-		self.push_primitive(Shader::Lines, v, i, transform, appearance)
+		self.push_primitive(style.unwrap_or(Style::Lines), v, i, transform, appearance)
 			.expect("Unable to draw lines");
 	}
 
-	fn draw_debug_lines(&mut self, transform: M44, vertices: &[Position], appearance: Appearance) {
-		let v: Vec<_> = vertices
-			.iter()
-			.map(|v| Vertex::new([v.x, v.y, 0.0], [0.5, 0.5]))
-			.collect();
-
-		let i: Vec<_> = (0..vertices.len() as VertexIndex).collect();
-
-		self.push_primitive(Shader::DebugLines, v, i, transform, appearance)
-			.expect("Unable to draw debug lines");
-	}
-
-	fn draw_ball(&mut self, transform: M44, appearance: Appearance) {
-		self.push_primitive(Shader::Ball, TRI_VERTICES.to_vec(), TRI_INDICES.to_vec(), transform, appearance)
+	fn draw_ball(&mut self, style: Option<Style>, transform: M44, appearance: Appearance) {
+		self.push_primitive(style.unwrap_or(Style::Ball), TRI_VERTICES.to_vec(), TRI_INDICES.to_vec(), transform, appearance)
 			.expect("Unable to draw ball");
 	}
 
-	fn draw_quad(&mut self, transform: M44, ratio: f32, appearance: Appearance) {
+	fn draw_quad(&mut self, style: Option<Style>, transform: M44, ratio: f32, appearance: Appearance) {
 		let v = vec![
 			Vertex::new([-ratio, -1.0, 0.0], [0.5 - ratio * 0.5, 0.0]),
 			Vertex::new([ratio, -1.0, 0.0], [0.5 + ratio * 0.5, 0.0]),
@@ -267,11 +254,11 @@ impl<T> Draw for T where T: PrimitiveSequence {
 			Vertex::new([-ratio, 1.0, 0.0], [0.5 - ratio * 0.5, 1.0]),
 		];
 
-		self.push_primitive(Shader::Flat, v, QUAD_INDICES.to_vec(), transform, appearance)
+		self.push_primitive(style.unwrap_or(Style::Flat), v, QUAD_INDICES.to_vec(), transform, appearance)
 			.expect("Unable to draw quad");
 	}
 
-	fn draw_triangle(&mut self, transform: M44, p: &[Position], appearance: Appearance) {
+	fn draw_triangle(&mut self, style: Option<Style>, transform: M44, p: &[Position], appearance: Appearance) {
 		if p.len() >= 3 {
 			let v = vec![
 				Vertex::new([p[0].x, p[0].y, 0.0], [0.5 + p[0].x * 0.5, 0.5 + p[0].y * 0.5]),
@@ -281,7 +268,7 @@ impl<T> Draw for T where T: PrimitiveSequence {
 
 			let i = vec![0, 1, 2];
 
-			self.push_primitive(Shader::Wireframe, v, i, transform, appearance)
+			self.push_primitive(style.unwrap_or(Style::Wireframe), v, i, transform, appearance)
 				.expect("Unable to draw triangle");
 		}
 	}
@@ -292,7 +279,7 @@ pub struct PrimitiveBuffer {}
 impl PrimitiveBatch {
 	pub fn new() -> PrimitiveBatch {
 		PrimitiveBatch {
-			shader: Shader::Flat,
+			shader: Style::Flat,
 			vertices: Vec::new(),
 			indices: Vec::new(),
 			transforms: Vec::new(),
@@ -310,11 +297,11 @@ impl PrimitiveSequence for PrimitiveBatch {
 	}
 
 	fn push_primitive(&mut self,
-					  shader: Shader,
-					  mut vertices: Vec<Vertex>,
-					  mut indices: Vec<VertexIndex>,
-					  mut transform: M44,
-					  mut appearance: Appearance) -> Result<()>
+					  shader: Style,
+					  vertices: Vec<Vertex>,
+					  indices: Vec<VertexIndex>,
+					  transform: M44,
+					  appearance: Appearance) -> Result<()>
 	{
 		self.push_primitive_buffers(shader, vertices, indices)?;
 		self.transforms.push(transform);
@@ -329,7 +316,7 @@ impl PrimitiveBatch {
 	}
 
 	fn push_primitive_buffers(&mut self,
-							  shader: Shader,
+							  shader: Style,
 							  mut vertices: Vec<Vertex>,
 							  mut indices: Vec<VertexIndex>) -> Result<()>
 	{
@@ -470,7 +457,7 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 	}
 
 	fn push_primitive(&mut self,
-					  shader: Shader,
+					  shader: Style,
 					  vertices: Vec<Vertex>,
 					  indices: Vec<VertexIndex>,
 					  transform: M44,
