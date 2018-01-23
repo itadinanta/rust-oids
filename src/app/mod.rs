@@ -31,6 +31,7 @@ use frontend::render;
 use frontend::render::Style;
 use frontend::render::Draw;
 use frontend::render::DrawBatch;
+use frontend::render::DrawBuffer;
 use frontend::ui;
 use getopts::Options;
 use std::ffi::OsString;
@@ -565,10 +566,10 @@ impl App {
 		Matrix4::from_translation(cgmath::Vector3::new(position.x, position.y, 0.0))
 	}
 
-	fn render_minions<R>(&self, renderer: &mut R) where R: render::Draw + render::DrawBatch {
+	fn render_minions<R>(&self, renderer: &mut R) where R: render::DrawBuffer {
 		for (_, swarm) in self.world.swarms().iter() {
 			for (_, agent) in swarm.agents().iter() {
-				let mut batch = render::PrimitiveBatch::new();
+				let mut batch = render::PrimitiveBuffer::new();
 				let energy_left = agent.state.energy_ratio();
 				let phase = agent.state.phase();
 				for segment in agent.segments() {
@@ -591,14 +592,14 @@ impl App {
 							batch.draw_star(None, transform, &mesh.vertices[..], appearance);
 						}
 						obj::Shape::Box { ratio, .. } => {
-							batch.draw_quad(None, transform, ratio, appearance);
+							batch.draw_quad(Some(Style::Wireframe), transform, ratio, appearance);
 						}
 						obj::Shape::Triangle { .. } => {
 							batch.draw_triangle(None, transform, &mesh.vertices[0..3], appearance);
 						}
 					}
 				}
-				renderer.draw_batch(batch);
+				renderer.draw_buffer(batch);
 			}
 		}
 	}
@@ -706,7 +707,7 @@ impl App {
 	}
 
 	pub fn render<R>(&self, renderer: &mut R)
-		where R: render::Draw + render::DrawBatch {
+		where R: render::Draw + render::DrawBatch + render::DrawBuffer {
 		self.render_minions(renderer);
 		self.render_extent(renderer);
 		self.render_hud(renderer);

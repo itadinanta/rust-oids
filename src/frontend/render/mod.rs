@@ -5,7 +5,8 @@ mod forward;
 
 use std::clone::Clone;
 use core::resource::ResourceLoader;
-
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use core::geometry::M44;
 use core::geometry::Position;
 
@@ -28,7 +29,7 @@ pub struct Appearance {
 	effect: formats::Float4,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Style {
 	Ball = 0,
 	Flat = 1,
@@ -177,11 +178,16 @@ impl<R: gfx::Resources, E: gfx::traits::FactoryExt<R>> RenderFactoryExt<R> for E
 
 #[derive(Clone)]
 pub struct PrimitiveBatch {
-	shader: Style,
+	style: Style,
 	vertices: Vec<Vertex>,
 	indices: Vec<VertexIndex>,
 	transforms: Vec<M44>,
 	appearances: Vec<Appearance>,
+}
+
+#[derive(Clone)]
+pub struct PrimitiveBuffer {
+	batches: HashMap<Style, PrimitiveBatch>
 }
 
 pub trait Draw {
@@ -194,6 +200,10 @@ pub trait Draw {
 
 pub trait DrawBatch {
 	fn draw_batch(&mut self, batch: PrimitiveBatch);
+}
+
+pub trait DrawBuffer {
+	fn draw_buffer(&mut self, buffer: PrimitiveBuffer);
 }
 
 pub trait PrimitiveSequence {
@@ -274,12 +284,20 @@ impl<T> Draw for T where T: PrimitiveSequence {
 	}
 }
 
-pub struct PrimitiveBuffer {}
-
 impl PrimitiveBatch {
 	pub fn new() -> PrimitiveBatch {
 		PrimitiveBatch {
-			shader: Style::Flat,
+			style: Style::Flat,
+			vertices: Vec::new(),
+			indices: Vec::new(),
+			transforms: Vec::new(),
+			appearances: Vec::new(),
+		}
+	}
+
+	pub fn with_style(style: Style) -> PrimitiveBatch {
+		PrimitiveBatch {
+			style,
 			vertices: Vec::new(),
 			indices: Vec::new(),
 			transforms: Vec::new(),
@@ -290,7 +308,7 @@ impl PrimitiveBatch {
 
 impl PrimitiveSequence for PrimitiveBatch {
 	fn push_batch(&mut self, mut batch: PrimitiveBatch) -> Result<()> {
-		self.push_primitive_buffers(batch.shader, batch.vertices, batch.indices)?;
+		self.push_primitive_buffers(batch.style, batch.vertices, batch.indices)?;
 		self.transforms.append(&mut batch.transforms);
 		self.appearances.append(&mut batch.appearances);
 		Ok(())
@@ -320,7 +338,7 @@ impl PrimitiveBatch {
 							  mut vertices: Vec<Vertex>,
 							  mut indices: Vec<VertexIndex>) -> Result<()>
 	{
-		self.shader = shader;
+		self.style = shader;
 		let primitive_offset = self.transforms.len();
 		if primitive_offset > PrimitiveIndex::max_value() as usize {
 			Err(RenderError::PrimitiveIndexOverflow)
@@ -335,6 +353,52 @@ impl PrimitiveBatch {
 			self.indices.append(&mut indices);
 			self.vertices.append(&mut vertices);
 			Ok(())
+		}
+	}
+}
+
+impl PrimitiveBuffer {
+	pub fn new() -> PrimitiveBuffer {
+		PrimitiveBuffer {
+			batches: HashMap::with_capacity(Style::Count as usize)
+		}
+	}
+}
+
+impl PrimitiveSequence for PrimitiveBuffer {
+	fn push_batch(&mut self, batch: PrimitiveBatch) -> Result<()> {
+		match self.batches.entry(batch.style) {
+			Entry::Vacant(entry) => {
+				entry.insert(batch);
+				Ok(())
+			}
+			Entry::Occupied(ref mut b) => {
+				b.get_mut().push_batch(batch)
+			}
+		}
+	}
+
+	fn push_primitive(&mut self,
+					  style: Style,
+					  vertices: Vec<Vertex>,
+					  indices: Vec<VertexIndex>,
+					  transform: M44,
+					  appearance: Appearance) -> Result<()>
+	{
+		match self.batches.entry(style) {
+			Entry::Vacant(entry) => {
+				entry.insert(PrimitiveBatch {
+					style,
+					vertices,
+					indices,
+					transforms: vec![transform],
+					appearances: vec![appearance],
+				});
+				Ok(())
+			}
+			Entry::Occupied(ref mut b) => {
+				b.get_mut().push_primitive(style, vertices, indices, transform, appearance)
+			}
 		}
 	}
 }
@@ -423,15 +487,25 @@ ForwardRenderer<'e, 'l, R, C, F, L> {
 
 impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> DrawBatch
 for ForwardRenderer<'e, 'l, R, C, F, L> {
-	fn draw_batch(&mut self, mut batch: PrimitiveBatch) {
+	fn draw_batch(&mut self, batch: PrimitiveBatch) {
 		self.push_batch(batch)
 			.expect("Could not draw batch");
 	}
 }
 
+impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> DrawBuffer
+for ForwardRenderer<'e, 'l, R, C, F, L> {
+	fn draw_buffer(&mut self, mut buffer: PrimitiveBuffer) {
+		for (_, batch) in buffer.batches.drain() {
+			self.push_batch(batch)
+				.expect("Could not draw batch");
+		}
+	}
+}
+
 impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> PrimitiveSequence
 for ForwardRenderer<'e, 'l, R, C, F, L> {
-	fn push_batch(&mut self, mut batch: PrimitiveBatch) -> Result<()> {
+	fn push_batch(&mut self, batch: PrimitiveBatch) -> Result<()> {
 		let models: Vec<forward::ModelArgs> = batch.transforms.iter()
 			.map(|transform| forward::ModelArgs { transform: (*transform).into() })
 			.collect();
@@ -443,7 +517,7 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 			batch.indices.as_slice(),
 		);
 		self.pass_forward_lighting.draw_primitives(
-			batch.shader,
+			batch.style,
 			&mut self.encoder,
 			vertex_buffer,
 			&index_buffer,
