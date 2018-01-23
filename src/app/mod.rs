@@ -440,7 +440,7 @@ impl App {
 			Home -> CamReset,
 			KpHome -> CamReset,
 			F6 -> DumpToFile,
-			D -> ToggleDebug,
+			F10 -> ToggleDebug,
 			GamepadStart -> ToggleDebug,
 			Z -> DeselectAll,
 			L -> NextLight,
@@ -465,8 +465,8 @@ impl App {
 			None
 		};
 
-		let firerate = 0.5 + 0.5 * self.input_state.gamepad_axis(0, input::Axis::L2);
-		let firepower = 0.5 - /* ??? */ 0.5 * self.input_state.gamepad_axis(0, input::Axis::R2);
+		let firerate = self.input_state.gamepad_axis(0, input::Axis::L2);
+		let firepower = self.input_state.gamepad_axis(0, input::Axis::R2);
 		if firepower >= DEAD_ZONE {
 			events.push(Event::PrimaryFire(firepower, firerate as f64));
 		}

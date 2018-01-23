@@ -59,6 +59,12 @@ impl input::EventMapper<gilrs::Event> for GamepadEventLoop {
 				to_key(button).map(|key| input::Event::GamepadButton(e.id, input::State::Down, key)),
 			gilrs::EventType::ButtonReleased(button, _) =>
 				to_key(button).map(|key| input::Event::GamepadButton(e.id, input::State::Up, key)),
+			gilrs::EventType::AxisChanged(gilrs::Axis::RightTrigger2, value, _) =>
+				to_axis(gilrs::Axis::RightTrigger2)
+					.map(|axis| input::Event::GamepadAxis(e.id, if cfg!(linux) { 0.5 - 0.5 * value } else { value }, axis)),
+			gilrs::EventType::AxisChanged(gilrs::Axis::LeftTrigger2, value, _) =>
+				to_axis(gilrs::Axis::LeftTrigger2)
+					.map(|axis| input::Event::GamepadAxis(e.id, if cfg!(linux) { 0.5 + 0.5 * value } else { value }, axis)),
 			gilrs::EventType::AxisChanged(axis, value, _) =>
 				to_axis(axis).map(|axis| input::Event::GamepadAxis(e.id, value, axis)),
 			_ => None

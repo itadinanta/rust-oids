@@ -48,7 +48,7 @@ impl Default for GamepadState {
 			connected: false,
 			button_pressed: BitSet::new(),
 			button_ack: BitSet::new(),
-			axis: [0., 0., 0., 0., 1., 1.], // for some reason R button 1 is notpressed
+			axis: [0.0; MAX_AXIS],
 		}
 	}
 }
