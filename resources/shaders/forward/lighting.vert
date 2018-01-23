@@ -7,10 +7,12 @@ layout (std140) uniform cb_CameraArgs {
 	uniform mat4 u_View;
 };
 
+struct Model {
+    mat4 transform;
+};
+
 layout (std140) uniform u_ModelArgs {
-	struct {
-		mat4 transform;
-	} u_Model[MAX_NUM_SHAPES];
+	Model u_Model[MAX_NUM_SHAPES];
 };
 
 in vec3 a_Pos;

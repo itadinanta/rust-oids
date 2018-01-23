@@ -10,19 +10,23 @@ layout (std140) uniform cb_FragmentArgs {
 	int u_LightCount;
 };
 
+struct Material {
+    vec4 u_Emissive;
+    vec4 u_Effect;
+};
+
+struct Light {
+    vec4 propagation;
+    vec4 center;
+    vec4 color;
+};
+
 layout (std140) uniform cb_MaterialArgs {
-	struct {
-		vec4 u_Emissive;
-		vec4 u_Effect;
-	} material[MAX_NUM_SHAPES];
+    Material material[MAX_NUM_SHAPES];
 };
 
 layout (std140) uniform u_Lights {
-	struct {
-		vec4 propagation;
-		vec4 center;
-		vec4 color;
-	} light[MAX_NUM_TOTAL_LIGHTS];
+    Light light[MAX_NUM_TOTAL_LIGHTS];
 };
 
 in VertexData {
