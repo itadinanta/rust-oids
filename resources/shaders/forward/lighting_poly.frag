@@ -6,10 +6,6 @@
 const float PI = 3.1415926535897932384626433832795;
 const float PI_2 = 1.57079632679489661923;
 
-layout (std140) uniform cb_FragmentArgs {
-	int u_LightCount;
-};
-
 struct Material {
     vec4 u_Emissive;
     vec4 u_Effect;
@@ -19,6 +15,10 @@ struct Light {
     vec4 propagation;
     vec4 center;
     vec4 color;
+};
+
+layout (std140) uniform cb_FragmentArgs {
+	int u_LightCount;
 };
 
 layout (std140) uniform cb_MaterialArgs {
@@ -35,13 +35,13 @@ in VertexData {
 	mat3 TBN;
 	vec2 TexCoord;
 	flat int PrimIndex;
-}v_In;
+} v_In;
 
 out vec4 o_Color;
 
 void main() {
 	vec4 kd = vec4(0.2, 0.2, 0.2, 1.0);
-	vec4 ks = vec4(1.0, 1.0, 1.0, 1.0);
+    vec4 ks = vec4(1.0, 1.0, 1.0, 1.0);
 	vec4 kp = vec4(64.0, 32.0, 64.0, 1.0);
 
 	float dx = 2 * clamp(v_In.TexCoord.x, 0, 1) - 1;
