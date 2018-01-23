@@ -42,6 +42,7 @@ void main() {
 	v_Out.TBN = mat3(tangent, bitangent, normal);
 
 	v_Out.TexCoord = a_TexCoord;
+	v_Out.PrimIndex = a_PrimIndex;
 	gl_Position = u_Proj * u_View * v_Out.Position;
 }
 
