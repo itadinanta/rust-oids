@@ -15,6 +15,8 @@ use backend::world;
 use backend::world::agent;
 use backend::world::segment;
 use backend::world::segment::Intent;
+use backend::world::segment::PilotRotation;
+
 
 struct AgentData;
 
@@ -31,6 +33,7 @@ pub struct PhysicsSystem {
 	handles: HashMap<agent::Key, b2::BodyHandle>,
 	touched: ContactSet,
 }
+
 #[allow(unused)]
 enum BodyUpdate {
 	Transform(b2::Vec2, f32),
@@ -65,20 +68,29 @@ impl Updateable for PhysicsSystem {
 							body_updates.push((h, Force(center, to_vec2(force))));
 						}
 					}
-					Intent::PilotTo(force, target_angle) => {
+					Intent::PilotTo(force, ref target_angle) => {
 						if let Some(force) = force {
 							let linear_velocity = from_vec2((*body).linear_velocity());
 							let speed = linear_velocity.magnitude2();
 							let drag_factor = (1. - (speed * speed) * DRAG_COEFFICIENT).min(1.).max(0.);
 							body_updates.push((h, Force(center, to_vec2(force * drag_factor))));
 						}
-						if let Some(target_angle) = target_angle {
-							body_updates.push((h, Transform(*(*body).position(), target_angle)));
-
+						match target_angle {
+							&PilotRotation::LookAt(target) => {
+								let look_at_vector = target - from_vec2(&center);
+								let target_angle = f32::atan2(look_at_vector.y, look_at_vector.x);
+								body_updates.push((h, Transform(*(*body).position(), target_angle)));
+							}
+							&PilotRotation::Orientation(direction) => {
+								let target_angle = f32::atan2(direction.y, direction.x);
+								body_updates.push((h, Transform(*(*body).position(), target_angle)));
+							}
+							&PilotRotation::None => {}
+							//TODO: try physics!
 							//let angle = (*body).angle();
 							//let norm_diff = math::normalize_rad(target_angle - angle);
 							//body_updates.push((h, Torque(norm_diff * COMPASS_SPRING_POWER)))
-//								torques.push((h, norm_diff * COMPASS_SPRING_POWER));
+							//torques.push((h, norm_diff * COMPASS_SPRING_POWER));
 						}
 					}
 					Intent::RunAway(impulse) =>

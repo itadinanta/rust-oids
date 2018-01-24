@@ -9,12 +9,19 @@ use core::clock::Seconds;
 use num::Zero;
 
 #[derive(Clone)]
+pub enum PilotRotation {
+	None,
+	Orientation(Position),
+	LookAt(Position),
+}
+
+#[derive(Clone)]
 pub enum Intent {
 	Idle,
 	Move(Position),
 	Brake(Position),
 	RunAway(Position),
-	PilotTo(Option<Position>, Option<Angle>),
+	PilotTo(Option<Position>, PilotRotation),
 }
 
 #[derive(Clone)]

@@ -136,14 +136,14 @@ impl AiSystem {
 								}
 							}
 						} else if flags.contains(segment::Flags::RUDDER | segment::Flags::LEFT) &&
-							       r[0] > brain.hunger()
-						{
-							Intent::Move(-f)
-						} else if flags.contains(segment::Flags::RUDDER | segment::Flags::RIGHT) &&
-							       r[1] > brain.hunger()
-						{
-							Intent::Move(-f)
-						} else if flags.contains(segment::Flags::THRUSTER) && r[2] > brain.haste() {
+							r[0] > brain.hunger()
+							{
+								Intent::Move(-f)
+							} else if flags.contains(segment::Flags::RUDDER | segment::Flags::RIGHT) &&
+							r[1] > brain.hunger()
+							{
+								Intent::Move(-f)
+							} else if flags.contains(segment::Flags::THRUSTER) && r[2] > brain.haste() {
 							Intent::Move(f)
 						} else if flags.contains(segment::Flags::BRAKE) && r[3] > brain.prudence() {
 							Intent::Brake(-f)

@@ -49,7 +49,7 @@ pub enum Event {
 	CamLeft(f32),
 	CamRight(f32),
 
-	VectorThrust(Option<Position>, Option<Position>),
+	VectorThrust(Option<Position>, Option<Position>, Option<Position>),
 	PrimaryFire(f32, SecondsValue),
 
 	CamReset,
@@ -344,13 +344,23 @@ impl App {
 			Event::CamLeft(w) => self.camera.push(math::Direction::Left, w),
 			Event::CamRight(w) => self.camera.push(math::Direction::Right, w),
 
-			Event::VectorThrust(None, None) => {
+			Event::VectorThrust(None, None, None) => {
 				self.world.set_player_intent(segment::Intent::Idle);
 			}
-			Event::VectorThrust(thrust, yaw) => {
-				self.world.set_player_intent(
+			Event::VectorThrust(thrust, None, None) => {
+				self.set_player_intent(
 					segment::Intent::PilotTo(thrust.map(|v| v * THRUST_POWER),
-											 yaw.map(|v| f32::atan2(v.y, v.x))));
+											 segment::PilotRotation::None));
+			}
+			Event::VectorThrust(thrust, Some(yaw), None) => {
+				self.set_player_intent(
+					segment::Intent::PilotTo(thrust.map(|v| v * THRUST_POWER),
+											 segment::PilotRotation::Orientation(yaw)));
+			}
+			Event::VectorThrust(thrust, _, Some(look_at)) => {
+				self.set_player_intent(
+					segment::Intent::PilotTo(thrust.map(|v| v * THRUST_POWER),
+											 segment::PilotRotation::LookAt(look_at)));
 			}
 			Event::PrimaryFire(speed, rate) => {
 				self.primary_fire(BULLET_SPEED_SCALE * speed,
@@ -434,7 +444,6 @@ impl App {
 		on_key_pressed_once![
 			F5 -> Reload,
 			F1 -> ToggleGui,
-			Space -> ToggleGui,
 			GamepadL3 -> ToggleGui,
 			N0 -> CamReset,
 			Home -> CamReset,
@@ -458,8 +467,9 @@ impl App {
 		let mouse_window_pos = self.input_state.mouse_position();
 		let mouse_view_pos = self.to_view(&mouse_window_pos);
 		let mouse_world_pos = self.to_world(&mouse_view_pos);
-
-		let picked_id = if self.input_state.key_once(input::Key::MouseLeft) {
+		let mouse_left_pressed = self.input_state.key_pressed(input::Key::MouseLeft) && !self.input_state.any_ctrl_pressed();
+		let picked_id = if self.input_state.key_once(input::Key::MouseLeft) &&
+			self.input_state.any_ctrl_pressed() {
 			self.pick_minion(mouse_world_pos)
 		} else {
 			None
@@ -469,7 +479,13 @@ impl App {
 		let firepower = self.input_state.gamepad_axis(0, input::Axis::R2);
 		if firepower >= DEAD_ZONE {
 			events.push(Event::PrimaryFire(firepower, firerate as f64));
+		} else {
+			if self.input_state.key_pressed(input::Key::Space) ||
+				mouse_left_pressed {
+				events.push(Event::PrimaryFire(1.0, 1.0));
+			}
 		}
+
 
 		let thrust = Position {
 			x: if self.input_state.key_pressed(input::Key::D) {
@@ -499,8 +515,8 @@ impl App {
 		events.push(Event::VectorThrust(
 			if magnitude >= DEAD_ZONE { Some(thrust / magnitude.max(1.)) } else { None },
 			if yaw.magnitude() >= DEAD_ZONE { Some(yaw) } else { None },
+			if mouse_left_pressed { Some(mouse_world_pos) } else { None },
 		));
-
 		if self.input_state.key_once(input::Key::MouseMiddle) {
 			if self.input_state.any_ctrl_pressed() {
 				events.push(Event::RandomizeMinion(mouse_world_pos));
