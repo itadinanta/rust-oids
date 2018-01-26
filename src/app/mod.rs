@@ -43,13 +43,21 @@ use cgmath;
 use cgmath::{Matrix4, SquareMatrix};
 
 #[derive(Clone, Copy, Debug)]
+pub enum VectorDirection {
+	None,
+	Orientation(Position),
+	LookAt(Position),
+	Turn(Angle),
+}
+
+#[derive(Clone, Copy, Debug)]
 pub enum Event {
 	CamUp(f32),
 	CamDown(f32),
 	CamLeft(f32),
 	CamRight(f32),
 
-	VectorThrust(Option<Position>, Option<Position>, Option<Position>),
+	VectorThrust(Option<Position>, VectorDirection),
 	PrimaryFire(f32, SecondsValue),
 
 	CamReset,
@@ -344,23 +352,17 @@ impl App {
 			Event::CamLeft(w) => self.camera.push(math::Direction::Left, w),
 			Event::CamRight(w) => self.camera.push(math::Direction::Right, w),
 
-			Event::VectorThrust(None, None, None) => {
+			Event::VectorThrust(None, VectorDirection::None) => {
 				self.world.set_player_intent(segment::Intent::Idle);
 			}
-			Event::VectorThrust(thrust, None, None) => {
-				self.set_player_intent(
-					segment::Intent::PilotTo(thrust.map(|v| v * THRUST_POWER),
-											 segment::PilotRotation::None));
-			}
-			Event::VectorThrust(thrust, Some(yaw), None) => {
-				self.set_player_intent(
-					segment::Intent::PilotTo(thrust.map(|v| v * THRUST_POWER),
-											 segment::PilotRotation::Orientation(yaw)));
-			}
-			Event::VectorThrust(thrust, _, Some(look_at)) => {
-				self.set_player_intent(
-					segment::Intent::PilotTo(thrust.map(|v| v * THRUST_POWER),
-											 segment::PilotRotation::LookAt(look_at)));
+			Event::VectorThrust(thrust, rotation) => {
+				let pilot_rotation = match rotation {
+					VectorDirection::None => segment::PilotRotation::None,
+					VectorDirection::Orientation(yaw) => segment::PilotRotation::Orientation(yaw),
+					VectorDirection::LookAt(target) => segment::PilotRotation::LookAt(target),
+					VectorDirection::Turn(angle) => segment::PilotRotation::Turn(angle),
+				};
+				self.set_player_intent(segment::Intent::PilotTo(thrust.map(|v| v * THRUST_POWER), pilot_rotation));
 			}
 			Event::PrimaryFire(speed, rate) => {
 				self.primary_fire(BULLET_SPEED_SCALE * speed,
@@ -486,7 +488,6 @@ impl App {
 			}
 		}
 
-
 		let thrust = Position {
 			x: if self.input_state.key_pressed(input::Key::D) {
 				1.
@@ -513,10 +514,22 @@ impl App {
 		use cgmath::InnerSpace;
 		let magnitude = thrust.magnitude2();
 		events.push(Event::VectorThrust(
-			if magnitude >= DEAD_ZONE { Some(thrust / magnitude.max(1.)) } else { None },
-			if yaw.magnitude() >= DEAD_ZONE { Some(yaw) } else { None },
-			if mouse_left_pressed { Some(mouse_world_pos) } else { None },
-		));
+			if magnitude >= DEAD_ZONE {
+				Some(thrust / magnitude.max(1.))
+			} else {
+				None
+			},
+			if self.input_state.key_pressed(input::Key::Q) {
+				VectorDirection::Turn(TURN_SPEED)
+			} else if self.input_state.key_pressed(input::Key::E) {
+				VectorDirection::Turn(-TURN_SPEED)
+			} else if yaw.magnitude() >= DEAD_ZONE {
+				VectorDirection::Orientation(yaw)
+			} else if mouse_left_pressed {
+				VectorDirection::LookAt(mouse_world_pos)
+			} else {
+				VectorDirection::None
+			}));
 		if self.input_state.key_once(input::Key::MouseMiddle) {
 			if self.input_state.any_ctrl_pressed() {
 				events.push(Event::RandomizeMinion(mouse_world_pos));

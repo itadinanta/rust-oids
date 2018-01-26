@@ -13,6 +13,7 @@ pub enum PilotRotation {
 	None,
 	Orientation(Position),
 	LookAt(Position),
+	Turn(Angle),
 }
 
 #[derive(Clone)]

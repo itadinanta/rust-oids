@@ -4,6 +4,7 @@ use std::f32::consts;
 
 pub const FRAME_SMOOTH_COUNT: usize = 120;
 pub const DEAD_ZONE: AxisValue = 0.3f32;
+pub const TURN_SPEED: f32 = consts::PI * 200.;
 pub const DEBUG_DRAW_BRAKE_SCALE: f32 = 0.05;
 pub const DEBUG_DRAW_MOVE_SCALE: f32 = 0.05;
 pub const MIN_FRAME_LENGTH: SecondsValue = (1.0 / 1000.0) as SecondsValue;

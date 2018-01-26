@@ -85,6 +85,9 @@ impl Updateable for PhysicsSystem {
 								let target_angle = f32::atan2(direction.y, direction.x);
 								body_updates.push((h, Transform(*(*body).position(), target_angle)));
 							}
+							&PilotRotation::Turn(angle) => {
+								body_updates.push((h, Torque(angle)));
+							}
 							&PilotRotation::None => {}
 							//TODO: try physics!
 							//let angle = (*body).angle();
