@@ -32,6 +32,10 @@ The intriguing bit about all of this is that AI, body shape and brain are **bred
 
 Eventually I plan to plug in some sort of gameplay and release as a free game. Strictly evening/weekend toy project: don't hold your breath.
 
+### Interaction
+
+You can interact with the simulation by shooting Resources at the minions. **Gamepad** supported!
+
 ## Feedback
 - feel free to post [issues on GitHub](https://github.com/itadinanta/rust-oids/issues)
 - also send me interesting gene pools (F6 to get snapshots, see instructions below)
@@ -40,13 +44,14 @@ Eventually I plan to plug in some sort of gameplay and release as a free game. S
 
 This project started as a test bed for the Rust language and toolchain, [GFX](https://github.com/gfx-rs/gfx) and [box2d wrapper](https://github.com/Bastacyclop/rust_box2d), and could have not existed without those.
 
-## Screenshots
+## Videos
 
-Some rust-oids competing for territory and resources:
+Some rust-oids competing for territory and resources, and the player messing up with them!
 
-![screenshot](img/screenshot_008.png)
+[![Play 1](https://img.youtube.com/vi/wChKsu28st8/0.jpg)](https://www.youtube.com/watch?v=wChKsu28st8 "Click to watch video")
 
-![screenshot](img/screenshot_007.png)
+
+[![Play 2](https://img.youtube.com/vi/2M84AUo_GX0/0.jpg)](https://www.youtube.com/watch?v=2M84AUo_GX0 "Click to watch video")
 
 ## Prerequisites/platforms
 
@@ -61,6 +66,10 @@ For audio:
 - libportaudio19-dev
 - libasound2-dev
 
+For gamepad:
+
+- libudev-dev
+
 ### Windows
 
 Building Windows dependencies is a tedious yak shaving exercise. For convenience, I am redistributing parts of open source projects in the form of headers and prebuilt x64 static libs for Windows 10.
@@ -71,7 +80,7 @@ Links to the source code are provided below as for licences:
 
 ## Build/run
 
-- Clone this repo and ```cd`` into its root
+- Clone this repo and ```cd``` into its root
 - ```cargo run --release [options]``` to run starting with the default gene pool
 - ```cargo run --release -- <gene_pool_file.csv> [options]``` to run starting with a snapshotted gene pool (DDDDMMYYY_hhmmss.csv).
 
@@ -84,32 +93,24 @@ Options:
 
 ## How to play
 
+*New!* Gamepad support (tested with DS4, in Windows via [DS4Windows](http://ds4windows.com/))
+
+- Left stick, WASD: move
+- Right stick, Q, E: aim
+- L2: fire rate
+- R2, Spacebar: shoot
+- L1, G/R1, H: slow down/fast forward
+- L3, F1: toggle HUD
+- Left mouse click: aim and shoot
 - Middle mouse click: new rustoid from current gene pool.
 - Ctrl + Middle mouse click: new random rustoid.
-- Left mouse clik: select minion for tracing
-- Right mouse click/drag: pan.
+- Ctrl + Left mouse clik: select minion for tracing
 - Z: deselect minion for tracing
-- D: disable tracing of target and trajectories
 - F6: snapshot current gene pool into the **resources** folder
 - F5: reload shaders
 - V,B: set background tone
 - K,L: change light intensity
-- G,H: slow down/fast forward
 - 0, Home: reset camera pan
-- Arrows: camera pan
-- Spacebar/F1: show HUD
-
-## Status line indicators
-
-Press Spacebar or F1 to show the status line
-
-- F: Simulation Frame #, Display Frame #
-- E: Elapsed time since start in seconds
-- FT: Simulation quantum, frame time (speed factor)
-- SFT: Average frame duration of the last 120 frames (step)
-- FPS: Average fps of the last 120 frames
-- P: Population size
-- X: Extinction index - increased every time the whole population dies off
 
 ### Other licences
 
