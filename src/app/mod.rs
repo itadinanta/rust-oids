@@ -1,5 +1,9 @@
 mod main;
 mod winit_event;
+mod controller;
+mod events;
+mod view;
+
 pub mod constants;
 
 use std::process;
@@ -42,55 +46,12 @@ use cgmath::{Matrix4, SquareMatrix};
 
 pub use self::winit_event::WinitEventMapper;
 pub use self::winit_event::WinitEventMapper as EventMapper;
-
-#[derive(Clone, Copy, Debug)]
-pub enum VectorDirection {
-	None,
-	Orientation(Position),
-	LookAt(Position),
-	Turn(Angle),
-}
-
-#[derive(Clone, Copy, Debug)]
-pub enum Event {
-	CamUp(f32),
-	CamDown(f32),
-	CamLeft(f32),
-	CamRight(f32),
-
-	VectorThrust(Option<Position>, VectorDirection),
-	PrimaryFire(f32, SecondsValue),
-
-	CamReset,
-
-	NextLight,
-	PrevLight,
-
-	NextBackground,
-	PrevBackground,
-
-	NextSpeedFactor,
-	PrevSpeedFactor,
-
-	Reload,
-	DumpToFile,
-	ToggleDebug,
-
-	TogglePause,
-	ToggleGui,
-
-	AppQuit,
-
-	NewMinion(Position),
-	RandomizeMinion(Position),
-
-	PickMinion(Position),
-	DeselectAll,
-
-	BeginDrag(Position, Position),
-	Drag(Position, Position),
-	EndDrag(Position, Position, Velocity),
-}
+pub use self::controller::InputController;
+pub use self::controller::DefaultController;
+pub use self::events::Event;
+use self::events::VectorDirection;
+use self::view::Viewport;
+use self::view::WorldTransform;
 
 pub fn run(args: &[OsString]) {
 	let mut opt = Options::new();
@@ -118,31 +79,6 @@ pub fn run(args: &[OsString]) {
 			eprintln!("{}", opt.usage("rust-oids [Options]"));
 			process::exit(1)
 		}
-	}
-}
-
-pub struct Viewport {
-	width: u32,
-	height: u32,
-	pub ratio: f32,
-	pub scale: f32,
-}
-
-impl Viewport {
-	fn rect(w: u32, h: u32, scale: f32) -> Viewport {
-		Viewport {
-			width: w,
-			height: h,
-			ratio: (w as f32 / h as f32),
-			scale,
-		}
-	}
-
-	fn to_world(&self, pos: &Position) -> Position {
-		let dx = self.width as f32 / self.scale;
-		let tx = (pos.x - (self.width as f32 * 0.5)) / dx;
-		let ty = ((self.height as f32 * 0.5) - pos.y) / dx;
-		Position::new(tx, ty)
 	}
 }
 
@@ -189,19 +125,6 @@ bitflags! {
 	pub struct DebugFlags: u32 {
 		const DEBUG_TARGETS = 0x1;
 	}
-}
-
-pub trait ViewTransform {
-	fn to_view(&self, screen_position: Position) -> Position;
-}
-
-pub trait WorldTransform {
-	fn to_world(&self, view_position: Position) -> Position;
-}
-
-pub trait InputController {
-	fn update<V, W>(input_state: &mut input::InputState, view_transform: &V, world_transform: &W, dt: Seconds) -> Vec<Event>
-		where V: ViewTransform, W: WorldTransform;
 }
 
 pub type SpeedFactor = f64;
@@ -672,7 +595,7 @@ impl App {
 		self.camera.update(frame_time_smooth);
 
 		let target_duration = frame_time_smooth.get();
-		self.update_input::<Self>(frame_time_smooth);
+		self.update_input::<DefaultController>(frame_time_smooth);
 
 		let speed_factor = if self.is_paused { 1.0 as SpeedFactor } else { self.speed_factors.get() };
 		let quantum = num::clamp(target_duration, MIN_FRAME_LENGTH, MAX_FRAME_LENGTH);
@@ -722,162 +645,9 @@ impl App {
 	}
 }
 
-impl ViewTransform for Viewport {
-	fn to_view(&self, screen_position: Position) -> Position {
-		self.to_world(&screen_position)
-	}
-}
-
 impl WorldTransform for math::Inertial<f32> {
 	fn to_world(&self, view_position: Position) -> Position {
 		view_position + self.position()
 	}
 }
 
-impl InputController for App {
-	fn update<V, W>(input_state: &mut input::InputState, view_transform: &V, world_transform: &W, dt: Seconds) -> Vec<Event>
-		where V: ViewTransform, W: WorldTransform {
-		let mut events = Vec::new();
-
-		macro_rules! on_key_held {
-			[$($key:ident -> $app_event:ident),*] => (
-				$(if input_state.key_pressed(input::Key::$key) { events.push(Event::$app_event); })
-				*
-			);
-			[$($key:ident -> $app_event:ident($app_args:expr)),*] => (
-				$(if input_state.key_pressed(input::Key::$key) { events.push(Event::$app_event($app_args)); })
-				*
-			)
-
-		}
-		macro_rules! on_key_pressed_once {
-			[$($key:ident -> $app_event:ident),*] => (
-				$(if input_state.key_once(input::Key::$key) { events.push(Event::$app_event); })
-				*
-			)
-		}
-
-		on_key_held![
-			Up -> CamUp(1.),
-			Down -> CamDown(1.),
-			Left -> CamLeft(1.),
-			Right-> CamRight(1.),
-			GamepadDPadUp -> CamUp(1.),
-			GamepadDPadDown -> CamDown(1.),
-			GamepadDPadLeft -> CamLeft(1.),
-			GamepadDPadRight -> CamRight(1.)
-		];
-
-		on_key_pressed_once![
-			F5 -> Reload,
-			F1 -> ToggleGui,
-			GamepadL3 -> ToggleGui,
-			N0 -> CamReset,
-			Home -> CamReset,
-			KpHome -> CamReset,
-			F6 -> DumpToFile,
-			F10 -> ToggleDebug,
-			GamepadStart -> ToggleDebug,
-			Z -> DeselectAll,
-			L -> NextLight,
-			B -> NextBackground,
-			K -> PrevLight,
-			V -> PrevBackground,
-			G -> PrevSpeedFactor,
-			GamepadL1 -> PrevSpeedFactor,
-			H -> NextSpeedFactor,
-			GamepadR1 -> NextSpeedFactor,
-			P -> TogglePause,
-			Esc -> AppQuit
-		];
-
-		let mouse_window_pos = input_state.mouse_position();
-		let mouse_view_pos = view_transform.to_view(mouse_window_pos);
-		let mouse_world_pos = world_transform.to_world(mouse_view_pos);
-		let mouse_left_pressed = input_state.key_pressed(input::Key::MouseLeft) && !input_state.any_ctrl_pressed();
-		if input_state.key_once(input::Key::MouseLeft) && input_state.any_ctrl_pressed() {
-			events.push(Event::PickMinion(mouse_world_pos));
-		};
-
-		let firerate = input_state.gamepad_axis(0, input::Axis::L2);
-		let firepower = input_state.gamepad_axis(0, input::Axis::R2);
-		if firepower >= DEAD_ZONE {
-			events.push(Event::PrimaryFire(firepower, firerate as f64));
-		} else {
-			if input_state.key_pressed(input::Key::Space) ||
-				mouse_left_pressed {
-				events.push(Event::PrimaryFire(1.0, 1.0));
-			}
-		}
-
-		let thrust = Position {
-			x: if input_state.key_pressed(input::Key::D) {
-				1.
-			} else if input_state.key_pressed(input::Key::A) {
-				-1.
-			} else {
-				input_state.gamepad_axis(0, input::Axis::LStickX)
-			},
-
-			y: if input_state.key_pressed(input::Key::W) {
-				1.
-			} else if input_state.key_pressed(input::Key::S) {
-				-1.
-			} else {
-				input_state.gamepad_axis(0, input::Axis::LStickY)
-			},
-		};
-
-		let yaw = Position {
-			x: input_state.gamepad_axis(0, input::Axis::RStickX),
-			y: input_state.gamepad_axis(0, input::Axis::RStickY),
-		};
-
-		use cgmath::InnerSpace;
-		let magnitude = thrust.magnitude2();
-		events.push(Event::VectorThrust(
-			if magnitude >= DEAD_ZONE {
-				Some(thrust / magnitude.max(1.))
-			} else {
-				None
-			},
-			if input_state.key_pressed(input::Key::Q) {
-				VectorDirection::Turn(TURN_SPEED)
-			} else if input_state.key_pressed(input::Key::E) {
-				VectorDirection::Turn(-TURN_SPEED)
-			} else if yaw.magnitude() >= DEAD_ZONE {
-				VectorDirection::Orientation(yaw)
-			} else if mouse_left_pressed {
-				VectorDirection::LookAt(mouse_world_pos)
-			} else {
-				VectorDirection::None
-			}));
-		if input_state.key_once(input::Key::MouseMiddle) {
-			if input_state.any_ctrl_pressed() {
-				events.push(Event::RandomizeMinion(mouse_world_pos));
-			} else {
-				events.push(Event::NewMinion(mouse_world_pos));
-			}
-		}
-
-		match input_state.dragging(input::Key::MouseRight, mouse_view_pos) {
-			input::Dragging::Begin(_, from) => {
-				let from = world_transform.to_world(from);
-				events.push(Event::BeginDrag(from, from));
-			}
-			input::Dragging::Dragging(_, from, to) => {
-				events.push(Event::Drag(world_transform.to_world(from), world_transform.to_world(to)));
-			}
-			input::Dragging::End(_, from, to, prev) => {
-				let mouse_vel = (view_transform.to_view(prev) - to) / dt.into();
-				events.push(Event::EndDrag(
-					world_transform.to_world(from),
-					world_transform.to_world(to),
-					mouse_vel,
-				));
-			}
-			_ => {}
-		}
-		events
-	}
-}
