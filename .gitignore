@@ -8,3 +8,4 @@ nohup.out
 /core
 *.VC.db
 .cargo/config
+*.trace

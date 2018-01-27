@@ -12,6 +12,7 @@ pub trait Smooth<S> {
 	}
 }
 
+#[allow(unused)]
 pub fn normalize_rad<S>(angle: S) -> S
 	where S: num::Float + FloatConst {
 	let pi: S = S::PI();

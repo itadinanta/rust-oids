@@ -59,6 +59,7 @@ impl Appearance {
 
 pub const BACKGROUND: formats::Rgba = [0.01, 0.01, 0.01, 1.0];
 
+#[allow(unused)]
 const QUAD_VERTICES: [Vertex; 4] = [
 	new_vertex!([-1.0, -1.0, 0.0], [0.0, 0.0]),
 	new_vertex!([1.0, -1.0, 0.0], [1.0, 0.0]),
@@ -103,7 +104,6 @@ impl Camera {
 #[derive(Debug)]
 pub enum RenderError {
 	Shader(String),
-	ShaderMismatch(Style, Style),
 	PrimitiveIndexOverflow,
 }
 
@@ -285,17 +285,8 @@ impl<T> Draw for T where T: PrimitiveSequence {
 }
 
 impl PrimitiveBatch {
-	pub fn new() -> PrimitiveBatch {
-		PrimitiveBatch {
-			style: Style::Flat,
-			vertices: Vec::new(),
-			indices: Vec::new(),
-			transforms: Vec::new(),
-			appearances: Vec::new(),
-		}
-	}
-
-	pub fn with_style(style: Style) -> PrimitiveBatch {
+	#[allow(unused)]
+	pub fn new(style: Style) -> PrimitiveBatch {
 		PrimitiveBatch {
 			style,
 			vertices: Vec::new(),
@@ -329,10 +320,6 @@ impl PrimitiveSequence for PrimitiveBatch {
 }
 
 impl PrimitiveBatch {
-	pub fn draw_primitives<E>(&self) -> Result<()> {
-		Ok(())
-	}
-
 	fn push_primitive_buffers(&mut self,
 							  shader: Style,
 							  mut vertices: Vec<Vertex>,

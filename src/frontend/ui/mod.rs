@@ -28,9 +28,9 @@ pub enum Error {
 	ResourceLoader,
 }
 
-
 #[derive(Debug, Clone)]
 pub enum Screen {
+	#[allow(unused)]
 	Help,
 	Main(FrameUpdate),
 }

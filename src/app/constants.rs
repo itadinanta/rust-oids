@@ -12,6 +12,7 @@ pub const MAX_FRAME_LENGTH: SecondsValue = (1.0 / 15.0) as SecondsValue;
 pub const THRUST_POWER: f32 = 5000.;
 pub const POWER_BOOST: f32 = 100.;
 pub const DRAG_COEFFICIENT: f32 = 0.000001;
+#[allow(unused)]
 pub const COMPASS_SPRING_POWER: f32 = 1000.0;
 pub const JOINT_UPPER_ANGLE: f32 = consts::PI / 6.;
 pub const JOINT_LOWER_ANGLE: f32 = -consts::PI / 6.;
