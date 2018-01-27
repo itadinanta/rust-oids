@@ -191,6 +191,19 @@ bitflags! {
 	}
 }
 
+pub trait ViewTransform {
+	fn to_view(&self, screen_position: Position) -> Position;
+}
+
+pub trait WorldTransform {
+	fn to_world(&self, view_position: Position) -> Position;
+}
+
+pub trait InputController {
+	fn update<V, W>(input_state: &mut input::InputState, view_transform: &V, world_transform: &W, dt: Seconds) -> Vec<Event>
+		where V: ViewTransform, W: WorldTransform;
+}
+
 pub type SpeedFactor = f64;
 
 pub struct App {
@@ -415,160 +428,10 @@ impl App {
 		self.input_state.event(e);
 	}
 
-	fn update_input(&mut self, dt: Seconds) {
-		let mut events = Vec::new();
-
-		macro_rules! on_key_held {
-			[$($key:ident -> $app_event:ident),*] => (
-				$(if self.input_state.key_pressed(input::Key::$key) { events.push(Event::$app_event); })
-				*
-			);
-			[$($key:ident -> $app_event:ident($app_args:expr)),*] => (
-				$(if self.input_state.key_pressed(input::Key::$key) { events.push(Event::$app_event($app_args)); })
-				*
-			)
-
-		}
-		macro_rules! on_key_pressed_once {
-			[$($key:ident -> $app_event:ident),*] => (
-				$(if self.input_state.key_once(input::Key::$key) { events.push(Event::$app_event); })
-				*
-			)
-		}
-
-		on_key_held![
-			Up -> CamUp(1.),
-			Down -> CamDown(1.),
-			Left -> CamLeft(1.),
-			Right-> CamRight(1.),
-			GamepadDPadUp -> CamUp(1.),
-			GamepadDPadDown -> CamDown(1.),
-			GamepadDPadLeft -> CamLeft(1.),
-			GamepadDPadRight -> CamRight(1.)
-		];
-
-		on_key_pressed_once![
-			F5 -> Reload,
-			F1 -> ToggleGui,
-			GamepadL3 -> ToggleGui,
-			N0 -> CamReset,
-			Home -> CamReset,
-			KpHome -> CamReset,
-			F6 -> DumpToFile,
-			F10 -> ToggleDebug,
-			GamepadStart -> ToggleDebug,
-			Z -> DeselectAll,
-			L -> NextLight,
-			B -> NextBackground,
-			K -> PrevLight,
-			V -> PrevBackground,
-			G -> PrevSpeedFactor,
-			GamepadL1 -> PrevSpeedFactor,
-			H -> NextSpeedFactor,
-			GamepadR1 -> NextSpeedFactor,
-			P -> TogglePause,
-			Esc -> AppQuit
-		];
-
-		let mouse_window_pos = self.input_state.mouse_position();
-		let mouse_view_pos = self.to_view(&mouse_window_pos);
-		let mouse_world_pos = self.to_world(&mouse_view_pos);
-		let mouse_left_pressed = self.input_state.key_pressed(input::Key::MouseLeft) && !self.input_state.any_ctrl_pressed();
-		if self.input_state.key_once(input::Key::MouseLeft) && self.input_state.any_ctrl_pressed() {
-			events.push(Event::PickMinion(mouse_world_pos));
-		};
-
-		let firerate = self.input_state.gamepad_axis(0, input::Axis::L2);
-		let firepower = self.input_state.gamepad_axis(0, input::Axis::R2);
-		if firepower >= DEAD_ZONE {
-			events.push(Event::PrimaryFire(firepower, firerate as f64));
-		} else {
-			if self.input_state.key_pressed(input::Key::Space) ||
-				mouse_left_pressed {
-				events.push(Event::PrimaryFire(1.0, 1.0));
-			}
-		}
-
-		let thrust = Position {
-			x: if self.input_state.key_pressed(input::Key::D) {
-				1.
-			} else if self.input_state.key_pressed(input::Key::A) {
-				-1.
-			} else {
-				self.input_state.gamepad_axis(0, input::Axis::LStickX)
-			},
-
-			y: if self.input_state.key_pressed(input::Key::W) {
-				1.
-			} else if self.input_state.key_pressed(input::Key::S) {
-				-1.
-			} else {
-				self.input_state.gamepad_axis(0, input::Axis::LStickY)
-			},
-		};
-
-		let yaw = Position {
-			x: self.input_state.gamepad_axis(0, input::Axis::RStickX),
-			y: self.input_state.gamepad_axis(0, input::Axis::RStickY),
-		};
-
-		use cgmath::InnerSpace;
-		let magnitude = thrust.magnitude2();
-		events.push(Event::VectorThrust(
-			if magnitude >= DEAD_ZONE {
-				Some(thrust / magnitude.max(1.))
-			} else {
-				None
-			},
-			if self.input_state.key_pressed(input::Key::Q) {
-				VectorDirection::Turn(TURN_SPEED)
-			} else if self.input_state.key_pressed(input::Key::E) {
-				VectorDirection::Turn(-TURN_SPEED)
-			} else if yaw.magnitude() >= DEAD_ZONE {
-				VectorDirection::Orientation(yaw)
-			} else if mouse_left_pressed {
-				VectorDirection::LookAt(mouse_world_pos)
-			} else {
-				VectorDirection::None
-			}));
-		if self.input_state.key_once(input::Key::MouseMiddle) {
-			if self.input_state.any_ctrl_pressed() {
-				events.push(Event::RandomizeMinion(mouse_world_pos));
-			} else {
-				events.push(Event::NewMinion(mouse_world_pos));
-			}
-		}
-
-		match self.input_state.dragging(input::Key::MouseRight, mouse_view_pos) {
-			input::Dragging::Begin(_, from) => {
-				let from = self.to_world(&from);
-				events.push(Event::BeginDrag(from, from));
-			}
-			input::Dragging::Dragging(_, from, to) => {
-				events.push(Event::Drag(self.to_world(&from), self.to_world(&to)));
-			}
-			input::Dragging::End(_, from, to, prev) => {
-				let mouse_vel = (self.to_view(&prev) - to) / dt.into();
-				events.push(Event::EndDrag(
-					self.to_world(&from),
-					self.to_world(&to),
-					mouse_vel,
-				));
-			}
-			_ => {}
-		}
-
-		for e in events {
+	fn update_input<C>(&mut self, dt: Seconds) where C: InputController {
+		for e in C::update(&mut self.input_state, &self.viewport, &self.camera, dt) {
 			self.interact(e)
 		}
-	}
-
-	fn to_view(&self, pos: &Position) -> Position {
-		self.viewport.to_world(pos)
-	}
-
-	fn to_world(&self, t: &Position) -> Position {
-		t + self.camera.position()
 	}
 
 	pub fn on_resize(&mut self, width: u32, height: u32) {
@@ -809,7 +672,7 @@ impl App {
 		self.camera.update(frame_time_smooth);
 
 		let target_duration = frame_time_smooth.get();
-		self.update_input(frame_time_smooth);
+		self.update_input::<Self>(frame_time_smooth);
 
 		let speed_factor = if self.is_paused { 1.0 as SpeedFactor } else { self.speed_factors.get() };
 		let quantum = num::clamp(target_duration, MIN_FRAME_LENGTH, MAX_FRAME_LENGTH);
@@ -856,5 +719,165 @@ impl App {
 			population: self.world.agents(agent::AgentType::Minion).len(),
 			extinctions: self.world.extinctions(),
 		}
+	}
+}
+
+impl ViewTransform for Viewport {
+	fn to_view(&self, screen_position: Position) -> Position {
+		self.to_world(&screen_position)
+	}
+}
+
+impl WorldTransform for math::Inertial<f32> {
+	fn to_world(&self, view_position: Position) -> Position {
+		view_position + self.position()
+	}
+}
+
+impl InputController for App {
+	fn update<V, W>(input_state: &mut input::InputState, view_transform: &V, world_transform: &W, dt: Seconds) -> Vec<Event>
+		where V: ViewTransform, W: WorldTransform {
+		let mut events = Vec::new();
+
+		macro_rules! on_key_held {
+			[$($key:ident -> $app_event:ident),*] => (
+				$(if input_state.key_pressed(input::Key::$key) { events.push(Event::$app_event); })
+				*
+			);
+			[$($key:ident -> $app_event:ident($app_args:expr)),*] => (
+				$(if input_state.key_pressed(input::Key::$key) { events.push(Event::$app_event($app_args)); })
+				*
+			)
+
+		}
+		macro_rules! on_key_pressed_once {
+			[$($key:ident -> $app_event:ident),*] => (
+				$(if input_state.key_once(input::Key::$key) { events.push(Event::$app_event); })
+				*
+			)
+		}
+
+		on_key_held![
+			Up -> CamUp(1.),
+			Down -> CamDown(1.),
+			Left -> CamLeft(1.),
+			Right-> CamRight(1.),
+			GamepadDPadUp -> CamUp(1.),
+			GamepadDPadDown -> CamDown(1.),
+			GamepadDPadLeft -> CamLeft(1.),
+			GamepadDPadRight -> CamRight(1.)
+		];
+
+		on_key_pressed_once![
+			F5 -> Reload,
+			F1 -> ToggleGui,
+			GamepadL3 -> ToggleGui,
+			N0 -> CamReset,
+			Home -> CamReset,
+			KpHome -> CamReset,
+			F6 -> DumpToFile,
+			F10 -> ToggleDebug,
+			GamepadStart -> ToggleDebug,
+			Z -> DeselectAll,
+			L -> NextLight,
+			B -> NextBackground,
+			K -> PrevLight,
+			V -> PrevBackground,
+			G -> PrevSpeedFactor,
+			GamepadL1 -> PrevSpeedFactor,
+			H -> NextSpeedFactor,
+			GamepadR1 -> NextSpeedFactor,
+			P -> TogglePause,
+			Esc -> AppQuit
+		];
+
+		let mouse_window_pos = input_state.mouse_position();
+		let mouse_view_pos = view_transform.to_view(mouse_window_pos);
+		let mouse_world_pos = world_transform.to_world(mouse_view_pos);
+		let mouse_left_pressed = input_state.key_pressed(input::Key::MouseLeft) && !input_state.any_ctrl_pressed();
+		if input_state.key_once(input::Key::MouseLeft) && input_state.any_ctrl_pressed() {
+			events.push(Event::PickMinion(mouse_world_pos));
+		};
+
+		let firerate = input_state.gamepad_axis(0, input::Axis::L2);
+		let firepower = input_state.gamepad_axis(0, input::Axis::R2);
+		if firepower >= DEAD_ZONE {
+			events.push(Event::PrimaryFire(firepower, firerate as f64));
+		} else {
+			if input_state.key_pressed(input::Key::Space) ||
+				mouse_left_pressed {
+				events.push(Event::PrimaryFire(1.0, 1.0));
+			}
+		}
+
+		let thrust = Position {
+			x: if input_state.key_pressed(input::Key::D) {
+				1.
+			} else if input_state.key_pressed(input::Key::A) {
+				-1.
+			} else {
+				input_state.gamepad_axis(0, input::Axis::LStickX)
+			},
+
+			y: if input_state.key_pressed(input::Key::W) {
+				1.
+			} else if input_state.key_pressed(input::Key::S) {
+				-1.
+			} else {
+				input_state.gamepad_axis(0, input::Axis::LStickY)
+			},
+		};
+
+		let yaw = Position {
+			x: input_state.gamepad_axis(0, input::Axis::RStickX),
+			y: input_state.gamepad_axis(0, input::Axis::RStickY),
+		};
+
+		use cgmath::InnerSpace;
+		let magnitude = thrust.magnitude2();
+		events.push(Event::VectorThrust(
+			if magnitude >= DEAD_ZONE {
+				Some(thrust / magnitude.max(1.))
+			} else {
+				None
+			},
+			if input_state.key_pressed(input::Key::Q) {
+				VectorDirection::Turn(TURN_SPEED)
+			} else if input_state.key_pressed(input::Key::E) {
+				VectorDirection::Turn(-TURN_SPEED)
+			} else if yaw.magnitude() >= DEAD_ZONE {
+				VectorDirection::Orientation(yaw)
+			} else if mouse_left_pressed {
+				VectorDirection::LookAt(mouse_world_pos)
+			} else {
+				VectorDirection::None
+			}));
+		if input_state.key_once(input::Key::MouseMiddle) {
+			if input_state.any_ctrl_pressed() {
+				events.push(Event::RandomizeMinion(mouse_world_pos));
+			} else {
+				events.push(Event::NewMinion(mouse_world_pos));
+			}
+		}
+
+		match input_state.dragging(input::Key::MouseRight, mouse_view_pos) {
+			input::Dragging::Begin(_, from) => {
+				let from = world_transform.to_world(from);
+				events.push(Event::BeginDrag(from, from));
+			}
+			input::Dragging::Dragging(_, from, to) => {
+				events.push(Event::Drag(world_transform.to_world(from), world_transform.to_world(to)));
+			}
+			input::Dragging::End(_, from, to, prev) => {
+				let mouse_vel = (view_transform.to_view(prev) - to) / dt.into();
+				events.push(Event::EndDrag(
+					world_transform.to_world(from),
+					world_transform.to_world(to),
+					mouse_vel,
+				));
+			}
+			_ => {}
+		}
+		events
 	}
 }
