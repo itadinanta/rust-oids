@@ -241,6 +241,16 @@ impl World {
 		)
 	}
 
+	pub fn get_player_world_position(&self) -> Option<Position> {
+		self.registered_player_id.and_then(move |id|
+			self.agent(id).and_then(move |player_agent|
+				player_agent.segment(0).map(move |segment|
+					segment.transform.position
+				)
+			)
+		)
+	}
+
 	pub fn primary_fire(&mut self, bullet_speed: f32) {
 		self.get_player_segment().map(move |segment| {
 			let angle = segment.transform.angle.clone();

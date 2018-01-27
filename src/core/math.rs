@@ -132,6 +132,7 @@ pub struct Inertial<T: cgmath::BaseNum + Neg + Copy> {
 	impulse: T,
 	inertia: T,
 	limit: T,
+	target: Option<cgmath::Vector2<T>>,
 	zero: cgmath::Vector2<T>,
 	position: cgmath::Vector2<T>,
 	velocity: cgmath::Vector2<T>,
@@ -146,6 +147,7 @@ impl<T> Default for Inertial<T>
 			impulse: T::one(),
 			inertia: T::one(),
 			limit: T::one(),
+			target: None,
 			zero: cgmath::Zero::zero(),
 			position: cgmath::Zero::zero(),
 			velocity: cgmath::Zero::zero(),
@@ -182,7 +184,6 @@ impl<T> Relative<T> for Inertial<T>
 	}
 }
 
-
 #[allow(dead_code)]
 impl<T> Inertial<T>
 	where
@@ -195,6 +196,10 @@ impl<T> Inertial<T>
 			limit,
 			..Default::default()
 		}
+	}
+
+	pub fn follow(&mut self, target: Option<cgmath::Vector2<T>>) {
+		self.target = target;
 	}
 
 	pub fn reset(&mut self) {
@@ -216,7 +221,11 @@ impl<T> Inertial<T>
 
 	pub fn update<D: Into<T>>(&mut self, dt: D) {
 		let dt: T = dt.into();
-		self.position = self.position + self.velocity * dt;
-		self.velocity = self.velocity * T::exp(-dt / self.inertia);
+		if let Some(destination) = self.target {
+			self.position += (destination - self.position) * self.inertia * dt;
+		} else {
+			self.position = self.position + self.velocity * dt;
+			self.velocity = self.velocity * T::exp(-dt / self.inertia);
+		}
 	}
 }

@@ -279,7 +279,7 @@ impl App {
 	}
 
 	fn init_camera() -> math::Inertial<f32> {
-		math::Inertial::new(10.0, 0.5, 0.5)
+		math::Inertial::new(5.0, 1.0, 0.5)
 	}
 
 	fn init_lights() -> Cycle<[f32; 4]> {
@@ -808,6 +808,7 @@ impl App {
 		self.frame_elapsed.tick(frame_time);
 
 		let frame_time_smooth = self.frame_smooth.smooth(frame_time);
+		self.camera.follow(self.world.get_player_world_position());
 		self.camera.update(frame_time_smooth);
 
 		let target_duration = frame_time_smooth.get();
