@@ -1,6 +1,7 @@
 use std::result;
 use cgmath;
 use gfx;
+use gfx::state::ColorMask;
 use gfx::traits::FactoryExt;
 use frontend::render::Style;
 use frontend::render::Result;
@@ -83,8 +84,8 @@ gfx_defines!(
 		fragment_args: gfx::ConstantBuffer <FragmentArgs > = "cb_FragmentArgs",
 		material_args: gfx::ConstantBuffer< MaterialArgs > = "cb_MaterialArgs",
 		lights: gfx::ConstantBuffer < PointLight > = "u_Lights",
-		color_target: gfx::BlendTarget < formats::RenderColorFormat > = ("o_Color", gfx::state::MASK_ALL, gfx::preset::blend::ADD),
-		depth_target: gfx::DepthTarget < formats::RenderDepthFormat > = gfx::preset::depth::LESS_EQUAL_WRITE,
+		color_target: gfx::BlendTarget <formats::RenderColorFormat> = ("o_Color", ColorMask::all(), gfx::preset::blend::ADD),
+		depth_target: gfx::DepthTarget <formats::RenderDepthFormat> = gfx::preset::depth::LESS_EQUAL_WRITE,
 	}
 	/*
 		pipeline blend {

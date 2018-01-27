@@ -141,7 +141,7 @@ trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 		let tex = self.create_texture(
 			kind,
 			1,
-			gfx::SHADER_RESOURCE | gfx::DEPTH_STENCIL,
+			gfx::memory::Bind::SHADER_RESOURCE | gfx::memory::Bind::DEPTH_STENCIL,
 			gfx::memory::Usage::Data,
 			Some(gfx::format::ChannelType::Float),
 		)?;
@@ -160,7 +160,7 @@ trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 		let tex = self.create_texture(
 			kind,
 			1,
-			gfx::SHADER_RESOURCE | gfx::RENDER_TARGET,
+			gfx::memory::Bind::SHADER_RESOURCE | gfx::memory::Bind::RENDER_TARGET,
 			gfx::memory::Usage::Data,
 			Some(gfx::format::ChannelType::Float),
 		)?;

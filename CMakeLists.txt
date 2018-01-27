@@ -34,7 +34,7 @@ set(SOURCE_FILES
         resources/minion_gene_pool_runcorn.csv
         resources/snake.csv
         resources/snakes.csv
-        src/app/ev.rs
+        src/app/glutin_event.rs
         src/app/main.rs
         src/app/mod.rs
         src/backend/systems/ai.rs

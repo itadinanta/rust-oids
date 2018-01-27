@@ -25,10 +25,9 @@ csv = "*"
 rustc-serialize="*"
 image = "*"
 wrapped2d = "*"
-glutin = "0.11.0"
-gfx = "0.16.2"
-gfx_core = "0.7.2"
-gfx_device_gl = "0.14.6"
+gfx = "0.17.1"
+gfx_core = "0.8.2"
+gfx_device_gl = "0.15.0"
 #sound
 sample="*"
 pitch_calc="*"
@@ -40,9 +39,11 @@ getopts = "*"
 cpuprofiler = "*"
 
 #gui
-winit = "0.9.0"
-gfx_window_glutin = "0.19.0"
-conrod = { features = ["winit"], version = "*" }
+winit = "0.10.0"
+glutin = "0.12.0"
+gfx_window_glutin = "0.20.0"
+# conrod = { features = ["winit"], version = "0.58.0" }
+conrod = { features = ["winit"], git = "https://github.com/itadinanta/conrod", branch = "branch/winit_0.10.0" }
 
 #
 gilrs = "*"

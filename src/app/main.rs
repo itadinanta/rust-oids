@@ -17,18 +17,19 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use app;
-use app::ev::GlutinEventMapper;
-use glutin::{self, WindowEvent, VirtualKeyCode, KeyboardInput, GlContext};
+use winit::{self, WindowEvent, VirtualKeyCode, KeyboardInput};
+use glutin;
+use glutin::GlContext;
 use gfx_window_glutin;
 
 pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Option<u32>, height: Option<u32>) {
 	const WIDTH: u32 = 1280;
 	const HEIGHT: u32 = 1024;
 
-	let mut events_loop = glutin::EventsLoop::new();
+	let mut events_loop = winit::EventsLoop::new();
 	let mut gamepad = GamepadEventLoop::new();
 
-	let builder = glutin::WindowBuilder::new()
+	let builder = winit::WindowBuilder::new()
 		.with_title("Rust-oids".to_string());
 	let builder = if let Some(monitor_index) = fullscreen {
 		let monitor = events_loop.get_available_monitors().nth(monitor_index).expect("Please enter a valid monitor ID");
@@ -60,7 +61,7 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 		.build();
 
 	let renderer = &mut render::ForwardRenderer::new(&mut factory, &mut encoder, &res, &frame_buffer).unwrap();
-	let mapper = GlutinEventMapper::new();
+	let mapper = app::WinitEventMapper::new();
 
 	// Create a new game and run it.
 	let mut app = app::App::new(w as u32, h as u32, 100.0, &res, minion_gene_pool);
@@ -85,7 +86,7 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 			}
 
 			match event {
-				glutin::Event::WindowEvent { event, .. } => {
+				winit::Event::WindowEvent { event, .. } => {
 					match event {
 						WindowEvent::Resized(new_width, new_height) => {
 							gfx_window_glutin::update_views(&window, &mut frame_buffer, &mut depth_buffer);

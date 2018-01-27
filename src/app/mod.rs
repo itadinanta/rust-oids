@@ -1,5 +1,6 @@
 mod main;
-mod ev;
+mod glutin_event;
+mod winit_event;
 pub mod constants;
 
 use std::process;
@@ -30,7 +31,6 @@ use frontend::input;
 use frontend::render;
 use frontend::render::Style;
 use frontend::render::Draw;
-use frontend::render::DrawBatch;
 use frontend::render::DrawBuffer;
 use frontend::ui;
 use getopts::Options;
@@ -41,6 +41,9 @@ use app::constants::*;
 use num;
 use cgmath;
 use cgmath::{Matrix4, SquareMatrix};
+
+pub use self::glutin_event::GlutinEventMapper;
+pub use self::winit_event::WinitEventMapper;
 
 #[derive(Clone, Copy, Debug)]
 pub enum VectorDirection {
