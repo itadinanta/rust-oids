@@ -140,8 +140,7 @@ impl AlertPlayer<app::Event, self::Error> for SoundSystemAlertPlayer<ThreadedSou
 			&Event::DeselectAll |
 			&Event::ToggleDebug => SoundEffect::UserOption,
 
-			&Event::SelectMinion(_, _) => SoundEffect::SelectMinion,
-
+			&Event::PickMinion(_) => SoundEffect::SelectMinion,
 
 			&Event::NewMinion(_) |
 			&Event::RandomizeMinion(_) => SoundEffect::NewMinion,

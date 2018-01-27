@@ -83,7 +83,7 @@ pub enum Event {
 	NewMinion(Position),
 	RandomizeMinion(Position),
 
-	SelectMinion(Position, Id),
+	PickMinion(Position),
 	DeselectAll,
 
 	BeginDrag(Position, Position),
@@ -388,7 +388,10 @@ impl App {
 				self.camera.set_relative(start - end);
 				self.camera.velocity(vel);
 			}
-			Event::SelectMinion(_, id) => self.select_minion(id),
+			Event::PickMinion(position) => {
+				self.pick_minion(position).map(|id|
+					self.select_minion(id));
+			}
 			Event::DeselectAll => self.deselect_all(),
 			Event::NewMinion(pos) => self.new_minion(pos),
 			Event::RandomizeMinion(pos) => self.randomize_minion(pos),
@@ -470,11 +473,8 @@ impl App {
 		let mouse_view_pos = self.to_view(&mouse_window_pos);
 		let mouse_world_pos = self.to_world(&mouse_view_pos);
 		let mouse_left_pressed = self.input_state.key_pressed(input::Key::MouseLeft) && !self.input_state.any_ctrl_pressed();
-		let picked_id = if self.input_state.key_once(input::Key::MouseLeft) &&
-			self.input_state.any_ctrl_pressed() {
-			self.pick_minion(mouse_world_pos)
-		} else {
-			None
+		if self.input_state.key_once(input::Key::MouseLeft) && self.input_state.any_ctrl_pressed() {
+			events.push(Event::PickMinion(mouse_world_pos));
 		};
 
 		let firerate = self.input_state.gamepad_axis(0, input::Axis::L2);
@@ -538,27 +538,23 @@ impl App {
 			}
 		}
 
-		if let Some(picked) = picked_id {
-			events.push(Event::SelectMinion(mouse_world_pos, picked));
-		} else {
-			match self.input_state.dragging(input::Key::MouseRight, mouse_view_pos) {
-				input::Dragging::Begin(_, from) => {
-					let from = self.to_world(&from);
-					events.push(Event::BeginDrag(from, from));
-				}
-				input::Dragging::Dragging(_, from, to) => {
-					events.push(Event::Drag(self.to_world(&from), self.to_world(&to)));
-				}
-				input::Dragging::End(_, from, to, prev) => {
-					let mouse_vel = (self.to_view(&prev) - to) / dt.into();
-					events.push(Event::EndDrag(
-						self.to_world(&from),
-						self.to_world(&to),
-						mouse_vel,
-					));
-				}
-				_ => {}
+		match self.input_state.dragging(input::Key::MouseRight, mouse_view_pos) {
+			input::Dragging::Begin(_, from) => {
+				let from = self.to_world(&from);
+				events.push(Event::BeginDrag(from, from));
 			}
+			input::Dragging::Dragging(_, from, to) => {
+				events.push(Event::Drag(self.to_world(&from), self.to_world(&to)));
+			}
+			input::Dragging::End(_, from, to, prev) => {
+				let mouse_vel = (self.to_view(&prev) - to) / dt.into();
+				events.push(Event::EndDrag(
+					self.to_world(&from),
+					self.to_world(&to),
+					mouse_vel,
+				));
+			}
+			_ => {}
 		}
 
 		for e in events {
