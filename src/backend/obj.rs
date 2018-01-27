@@ -2,7 +2,7 @@ use std::f32::consts::*;
 use core::geometry::*;
 use core::geometry::Transform;
 use core::color;
-
+use app::constants::*;
 pub type Rgba = color::Rgba<f32>;
 
 pub type Id = usize;
@@ -230,6 +230,8 @@ pub struct Material {
 	pub density: f32,
 	pub restitution: f32,
 	pub friction: f32,
+	pub linear_damping: f32,
+	pub angular_damping: f32,
 }
 
 #[derive(Clone)]
@@ -244,9 +246,11 @@ pub struct Livery {
 impl Default for Material {
 	fn default() -> Self {
 		Material {
-			density: 1.0,
-			restitution: 0.6,
-			friction: 0.7,
+			density: DENSITY_DEFAULT,
+			restitution: RESTITUTION_DEFAULT,
+			friction: FRICTION_DEFAULT,
+			linear_damping: LINEAR_DAMPING_DEFAULT,
+			angular_damping: ANGULAR_DAMPING,
 		}
 	}
 }

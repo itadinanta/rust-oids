@@ -17,7 +17,6 @@ use backend::world::segment;
 use backend::world::segment::Intent;
 use backend::world::segment::PilotRotation;
 
-
 struct AgentData;
 
 impl UserDataTypes for AgentData {
@@ -242,8 +241,8 @@ impl PhysicsSystem {
 				let transform = segment.transform();
 				let mut b_def = b2::BodyDef::new();
 				b_def.body_type = b2::BodyType::Dynamic;
-				b_def.linear_damping = LINEAR_DAMPING;
-				b_def.angular_damping = ANGULAR_DAMPING;
+				b_def.linear_damping = material.linear_damping;
+				b_def.angular_damping = material.angular_damping;
 				b_def.angle = transform.angle;
 				b_def.position = Self::vec2(&transform.position, 1.);
 				if let Some(Motion { velocity, spin }) = segment.motion {

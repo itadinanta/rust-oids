@@ -1,5 +1,6 @@
 use backend::obj::*;
 use std::f32::consts;
+use app::constants::*;
 use core::color;
 use core::color::ToRgb;
 use core::geometry::*;
@@ -38,7 +39,7 @@ impl Phenotype for Resource {
 		let mut builder = AgentBuilder::new(
 			id,
 			Material {
-				density: 1.0,
+				density: DENSITY_RESOURCE,
 				..Default::default()
 			},
 			Livery {
@@ -61,7 +62,10 @@ impl Phenotype for Player {
 		let mut builder = AgentBuilder::new(
 			id,
 			Material {
-				density: 1.0,
+				density: DENSITY_PLAYER,
+				restitution: RESTITUTION_PLAYER,
+				friction: FRICTION_PLAYER,
+				linear_damping: LINEAR_DAMPING_PLAYER,
 				..Default::default()
 			},
 			Livery {
@@ -85,7 +89,7 @@ impl Phenotype for Minion {
 		let mut builder = AgentBuilder::new(
 			id,
 			Material {
-				density: 0.2,
+				density: DENSITY_MINION,
 				..Default::default()
 			},
 			Livery {
@@ -230,7 +234,7 @@ impl Phenotype for Spore {
 		let mut builder = AgentBuilder::new(
 			id,
 			Material {
-				density: 0.5,
+				density: DENSITY_SPORE,
 				..Default::default()
 			},
 			Livery {
