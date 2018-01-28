@@ -1,4 +1,4 @@
-use core::geometry::*;
+use super::geometry::*;
 
 pub trait ViewTransform {
 	fn to_view(&self, screen_position: Position) -> Position;

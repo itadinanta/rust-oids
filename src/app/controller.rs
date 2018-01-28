@@ -2,22 +2,22 @@ use frontend::input;
 use app::constants::*;
 use core::geometry::*;
 use core::clock::Seconds;
+use core::view::ViewTransform;
+use core::view::WorldTransform;
 use app::constants::DEAD_ZONE;
 use super::events::VectorDirection;
 use super::events::Event;
-use super::view::ViewTransform;
-use super::view::WorldTransform;
 
 pub struct DefaultController {}
 
 pub trait InputController {
-	fn update<V, W>(input_state: &mut input::InputState, view_transform: &V, world_transform: &W, dt: Seconds) -> Vec<Event>
-		where V: ViewTransform, W: WorldTransform;
+	fn update<V, W, I>(input_state: &I, view_transform: &V, world_transform: &W, dt: Seconds) -> Vec<Event>
+		where V: ViewTransform, W: WorldTransform, I: input::InputRead;
 }
 
 impl InputController for DefaultController {
-	fn update<V, W>(input_state: &mut input::InputState, view_transform: &V, world_transform: &W, dt: Seconds) -> Vec<Event>
-		where V: ViewTransform, W: WorldTransform {
+	fn update<V, W, I>(input_state: &I, view_transform: &V, world_transform: &W, dt: Seconds) -> Vec<Event>
+		where V: ViewTransform, W: WorldTransform, I: input::InputRead {
 		let mut events = Vec::new();
 
 		macro_rules! on_key_held {
@@ -75,12 +75,6 @@ impl InputController for DefaultController {
 		let mouse_window_pos = input_state.mouse_position();
 		let mouse_view_pos = view_transform.to_view(mouse_window_pos);
 		let mouse_world_pos = world_transform.to_world(mouse_view_pos);
-
-		input_state.update_key_pressed();
-		input_state.update_gamepad_button_pressed();
-		input_state.update_dragging(input::Key::MouseRight, mouse_view_pos);
-
-		let input_state = &*input_state;
 
 		let mouse_left_pressed = input_state.key_pressed(input::Key::MouseLeft) && !input_state.any_ctrl_pressed();
 		if input_state.key_once(input::Key::MouseLeft) && input_state.any_ctrl_pressed() {

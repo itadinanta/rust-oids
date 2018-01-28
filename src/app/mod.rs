@@ -2,7 +2,6 @@ mod main;
 mod winit_event;
 mod controller;
 mod events;
-mod view;
 
 pub mod constants;
 
@@ -30,6 +29,9 @@ use backend::world::agent;
 use backend::systems;
 use backend::systems::System;
 
+use core::view::Viewport;
+use core::view::WorldTransform;
+
 use frontend::input;
 use frontend::render;
 use frontend::render::Style;
@@ -49,9 +51,8 @@ pub use self::winit_event::WinitEventMapper as EventMapper;
 pub use self::controller::InputController;
 pub use self::controller::DefaultController;
 pub use self::events::Event;
+
 use self::events::VectorDirection;
-use self::view::Viewport;
-use self::view::WorldTransform;
 
 pub fn run(args: &[OsString]) {
 	let mut opt = Options::new();
@@ -352,9 +353,12 @@ impl App {
 	}
 
 	fn update_input<C>(&mut self, dt: Seconds) where C: InputController {
-		for e in C::update(&mut self.input_state, &self.viewport, &self.camera, dt) {
+		self.input_state.pre_update(&self.viewport);
+
+		for e in C::update(&self.input_state, &self.viewport, &self.camera, dt) {
 			self.interact(e)
 		}
+		self.input_state.post_update();
 	}
 
 	pub fn on_resize(&mut self, width: u32, height: u32) {
@@ -595,6 +599,7 @@ impl App {
 		self.camera.update(frame_time_smooth);
 
 		let target_duration = frame_time_smooth.get();
+
 		self.update_input::<DefaultController>(frame_time_smooth);
 
 		let speed_factor = if self.is_paused { 1.0 as SpeedFactor } else { self.speed_factors.get() };
