@@ -187,8 +187,11 @@ impl<'font, R: Resources> Renderer<'font, R> {
 		let pipeline = factory.create_pipeline_simple(VERTEX_SHADER, FRAGMENT_SHADER, pipe::new())?;
 
 		let (glyph_cache, cache_tex, cache_tex_view) = {
-			let width = (width as f64 * dpi_factor) as u32;
-			let height = (height as f64 * dpi_factor) as u32;
+			//let width = (width as f64 * dpi_factor) as u32;
+			//let height = (height as f64 * dpi_factor) as u32;
+
+			let width = width as u32;
+			let height = height as u32;
 
 			const SCALE_TOLERANCE: f32 = 0.1;
 			const POSITION_TOLERANCE: f32 = 0.1;

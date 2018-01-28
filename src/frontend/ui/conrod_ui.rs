@@ -38,6 +38,8 @@ pub struct Ui<'f, 'font, R, F>
 	renderer: conrod_gfx::Renderer<'font, R>,
 	ui: Box<conrod::Ui>,
 	image_map: conrod::image::Map<(ShaderResourceView<R, [f32; 4]>, (u32, u32))>,
+	win_w: u16,
+	win_h: u16,
 	hidpi_factor: f64,
 	style_label: text::Style,
 	style_value: text::Style,
@@ -231,6 +233,8 @@ impl<'f, 'font, R, F> Ui<'f, 'font, R, F> where
 			renderer,
 			ui: Box::new(ui),
 			image_map,
+			win_w: w,
+			win_h: h,
 			hidpi_factor,
 			style_label,
 			style_value,
@@ -244,8 +248,10 @@ impl<'f, 'font, R, F> Ui<'f, 'font, R, F> where
 	pub fn resize_to(&mut self,
 					 frame_buffer: &RenderTargetView<R, formats::ScreenColorFormat>)
 					 -> Result<(), Error> {
-		let hidpi_factor = self.hidpi_factor;
-		self.renderer = conrod_gfx::Renderer::new(self.factory, frame_buffer, hidpi_factor).unwrap();
+		let (width, height, _, _) = frame_buffer.get_dimensions();
+		self.win_w = width;
+		self.win_h = height;
+		self.renderer = conrod_gfx::Renderer::new(self.factory, frame_buffer, self.hidpi_factor).unwrap();
 		Ok(())
 	}
 
@@ -261,7 +267,7 @@ impl<'f, 'font, R, F> Ui<'f, 'font, R, F> where
 
 	pub fn update_and_draw_screen<C>(&mut self, screen: &Screen, encoder: &mut Encoder<R, C>)
 		where C: CommandBuffer<R> {
-		let dims = (self.ui.win_w as f32, self.ui.win_h as f32);
+		let dims = (self.win_w as f32, self.win_h as f32);
 		let window_id = self.ui.window.clone();
 		let mut app_events = Vec::with_capacity(1);
 		let widgets = screen.draw_widgets(&mut self.ui,

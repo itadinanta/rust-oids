@@ -434,16 +434,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gfx_window_glutin"
-version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "gfx_core 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "gfx_device_gl 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "glutin 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "gif"
 version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -981,7 +971,6 @@ dependencies = [
  "gfx 0.17.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_core 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_device_gl 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gfx_window_glutin 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gilrs 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1454,7 +1443,6 @@ dependencies = [
 "checksum gfx_core 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)" = "d85039b7bda0348fee728e6787876138839ced69650129ab65aee7ee58fc6367"
 "checksum gfx_device_gl 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bd623ca10704d54966771a1b2c901b9f4033701e5edb81865c529722887a3054"
 "checksum gfx_gl 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "daa001fc5c5d4bc78e0543f04ca3ef123e78fa79cfd7a27179cafddb90251540"
-"checksum gfx_window_glutin 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)" = "73aec7a95849ce5f1de58d8fa032e4310d1e9f988f43ce2ab3ba8ea6430acd2b"
 "checksum gif 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e2e41945ba23db3bf51b24756d73d81acb4f28d85c3dccc32c6fae904438c25f"
 "checksum gilrs 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "99908993e8b843896b081c061390d50e441c1ad053e03e56442f616eafb39e63"
 "checksum gl_generator 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "04e3e0220a68b8875b5a311fe67ee3b76d3d9b719a92277aff0ec5bb5e7b0ec1"

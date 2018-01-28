@@ -6,6 +6,7 @@ use frontend::input::GamepadEventLoop;
 use frontend::render::{formats, Renderer, Overlay};
 use frontend::audio::{self, SoundSystem};
 use frontend::ui;
+use frontend::gfx_window_glutin;
 
 use conrod;
 
@@ -20,7 +21,6 @@ use app;
 use winit::{self, WindowEvent, VirtualKeyCode, KeyboardInput};
 use glutin;
 use glutin::GlContext;
-use gfx_window_glutin;
 
 pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Option<u32>, height: Option<u32>) {
 	const WIDTH: u32 = 1280;
