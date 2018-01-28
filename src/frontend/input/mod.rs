@@ -16,6 +16,7 @@ enum DragState {
 	Hold(Key, Position),
 }
 
+#[derive(Clone)]
 pub enum Dragging {
 	Nothing,
 	Begin(Key, Position),
@@ -29,15 +30,16 @@ const MAX_AXIS: usize = 6;
 pub struct GamepadState {
 	pub connected: bool,
 	pub button_pressed: BitSet,
-	pub button_ack: BitSet,
+	pub button_pressed_last: BitSet,
 	pub axis: [AxisValue; MAX_AXIS],
 }
 
 pub struct InputState {
 	gamepad: HashMap<usize, GamepadState>,
 	key_pressed: BitSet,
-	key_ack: BitSet,
+	key_pressed_last: BitSet,
 	drag_state: DragState,
+	dragging: Dragging,
 	mouse_history: History<Position>,
 	mouse_position: Position,
 }
@@ -47,7 +49,7 @@ impl Default for GamepadState {
 		GamepadState {
 			connected: false,
 			button_pressed: BitSet::new(),
-			button_ack: BitSet::new(),
+			button_pressed_last: BitSet::new(),
 			axis: [0.0; MAX_AXIS],
 		}
 	}
@@ -60,8 +62,9 @@ impl Default for InputState {
 		InputState {
 			gamepad: default_map,
 			key_pressed: BitSet::new(),
-			key_ack: BitSet::new(),
+			key_pressed_last: BitSet::new(),
 			drag_state: DragState::Nothing,
+			dragging: Dragging::Nothing,
 			mouse_history: History::new(60),
 			mouse_position: geometry::origin(),
 		}
@@ -75,7 +78,7 @@ pub enum State {
 }
 
 #[allow(dead_code)]
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub enum Key {
 	A,
 	B,
@@ -241,7 +244,6 @@ pub enum Event {
 #[allow(dead_code)]
 impl GamepadState {
 	fn button(&mut self, state: State, b: Key) {
-		self.button_ack.remove(b as usize);
 		match state {
 			State::Down => self.button_pressed.insert(b as usize),
 			State::Up => self.button_pressed.remove(b as usize),
@@ -252,13 +254,13 @@ impl GamepadState {
 		self.button_pressed.contains(b as usize)
 	}
 
-	pub fn button_once(&mut self, b: Key) -> bool {
-		if self.button_ack.contains(b as usize) {
-			false
-		} else {
-			self.button_ack.insert(b as usize);
-			self.button_pressed.contains(b as usize)
-		}
+	pub fn button_once(&self, b: Key) -> bool {
+		self.button_pressed.contains(b as usize) &&
+			!self.button_pressed_last.contains(b as usize)
+	}
+
+	pub fn update_button_pressed(&mut self) {
+		self.button_pressed_last = self.button_pressed.clone();
 	}
 
 	fn axis(&mut self, value: AxisValue, axis: Axis) {
@@ -268,15 +270,6 @@ impl GamepadState {
 
 #[allow(dead_code)]
 impl InputState {
-	pub fn event(&mut self, event: &Event) {
-		match event {
-			&Event::Key(state, key) => self.key(state, key),
-			&Event::Mouse(position) => self.mouse_at(position),
-			&Event::GamepadButton(id, state, button) => self.gamepad_button(id, state, button),
-			&Event::GamepadAxis(id, axis, position) => self.gamepad_axis_update(id, axis, position),
-		}
-	}
-
 	pub fn key_pressed(&self, b: Key) -> bool {
 		self.key_pressed.contains(b as usize)
 	}
@@ -297,21 +290,6 @@ impl InputState {
 		self.gamepad.get(&gamepad_id)
 	}
 
-	fn gamepad_mut(&mut self, gamepad_id: usize) -> &mut GamepadState {
-		self.gamepad
-			.entry(gamepad_id)
-			.or_insert(GamepadState::default())
-	}
-
-	fn gamepad_button(&mut self, gamepad_id: usize, state: State, button: Key) {
-		self.key(state, button);
-		self.gamepad_mut(gamepad_id).button(state, button);
-	}
-
-	fn gamepad_axis_update(&mut self, gamepad_id: usize, value: AxisValue, axis: Axis) {
-		self.gamepad_mut(gamepad_id).axis(value, axis);
-	}
-
 	pub fn gamepad_axis(&self, gamepad_id: usize, axis: Axis) -> AxisValue {
 		self.gamepad(gamepad_id)
 			.or_else(|| self.gamepad(0))
@@ -329,38 +307,71 @@ impl InputState {
 		self.key_pressed.is_superset(&other)
 	}
 
-	pub fn gamepad_button_once(&mut self, gamepad_id: usize, b: Key) -> bool {
-		self.gamepad.get_mut(&gamepad_id)
+	pub fn gamepad_button_once(&self, gamepad_id: usize, b: Key) -> bool {
+		self.gamepad.get(&gamepad_id)
 			.map(|gamepad| gamepad.button_once(b))
 			.unwrap_or_default()
 	}
 
-	pub fn key_once(&mut self, b: Key) -> bool {
-		if self.key_ack.contains(b as usize) {
-			false
-		} else {
-			self.key_ack.insert(b as usize);
-			self.key_pressed.contains(b as usize)
-		}
+	pub fn key_once(&self, b: Key) -> bool {
+		self.key_pressed.contains(b as usize) &&
+			!self.key_pressed_last.contains(b as usize)
 	}
 
 	pub fn mouse_position(&self) -> Position {
 		self.mouse_position
 	}
 
+	pub fn dragging(&self) -> Dragging {
+		self.dragging.clone()
+	}
+
+	pub fn event(&mut self, event: &Event) {
+		match event {
+			&Event::Key(state, key) => self.key(state, key),
+			&Event::Mouse(position) => self.mouse_at(position),
+			&Event::GamepadButton(id, state, button) => self.gamepad_button(id, state, button),
+			&Event::GamepadAxis(id, axis, position) => self.gamepad_axis_update(id, axis, position),
+		}
+	}
+
+	fn mouse_at(&mut self, pos: Position) {
+		self.mouse_position = pos;
+	}
+
 	fn key(&mut self, state: State, b: Key) {
-		self.key_ack.remove(b as usize);
 		match state {
 			State::Down => self.key_pressed.insert(b as usize),
 			State::Up => self.key_pressed.remove(b as usize),
 		};
 	}
 
-	pub fn mouse_at(&mut self, pos: Position) {
-		self.mouse_position = pos;
+	fn gamepad_mut(&mut self, gamepad_id: usize) -> &mut GamepadState {
+		self.gamepad
+			.entry(gamepad_id)
+			.or_insert(GamepadState::default())
 	}
 
-	pub fn dragging(&mut self, key: Key, pos: Position) -> Dragging {
+	fn gamepad_button(&mut self, gamepad_id: usize, state: State, button: Key) {
+		self.key(state, button);
+		self.gamepad_mut(gamepad_id).button(state, button);
+	}
+
+	fn gamepad_axis_update(&mut self, gamepad_id: usize, value: AxisValue, axis: Axis) {
+		self.gamepad_mut(gamepad_id).axis(value, axis);
+	}
+
+	pub fn update_key_pressed(&mut self) {
+		self.key_pressed_last = self.key_pressed.clone();
+	}
+
+	pub fn update_gamepad_button_pressed(&mut self) {
+		for (_, gamepad) in &mut self.gamepad {
+			gamepad.update_button_pressed();
+		}
+	}
+
+	pub fn update_dragging(&mut self, key: Key, pos: Position) {
 		let (drag_state, displacement) = match &self.drag_state {
 			&DragState::Nothing => {
 				if self.key_pressed(key) {
@@ -383,7 +394,7 @@ impl InputState {
 			_ => (self.drag_state.clone(), Dragging::Nothing),
 		};
 		self.drag_state = drag_state;
-		displacement
+		self.dragging = displacement;
 	}
 }
 

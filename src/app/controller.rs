@@ -75,6 +75,13 @@ impl InputController for DefaultController {
 		let mouse_window_pos = input_state.mouse_position();
 		let mouse_view_pos = view_transform.to_view(mouse_window_pos);
 		let mouse_world_pos = world_transform.to_world(mouse_view_pos);
+
+		input_state.update_key_pressed();
+		input_state.update_gamepad_button_pressed();
+		input_state.update_dragging(input::Key::MouseRight, mouse_view_pos);
+
+		let input_state = &*input_state;
+
 		let mouse_left_pressed = input_state.key_pressed(input::Key::MouseLeft) && !input_state.any_ctrl_pressed();
 		if input_state.key_once(input::Key::MouseLeft) && input_state.any_ctrl_pressed() {
 			events.push(Event::PickMinion(mouse_world_pos));
@@ -141,7 +148,7 @@ impl InputController for DefaultController {
 			}
 		}
 
-		match input_state.dragging(input::Key::MouseRight, mouse_view_pos) {
+		match input_state.dragging() {
 			input::Dragging::Begin(_, from) => {
 				let from = world_transform.to_world(from);
 				events.push(Event::BeginDrag(from, from));
