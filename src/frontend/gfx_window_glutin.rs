@@ -1,3 +1,6 @@
+//
+// Cloned from https://github.com/gfx-rs/gfx/blob/pre-ll/src/window/glutin/src/lib.rs
+//
 // Copyright 2015 The Gfx-rs Developers.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
