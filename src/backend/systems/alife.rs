@@ -19,7 +19,7 @@ type GeneMap = HashMap<obj::Id, gen::Dna>;
 
 pub struct AlifeSystem {
 	dt: Seconds,
-	source: Box<[world::Emitter]>,
+	source: Box<[world::Feeder]>,
 	eaten: StateMap,
 	touched: GeneMap,
 }
@@ -32,7 +32,7 @@ impl Updateable for AlifeSystem {
 
 impl System for AlifeSystem {
 	fn get_from_world(&mut self, world: &world::World) {
-		self.source = world.emitters().to_vec().into_boxed_slice();
+		self.source = world.feeders().to_vec().into_boxed_slice();
 		self.eaten = Self::find_eaten_resources(
 			&world.agents(agent::AgentType::Minion),
 			&world.agents(agent::AgentType::Resource),

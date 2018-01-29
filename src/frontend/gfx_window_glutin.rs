@@ -85,6 +85,7 @@ pub fn init<Cf, Df>(window: glutin::WindowBuilder,
 ///
 /// let mut encoder: gfx::Encoder<_, _> = factory.create_command_buffer().into();
 /// ```
+#[allow(unused)]
 pub fn init_existing<Cf, Df>(window: &glutin::GlWindow) ->
 (device_gl::Device, device_gl::Factory,
  handle::RenderTargetView<R, Cf>, handle::DepthStencilView<R, Df>)
@@ -193,6 +194,7 @@ pub fn update_views_raw(window: &glutin::GlWindow, old_dimensions: texture::Dime
 
 /// Create new main target views based on the current size of the window.
 /// Best called just after a WindowResize event.
+#[allow(unused)]
 pub fn new_views<Cf, Df>(window: &glutin::GlWindow)
 						 -> (handle::RenderTargetView<R, Cf>, handle::DepthStencilView<R, Df>) where
 	Cf: format::RenderFormat,

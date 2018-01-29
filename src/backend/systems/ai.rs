@@ -27,7 +27,7 @@ impl Updateable for AiSystem {}
 impl System for AiSystem {
 	fn get_from_world(&mut self, world: &world::World) {
 		self.beacons = world
-			.emitters()
+			.feeders()
 			.iter()
 			.map(|e| e.transform().position)
 			.collect::<Vec<_>>()

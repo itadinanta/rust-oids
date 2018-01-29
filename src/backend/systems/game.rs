@@ -22,10 +22,10 @@ pub struct PlayerState {
 
 pub struct GameSystem {
 	playerstate: PlayerState,
-	emitters: Vec<Emitter>,
+	feeders: Vec<Feeder>,
 }
 
-struct Emitter {
+struct Feeder {
 	position: Position,
 	hourglass: Hourglass<SimulationTimer>,
 	to_spawn: usize,
@@ -35,9 +35,9 @@ struct Emitter {
 	velocity: f32,
 }
 
-impl Emitter where {
+impl Feeder where {
 	fn new(timer: SharedTimer<SimulationTimer>, position: Position, rate: Seconds, emission: Emission) -> Self {
-		Emitter {
+		Feeder {
 			position,
 			hourglass: Hourglass::new(timer, rate),
 			to_spawn: 0,
@@ -51,10 +51,10 @@ impl Emitter where {
 
 impl Updateable for GameSystem {
 	fn update(&mut self, _: &world::WorldState, dt: Seconds) {
-		for e in &mut self.emitters {
+		for e in &mut self.feeders {
 			e.spawned = e.to_spawn;
 		}
-		for e in &mut self.emitters {
+		for e in &mut self.feeders {
 			if e.hourglass.is_expired() {
 				e.hourglass.flip();
 				e.to_spawn += 1;
@@ -80,25 +80,25 @@ impl Updateable for GameSystem {
 
 impl System for GameSystem {
 	fn get_from_world(&mut self, world: &world::World) {
-		let source = world.emitters();
+		let source = world.feeders();
 // Add missing emitters - deletion not supported
-		for i in self.emitters.len()..source.len() {
+		for i in self.feeders.len()..source.len() {
 			let s = &source[i];
-			self.emitters.push(Emitter::new(
+			self.feeders.push(Feeder::new(
 				world.clock().clone(),
 				s.transform().position,
 				s.rate(),
 				s.emission(),
 			));
 		}
-		for (i, d) in self.emitters.iter_mut().enumerate() {
+		for (i, d) in self.feeders.iter_mut().enumerate() {
 			d.position = source[i].transform().position;
 		}
 	}
 
 	fn put_to_world(&self, world: &mut world::World) {
 		let rng = &mut rand::thread_rng();
-		for e in &self.emitters {
+		for e in &self.feeders {
 			for i in e.spawned..e.to_spawn {
 				let r = match e.emission {
 					Emission::Random => rng.next_f32() * 2. * consts::PI,
@@ -133,7 +133,7 @@ impl Default for GameSystem {
 	fn default() -> Self {
 		GameSystem {
 			playerstate: PlayerState::default(),
-			emitters: Vec::new(),
+			feeders: Vec::new(),
 		}
 	}
 }

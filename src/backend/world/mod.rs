@@ -4,6 +4,7 @@ pub mod agent;
 pub mod swarm;
 pub mod gen;
 pub mod phen;
+pub mod particle;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -25,11 +26,12 @@ use core::clock::*;
 use core::geometry::*;
 use core::geometry::Transform;
 use core::resource::ResourceLoader;
-use backend::world::agent::Agent;
-use backend::world::agent::AgentType;
-use backend::world::agent::TypedAgent;
-use backend::world::swarm::*;
 use serialize::base64::{self, ToBase64};
+use self::agent::Agent;
+use self::agent::AgentType;
+use self::agent::TypedAgent;
+use self::swarm::*;
+use self::particle::{Emitter, Particle};
 
 pub use self::alert::Alert;
 pub use self::alert::AlertEvent;
@@ -45,7 +47,7 @@ pub trait AlertReceiver {
 pub struct World {
 	pub extent: Rect,
 	swarms: HashMap<AgentType, Swarm>,
-	emitters: Vec<Emitter>,
+	feeders: Vec<Feeder>,
 	registered: HashSet<Id>,
 	registered_player_id: Option<Id>,
 	regenerations: usize,
@@ -53,6 +55,8 @@ pub struct World {
 	resource_gene_pool: gen::GenePool,
 	clock: SharedTimer<SimulationTimer>,
 	alerts: Vec<AlertEvent>,
+	emitters: Vec<Emitter>,
+	particles: Vec<Particle>,
 }
 
 impl WorldState for World {
@@ -76,15 +80,15 @@ pub enum Emission {
 }
 
 #[derive(Clone)]
-pub struct Emitter {
+pub struct Feeder {
 	transform: Transform,
 	rate: Seconds,
 	emission: Emission,
 }
 
-impl Emitter {
+impl Feeder {
 	pub fn new(x: f32, y: f32, rate: Seconds, emission: Emission) -> Self {
-		Emitter {
+		Feeder {
 			transform: Transform::from_position(Position::new(x, y)),
 			rate,
 			emission,
@@ -98,7 +102,7 @@ impl Emitter {
 	}
 }
 
-impl Transformable for Emitter {
+impl Transformable for Feeder {
 	fn transform(&self) -> &Transform {
 		&self.transform
 	}
@@ -125,11 +129,11 @@ impl World {
 		World {
 			extent: Rect::new(-WORLD_RADIUS, -WORLD_RADIUS, WORLD_RADIUS, WORLD_RADIUS),
 			swarms,
-			emitters: vec![
-				Emitter::new(-EMITTER_DISTANCE, -EMITTER_DISTANCE, emitter_rate, Emission::CW(EMITTER_SPREAD_ANGLE)),
-				Emitter::new(-EMITTER_DISTANCE, EMITTER_DISTANCE, emitter_rate, Emission::Random),
-				Emitter::new(EMITTER_DISTANCE, EMITTER_DISTANCE, emitter_rate, Emission::CCW(EMITTER_SPREAD_ANGLE)),
-				Emitter::new(EMITTER_DISTANCE, -EMITTER_DISTANCE, emitter_rate, Emission::Random),
+			feeders: vec![
+				Feeder::new(-EMITTER_DISTANCE, -EMITTER_DISTANCE, emitter_rate, Emission::CW(EMITTER_SPREAD_ANGLE)),
+				Feeder::new(-EMITTER_DISTANCE, EMITTER_DISTANCE, emitter_rate, Emission::Random),
+				Feeder::new(EMITTER_DISTANCE, EMITTER_DISTANCE, emitter_rate, Emission::CCW(EMITTER_SPREAD_ANGLE)),
+				Feeder::new(EMITTER_DISTANCE, -EMITTER_DISTANCE, emitter_rate, Emission::Random),
 			],
 			minion_gene_pool: res.load(minion_gene_pool)
 				.map(|data| gen::GenePool::parse_from_resource(&data))
@@ -140,6 +144,8 @@ impl World {
 			regenerations: 0usize,
 			clock,
 			alerts: Vec::new(),
+			emitters: Vec::new(),
+			particles: Vec::new(),
 		}
 	}
 
@@ -334,12 +340,24 @@ impl World {
 		self.swarms.get_mut(&agent_type).unwrap()
 	}
 
-	pub fn emitters(&self) -> &[Emitter] {
-		self.emitters.as_slice()
+	pub fn feeders(&self) -> &[Feeder] {
+		self.feeders.as_slice()
 	}
 
 	pub fn swarms(&self) -> &SwarmMap {
 		&self.swarms
+	}
+
+	pub fn particles(&self) -> &[Particle] {
+		&self.particles
+	}
+
+	pub fn clear_particles(&mut self) {
+		self.particles.clear();
+	}
+
+	pub fn add_particle(&mut self, particle: Particle) {
+		self.particles.push(particle);
 	}
 
 	pub fn sweep(&mut self) -> Box<[Agent]> {

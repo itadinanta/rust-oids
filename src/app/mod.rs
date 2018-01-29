@@ -382,6 +382,16 @@ impl App {
 		Matrix4::from_translation(cgmath::Vector3::new(position.x, position.y, 0.0))
 	}
 
+	fn render_particles<R>(&self, renderer: &mut R) where R: render::DrawBuffer {
+		let mut batch = render::PrimitiveBuffer::new();
+		for particle in self.world.particles() {
+			let appearance = render::Appearance::new(particle.color(), [0., 0., 0., 0.]);
+			let transform = Self::from_transform(&particle.transform());
+			batch.draw_ball(None, transform, appearance);
+		}
+		renderer.draw_buffer(batch);
+	}
+
 	fn render_minions<R>(&self, renderer: &mut R) where R: render::DrawBuffer {
 		for (_, swarm) in self.world.swarms().iter() {
 			for (_, agent) in swarm.agents().iter() {
@@ -446,7 +456,7 @@ impl App {
 
 	fn render_hud<R>(&self, renderer: &mut R)
 		where R: render::Draw {
-		for e in self.world.emitters() {
+		for e in self.world.feeders() {
 			let transform = Self::from_position(&e.transform().position);
 			renderer.draw_ball(None, transform, render::Appearance::rgba(self.lights.get()));
 		}
@@ -525,6 +535,7 @@ impl App {
 	pub fn render<R>(&self, renderer: &mut R)
 		where R: render::Draw + render::DrawBatch + render::DrawBuffer {
 		self.render_minions(renderer);
+		self.render_particles(renderer);
 		self.render_extent(renderer);
 		self.render_hud(renderer);
 	}
@@ -534,7 +545,7 @@ impl App {
 			light_color: self.lights.get(),
 			background_color: self.backgrounds.get(),
 			light_positions: self.world
-				.emitters()
+				.feeders()
 				.iter()
 				.map(|e| e.transform().position)
 				.collect::<Vec<_>>()
