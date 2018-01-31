@@ -44,8 +44,8 @@ impl Default for AnimationSystem {
 			speed: 1.0,
 			heartbeat_scale: 1.0 / 60.0,
 			dt: seconds(0.0),
-			simulation_clock: TimerStopwatch::new(animation_timer.clone()),
-			animation_clock: TimerStopwatch::new(simulation_timer.clone()),
+			simulation_clock: TimerStopwatch::new(simulation_timer.clone()),
+			animation_clock: TimerStopwatch::new(animation_timer.clone()),
 			animation_timer,
 			simulation_timer,
 		}

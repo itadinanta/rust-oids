@@ -1,6 +1,8 @@
 use backend::obj;
 use core::color::Rgba;
 use core::geometry::Transform;
+use core::geometry::Position;
+use core::geometry::Velocity;
 use core::clock::Seconds;
 
 enum Shape {
@@ -19,15 +21,17 @@ pub struct Emitter {
 
 pub struct Particle {
 	transform: Transform,
-	prev_transform: Transform,
+	direction: Velocity,
+	trail: Box<[Position]>,
 	shape: Shape,
 }
 
 impl Particle {
-	pub fn new(transform: Transform, prev_transform: Transform) -> Particle {
+	pub fn new(transform: Transform, direction: Velocity, trail: Box<[Position]>) -> Particle {
 		Particle {
 			transform,
-			prev_transform,
+			direction,
+			trail,
 			shape: Shape::Round,
 		}
 	}

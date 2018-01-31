@@ -119,6 +119,16 @@ impl Transform {
 			self.position + position
 		}
 	}
+
+	fn to_matrix(&self) -> Matrix3<f32> {
+		let ca = self.angle.cos();
+		let sa = self.angle.sin();
+		let tx = self.position.x;
+		let ty = self.position.y;
+		Matrix3::new(ca, sa, 0.,
+					 -sa, ca, 0.,
+					 tx, ty, 1.)
+	}
 }
 
 impl Motion {
