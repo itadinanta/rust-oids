@@ -10,6 +10,7 @@ pub use self::animation::AnimationSystem;
 pub use self::game::GameSystem;
 pub use self::ai::AiSystem;
 pub use self::alife::AlifeSystem;
+pub use self::particle::ParticleSystem;
 use backend::world;
 use core::clock::Seconds;
 

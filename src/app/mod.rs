@@ -90,12 +90,14 @@ pub struct Systems {
 	game: systems::GameSystem,
 	ai: systems::AiSystem,
 	alife: systems::AlifeSystem,
+	particle: systems::ParticleSystem,
 }
 
 impl Systems {
 	fn systems(&mut self) -> Vec<&mut systems::System> {
 		vec![
 			&mut self.animation as &mut systems::System,
+			&mut self.particle as &mut systems::System,
 			&mut self.game as &mut systems::System,
 			&mut self.ai as &mut systems::System,
 			&mut self.alife as &mut systems::System,
@@ -384,10 +386,17 @@ impl App {
 
 	fn render_particles<R>(&self, renderer: &mut R) where R: render::DrawBuffer {
 		let mut batch = render::PrimitiveBuffer::new();
+		let mut count: usize = 0;
 		for particle in self.world.particles() {
-			let appearance = render::Appearance::new(particle.color(), [0., 0., 0., 0.]);
+			let appearance = render::Appearance::new(particle.color(), [100., 0., 0., 0.]);
 			let transform = Self::from_transform(&particle.transform());
 			batch.draw_ball(None, transform, appearance);
+			count += 1;
+			if count > 100 {
+				count = 0;
+				renderer.draw_buffer(batch);
+				batch = render::PrimitiveBuffer::new();
+			}
 		}
 		renderer.draw_buffer(batch);
 	}
