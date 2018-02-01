@@ -41,6 +41,6 @@ impl Particle {
 	}
 
 	pub fn color(&self) -> Rgba<f32> {
-		[1., 1., 1., 1.]
+		[10., 10., 10., 1.]
 	}
 }
