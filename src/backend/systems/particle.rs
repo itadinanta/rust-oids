@@ -18,6 +18,7 @@ use backend::world::agent;
 use std::iter::Iterator;
 use core::clock::*;
 use num_traits::clamp;
+use std::f32::consts;
 use num;
 use num::NumCast;
 use cgmath::InnerSpace;
@@ -79,6 +80,7 @@ struct SimpleEmitter {
 	transform: Transform,
 	motion: Motion,
 	attached_to: Option<obj::Id>,
+	pulse: Phase,
 	phase: Phase,
 	rate: f32,
 	ttl: Option<Seconds>,
@@ -93,10 +95,11 @@ impl SimpleEmitter {
 			transform: Transform::new(Position::zero(), 0.),
 			motion: Motion::new(10. * Velocity::unit_x(), 0.),
 			attached_to: None,
+			pulse: 0.,
 			phase: 0.,
 			rate: 5.,
 			ttl: None,
-			cluster_size: 1,
+			cluster_size: 10,
 			active: true,
 		}
 	}
@@ -105,17 +108,22 @@ impl SimpleEmitter {
 impl Emitter for SimpleEmitter {
 	fn emit(&mut self, dt: Seconds, id_counter: &mut usize, destination: &mut HashMap<obj::Id, Particle>) -> bool {
 		if self.active {
+			let pulse = self.pulse;
 			let phase = self.phase;
-			self.phase = (self.phase + dt.get() as f32 * self.rate) % 1.;
-			if self.phase < phase {
+			self.phase = (self.phase + dt.get() as f32 * 2.33) % 1.;
+			self.pulse = (self.pulse + dt.get() as f32 * self.rate) % 1.;
+			if self.pulse < pulse {
 				for i in 0..self.cluster_size {
+					let alpha = consts::PI * 2. * (phase + i as f32 / self.cluster_size as f32);
+					let velocity = Transform::from_angle(alpha)
+						.apply_rotation(self.motion.velocity);
 					let id = *id_counter;
 					destination.insert(id, Particle {
 						id,
 						tag: 0,
-						transform: self.transform.clone(),
+						transform: Transform::new(self.transform.position, self.transform.angle + alpha),
 						trail: VecDeque::new(),
-						motion: self.motion.clone(),
+						motion: Motion::new(velocity, self.motion.spin),
 						dampening: 0.,
 						friction: 0.,
 						faders: (0..MAX_FADER).map(|_| Fader::new(1.0, 0.5, 0.)).collect(),

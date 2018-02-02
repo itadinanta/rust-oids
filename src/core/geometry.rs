@@ -92,6 +92,14 @@ impl Transform {
 			..Transform::default()
 		}
 	}
+
+	pub fn from_angle(angle: Angle) -> Self {
+		Transform {
+			angle,
+			..Transform::default()
+		}
+	}
+
 	pub fn apply_rotation(&self, position: Position) -> Position {
 		if self.angle != 0. {
 			let ca = self.angle.cos();
