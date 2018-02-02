@@ -37,6 +37,7 @@ portaudio="*"
 ctrlc = "*"
 getopts = "*"
 cpuprofiler = "*"
+rayon = "*"
 
 #gui
 winit = "0.10.0"

@@ -45,6 +45,7 @@ extern crate gilrs;
 
 #[cfg(unix)]
 extern crate thread_priority;
+extern crate rayon;
 
 extern crate rustc_serialize as serialize;
 
