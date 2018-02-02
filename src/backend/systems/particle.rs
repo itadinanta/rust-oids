@@ -31,13 +31,13 @@ const MAX_FADER: usize = 4;
 
 struct Fader<S> {
 	value: S,
-	alpha: S,
+	fade_rate: S,
 	target: S,
 }
 
 impl<S> Fader<S> where S: num::Float {
-	fn new(value: S, alpha: S, target: S) -> Fader<S> {
-		Fader { value, alpha, target }
+	fn new(value: S, fade_rate: S, target: S) -> Fader<S> {
+		Fader { value, fade_rate, target }
 	}
 
 	fn value(&self) -> S {
@@ -49,7 +49,7 @@ impl<S> Fader<S> where S: num::Float {
 	}
 
 	fn update(&mut self, dt: Seconds) -> S {
-		self.value = self.target + (self.value - self.target) * self.alpha * NumCast::from(dt.get()).unwrap();
+		self.value = self.value + (self.target - self.value) * self.fade_rate * NumCast::from(dt.get()).unwrap();
 		self.value
 	}
 }
@@ -125,10 +125,10 @@ impl Emitter for SimpleEmitter {
 						trail: VecDeque::new(),
 						motion: Motion::new(velocity, self.motion.spin),
 						dampening: 0.,
-						friction: 0.,
-						faders: (0..MAX_FADER).map(|_| Fader::new(1.0, 0.5, 0.)).collect(),
+						friction: 0.1,
+						faders: (0..MAX_FADER).map(|_| Fader::new(1.0, 0.95, 0.)).collect(),
 						acceleration: -Velocity::unit_y(),
-						ttl: seconds(60.),
+						ttl: seconds(5.),
 					});
 					*id_counter = id + 1;
 				}
@@ -239,6 +239,10 @@ impl System for ParticleSystem {
 				particle.trail
 					.iter()
 					.map(|t| *t)
+					.collect::<Vec<_>>().into_boxed_slice(),
+				particle.faders
+					.iter()
+					.map(|f| f.value())
 					.collect::<Vec<_>>().into_boxed_slice(),
 			));
 		}

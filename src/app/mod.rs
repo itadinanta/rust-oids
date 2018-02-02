@@ -386,9 +386,10 @@ impl App {
 
 	fn render_particles<R>(&self, renderer: &mut R) where R: render::DrawBuffer {
 		let mut batch = render::PrimitiveBuffer::new();
-		let mut count: usize = 0;
 		for particle in self.world.particles() {
-			let appearance = render::Appearance::new(particle.color(), [100., 0., 0., 0.]);
+			let appearance = render::Appearance::new(
+				particle.color(0).unwrap(),
+				particle.color(1).unwrap());
 			let transform = Self::from_transform(&particle.transform());
 			batch.draw_ball(None, transform, appearance);
 		}

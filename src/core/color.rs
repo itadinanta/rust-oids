@@ -20,6 +20,20 @@ pub trait FromRgb<T: num::Float>: Sized {
 	}
 }
 
+pub trait Fade<F, T> where T: num::Float {
+	fn fade(&self, other: F, alpha: T) -> F;
+}
+
+impl<T> Fade<Rgba<T>, T> for Rgba<T> where T: num::Float {
+	fn fade(&self, other: Rgba<T>, alpha: T) -> Rgba<T> {
+		let alpha1 = T::one() - alpha;
+		[self[0] * alpha + other[0] * alpha1,
+			self[1] * alpha + other[1] * alpha1,
+			self[2] * alpha + other[2] * alpha1,
+			self[3] * alpha + other[3] * alpha1]
+	}
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct Hsl<T: num::Float> {
 	h: T,
@@ -34,7 +48,6 @@ pub struct YPbPr<T: num::Float> {
 	pb: T,
 	pr: T,
 }
-
 
 impl FromRgb<f32> for YPbPr<f32> {
 	fn from_rgb(c: &Rgb<f32>) -> Self {
