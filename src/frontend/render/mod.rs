@@ -187,7 +187,8 @@ pub struct PrimitiveBatch {
 
 #[derive(Clone)]
 pub struct PrimitiveBuffer {
-	batches: HashMap<Style, PrimitiveBatch>
+	max_batch_len: usize,
+	batches: Vec<Vec<PrimitiveBatch>>,
 }
 
 pub trait Draw {
@@ -295,6 +296,10 @@ impl PrimitiveBatch {
 			appearances: Vec::new(),
 		}
 	}
+
+	pub fn len(&self) -> usize {
+		self.transforms.len()
+	}
 }
 
 impl PrimitiveSequence for PrimitiveBatch {
@@ -347,21 +352,24 @@ impl PrimitiveBatch {
 impl PrimitiveBuffer {
 	pub fn new() -> PrimitiveBuffer {
 		PrimitiveBuffer {
-			batches: HashMap::with_capacity(Style::Count as usize)
+			max_batch_len: 256,
+			batches: vec![Vec::new(); Style::Count as usize],
 		}
 	}
 }
 
 impl PrimitiveSequence for PrimitiveBuffer {
 	fn push_batch(&mut self, batch: PrimitiveBatch) -> Result<()> {
-		match self.batches.entry(batch.style) {
-			Entry::Vacant(entry) => {
-				entry.insert(batch);
-				Ok(())
-			}
-			Entry::Occupied(ref mut b) => {
-				b.get_mut().push_batch(batch)
-			}
+		let batch_list = &mut self.batches[batch.style as usize];
+		let is_empty = batch_list.is_empty();
+		let last_len = batch_list.last_mut().map(|l| l.len())
+			.unwrap_or(0);
+		if is_empty || last_len + batch.len() > self.max_batch_len {
+			batch_list.push(batch);
+			Ok(())
+		} else {
+			batch_list.last_mut().map(|l| l.push_batch(batch))
+				.unwrap_or(Ok(()))
 		}
 	}
 
@@ -372,21 +380,13 @@ impl PrimitiveSequence for PrimitiveBuffer {
 					  transform: M44,
 					  appearance: Appearance) -> Result<()>
 	{
-		match self.batches.entry(style) {
-			Entry::Vacant(entry) => {
-				entry.insert(PrimitiveBatch {
-					style,
-					vertices,
-					indices,
-					transforms: vec![transform],
-					appearances: vec![appearance],
-				});
-				Ok(())
-			}
-			Entry::Occupied(ref mut b) => {
-				b.get_mut().push_primitive(style, vertices, indices, transform, appearance)
-			}
-		}
+		self.push_batch(PrimitiveBatch {
+			style,
+			vertices,
+			indices,
+			transforms: vec![transform],
+			appearances: vec![appearance],
+		})
 	}
 }
 
@@ -460,7 +460,7 @@ ForwardRenderer<'e, 'l, R, C, F, L> {
 
 	pub fn resize_to(&mut self, frame_buffer: &gfx::handle::RenderTargetView<R, formats::ScreenColorFormat>)
 					 -> Result<()> {
-		// TODO: this thing leaks?
+// TODO: this thing leaks?
 		let (w, h, _, _) = frame_buffer.get_dimensions();
 		let (hdr_srv, hdr_color_buffer, depth_buffer) = self.factory.create_msaa_surfaces(w, h)?;
 		self.hdr_srv = hdr_srv;
@@ -483,9 +483,11 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> DrawBuffer
 for ForwardRenderer<'e, 'l, R, C, F, L> {
 	fn draw_buffer(&mut self, mut buffer: PrimitiveBuffer) {
-		for (_, batch) in buffer.batches.drain() {
-			self.push_batch(batch)
-				.expect("Could not draw batch");
+		for batch_list in buffer.batches.drain(..) {
+			for batch in batch_list {
+				self.push_batch(batch)
+					.expect("Could not draw batch");
+			}
 		}
 	}
 }
@@ -551,8 +553,8 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 		light_position: &[Position],
 	) {
 		self.background_color = background_color;
-		// 		self.light_color = light_color;
-		// 		self.light_position = light_position;
+// 		self.light_color = light_color;
+// 		self.light_position = light_position;
 		let mut lights: Vec<forward::PointLight> = Vec::new();
 
 		lights.push(forward::PointLight {

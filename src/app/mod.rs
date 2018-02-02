@@ -391,20 +391,14 @@ impl App {
 			let appearance = render::Appearance::new(particle.color(), [100., 0., 0., 0.]);
 			let transform = Self::from_transform(&particle.transform());
 			batch.draw_ball(None, transform, appearance);
-			count += 1;
-			if count > 100 {
-				count = 0;
-				renderer.draw_buffer(batch);
-				batch = render::PrimitiveBuffer::new();
-			}
 		}
 		renderer.draw_buffer(batch);
 	}
 
 	fn render_minions<R>(&self, renderer: &mut R) where R: render::DrawBuffer {
 		for (_, swarm) in self.world.swarms().iter() {
+			let mut batch_buffer = render::PrimitiveBuffer::new();
 			for (_, agent) in swarm.agents().iter() {
-				let mut batch = render::PrimitiveBuffer::new();
 				let energy_left = agent.state.energy_ratio();
 				let phase = agent.state.phase();
 				for segment in agent.segments() {
@@ -418,24 +412,24 @@ impl App {
 
 					match mesh.shape {
 						obj::Shape::Ball { .. } => {
-							batch.draw_ball(None, transform, appearance);
+							batch_buffer.draw_ball(None, transform, appearance);
 						}
 						obj::Shape::Star { .. } => {
-							batch.draw_star(None, transform, &mesh.vertices[..], appearance);
+							batch_buffer.draw_star(None, transform, &mesh.vertices[..], appearance);
 						}
 						obj::Shape::Poly { .. } => {
-							batch.draw_star(None, transform, &mesh.vertices[..], appearance);
+							batch_buffer.draw_star(None, transform, &mesh.vertices[..], appearance);
 						}
 						obj::Shape::Box { ratio, .. } => {
-							batch.draw_quad(Some(Style::Wireframe), transform, ratio, appearance);
+							batch_buffer.draw_quad(Some(Style::Wireframe), transform, ratio, appearance);
 						}
 						obj::Shape::Triangle { .. } => {
-							batch.draw_triangle(None, transform, &mesh.vertices[0..3], appearance);
+							batch_buffer.draw_triangle(None, transform, &mesh.vertices[0..3], appearance);
 						}
 					}
 				}
-				renderer.draw_buffer(batch);
 			}
+			renderer.draw_buffer(batch_buffer);
 		}
 	}
 
@@ -464,10 +458,11 @@ impl App {
 	}
 
 	fn render_hud<R>(&self, renderer: &mut R)
-		where R: render::Draw {
+		where R: render::DrawBuffer {
+		let mut batch_buffer = render::PrimitiveBuffer::new();
 		for e in self.world.feeders() {
 			let transform = Self::from_position(&e.transform().position);
-			renderer.draw_ball(None, transform, render::Appearance::rgba(self.lights.get()));
+			batch_buffer.draw_ball(None, transform, render::Appearance::rgba(self.lights.get()));
 		}
 		if self.debug_flags.contains(DebugFlags::DEBUG_TARGETS) {
 			use cgmath::*;
@@ -478,7 +473,7 @@ impl App {
 					let a0 = sensor.transform.angle;
 					let radar_range = sensor.mesh.shape.radius() * 10.;
 					let p1 = *agent.state.target_position();
-					renderer.draw_lines(
+					batch_buffer.draw_lines(
 						Some(Style::DebugLines),
 						Matrix4::identity(),
 						&[p0, p1],
@@ -491,7 +486,7 @@ impl App {
 
 					let v = m * (-Position::unit_y());
 					let p2 = p0 + v.normalize_to(t.dot(v));
-					renderer.draw_lines(
+					batch_buffer.draw_lines(
 						Some(Style::DebugLines),
 						Matrix4::identity(),
 						&[p0, p2],
@@ -500,7 +495,7 @@ impl App {
 
 					let u = m * (-Position::unit_x());
 					let p3 = p0 + u.normalize_to(t.perp_dot(v));
-					renderer.draw_lines(
+					batch_buffer.draw_lines(
 						Some(Style::DebugLines),
 						Matrix4::identity(),
 						&[p0, p3],
@@ -509,14 +504,14 @@ impl App {
 
 					let trajectory = agent.state.trajectory();
 					let appearance = render::Appearance::new(sensor.color(), [2.0, 1.0, 0., 0.]);
-					renderer.draw_lines(Some(Style::DebugLines), Matrix4::identity(), &trajectory, appearance);
+					batch_buffer.draw_lines(Some(Style::DebugLines), Matrix4::identity(), &trajectory, appearance);
 
 					for segment in agent.segments().iter() {
 						match segment.state.intent {
 							segment::Intent::Brake(v) => {
 								let p0 = segment.transform.position;
 								let p1 = p0 + v * DEBUG_DRAW_BRAKE_SCALE;
-								renderer.draw_lines(
+								batch_buffer.draw_lines(
 									Some(Style::DebugLines),
 									Matrix4::identity(),
 									&[p0, p1],
@@ -526,7 +521,7 @@ impl App {
 							segment::Intent::Move(v) => {
 								let p0 = segment.transform.position;
 								let p1 = p0 + v * DEBUG_DRAW_MOVE_SCALE;
-								renderer.draw_lines(
+								batch_buffer.draw_lines(
 									Some(Style::DebugLines),
 									Matrix4::identity(),
 									&[p0, p1],
@@ -538,7 +533,8 @@ impl App {
 					}
 				}
 			}
-		}
+		};
+		renderer.draw_buffer(batch_buffer)
 	}
 
 	pub fn render<R>(&self, renderer: &mut R)
