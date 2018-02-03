@@ -62,6 +62,7 @@ struct Particle {
 	transform: Transform,
 	motion: Motion,
 	acceleration: Velocity,
+	trail_length: usize,
 	trail: VecDeque<Position>,
 	dampening: f32,
 	friction: f32,
@@ -80,6 +81,7 @@ struct SimpleEmitter {
 	transform: Transform,
 	motion: Motion,
 	attached_to: Option<obj::Id>,
+	trail_length: usize,
 	pulse: Phase,
 	phase: Phase,
 	rate: f32,
@@ -95,6 +97,7 @@ impl SimpleEmitter {
 			transform: Transform::new(Position::zero(), 0.),
 			motion: Motion::new(10. * Velocity::unit_x(), 0.),
 			attached_to: None,
+			trail_length: TRAIL_LENGTH,
 			pulse: 0.,
 			phase: 0.,
 			rate: 5.,
@@ -122,6 +125,7 @@ impl Emitter for SimpleEmitter {
 						id,
 						tag: 0,
 						transform: Transform::new(self.transform.position, self.transform.angle + alpha),
+						trail_length: self.trail_length,
 						trail: VecDeque::new(),
 						motion: Motion::new(velocity, self.motion.spin),
 						dampening: 0.,
@@ -158,7 +162,6 @@ impl Emitter for SimpleEmitter {
 #[allow(unused)]
 pub struct ParticleSystem {
 	id_counter: usize,
-	trail_length: usize,
 	particles: HashMap<obj::Id, Particle>,
 	emitters: HashMap<obj::Id, Box<Emitter>>,
 	dt: Seconds,
@@ -185,7 +188,8 @@ impl ParticleSystem {
 
 	fn update_particles(&mut self) {
 		let dt = self.dt;
-		let expired: Vec<Option<obj::Id>> = self.particles
+		let trail_length = TRAIL_LENGTH;
+		let expired: Vec<obj::Id> = self.particles
 			.par_iter_mut().map(|(id, particle)| {
 			particle.ttl -= dt;
 			if particle.ttl.get() <= 0. {
@@ -197,7 +201,7 @@ impl ParticleSystem {
 					let axis_y = Velocity::new(-axis_x.y, axis_x.x);
 					let world_acceleration = particle.acceleration.x * axis_x
 						+ particle.acceleration.y * axis_y;
-					if particle.trail.len() > TRAIL_LENGTH {
+					if particle.trail.len() > trail_length {
 						particle.trail.pop_front();
 					}
 					particle.trail.push_back(particle.transform.position);
@@ -210,10 +214,9 @@ impl ParticleSystem {
 				for fader in particle.faders.iter_mut() { fader.update(dt); }
 				None
 			}
-		}).collect();
+		}).filter_map(|i| i).collect();
 
-		for id in expired.into_iter().filter(|expired| expired.is_some())
-			.map(|expired| expired.unwrap()) {
+		for id in expired.into_iter() {
 			self.particles.remove(&id);
 		}
 	}
@@ -272,9 +275,8 @@ impl Default for ParticleSystem {
 		let simulation_timer = Rc::new(RefCell::new(SimulationTimer::new()));
 		ParticleSystem {
 			id_counter: 0,
-			trail_length: TRAIL_LENGTH,
-			particles: HashMap::new(),
 			emitters: HashMap::new(),
+			particles: HashMap::new(),
 			dt: seconds(0.),
 			simulation_clock: TimerStopwatch::new(simulation_timer.clone()),
 			simulation_timer,
