@@ -45,7 +45,7 @@ impl Particle {
 
 	pub fn color(&self, index: usize) -> Option<Rgba<f32>> {
 		let c = [
-			([400.0, 90.0, 1.0, 1.], [0.01, 0., 0., 0.]),
+			([400.0, 90.0, 1.0, 1.], [0., 0., 0., 0.]),
 			([1.0, 1.0, 0., 1.], [0., 0., 0., 0.])];
 		self.faders.get(index)
 			.map(move |fader| c[index].0.fade(c[index].1, *fader))

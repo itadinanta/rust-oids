@@ -125,10 +125,10 @@ impl Emitter for SimpleEmitter {
 						trail: VecDeque::new(),
 						motion: Motion::new(velocity, self.motion.spin),
 						dampening: 0.,
-						friction: 0.1,
+						friction: 0.2,
 						faders: (0..MAX_FADER).map(|_| Fader::new(1.0, 0.95, 0.)).collect(),
 						acceleration: -Velocity::unit_y(),
-						ttl: seconds(5.),
+						ttl: seconds(10.),
 					});
 					*id_counter = id + 1;
 				}
