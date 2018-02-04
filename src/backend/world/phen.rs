@@ -6,8 +6,8 @@ use core::color::ToRgb;
 use core::geometry::*;
 use core::geometry::Transform;
 use core::clock;
+use core::clock::Timer;
 use core::clock::SimulationTimer;
-use core::clock::SharedTimer;
 use backend::world::segment;
 use backend::world::segment::*;
 use backend::world::agent;
@@ -20,7 +20,7 @@ use cgmath;
 use cgmath::InnerSpace;
 
 pub trait Phenotype {
-	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, clock: SharedTimer<SimulationTimer>) -> agent::Agent;
+	fn develop<T>(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer;
 }
 
 pub struct Resource {}
@@ -32,7 +32,7 @@ pub struct Player {}
 pub struct Spore {}
 
 impl Phenotype for Resource {
-	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, clock: SharedTimer<SimulationTimer>) -> agent::Agent {
+	fn develop<T>(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer {
 		gen.next_integer::<u8>(0, 3);
 		let albedo = color::YPbPr::new(0.5, gen.next_float(-0.5, 0.5), gen.next_float(-0.5, 0.5));
 		let body = gen.eq_triangle();
@@ -48,17 +48,15 @@ impl Phenotype for Resource {
 			},
 			gen.dna(),
 			segment::State::with_charge(charge, 0., charge),
-			clock,
 		);
-		builder.start(transform, motion, &body).build()
+		builder.start(transform, motion, &body).build(timer)
 	}
 }
 
-
 impl Phenotype for Player {
-	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, clock: SharedTimer<SimulationTimer>) -> agent::Agent {
+	fn develop<T>(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer {
 		let albedo = color::YPbPr::new(0.5, 0., 0.);
-		let body = Shape::new_star(10, 3.0, 0.9, 1./0.9);
+		let body = Shape::new_star(10, 3.0, 0.9, 1. / 0.9);
 		let mut builder = AgentBuilder::new(
 			id,
 			Material {
@@ -74,15 +72,13 @@ impl Phenotype for Player {
 			},
 			gen.dna(),
 			segment::State::with_charge(charge, charge, charge),
-			clock,
 		);
-		builder.start(transform, motion, &body).build()
+		builder.start(transform, motion, &body).build(timer)
 	}
 }
 
-
 impl Phenotype for Minion {
-	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, clock: SharedTimer<SimulationTimer>) -> agent::Agent {
+	fn develop<T>(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer {
 		let gender = gen.next_integer::<u8>(0, 3);
 		let tint = gen.next_float(0., 1.);
 		let albedo = color::Hsl::new(tint, 0.5, 0.5);
@@ -98,7 +94,6 @@ impl Phenotype for Minion {
 			},
 			gen.dna(),
 			segment::State::with_charge(0., charge, charge),
-			clock,
 		);
 		builder.gender(gender);
 
@@ -221,12 +216,12 @@ impl Phenotype for Minion {
 				&tail_shape,
 				Flags::TAIL | Flags::ACTUATOR | Flags::BRAKE,
 			)
-			.build()
+			.build(timer)
 	}
 }
 
 impl Phenotype for Spore {
-	fn develop(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, clock: SharedTimer<SimulationTimer>) -> agent::Agent {
+	fn develop<T>(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer {
 		let gender = gen.next_integer::<u8>(0, 3);
 		let tint = gen.next_float(0., 1.);
 		let albedo = color::Hsl::new(tint, 0.5, 0.5);
@@ -243,12 +238,11 @@ impl Phenotype for Spore {
 			},
 			gen.dna(),
 			segment::State::with_charge(0., charge, charge),
-			clock,
 		);
 		builder
 			.gender(gender)
 			.start(transform, motion, &gen.ball())
-			.build()
+			.build(timer)
 	}
 }
 
@@ -261,11 +255,10 @@ pub struct AgentBuilder {
 	dna: Dna,
 	state: segment::State,
 	segments: Vec<Segment>,
-	clock: SharedTimer<clock::SimulationTimer>,
 }
 
 impl AgentBuilder {
-	pub fn new(id: Id, material: Material, livery: Livery, dna: &Dna, state: segment::State, clock: SharedTimer<clock::SimulationTimer>) -> Self {
+	pub fn new(id: Id, material: Material, livery: Livery, dna: &Dna, state: segment::State) -> Self {
 		AgentBuilder {
 			id,
 			material,
@@ -275,7 +268,6 @@ impl AgentBuilder {
 			brain: Brain::default(),
 			dna: dna.clone(),
 			segments: Vec::new(),
-			clock,
 		}
 	}
 
@@ -431,7 +423,7 @@ impl AgentBuilder {
 		}
 	}
 
-	pub fn build(&self) -> Agent {
+	pub fn build<T>(&self, timer: &T) -> Agent where T: Timer {
 		trace!("Agent {:?} has brain {:?}", self.id, self.brain);
 		Agent::new(
 			self.id,
@@ -439,7 +431,7 @@ impl AgentBuilder {
 			&self.brain,
 			&self.dna,
 			self.segments.clone().into_boxed_slice(),
-			self.clock.clone(),
+			timer,
 		)
 	}
 }

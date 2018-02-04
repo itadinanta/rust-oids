@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use backend::world::WorldState;
 use backend::world::agent;
 use core::clock::*;
-use core::clock::SharedTimer;
+use core::clock::Timer;
 use num_traits::clamp;
 
 #[allow(unused)]
@@ -12,17 +12,17 @@ pub struct AnimationSystem {
 	speed: SpeedFactor,
 	heartbeat_scale: SpeedFactor,
 	dt: Seconds,
-	animation_timer: SharedTimer<SimulationTimer>,
-	simulation_timer: SharedTimer<SimulationTimer>,
-	animation_clock: TimerStopwatch<SharedTimer<SimulationTimer>>,
-	simulation_clock: TimerStopwatch<SharedTimer<SimulationTimer>>,
+	animation_timer: SimulationTimer,
+	simulation_timer: SimulationTimer,
+	animation_clock: TimerStopwatch,
+	simulation_clock: TimerStopwatch,
 }
 
 impl Updateable for AnimationSystem {
 	fn update(&mut self, _: &WorldState, dt: Seconds) {
 		self.dt = dt;
-		self.simulation_timer.borrow_mut().tick(dt);
-		self.animation_timer.borrow_mut().tick(dt * self.speed);
+		self.simulation_timer.tick(dt);
+		self.animation_timer.tick(dt * self.speed);
 	}
 }
 
@@ -39,14 +39,14 @@ impl System for AnimationSystem {
 
 impl Default for AnimationSystem {
 	fn default() -> Self {
-		let animation_timer = SimulationTimer::new().shared();
-		let simulation_timer = SimulationTimer::new().shared();
+		let animation_timer = SimulationTimer::new();
+		let simulation_timer = SimulationTimer::new();
 		AnimationSystem {
 			speed: 1.0,
 			heartbeat_scale: 1.0 / 60.0,
 			dt: seconds(0.0),
-			simulation_clock: TimerStopwatch::new(simulation_timer.clone()),
-			animation_clock: TimerStopwatch::new(animation_timer.clone()),
+			simulation_clock: TimerStopwatch::new(&simulation_timer),
+			animation_clock: TimerStopwatch::new(&animation_timer),
 			animation_timer,
 			simulation_timer,
 		}

@@ -165,8 +165,8 @@ pub struct ParticleSystem {
 	particles: HashMap<obj::Id, Particle>,
 	emitters: HashMap<obj::Id, Box<Emitter>>,
 	dt: Seconds,
-	simulation_timer: SharedTimer<SimulationTimer>,
-	simulation_clock: TimerStopwatch<SharedTimer<SimulationTimer>>,
+	simulation_timer: SimulationTimer,
+	simulation_clock: TimerStopwatch,
 }
 
 impl ParticleSystem {
@@ -225,7 +225,7 @@ impl ParticleSystem {
 impl Updateable for ParticleSystem {
 	fn update(&mut self, _: &WorldState, dt: Seconds) {
 		self.dt = dt;
-		self.simulation_timer.borrow_mut().tick(dt);
+		self.simulation_timer.tick(dt);
 
 		self.update_emitters();
 		self.update_particles();
@@ -272,13 +272,13 @@ impl System for ParticleSystem {
 
 impl Default for ParticleSystem {
 	fn default() -> Self {
-		let simulation_timer = Rc::new(RefCell::new(SimulationTimer::new()));
+		let simulation_timer = SimulationTimer::new();
 		ParticleSystem {
 			id_counter: 0,
 			emitters: HashMap::new(),
 			particles: HashMap::new(),
 			dt: seconds(0.),
-			simulation_clock: TimerStopwatch::new(simulation_timer.clone()),
+			simulation_clock: TimerStopwatch::new(&simulation_timer),
 			simulation_timer,
 		}
 	}

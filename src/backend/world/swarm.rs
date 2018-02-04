@@ -1,8 +1,7 @@
 use backend::obj::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use core::clock::SharedTimer;
-use core::clock::SimulationTimer;
+use core::clock::Timer;
 use core::geometry::*;
 use core::geometry::Transform;
 use backend::world::phen;
@@ -16,16 +15,14 @@ pub struct Swarm {
 	seq: Id,
 	agent_type: AgentType,
 	agents: agent::AgentMap,
-	clock: SharedTimer<SimulationTimer>,
 }
 
 impl Swarm {
-	pub fn new(agent_type: AgentType, clock: SharedTimer<SimulationTimer>) -> Swarm {
+	pub fn new(agent_type: AgentType) -> Swarm {
 		Swarm {
 			seq: 0,
 			agent_type,
 			agents: HashMap::new(),
-			clock
 		}
 	}
 
@@ -63,15 +60,16 @@ impl Swarm {
 		}
 	}
 
-	pub fn spawn<T>(&mut self, genome: &mut Genome, transform: &Transform, motion: Option<&Motion>, charge: f32) -> Id
+	pub fn spawn<P, T>(&mut self, genome: &mut Genome, transform: &Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> Id
 		where
-			T: phen::Phenotype, {
+			P: phen::Phenotype,
+			T: Timer {
 		let id = self.next_id();
 		match id.type_of() {
 			AgentType::Minion | AgentType::Spore => info!("spawn: {} as {}", genome, id.type_of()),
 			_ => {}
 		}
-		let entity = T::develop(genome, id, transform, motion, charge, self.clock.clone());
+		let entity = P::develop(genome, id, transform, motion, charge, timer);
 		self.insert(entity)
 	}
 

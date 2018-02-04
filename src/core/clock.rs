@@ -93,9 +93,7 @@ impl Into<f32> for Seconds {
 
 /// Timer
 pub trait Timer {
-	type Shared;
 	fn seconds(&self) -> Seconds;
-	fn shared(self) -> Self::Shared where Self: Sized;
 }
 
 /// SystemTimer
@@ -109,15 +107,11 @@ impl SystemTimer {
 }
 
 impl Timer for SystemTimer {
-	type Shared = Rc<RefCell<Self>>;
 	fn seconds(&self) -> Seconds {
 		match self.t0.elapsed() {
 			Ok(dt) => Seconds((dt.as_secs() as SecondsValue) + (dt.subsec_nanos() as SecondsValue) * 1e-9),
 			Err(_) => Seconds::zero(),
 		}
-	}
-	fn shared(self) -> Self::Shared where Self: Sized {
-		Rc::new(RefCell::new(self))
 	}
 }
 
@@ -127,25 +121,18 @@ pub struct SimulationTimer {
 	seconds: Seconds
 }
 
-impl SimulationTimer {
-	pub fn new() -> Self { SimulationTimer { seconds: Seconds::zero() } }
-}
-
 impl From<Seconds> for SimulationTimer {
 	fn from(seconds: Seconds) -> Self { SimulationTimer { seconds } }
 }
 
 impl Timer for SimulationTimer {
-	type Shared = Rc<RefCell<Self>>;
 	fn seconds(&self) -> Seconds {
 		self.seconds
-	}
-	fn shared(self) -> Self::Shared where Self: Sized {
-		Rc::new(RefCell::new(self))
 	}
 }
 
 impl SimulationTimer {
+	pub fn new() -> Self { SimulationTimer { seconds: Seconds::zero() } }
 	pub fn tick(&mut self, dt: Seconds) {
 		self.seconds += dt
 	}
@@ -154,75 +141,55 @@ impl SimulationTimer {
 
 /// Stopwatch
 pub trait Stopwatch {
-	fn reset(&mut self);
+	fn reset<T>(&mut self, timer: &T) where T: Timer;
 
-	fn elapsed(&self) -> Seconds;
+	fn elapsed<T>(&self, timer: &T) -> Seconds where T: Timer;
 
-	fn restart(&mut self) -> Seconds {
-		let elapsed = self.elapsed();
-		self.reset();
+	fn restart<T>(&mut self, timer: &T) -> Seconds where T: Timer {
+		let elapsed = self.elapsed(timer);
+		self.reset(timer);
 		elapsed
 	}
 }
 
-pub type SharedTimer<T> = Rc<RefCell<T>>;
-
-impl<T> Timer for Rc<RefCell<T>> where T: Timer {
-	type Shared = Self;
-	fn seconds(&self) -> Seconds {
-		self.borrow().seconds()
-	}
-	fn shared(self) -> Self::Shared where Self: Sized {
-		self
-	}
-}
-
-/// TimerStopwatch
 #[derive(Clone)]
-pub struct TimerStopwatch<T> where T: Timer {
-	timer: T,
+pub struct TimerStopwatch {
 	t0: Seconds,
 }
 
-impl<T> Stopwatch for TimerStopwatch<T> where T: Timer {
-	fn elapsed(&self) -> Seconds {
-		self.timer.seconds() - self.t0
-	}
-
-	fn reset(&mut self) {
-		self.t0 = self.timer.seconds();
+impl TimerStopwatch {
+	pub fn new<T>(timer: &T) -> Self where T: Timer {
+		let t0 = timer.seconds();
+		TimerStopwatch { t0 }
 	}
 }
 
-impl<T> TimerStopwatch<T> where T: Timer {
-	pub fn new(timer: T) -> Self {
-		let t0 = timer.seconds();
-		TimerStopwatch { timer, t0 }
+impl Stopwatch for TimerStopwatch {
+	fn elapsed<T>(&self, timer: &T) -> Seconds where T: Timer {
+		timer.seconds() - self.t0
+	}
+
+	fn reset<T>(&mut self, timer: &T) where T: Timer {
+		self.t0 = timer.seconds();
 	}
 }
 
 /// Hourglass
 #[derive(Clone)]
-pub struct Hourglass<T: Timer> {
-	stopwatch: TimerStopwatch<T>,
+pub struct Hourglass {
+	stopwatch: TimerStopwatch,
 	capacity: Seconds,
 	timeout: Seconds,
 }
 
-impl<T> fmt::Debug for Hourglass<T> where T: Timer {
+impl fmt::Debug for Hourglass {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "{} ({}, {})", self.left(), self.timeout, self.capacity)
+		write!(f, "({}, {})", self.timeout, self.capacity)
 	}
 }
 
-impl<T> fmt::Display for Hourglass<T> where T: Timer {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "{} ({}, {})", self.left(), self.timeout, self.capacity)
-	}
-}
-
-impl<T> Hourglass<T> where T: Timer {
-	pub fn new(timer: T, seconds: Seconds) -> Self {
+impl Hourglass {
+	pub fn new<T>(seconds: Seconds, timer: &T) -> Self where T: Timer {
 		Hourglass {
 			stopwatch: TimerStopwatch::new(timer),
 			capacity: seconds,
@@ -230,35 +197,35 @@ impl<T> Hourglass<T> where T: Timer {
 		}
 	}
 
-	pub fn renew(&mut self) {
+	pub fn renew<T>(&mut self, timer: &T) where T: Timer {
 		self.timeout = self.capacity;
-		self.stopwatch.reset()
+		self.stopwatch.reset(timer)
 	}
 
-	pub fn flip(&mut self) -> Seconds {
-		let left = self.left();
+	pub fn flip<T>(&mut self, timer: &T) -> Seconds where T: Timer {
+		let left = self.left(timer);
 		self.timeout = self.capacity - left;
-		self.stopwatch.reset();
+		self.stopwatch.reset(timer);
 		left
 	}
 
 	#[allow(unused)]
-	pub fn elapsed(&self) -> Seconds {
-		self.stopwatch.elapsed()
+	pub fn elapsed<T>(&self, timer: &T) -> Seconds where T: Timer {
+		self.stopwatch.elapsed(timer)
 	}
 
-	pub fn left(&self) -> Seconds {
-		let dt = self.timeout - self.stopwatch.elapsed();
+	pub fn left<T>(&self, timer: &T) -> Seconds where T: Timer {
+		let dt = self.timeout - self.stopwatch.elapsed(timer);
 		Seconds(SecondsValue::max(0., dt.into()))
 	}
 
-	pub fn is_expired(&self) -> bool {
-		self.left().get() <= Seconds::zero().0
+	pub fn is_expired<T>(&self, timer: &T) -> bool where T: Timer {
+		self.left(timer).get() <= Seconds::zero().0
 	}
 
-	pub fn flip_if_expired(&mut self) -> bool {
-		let expired = self.is_expired();
-		if expired { self.flip(); };
+	pub fn flip_if_expired<T>(&mut self, timer: &T) -> bool where T: Timer {
+		let expired = self.is_expired(timer);
+		if expired { self.flip(timer); };
 		expired
 	}
 }

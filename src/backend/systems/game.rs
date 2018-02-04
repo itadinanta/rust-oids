@@ -21,13 +21,14 @@ pub struct PlayerState {
 }
 
 pub struct GameSystem {
+	timer: SimulationTimer,
 	playerstate: PlayerState,
 	feeders: Vec<Feeder>,
 }
 
 struct Feeder {
 	position: Position,
-	hourglass: Hourglass<SharedTimer<SimulationTimer>>,
+	hourglass: Hourglass,
 	to_spawn: usize,
 	spawned: usize,
 	emission: Emission,
@@ -36,10 +37,10 @@ struct Feeder {
 }
 
 impl Feeder where {
-	fn new(timer: SharedTimer<SimulationTimer>, position: Position, rate: Seconds, emission: Emission) -> Self {
+	fn new<T>(position: Position, rate: Seconds, emission: Emission, timer: &T) -> Self where T: Timer {
 		Feeder {
 			position,
-			hourglass: Hourglass::new(timer, rate),
+			hourglass: Hourglass::new(rate, timer),
 			to_spawn: 0,
 			spawned: 0,
 			emission,
@@ -51,12 +52,13 @@ impl Feeder where {
 
 impl Updateable for GameSystem {
 	fn update(&mut self, _: &world::WorldState, dt: Seconds) {
+		self.timer.tick(dt);
 		for e in &mut self.feeders {
 			e.spawned = e.to_spawn;
 		}
 		for e in &mut self.feeders {
-			if e.hourglass.is_expired() {
-				e.hourglass.flip();
+			if e.hourglass.is_expired(&self.timer) {
+				e.hourglass.flip(&self.timer);
 				e.to_spawn += 1;
 			}
 		}
@@ -85,10 +87,10 @@ impl System for GameSystem {
 		for i in self.feeders.len()..source.len() {
 			let s = &source[i];
 			self.feeders.push(Feeder::new(
-				world.clock().clone(),
 				s.transform().position,
 				s.rate(),
 				s.emission(),
+				&self.timer,
 			));
 		}
 		for (i, d) in self.feeders.iter_mut().enumerate() {
@@ -132,6 +134,7 @@ impl System for GameSystem {
 impl Default for GameSystem {
 	fn default() -> Self {
 		GameSystem {
+			timer: SimulationTimer::new(),
 			playerstate: PlayerState::default(),
 			feeders: Vec::new(),
 		}

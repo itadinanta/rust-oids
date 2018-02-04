@@ -2,6 +2,8 @@ use super::*;
 use std::collections::HashMap;
 use rand;
 use core::geometry;
+use core::clock::Timer;
+use core::clock::SimulationTimer;
 use backend::obj;
 use backend::obj::Transformable;
 use backend::obj::Identified;
@@ -19,6 +21,7 @@ type GeneMap = HashMap<obj::Id, gen::Dna>;
 
 pub struct AlifeSystem {
 	dt: Seconds,
+	simulation_timer: SimulationTimer,
 	source: Box<[world::Feeder]>,
 	eaten: StateMap,
 	touched: GeneMap,
@@ -27,6 +30,7 @@ pub struct AlifeSystem {
 impl Updateable for AlifeSystem {
 	fn update(&mut self, _: &WorldState, dt: Seconds) {
 		self.dt = dt;
+		self.simulation_timer.tick(dt);
 	}
 }
 
@@ -46,18 +50,21 @@ impl System for AlifeSystem {
 	fn put_to_world(&self, world: &mut world::World) {
 		Self::update_resources(
 			self.dt,
+			&self.simulation_timer,
 			&mut world.agents_mut(agent::AgentType::Resource),
 			&self.eaten,
 		);
 
 		let (spores, corpses) = Self::update_minions(
 			self.dt,
+			&self.simulation_timer,
 			&world.extent.clone(),
 			&mut world.agents_mut(agent::AgentType::Minion),
 			&self.eaten,
 		);
 		let (hatch, fertilised) = Self::update_spores(
 			self.dt,
+			&self.simulation_timer,
 			&mut world.agents_mut(agent::AgentType::Spore),
 			&self.touched,
 		);
@@ -86,6 +93,7 @@ impl Default for AlifeSystem {
 	fn default() -> Self {
 		AlifeSystem {
 			dt: Seconds::new(1. / 60.),
+			simulation_timer: SimulationTimer::new(),
 			source: Box::new([]),
 			eaten: StateMap::new(),
 			touched: GeneMap::new(),
@@ -130,7 +138,7 @@ impl AlifeSystem {
 		touched
 	}
 
-	fn update_minions(dt: Seconds, extent: &geometry::Rect, minions: &mut agent::AgentMap, eaten: &StateMap)
+	fn update_minions(dt: Seconds, timer: &SimulationTimer, extent: &geometry::Rect, minions: &mut agent::AgentMap, eaten: &StateMap)
 					  -> (Box<[(geometry::Transform, gen::Dna)]>,
 						  Box<[(Box<[geometry::Transform]>, gen::Dna)]>,
 					  ) {
@@ -138,12 +146,12 @@ impl AlifeSystem {
 		let mut corpses = Vec::new();
 		for (_, agent) in minions.iter_mut() {
 			if agent.state.is_active() {
-				if agent.state.lifecycle().is_expired() && agent.state.consume_ratio(0.75) {
+				if agent.state.lifecycle().is_expired(timer) && agent.state.consume_ratio(0.75) {
 					spawns.push((
 						agent.last_segment().transform().clone(),
 						agent.dna().clone(),
 					));
-					agent.state.renew();
+					agent.state.renew(timer);
 				}
 				for segment in agent.segments.iter_mut() {
 					let p = segment.transform().position;
@@ -179,13 +187,13 @@ impl AlifeSystem {
 		(spawns.into_boxed_slice(), corpses.into_boxed_slice())
 	}
 
-	fn update_resources(dt: Seconds, resources: &mut agent::AgentMap, eaten: &StateMap) {
+	fn update_resources(dt: Seconds, timer: &SimulationTimer, resources: &mut agent::AgentMap, eaten: &StateMap) {
 		for (_, agent) in resources.iter_mut() {
 			if eaten.get(&agent.id()).is_some() {
 				agent.state.die();
 			} else if agent.state.energy() <= 0. {
 				agent.state.die();
-			} else if agent.state.lifecycle().is_expired() {
+			} else if agent.state.lifecycle().is_expired(timer) {
 				agent.state.die();
 			} else if agent.state.is_active() {
 				for segment in agent.segments.iter_mut() {
@@ -207,12 +215,12 @@ impl AlifeSystem {
 		}
 	}
 
-	fn update_spores(dt: Seconds, spores: &mut agent::AgentMap, touched: &GeneMap)
+	fn update_spores(dt: Seconds, timer: &SimulationTimer, spores: &mut agent::AgentMap, touched: &GeneMap)
 					 -> (Box<[(geometry::Transform, gen::Dna)]>, usize) {
 		let mut spawns = Vec::new();
 		let mut fertilise_count = 0usize;
 		for (spore_id, spore) in spores.iter_mut() {
-			if spore.state.lifecycle().is_expired() {
+			if spore.state.lifecycle().is_expired(timer) {
 				spore.state.die();
 				spawns.push((
 					spore.transform().clone(),

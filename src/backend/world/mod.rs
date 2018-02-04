@@ -53,7 +53,7 @@ pub struct World {
 	regenerations: usize,
 	minion_gene_pool: gen::GenePool,
 	resource_gene_pool: gen::GenePool,
-	clock: SharedTimer<SimulationTimer>,
+	clock: SimulationTimer,
 	alerts: Vec<AlertEvent>,
 	emitters: Vec<Emitter>,
 	particles: Vec<Particle>,
@@ -67,7 +67,7 @@ impl WorldState for World {
 
 impl AlertReceiver for World {
 	fn alert(&mut self, alert: Alert) {
-		let timestamp = self.clock.borrow().seconds();
+		let timestamp = self.clock.seconds();
 		self.alerts.push(AlertEvent::new(timestamp, alert));
 	}
 }
@@ -118,9 +118,9 @@ impl World {
 			R: ResourceLoader<u8>, {
 		let mut swarms = HashMap::new();
 		let types = AgentType::all();
-		let clock = Rc::new(RefCell::new(SimulationTimer::new()));
+		let clock = SimulationTimer::new();
 		for t in types {
-			swarms.insert(*t, Swarm::new(*t, clock.clone()));
+			swarms.insert(*t, Swarm::new(*t));
 		}
 		fn default_gene_pool(_: io::Error) -> gen::GenePool {
 			gen::GenePool::parse_from_base64(DEFAULT_MINION_GENE_POOL)
@@ -150,12 +150,12 @@ impl World {
 	}
 
 	pub fn tick(&mut self, dt: Seconds) {
-		self.clock.borrow_mut().tick(dt);
+		self.clock.tick(dt);
 	}
 
-	pub fn clock(&self) -> SharedTimer<SimulationTimer> { self.clock.clone() }
+	pub fn clock(&self) -> SimulationTimer { self.clock.clone() }
 
-	pub fn seconds(&self) -> Seconds { self.clock.borrow().seconds() }
+	pub fn seconds(&self) -> Seconds { self.clock.seconds() }
 
 	pub fn extinctions(&self) -> usize {
 		if self.regenerations > 1 { self.regenerations - 1 } else { 0usize }
@@ -163,33 +163,47 @@ impl World {
 
 	pub fn new_resource(&mut self, transform: &Transform, motion: Option<&Motion>) -> obj::Id {
 		let mut gen = &mut self.resource_gene_pool.next();
-		let id = self.swarm_mut(&AgentType::Resource)
-			.spawn::<phen::Resource>(&mut gen, transform, motion, DEFAULT_RESOURCE_CHARGE);
+		let clock = self.clock.clone();
+		let id = self.swarm_mut(&AgentType::Resource).spawn::<phen::Resource, _>(
+			&mut gen,
+			transform,
+			motion,
+			DEFAULT_RESOURCE_CHARGE,
+			&clock);
 		self.register(id)
 	}
 
 	pub fn decay_to_resource(&mut self, transform: &Transform, dna: &gen::Dna) -> obj::Id {
-		let id = self.swarm_mut(&AgentType::Resource)
-			.spawn::<phen::Resource>(&mut gen::Genome::new(dna), transform, None, DEFAULT_RESOURCE_CHARGE);
+		let clock = self.clock.clone();
+		let id = self.swarm_mut(&AgentType::Resource).spawn::<phen::Resource, _>(
+			&mut gen::Genome::new(dna),
+			transform,
+			None,
+			DEFAULT_RESOURCE_CHARGE,
+			&clock);
 		self.register(id)
 	}
 
 	pub fn new_spore(&mut self, transform: &Transform, dna: &gen::Dna) -> obj::Id {
-		let id = self.swarm_mut(&AgentType::Spore).spawn::<phen::Spore>(
+		let clock = self.clock.clone();
+		let id = self.swarm_mut(&AgentType::Spore).spawn::<phen::Spore, _>(
 			&mut gen::Genome::new(dna).mutate(&mut rand::thread_rng()),
 			transform,
 			None,
 			DEFAULT_SPORE_CHARGE,
+			&clock,
 		);
 		self.register(id)
 	}
 
 	pub fn hatch_spore(&mut self, transform: &Transform, dna: &gen::Dna) -> obj::Id {
-		let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Minion>(
+		let clock = self.clock.clone();
+		let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Minion, _>(
 			&mut gen::Genome::new(dna),
 			transform,
 			None,
 			DEFAULT_MINION_CHARGE,
+			&clock,
 		);
 		self.register(id)
 	}
@@ -202,17 +216,19 @@ impl World {
 	pub fn init_minions(&mut self) {
 		self.regenerations += 1;
 		let n = self.minion_gene_pool.len();
+		let clock = self.clock.clone();
 		let mut r = self.extent.top_right().x * INITIAL_SPAWN_RADIUS_RATIO;
 		let mut angle = 0.0f32;
 		let angle_delta = consts::PI * 2. / INITIAL_SPAWN_RADIUS_SLICES as f32;
 		for _ in 0..n {
 			let pos = Position::new(r * angle.cos(), r * angle.sin());
 			let mut gen = self.minion_gene_pool.next();
-			let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Minion>(
+			let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Minion, _>(
 				&mut gen,
 				&Transform::new(pos, angle + consts::PI / 2.),
 				None,
 				DEFAULT_MINION_CHARGE,
+				&clock,
 			);
 			self.register(id);
 			angle += angle_delta;
@@ -224,10 +240,10 @@ impl World {
 		self.registered_player_id = Some(self.spawn_player(Position::new(0., 0.), None))
 	}
 
-	// TODO: just copied simple phen from Resource
 	pub fn spawn_player(&mut self, pos: Position, _motion: Option<&Motion>) -> obj::Id {
 		let mut gen = gen::Genome::new(&[0, 0, 0, 0]);
-		let id = self.swarm_mut(&AgentType::Player).spawn::<phen::Player>(
+		let clock = self.clock.clone();
+		let id = self.swarm_mut(&AgentType::Player).spawn::<phen::Player, _>(
 			&mut gen,
 			&Transform::new(
 				pos,
@@ -235,6 +251,7 @@ impl World {
 			),
 			None,
 			DEFAULT_MINION_CHARGE,
+			&clock,
 		);
 		self.register(id)
 	}
@@ -280,7 +297,8 @@ impl World {
 	pub fn new_minion(&mut self, pos: Position, motion: Option<&Motion>) -> obj::Id {
 		let angle = consts::PI / 2. + f32::atan2(pos.y, pos.x);
 		let mut gen = self.minion_gene_pool.next();
-		let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Minion>(
+		let clock = self.clock.clone();
+		let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Minion, _>(
 			&mut gen,
 			&Transform::new(
 				pos,
@@ -288,6 +306,7 @@ impl World {
 			),
 			motion,
 			0.3,
+			&clock,
 		);
 		self.register(id)
 	}

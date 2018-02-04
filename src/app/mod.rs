@@ -190,10 +190,10 @@ pub type SpeedFactor = f64;
 pub struct App {
 	pub viewport: Viewport,
 	input_state: input::InputState,
-	wall_clock: SharedTimer<SystemTimer>,
+	wall_clock: SystemTimer,
 	simulations_count: usize,
 	frame_count: usize,
-	frame_stopwatch: TimerStopwatch<SharedTimer<SystemTimer>>,
+	frame_stopwatch: TimerStopwatch,
 	frame_elapsed: SimulationTimer,
 	frame_smooth: math::MovingAverage<Seconds>,
 	is_running: bool,
@@ -244,7 +244,7 @@ impl App {
 	pub fn new<R>(w: u32, h: u32, scale: f32, resource_loader: &R, minion_gene_pool: &str) -> Self
 		where
 			R: ResourceLoader<u8>, {
-		let system_timer = Rc::new(RefCell::new(SystemTimer::new()));
+		let system_timer = SystemTimer::new();
 		App {
 			viewport: Viewport::rect(w, h, scale),
 			input_state: input::InputState::default(),
@@ -262,7 +262,7 @@ impl App {
 			simulations_count: 0usize,
 			frame_count: 0usize,
 			frame_elapsed: SimulationTimer::new(),
-			frame_stopwatch: TimerStopwatch::new(system_timer.clone()),
+			frame_stopwatch: TimerStopwatch::new(&system_timer),
 			wall_clock: system_timer,
 			frame_smooth: math::MovingAverage::new(FRAME_SMOOTH_COUNT),
 			is_running: true,
@@ -490,7 +490,7 @@ impl App {
 	}
 
 	pub fn update(&mut self) -> FrameUpdate {
-		let frame_time = self.frame_stopwatch.restart();
+		let frame_time = self.frame_stopwatch.restart(&self.wall_clock);
 		self.frame_elapsed.tick(frame_time);
 
 		let frame_time_smooth = self.frame_smooth.smooth(frame_time);
@@ -519,7 +519,7 @@ impl App {
 		self.frame_count += 1;
 
 		FrameUpdate {
-			timestamp: self.wall_clock.borrow().seconds(),
+			timestamp: self.wall_clock.seconds(),
 			dt: frame_time,
 			speed_factor: speed_factor as f32,
 			count: self.frame_count,
@@ -539,7 +539,7 @@ impl App {
 		self.simulations_count += 1;
 
 		SimulationUpdate {
-			timestamp: self.wall_clock.borrow().seconds(),
+			timestamp: self.wall_clock.seconds(),
 			dt,
 			count: self.simulations_count,
 			elapsed: self.world.seconds(),

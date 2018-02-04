@@ -179,9 +179,9 @@ pub fn main_loop_headless(minion_gene_pool: &str) {
 		r.store(false, Ordering::SeqCst);
 	}).expect("Error setting Ctrl-C handler");
 
-	let wall_clock = SystemTimer::new().shared();
-	let mut output_hourglass = Hourglass::new(wall_clock.clone(), seconds(5.0));
-	let mut save_hourglass = Hourglass::new(wall_clock.clone(), seconds(300.0));
+	let wall_clock = SystemTimer::new();
+	let mut output_hourglass = Hourglass::new(seconds(5.0), &wall_clock);
+	let mut save_hourglass = Hourglass::new(seconds(300.0), &wall_clock);
 
 	const FRAME_SIMULATION_LENGTH: SecondsValue = 1.0 / 60.0;
 	'main: loop {
@@ -196,12 +196,12 @@ pub fn main_loop_headless(minion_gene_pool: &str) {
 		}
 // update and measure
 		let simulation_update = app.simulate(seconds(FRAME_SIMULATION_LENGTH));
-		if save_hourglass.flip_if_expired() {
+		if save_hourglass.flip_if_expired(&wall_clock) {
 			app.dump_to_file();
 		}
 
 		app.play_alerts(&mut no_audio);
-		if output_hourglass.flip_if_expired() {
+		if output_hourglass.flip_if_expired(&wall_clock) {
 			info!(
 				"C: {} E: {:.3} FT: {:.2} P: {} X: {}",
 				simulation_update.count,
