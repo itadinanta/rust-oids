@@ -125,7 +125,6 @@ impl Systems {
 			SendSystem::boxed(self.game.clone()),
 			SendSystem::boxed(self.ai.clone()),
 			SendSystem::boxed(self.alife.clone()),
-			SendSystem::boxed(self.physics.clone()),
 		]
 	}
 
@@ -278,9 +277,8 @@ impl App {
 	}
 
 	pub fn pick_minion(&self, pos: Position) -> Option<Id> {
-		// Horrible to do this in the main thread
+		// TODO: send a message to the system instead (how does it reply though?)
 		self.systems.physics.read().unwrap().pick(pos)
-		//self.systems.physics.pick(pos)
 	}
 
 	fn randomize_minion(&mut self, pos: Position) {
@@ -292,8 +290,8 @@ impl App {
 	}
 
 	fn primary_fire(&mut self, bullet_speed: f32, rate: SecondsValue) {
+		// TODO: send a message to the system instead
 		self.systems.game.write().unwrap().primary_fire(bullet_speed, rate)
-		//self.systems.game.primary_fire(bullet_speed, rate)
 	}
 
 	pub fn set_player_intent(&mut self, intent: segment::Intent) {
@@ -431,6 +429,7 @@ impl App {
 	}
 
 	fn register_all(&mut self) {
+		// registered() drains the list, so this can be called only once per frame
 		let found: Vec<agent::Agent> = self.world.registered()
 			.into_iter()
 			.filter_map(|id| self.world.agent(*id))
@@ -444,17 +443,12 @@ impl App {
 	}
 
 	fn update_systems(&mut self, dt: Seconds) {
-		self.systems.write(&self.world, &|s, world| {
-			s.step(&world, dt)
-		});
-		self.systems.read(&mut self.world, &|s, mut world| {
-			s.retrieve(&mut world)
-		});
+		self.systems.write(&self.world, &|s, world| s.step(&world, dt));
+		self.systems.read(&mut self.world, &|s, mut world| s.retrieve(&mut world));
 	}
 
 	fn cleanup(&mut self) {
-		let freed = self.world.sweep();
-		self.systems.unregister(&freed);
+		self.systems.unregister(&self.world.sweep());
 	}
 
 	fn tick(&mut self, dt: Seconds) {

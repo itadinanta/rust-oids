@@ -312,13 +312,10 @@ impl World {
 	}
 
 	pub fn registered(&mut self) -> Box<[Id]> {
-		let collection = self.registered
-			.iter()
-			.map(|r| *r)
+		self.registered
+			.drain()
 			.collect::<Vec<_>>()
-			.into_boxed_slice();
-		self.registered.clear();
-		collection
+			.into_boxed_slice()
 	}
 
 	#[allow(dead_code)]
