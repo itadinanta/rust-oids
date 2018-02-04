@@ -134,7 +134,7 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 		// draw a frame
 		renderer.begin_frame();
 		// draw the scene
-		app.render(renderer);
+		app.paint(renderer);
 		// post-render effects and tone mapping
 		renderer.resolve_frame_buffer();
 
