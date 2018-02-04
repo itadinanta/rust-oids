@@ -162,6 +162,66 @@ pub struct ParticleSystem {
 	simulation_clock: TimerStopwatch,
 }
 
+impl System for ParticleSystem {
+	fn get_from_world(&mut self, world: &world::World) {
+		if self.emitters.is_empty() {
+			let emitter = SimpleEmitter::new(self.id_counter);
+			self.emitters.insert(emitter.id, Box::new(emitter));
+			self.id_counter += 1;
+		}
+
+		for (_id, emitter) in self.emitters.iter_mut() {
+			if let Some(attached_to) = emitter.attached_to() {
+				if let Some(ref agent) = world.agent(attached_to) {
+					if let Some(segment) = agent.segment(0) {
+						emitter.update_transform(segment.transform.clone(), segment.motion.clone());
+					}
+				}
+			}
+		}
+	}
+
+	fn update(&mut self, _: &AgentState, dt: Seconds) {
+		self.dt = dt;
+		self.simulation_timer.tick(dt);
+
+		self.update_emitters();
+		self.update_particles();
+	}
+
+	fn put_to_world(&self, world: &mut world::World) {
+		world.clear_particles();
+		for (_, particle) in &self.particles {
+			world.add_particle(world::particle::Particle::new(
+				particle.transform.clone(),
+				particle.motion.velocity.normalize(),
+				particle.trail
+					.iter()
+					.map(|t| *t)
+					.collect::<Vec<_>>().into_boxed_slice(),
+				particle.faders
+					.iter()
+					.map(|f| f.value())
+					.collect::<Vec<_>>().into_boxed_slice(),
+			));
+		}
+	}
+}
+
+impl Default for ParticleSystem {
+	fn default() -> Self {
+		let simulation_timer = SimulationTimer::new();
+		ParticleSystem {
+			id_counter: 0,
+			emitters: HashMap::new(),
+			particles: HashMap::new(),
+			dt: seconds(0.),
+			simulation_clock: TimerStopwatch::new(&simulation_timer),
+			simulation_timer,
+		}
+	}
+}
+
 impl ParticleSystem {
 	fn update_emitters(&mut self) {
 		let dt = self.dt;
@@ -188,23 +248,21 @@ impl ParticleSystem {
 			if particle.ttl.get() <= 0. {
 				Some(*id)
 			} else {
-				{
-					let dt = dt.get() as f32;
-					let axis_x = particle.motion.velocity.normalize();
-					let axis_y = Velocity::new(-axis_x.y, axis_x.x);
-					let world_acceleration = particle.acceleration.x * axis_x
-						+ particle.acceleration.y * axis_y;
-					if particle.trail.len() > trail_length {
-						particle.trail.pop_front();
-					}
-					particle.trail.push_back(particle.transform.position);
-					particle.motion.velocity += dt * world_acceleration;
-					particle.transform.position += dt * particle.motion.velocity;
-					particle.transform.angle += dt * particle.motion.spin;
-					particle.motion.velocity *= 1. - (dt * particle.friction);
-					particle.acceleration *= 1. - (dt * particle.dampening);
-				}
 				for fader in particle.faders.iter_mut() { fader.update(dt); }
+				let dt = dt.get() as f32;
+				let axis_x = particle.motion.velocity.normalize();
+				let axis_y = Velocity::new(-axis_x.y, axis_x.x);
+				let world_acceleration = particle.acceleration.x * axis_x
+					+ particle.acceleration.y * axis_y;
+				if particle.trail.len() > trail_length {
+					particle.trail.pop_front();
+				}
+				particle.trail.push_back(particle.transform.position);
+				particle.motion.velocity += dt * world_acceleration;
+				particle.transform.position += dt * particle.motion.velocity;
+				particle.transform.angle += dt * particle.motion.spin;
+				particle.motion.velocity *= 1. - (dt * particle.friction);
+				particle.acceleration *= 1. - (dt * particle.dampening);
 				None
 			}
 		}).filter_map(|i| i).collect();
@@ -214,64 +272,3 @@ impl ParticleSystem {
 		}
 	}
 }
-
-impl System for ParticleSystem {
-	fn put_to_world(&self, world: &mut world::World) {
-		world.clear_particles();
-		for (_, particle) in &self.particles {
-			world.add_particle(world::particle::Particle::new(
-				particle.transform.clone(),
-				particle.motion.velocity.normalize(),
-				particle.trail
-					.iter()
-					.map(|t| *t)
-					.collect::<Vec<_>>().into_boxed_slice(),
-				particle.faders
-					.iter()
-					.map(|f| f.value())
-					.collect::<Vec<_>>().into_boxed_slice(),
-			));
-		}
-	}
-
-	fn update(&mut self, _: &AgentState, dt: Seconds) {
-		self.dt = dt;
-		self.simulation_timer.tick(dt);
-
-		self.update_emitters();
-		self.update_particles();
-	}
-
-	fn get_from_world(&mut self, world: &world::World) {
-		if self.emitters.is_empty() {
-			let emitter = SimpleEmitter::new(self.id_counter);
-			self.emitters.insert(emitter.id, Box::new(emitter));
-			self.id_counter += 1;
-		}
-
-		for (_id, emitter) in self.emitters.iter_mut() {
-			if let Some(attached_to) = emitter.attached_to() {
-				if let Some(ref agent) = world.agent(attached_to) {
-					if let Some(segment) = agent.segment(0) {
-						emitter.update_transform(segment.transform.clone(), segment.motion.clone());
-					}
-				}
-			}
-		}
-	}
-}
-
-impl Default for ParticleSystem {
-	fn default() -> Self {
-		let simulation_timer = SimulationTimer::new();
-		ParticleSystem {
-			id_counter: 0,
-			emitters: HashMap::new(),
-			particles: HashMap::new(),
-			dt: seconds(0.),
-			simulation_clock: TimerStopwatch::new(&simulation_timer),
-			simulation_timer,
-		}
-	}
-}
-
