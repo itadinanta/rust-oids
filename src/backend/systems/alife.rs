@@ -2,7 +2,6 @@ use super::*;
 use std::collections::HashMap;
 use rand;
 use core::geometry;
-use core::clock::Timer;
 use core::clock::SimulationTimer;
 use backend::obj;
 use backend::obj::Transformable;

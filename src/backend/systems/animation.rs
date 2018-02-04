@@ -1,10 +1,7 @@
 use super::*;
-use std::rc::Rc;
-use std::cell::RefCell;
 use backend::world::WorldState;
 use backend::world::agent;
-use core::clock::*;
-use core::clock::Timer;
+use core::clock::{seconds, Seconds, SimulationTimer, TimerStopwatch, SpeedFactor};
 use num_traits::clamp;
 
 #[allow(unused)]

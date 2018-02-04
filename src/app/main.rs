@@ -12,7 +12,7 @@ use conrod;
 
 use core::resource::filesystem::ResourceLoaderBuilder;
 use core::math::Directional;
-use core::clock::{seconds, SecondsValue, Timer, Hourglass, SystemTimer};
+use core::clock::{seconds, SecondsValue,Hourglass, SystemTimer};
 use ctrlc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;

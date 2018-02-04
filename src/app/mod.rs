@@ -7,8 +7,6 @@ mod paint;
 pub mod constants;
 
 use std::process;
-use std::rc::Rc;
-use std::cell::RefCell;
 use std::fmt::Debug;
 
 use core::util::Cycle;
@@ -140,8 +138,6 @@ impl<'l> Default for Systems {
 	}
 }
 
-use std::borrow::BorrowMut;
-
 impl Systems {
 	fn systems(&mut self) -> Vec<Box<(systems::System + Send)>> {
 		vec![
@@ -159,11 +155,11 @@ impl Systems {
 		self.systems().par_iter_mut().for_each(|system| system.unregister(agent))
 	}
 
-	fn for_each(&mut self, apply: &(Fn(&mut systems::System) + Sync)) {
-		self.systems().par_iter_mut().for_each(
-			|r| apply(&mut (**r))
-		)
-	}
+//	fn for_each(&mut self, apply: &(Fn(&mut systems::System) + Sync)) {
+//		self.systems().par_iter_mut().for_each(
+//			|r| apply(&mut (**r))
+//		)
+//	}
 
 	fn from_world(&mut self, world: &world::World, apply: &(Fn(&mut systems::System, &world::World) + Sync)) {
 		//for r in self.systems().as_mut_slice() {

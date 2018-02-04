@@ -5,8 +5,6 @@ mod forward;
 
 use std::clone::Clone;
 use core::resource::ResourceLoader;
-use std::collections::HashMap;
-use std::collections::hash_map::Entry;
 use core::geometry::M44;
 use core::geometry::Position;
 

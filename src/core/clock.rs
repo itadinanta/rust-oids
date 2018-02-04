@@ -1,8 +1,6 @@
 use std::time;
 use std::fmt;
 use std::fmt::Display;
-use std::rc::Rc;
-use std::cell::RefCell;
 use std::ops::*;
 use num::Zero;
 
@@ -136,7 +134,7 @@ impl SimulationTimer {
 	pub fn tick(&mut self, dt: Seconds) {
 		self.seconds += dt
 	}
-	pub fn from<T>(source: T) -> Self where T: Timer { SimulationTimer { seconds: source.seconds() } }
+//	pub fn from<T>(source: T) -> Self where T: Timer { SimulationTimer { seconds: source.seconds() } }
 }
 
 /// Stopwatch

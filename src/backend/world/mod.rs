@@ -6,9 +6,6 @@ pub mod gen;
 pub mod phen;
 pub mod particle;
 
-use std::rc::Rc;
-use std::cell::RefCell;
-
 use backend::obj;
 use backend::obj::*;
 use rand;
@@ -152,8 +149,6 @@ impl World {
 	pub fn tick(&mut self, dt: Seconds) {
 		self.clock.tick(dt);
 	}
-
-	pub fn clock(&self) -> SimulationTimer { self.clock.clone() }
 
 	pub fn seconds(&self) -> Seconds { self.clock.seconds() }
 
