@@ -43,13 +43,14 @@ use app::constants::*;
 use num;
 use cgmath;
 use cgmath::{Matrix4, SquareMatrix};
+use std::iter::Iterator;
+use rayon::prelude::*;
 
 pub use self::winit_event::WinitEventMapper;
 pub use self::winit_event::WinitEventMapper as EventMapper;
 pub use self::controller::InputController;
 pub use self::controller::DefaultController;
 pub use self::events::Event;
-
 use self::events::VectorDirection;
 
 pub fn run(args: &[OsString]) {
@@ -81,44 +82,100 @@ pub fn run(args: &[OsString]) {
 	}
 }
 
+use std::sync::Arc;
+use std::sync::RwLock;
+
 #[derive(Default)]
-pub struct Systems {
-	physics: systems::PhysicsSystem,
-	animation: systems::AnimationSystem,
-	game: systems::GameSystem,
-	ai: systems::AiSystem,
-	alife: systems::AlifeSystem,
-	particle: systems::ParticleSystem,
+struct SendSystem<T> where T: systems::System {
+	ptr: Arc<RwLock<T>>
 }
 
+impl<T> SendSystem<T> where T: systems::System {
+	fn boxed(ptr: Arc<RwLock<T>>) -> Box<Self> {
+		Box::new(SendSystem { ptr })
+	}
+}
+
+impl<T> systems::Updateable for SendSystem<T> where T: systems::System {
+	fn update(&mut self, world_state: &world::WorldState, dt: Seconds) { self.ptr.write().unwrap().update(world_state, dt) }
+}
+
+impl<T> systems::System for SendSystem<T> where T: systems::System {
+	fn init(&mut self, world: &world::World) { self.ptr.write().unwrap().init(world) }
+	fn register(&mut self, agent: &world::agent::Agent) { self.ptr.write().unwrap().register(agent) }
+	fn unregister(&mut self, agent: &world::agent::Agent) { self.ptr.write().unwrap().unregister(agent) }
+	fn get_from_world(&mut self, world: &world::World) { self.ptr.write().unwrap().get_from_world(world) }
+	fn put_to_world(&self, world: &mut world::World) { self.ptr.read().unwrap().put_to_world(world) }
+	fn update_world(&mut self, world: &mut world::World, dt: Seconds) { self.ptr.write().unwrap().update_world(world, dt) }
+}
+
+// unsafe?
+unsafe impl<T> Send for SendSystem<T> where T: systems::System {}
+
+pub struct Systems {
+	physics: Arc<RwLock<systems::PhysicsSystem>>,
+	animation: Arc<RwLock<systems::AnimationSystem>>,
+	game: Arc<RwLock<systems::GameSystem>>,
+	ai: Arc<RwLock<systems::AiSystem>>,
+	alife: Arc<RwLock<systems::AlifeSystem>>,
+	particle: Arc<RwLock<systems::ParticleSystem>>,
+}
+
+impl<'l> Default for Systems {
+	fn default() -> Self {
+		let physics = Arc::new(RwLock::new(systems::PhysicsSystem::default()));
+		let animation = Arc::new(RwLock::new(systems::AnimationSystem::default()));
+		let game = Arc::new(RwLock::new(systems::GameSystem::default()));
+		let ai = Arc::new(RwLock::new(systems::AiSystem::default()));
+		let alife = Arc::new(RwLock::new(systems::AlifeSystem::default()));
+		let particle = Arc::new(RwLock::new(systems::ParticleSystem::default()));
+		Systems {
+			physics,
+			animation,
+			game,
+			ai,
+			alife,
+			particle,
+		}
+	}
+}
+
+use std::borrow::BorrowMut;
+
 impl Systems {
-	fn systems(&mut self) -> Vec<&mut systems::System> {
+	fn systems(&mut self) -> Vec<Box<(systems::System + Send)>> {
 		vec![
-			&mut self.animation as &mut systems::System,
-			&mut self.particle as &mut systems::System,
-			&mut self.game as &mut systems::System,
-			&mut self.ai as &mut systems::System,
-			&mut self.alife as &mut systems::System,
-			&mut self.physics as &mut systems::System,
+			SendSystem::boxed(self.physics.clone()),
+			SendSystem::boxed(self.animation.clone()),
+			SendSystem::boxed(self.particle.clone()),
+			SendSystem::boxed(self.game.clone()),
+			SendSystem::boxed(self.ai.clone()),
+			SendSystem::boxed(self.alife.clone()),
+			SendSystem::boxed(self.physics.clone()),
 		]
 	}
 
-	fn for_each(&mut self, apply: &Fn(&mut systems::System)) {
-		for r in self.systems().as_mut_slice() {
-			apply(*r);
-		}
+	pub fn unregister(&mut self, agent: &world::agent::Agent) {
+		self.systems().par_iter_mut().for_each(|system| system.unregister(agent))
 	}
 
-	fn from_world(&mut self, world: &world::World, apply: &Fn(&mut systems::System, &world::World)) {
-		for r in self.systems().as_mut_slice() {
-			apply(*r, &world);
-		}
+	fn for_each(&mut self, apply: &(Fn(&mut systems::System) + Sync)) {
+		self.systems().par_iter_mut().for_each(
+			|r| apply(&mut (**r))
+		)
 	}
 
-	fn to_world(&mut self, mut world: &mut world::World, apply: &Fn(&mut systems::System, &mut world::World)) {
-		for r in self.systems().as_mut_slice() {
-			apply(*r, &mut world);
-		}
+	fn from_world(&mut self, world: &world::World, apply: &(Fn(&mut systems::System, &world::World) + Sync)) {
+		//for r in self.systems().as_mut_slice() {
+		self.systems().par_iter_mut().for_each(
+			|r| apply(&mut (**r), &world)
+		)
+	}
+
+	fn to_world(&mut self, mut world: &mut world::World, apply: &(Fn(&mut systems::System, &mut world::World) + Sync)) {
+		self.systems().iter_mut().for_each(
+			|r| apply(&mut (**r), &mut world)
+		)
 	}
 }
 
@@ -136,7 +193,7 @@ pub struct App {
 	wall_clock: SharedTimer<SystemTimer>,
 	simulations_count: usize,
 	frame_count: usize,
-	frame_stopwatch: TimerStopwatch<SystemTimer>,
+	frame_stopwatch: TimerStopwatch<SharedTimer<SystemTimer>>,
 	frame_elapsed: SimulationTimer,
 	frame_smooth: math::MovingAverage<Seconds>,
 	is_running: bool,
@@ -233,7 +290,7 @@ impl App {
 	}
 
 	pub fn pick_minion(&self, pos: Position) -> Option<Id> {
-		self.systems.physics.pick(pos)
+		self.systems.physics.read().unwrap().pick(pos)
 	}
 
 	fn randomize_minion(&mut self, pos: Position) {
@@ -245,7 +302,7 @@ impl App {
 	}
 
 	fn primary_fire(&mut self, bullet_speed: f32, rate: SecondsValue) {
-		self.systems.game.primary_fire(bullet_speed, rate)
+		self.systems.game.write().unwrap().primary_fire(bullet_speed, rate)
 	}
 
 	pub fn set_player_intent(&mut self, intent: segment::Intent) {
@@ -385,7 +442,7 @@ impl App {
 	fn register_all(&mut self) {
 		for id in self.world.registered().into_iter() {
 			if let Some(found) = self.world.agent_mut(*id) {
-				self.systems.physics.register(found);
+				self.systems.physics.write().unwrap().register(found);
 			}
 		}
 	}
@@ -399,9 +456,9 @@ impl App {
 
 	fn cleanup(&mut self) {
 		let freed = self.world.sweep();
-		self.systems.for_each(&|s| for freed_agent in freed.iter() {
-			s.unregister(freed_agent);
-		});
+		for freed_agent in freed.iter() {
+			self.systems.unregister(freed_agent);
+		}
 	}
 
 	fn tick(&mut self, dt: Seconds) {

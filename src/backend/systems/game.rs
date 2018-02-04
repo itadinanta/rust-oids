@@ -27,7 +27,7 @@ pub struct GameSystem {
 
 struct Feeder {
 	position: Position,
-	hourglass: Hourglass<SimulationTimer>,
+	hourglass: Hourglass<SharedTimer<SimulationTimer>>,
 	to_spawn: usize,
 	spawned: usize,
 	emission: Emission,

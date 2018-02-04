@@ -93,10 +93,9 @@ impl Into<f32> for Seconds {
 
 /// Timer
 pub trait Timer {
+	type Shared;
 	fn seconds(&self) -> Seconds;
-	fn shared(self) -> Rc<RefCell<Self>> where Self: Sized {
-		Rc::new(RefCell::new(self))
-	}
+	fn shared(self) -> Self::Shared where Self: Sized;
 }
 
 /// SystemTimer
@@ -110,11 +109,15 @@ impl SystemTimer {
 }
 
 impl Timer for SystemTimer {
+	type Shared = Rc<RefCell<Self>>;
 	fn seconds(&self) -> Seconds {
 		match self.t0.elapsed() {
 			Ok(dt) => Seconds((dt.as_secs() as SecondsValue) + (dt.subsec_nanos() as SecondsValue) * 1e-9),
 			Err(_) => Seconds::zero(),
 		}
+	}
+	fn shared(self) -> Self::Shared where Self: Sized {
+		Rc::new(RefCell::new(self))
 	}
 }
 
@@ -133,8 +136,12 @@ impl From<Seconds> for SimulationTimer {
 }
 
 impl Timer for SimulationTimer {
+	type Shared = Rc<RefCell<Self>>;
 	fn seconds(&self) -> Seconds {
 		self.seconds
+	}
+	fn shared(self) -> Self::Shared where Self: Sized {
+		Rc::new(RefCell::new(self))
 	}
 }
 
@@ -142,6 +149,7 @@ impl SimulationTimer {
 	pub fn tick(&mut self, dt: Seconds) {
 		self.seconds += dt
 	}
+	pub fn from<T>(source: T) -> Self where T: Timer { SimulationTimer { seconds: source.seconds() } }
 }
 
 /// Stopwatch
@@ -159,26 +167,36 @@ pub trait Stopwatch {
 
 pub type SharedTimer<T> = Rc<RefCell<T>>;
 
+impl<T> Timer for Rc<RefCell<T>> where T: Timer {
+	type Shared = Self;
+	fn seconds(&self) -> Seconds {
+		self.borrow().seconds()
+	}
+	fn shared(self) -> Self::Shared where Self: Sized {
+		self
+	}
+}
+
 /// TimerStopwatch
 #[derive(Clone)]
 pub struct TimerStopwatch<T> where T: Timer {
-	timer: SharedTimer<T>,
+	timer: T,
 	t0: Seconds,
 }
 
 impl<T> Stopwatch for TimerStopwatch<T> where T: Timer {
 	fn elapsed(&self) -> Seconds {
-		self.timer.borrow().seconds() - self.t0
+		self.timer.seconds() - self.t0
 	}
 
 	fn reset(&mut self) {
-		self.t0 = self.timer.borrow().seconds();
+		self.t0 = self.timer.seconds();
 	}
 }
 
 impl<T> TimerStopwatch<T> where T: Timer {
-	pub fn new(timer: SharedTimer<T>) -> Self {
-		let t0 = timer.borrow().seconds();
+	pub fn new(timer: T) -> Self {
+		let t0 = timer.seconds();
 		TimerStopwatch { timer, t0 }
 	}
 }
@@ -204,7 +222,7 @@ impl<T> fmt::Display for Hourglass<T> where T: Timer {
 }
 
 impl<T> Hourglass<T> where T: Timer {
-	pub fn new(timer: SharedTimer<T>, seconds: Seconds) -> Self {
+	pub fn new(timer: T, seconds: Seconds) -> Self {
 		Hourglass {
 			stopwatch: TimerStopwatch::new(timer),
 			capacity: seconds,

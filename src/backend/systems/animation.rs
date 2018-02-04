@@ -4,6 +4,7 @@ use std::cell::RefCell;
 use backend::world::WorldState;
 use backend::world::agent;
 use core::clock::*;
+use core::clock::SharedTimer;
 use num_traits::clamp;
 
 #[allow(unused)]
@@ -13,8 +14,8 @@ pub struct AnimationSystem {
 	dt: Seconds,
 	animation_timer: SharedTimer<SimulationTimer>,
 	simulation_timer: SharedTimer<SimulationTimer>,
-	animation_clock: TimerStopwatch<SimulationTimer>,
-	simulation_clock: TimerStopwatch<SimulationTimer>,
+	animation_clock: TimerStopwatch<SharedTimer<SimulationTimer>>,
+	simulation_clock: TimerStopwatch<SharedTimer<SimulationTimer>>,
 }
 
 impl Updateable for AnimationSystem {
@@ -38,8 +39,8 @@ impl System for AnimationSystem {
 
 impl Default for AnimationSystem {
 	fn default() -> Self {
-		let animation_timer = Rc::new(RefCell::new(SimulationTimer::new()));
-		let simulation_timer = Rc::new(RefCell::new(SimulationTimer::new()));
+		let animation_timer = SimulationTimer::new().shared();
+		let simulation_timer = SimulationTimer::new().shared();
 		AnimationSystem {
 			speed: 1.0,
 			heartbeat_scale: 1.0 / 60.0,

@@ -166,7 +166,7 @@ pub struct ParticleSystem {
 	emitters: HashMap<obj::Id, Box<Emitter>>,
 	dt: Seconds,
 	simulation_timer: SharedTimer<SimulationTimer>,
-	simulation_clock: TimerStopwatch<SimulationTimer>,
+	simulation_clock: TimerStopwatch<SharedTimer<SimulationTimer>>,
 }
 
 impl ParticleSystem {

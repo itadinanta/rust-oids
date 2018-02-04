@@ -453,7 +453,7 @@ impl Agent {
 			id,
 			state: State {
 				flags: Flags::ACTIVE,
-				lifecycle: Hourglass::new(timer, Seconds::new(5.)),
+				lifecycle: Hourglass::new(SimulationTimer::from(timer), Seconds::new(5.)),
 				energy: max_energy * 0.5,
 				phase: 0.,
 				target: None,
