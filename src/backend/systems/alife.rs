@@ -10,7 +10,7 @@ use backend::world;
 use backend::world::gen;
 use backend::world::agent;
 use backend::world::segment;
-use backend::world::WorldState;
+use backend::world::AgentState;
 use backend::world::alert;
 use backend::world::AlertReceiver;
 use serialize::base64::{self, ToBase64};
@@ -26,13 +26,6 @@ pub struct AlifeSystem {
 	touched: GeneMap,
 }
 
-impl Updateable for AlifeSystem {
-	fn update(&mut self, _: &WorldState, dt: Seconds) {
-		self.dt = dt;
-		self.simulation_timer.tick(dt);
-	}
-}
-
 impl System for AlifeSystem {
 	fn get_from_world(&mut self, world: &world::World) {
 		self.source = world.feeders().to_vec().into_boxed_slice();
@@ -44,6 +37,11 @@ impl System for AlifeSystem {
 			&world.agents(agent::AgentType::Minion),
 			&world.agents(agent::AgentType::Spore),
 		);
+	}
+
+	fn update(&mut self, _: &AgentState, dt: Seconds) {
+		self.dt = dt;
+		self.simulation_timer.tick(dt);
 	}
 
 	fn put_to_world(&self, world: &mut world::World) {
@@ -61,6 +59,7 @@ impl System for AlifeSystem {
 			&mut world.agents_mut(agent::AgentType::Minion),
 			&self.eaten,
 		);
+
 		let (hatch, fertilised) = Self::update_spores(
 			self.dt,
 			&self.simulation_timer,
@@ -72,16 +71,19 @@ impl System for AlifeSystem {
 			world.alert(alert::Alert::NewSpore);
 			world.new_spore(transform, dna);
 		}
+
 		for &(ref transform, ref dna) in hatch.into_iter() {
 			world.alert(alert::Alert::NewMinion);
 			world.hatch_spore(transform, dna);
 		}
+
 		for &(ref transforms, ref dna) in corpses.into_iter() {
 			world.alert(alert::Alert::DieMinion);
 			for transform in transforms.iter() {
 				world.decay_to_resource(transform, dna);
 			}
 		}
+
 		for _ in 0..fertilised {
 			world.alert(alert::Alert::Fertilised);
 		}

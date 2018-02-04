@@ -33,7 +33,7 @@ use self::particle::{Emitter, Particle};
 pub use self::alert::Alert;
 pub use self::alert::AlertEvent;
 
-pub trait WorldState {
+pub trait AgentState {
 	fn agent(&self, id: obj::Id) -> Option<&Agent>;
 }
 
@@ -56,7 +56,7 @@ pub struct World {
 	particles: Vec<Particle>,
 }
 
-impl WorldState for World {
+impl AgentState for World {
 	fn agent(&self, id: obj::Id) -> Option<&Agent> {
 		self.swarms.get(&id.type_of()).and_then(|m| m.get(id))
 	}

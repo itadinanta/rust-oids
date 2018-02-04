@@ -31,7 +31,7 @@ extern crate num;
 extern crate num_traits;
 extern crate itertools;
 
-#[cfg(profiler)]
+#[cfg(feature="profiler")]
 extern crate cpuprofiler;
 
 #[macro_use]
@@ -76,13 +76,13 @@ fn main() {
 	log4rs::init_config(config.unwrap()).unwrap();
 
 
-	#[cfg(profiler)] {
+	#[cfg(feature="profiler")] {
 		cpuprofiler::PROFILER.lock().unwrap().start("./rust-oids.profile").unwrap();
 	}
 	
 	app::run(&args);
 
-	#[cfg(profiler)] {
+	#[cfg(feature="profiler")] {
 		cpuprofiler::PROFILER.lock().unwrap().stop().unwrap();
 	}
 }

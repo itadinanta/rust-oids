@@ -1,5 +1,5 @@
 use super::*;
-use backend::world::WorldState;
+use backend::world::AgentState;
 use backend::world::agent;
 use core::clock::{seconds, Seconds, SimulationTimer, TimerStopwatch, SpeedFactor};
 use num_traits::clamp;
@@ -15,15 +15,13 @@ pub struct AnimationSystem {
 	simulation_clock: TimerStopwatch,
 }
 
-impl Updateable for AnimationSystem {
-	fn update(&mut self, _: &WorldState, dt: Seconds) {
+impl System for AnimationSystem {
+	fn update(&mut self, _: &AgentState, dt: Seconds) {
 		self.dt = dt;
 		self.simulation_timer.tick(dt);
 		self.animation_timer.tick(dt * self.speed);
 	}
-}
 
-impl System for AnimationSystem {
 	fn put_to_world(&self, world: &mut world::World) {
 		for (_, agent) in &mut world.agents_mut(agent::AgentType::Minion).iter_mut() {
 			if agent.state.is_active() {

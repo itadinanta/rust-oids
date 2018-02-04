@@ -9,7 +9,7 @@ use core::clock::{seconds, Seconds, SimulationTimer, TimerStopwatch};
 use backend::world;
 use std::collections::VecDeque;
 use std::collections::HashMap;
-use backend::world::WorldState;
+use backend::world::AgentState;
 use std::iter::Iterator;
 use std::f32::consts;
 use num;
@@ -66,7 +66,7 @@ struct Particle {
 trait Emitter {
 	fn emit(&mut self, dt: Seconds, id_counter: &mut usize, destination: &mut HashMap<obj::Id, Particle>) -> bool;
 	fn attached_to(&self) -> Option<obj::Id> { None }
-	fn update_transform(&mut self, transform: Transform, motion: Option<Motion>) {}
+	fn update_transform(&mut self, _transform: Transform, _motion: Option<Motion>) {}
 }
 
 struct SimpleEmitter {
@@ -215,16 +215,6 @@ impl ParticleSystem {
 	}
 }
 
-impl Updateable for ParticleSystem {
-	fn update(&mut self, _: &WorldState, dt: Seconds) {
-		self.dt = dt;
-		self.simulation_timer.tick(dt);
-
-		self.update_emitters();
-		self.update_particles();
-	}
-}
-
 impl System for ParticleSystem {
 	fn put_to_world(&self, world: &mut world::World) {
 		world.clear_particles();
@@ -244,6 +234,14 @@ impl System for ParticleSystem {
 		}
 	}
 
+	fn update(&mut self, _: &AgentState, dt: Seconds) {
+		self.dt = dt;
+		self.simulation_timer.tick(dt);
+
+		self.update_emitters();
+		self.update_particles();
+	}
+
 	fn get_from_world(&mut self, world: &world::World) {
 		if self.emitters.is_empty() {
 			let emitter = SimpleEmitter::new(self.id_counter);
@@ -251,7 +249,7 @@ impl System for ParticleSystem {
 			self.id_counter += 1;
 		}
 
-		for (id, emitter) in self.emitters.iter_mut() {
+		for (_id, emitter) in self.emitters.iter_mut() {
 			if let Some(attached_to) = emitter.attached_to() {
 				if let Some(ref agent) = world.agent(attached_to) {
 					if let Some(segment) = agent.segment(0) {

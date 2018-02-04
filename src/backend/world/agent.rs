@@ -374,6 +374,7 @@ impl State {
 	}
 }
 
+#[derive(Clone)]
 pub struct Agent {
 	id: Id,
 	brain: Brain,

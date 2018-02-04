@@ -42,8 +42,42 @@ enum BodyUpdate {
 	LinearImpulse(b2::Vec2, b2::Vec2),
 }
 
-impl Updateable for PhysicsSystem {
-	fn update(&mut self, state: &world::WorldState, dt_sec: Seconds) {
+struct JointRef<'a> {
+	refs: agent::Key,
+	handle: b2::BodyHandle,
+	mesh: &'a obj::Mesh,
+	flags: segment::Flags,
+	attachment: Option<segment::Attachment>,
+}
+
+impl System for PhysicsSystem {
+	fn init(&mut self, world: &world::World) {
+		self.init_extent(&world.extent);
+	}
+
+	fn register(&mut self, agent: &world::agent::Agent) {
+		// build fixtures
+		let joint_refs = PhysicsSystem::build_fixtures(&mut self.world, &agent);
+		// and then assemble them with joints
+		PhysicsSystem::build_joints(&mut self.world, &joint_refs);
+		// record them
+		for JointRef { refs, handle, .. } in joint_refs {
+			self.handles.insert(refs, handle);
+		}
+	}
+
+	fn unregister(&mut self, agent: &world::agent::Agent) {
+		let object_id = agent.id();
+		let segments = agent.segments();
+		for segment in segments {
+			let refs = agent::Key::with_segment(object_id, segment.index);
+			if let Some(handle) = self.handles.remove(&refs) {
+				self.world.destroy_body(handle);
+			}
+		}
+	}
+
+	fn update(&mut self, state: &world::AgentState, dt_sec: Seconds) {
 		use self::BodyUpdate::*;
 		let mut body_updates = Vec::new();
 		let dt: f32 = dt_sec.into();
@@ -118,42 +152,6 @@ impl Updateable for PhysicsSystem {
 			}
 		}
 		self.world.step(dt, 8, 3);
-	}
-}
-
-struct JointRef<'a> {
-	refs: agent::Key,
-	handle: b2::BodyHandle,
-	mesh: &'a obj::Mesh,
-	flags: segment::Flags,
-	attachment: Option<segment::Attachment>,
-}
-
-impl System for PhysicsSystem {
-	fn register(&mut self, agent: &world::agent::Agent) {
-		// build fixtures
-		let joint_refs = PhysicsSystem::build_fixtures(&mut self.world, &agent);
-		// and then assemble them with joints
-		PhysicsSystem::build_joints(&mut self.world, &joint_refs);
-		// record them
-		for JointRef { refs, handle, .. } in joint_refs {
-			self.handles.insert(refs, handle);
-		}
-	}
-
-	fn unregister(&mut self, agent: &world::agent::Agent) {
-		let object_id = agent.id();
-		let segments = agent.segments();
-		for segment in segments {
-			let refs = agent::Key::with_segment(object_id, segment.index);
-			if let Some(handle) = self.handles.remove(&refs) {
-				self.world.destroy_body(handle);
-			}
-		}
-	}
-
-	fn init(&mut self, world: &world::World) {
-		self.init_extent(&world.extent);
 	}
 
 	fn put_to_world(&self, world: &mut world::World) {

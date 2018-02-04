@@ -50,8 +50,25 @@ impl Feeder where {
 	}
 }
 
-impl Updateable for GameSystem {
-	fn update(&mut self, _: &world::WorldState, dt: Seconds) {
+impl System for GameSystem {
+	fn get_from_world(&mut self, world: &world::World) {
+		let source = world.feeders();
+		// Add missing emitters - deletion not supported
+		for i in self.feeders.len()..source.len() {
+			let s = &source[i];
+			self.feeders.push(Feeder::new(
+				s.transform().position,
+				s.rate(),
+				s.emission(),
+				&self.timer,
+			));
+		}
+		for (i, d) in self.feeders.iter_mut().enumerate() {
+			d.position = source[i].transform().position;
+		}
+	}
+
+	fn update(&mut self, _: &world::AgentState, dt: Seconds) {
 		self.timer.tick(dt);
 		for e in &mut self.feeders {
 			e.spawned = e.to_spawn;
@@ -77,25 +94,6 @@ impl Updateable for GameSystem {
 		};
 
 		self.playerstate.trigger_held = false;
-	}
-}
-
-impl System for GameSystem {
-	fn get_from_world(&mut self, world: &world::World) {
-		let source = world.feeders();
-// Add missing emitters - deletion not supported
-		for i in self.feeders.len()..source.len() {
-			let s = &source[i];
-			self.feeders.push(Feeder::new(
-				s.transform().position,
-				s.rate(),
-				s.emission(),
-				&self.timer,
-			));
-		}
-		for (i, d) in self.feeders.iter_mut().enumerate() {
-			d.position = source[i].transform().position;
-		}
 	}
 
 	fn put_to_world(&self, world: &mut world::World) {
