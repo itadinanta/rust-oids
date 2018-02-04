@@ -251,7 +251,7 @@ pub struct Limits {
 
 #[derive(Clone, Debug)]
 pub struct State {
-	lifecycle: Hourglass<SimulationTimer>,
+	lifecycle: Hourglass<SharedTimer<SimulationTimer>>,
 	flags: Flags,
 	phase: f32,
 	energy: f32,
@@ -264,7 +264,7 @@ pub struct State {
 
 impl State {
 	#[inline]
-	pub fn lifecycle(&self) -> &Hourglass<SimulationTimer> {
+	pub fn lifecycle(&self) -> &Hourglass<SharedTimer<SimulationTimer>> {
 		&self.lifecycle
 	}
 
@@ -453,7 +453,7 @@ impl Agent {
 			id,
 			state: State {
 				flags: Flags::ACTIVE,
-				lifecycle: Hourglass::new(SimulationTimer::from(timer), Seconds::new(5.)),
+				lifecycle: Hourglass::new(timer, Seconds::new(5.)),
 				energy: max_energy * 0.5,
 				phase: 0.,
 				target: None,
