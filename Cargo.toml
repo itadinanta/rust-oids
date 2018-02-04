@@ -5,6 +5,10 @@ authors = [
 	"norru <nigu.orru@gmail.com>"
 ]
 
+[features]
+default = []
+profiler = []
+
 [[bin]]
 name = "rust-oids"
 path = "src/main.rs"

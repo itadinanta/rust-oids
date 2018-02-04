@@ -9,3 +9,4 @@ nohup.out
 *.VC.db
 .cargo/config
 *.trace
+*.profile
