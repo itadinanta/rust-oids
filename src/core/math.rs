@@ -68,6 +68,19 @@ impl<S> Smooth<S> for MovingAverage<S>
 	}
 }
 
+pub trait Mix<V> where V: num::Float {
+	fn mix(self, a: V, b: V) -> V;
+}
+
+impl<T, V> Mix<V> for T where
+	T: num::Float,
+	V: num::Float + Mul<T, Output=V> {
+	fn mix(self, a: V, b: V) -> V {
+		let alpha = T::min(T::one(), T::max(T::zero(), self));
+		a * alpha + b * (T::one() - alpha)
+	}
+}
+
 impl<S, T> Exponential<S, T>
 	where
 		S: Add<S, Output=S> + Mul<T, Output=S> + Copy,
