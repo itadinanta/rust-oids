@@ -24,7 +24,7 @@ impl App {
 				particle.color(0).unwrap(),
 				particle.color(1).unwrap());
 			let transform = Self::from_transform(&particle.transform());
-			batch.draw_ball(None, transform, appearance);
+			batch.draw_quad(Some(Style::Wireframe), transform, 1.0, appearance);
 		}
 		renderer.draw_buffer(batch);
 	}

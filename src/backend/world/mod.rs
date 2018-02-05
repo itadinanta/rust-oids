@@ -251,6 +251,10 @@ impl World {
 		self.register(id)
 	}
 
+	pub fn get_player_agent_id(&self) -> Option<obj::Id> {
+		self.registered_player_id
+	}
+
 	fn get_player_segment(&mut self) -> Option<&mut segment::Segment> {
 		self.registered_player_id.and_then(move |id|
 			self.agent_mut(id).and_then(|player_agent|

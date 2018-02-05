@@ -65,15 +65,24 @@ struct Particle {
 
 trait Emitter {
 	fn emit(&mut self, dt: Seconds, id_counter: &mut usize, destination: &mut HashMap<obj::Id, Particle>) -> bool;
-	fn attached_to(&self) -> Option<obj::Id> { None }
+	fn attached_to(&self) -> EmitterAttachment { EmitterAttachment::None }
 	fn update_transform(&mut self, _transform: Transform, _motion: Option<Motion>) {}
 }
 
+#[derive(Copy, Clone)]
+enum EmitterAttachment {
+	None,
+	Agent(obj::Id),
+	Segment(obj::Id, u8),
+	Bone(obj::Id, u8, u8),
+}
+
+#[derive(Clone)]
 struct SimpleEmitter {
 	id: obj::Id,
 	transform: Transform,
 	motion: Motion,
-	attached_to: Option<obj::Id>,
+	attached_to: EmitterAttachment,
 	trail_length: usize,
 	pulse: Phase,
 	phase: Phase,
@@ -89,7 +98,7 @@ impl SimpleEmitter {
 			id,
 			transform: Transform::new(Position::zero(), 0.),
 			motion: Motion::new(10. * Velocity::unit_x(), 0.),
-			attached_to: None,
+			attached_to: EmitterAttachment::None,
 			trail_length: TRAIL_LENGTH,
 			pulse: 0.,
 			phase: 0.,
@@ -97,6 +106,13 @@ impl SimpleEmitter {
 			ttl: None,
 			cluster_size: 10,
 			active: true,
+		}
+	}
+
+	fn attached_to(self, attached_to: EmitterAttachment) -> Self {
+		SimpleEmitter {
+			attached_to,
+			..self
 		}
 	}
 }
@@ -111,7 +127,7 @@ impl Emitter for SimpleEmitter {
 			if self.pulse < pulse {
 				for i in 0..self.cluster_size {
 					let alpha = consts::PI * 2. * (phase + i as f32 / self.cluster_size as f32);
-					let velocity = Transform::from_angle(alpha)
+					let velocity = Transform::from_angle(self.transform.angle + alpha)
 						.apply_rotation(self.motion.velocity);
 					let id = *id_counter;
 					destination.insert(id, Particle {
@@ -140,7 +156,7 @@ impl Emitter for SimpleEmitter {
 		}
 	}
 
-	fn attached_to(&self) -> Option<obj::Id> {
+	fn attached_to(&self) -> EmitterAttachment {
 		self.attached_to
 	}
 
@@ -164,21 +180,52 @@ pub struct ParticleSystem {
 
 impl System for ParticleSystem {
 	fn get_from_world(&mut self, world: &world::World) {
-		if self.emitters.is_empty() {
-			let emitter = SimpleEmitter::new(self.id_counter);
-			self.emitters.insert(emitter.id, Box::new(emitter));
-			self.id_counter += 1;
-		}
-
-		for (_id, emitter) in self.emitters.iter_mut() {
-			if let Some(attached_to) = emitter.attached_to() {
-				if let Some(ref agent) = world.agent(attached_to) {
-					if let Some(segment) = agent.segment(0) {
-						emitter.update_transform(segment.transform.clone(), segment.motion.clone());
-					}
-				}
+		if let Some(player_agent_id) = world.get_player_agent_id() {
+			if self.emitters.is_empty() {
+				let emitter = SimpleEmitter::new(self.id_counter)
+					.attached_to(EmitterAttachment::Agent(player_agent_id));
+				self.emitters.insert(emitter.id, Box::new(emitter));
+				self.id_counter += 1;
 			}
 		}
+
+		let expired: Vec<obj::Id> = self.emitters.iter_mut().map(|(id, emitter)| {
+			let surviving = match emitter.attached_to() {
+				EmitterAttachment::None => { Some(id) }
+				EmitterAttachment::Agent(agent_id) => {
+					world.agent(agent_id)
+						.and_then(|agent| agent.segment(0))
+						.and_then(|segment| {
+							emitter.update_transform(segment.transform.clone(), segment.motion.clone());
+							Some(id)
+						})
+				}
+				EmitterAttachment::Segment(agent_id, segment_id) => {
+					world.agent(agent_id)
+						.and_then(|agent| agent.segment(segment_id))
+						.and_then(|segment| {
+							emitter.update_transform(segment.transform.clone(), segment.motion.clone());
+							Some(id)
+						})
+				}
+				EmitterAttachment::Bone(agent_id, segment_id, bone_id) => {
+					world.agent(agent_id)
+						.and_then(|agent| agent.segment(segment_id))
+						.and_then(|segment| {
+							emitter.update_transform(segment.transform.clone(), segment.motion.clone());
+							Some(id)
+						})
+				}
+			};
+			if surviving.is_none() {
+				Some(id)
+			} else {
+				None
+			}
+		})
+			.filter_map(|i| i)
+			.map(|i| *i)
+			.collect();
 	}
 
 	fn update(&mut self, _: &AgentState, dt: Seconds) {
