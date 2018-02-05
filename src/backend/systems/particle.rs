@@ -49,9 +49,14 @@ impl<S> Fader<S> where S: num::Float {
 
 type Tag = u64;
 
-struct Particle {
+struct ParticleBatch {
 	id: obj::Id,
 	tag: Tag,
+	ttl: Seconds,
+	particles: Box<[Particle]>,
+}
+
+struct Particle {
 	transform: Transform,
 	motion: Motion,
 	acceleration: Velocity,
@@ -59,12 +64,11 @@ struct Particle {
 	trail: VecDeque<Position>,
 	dampening: f32,
 	friction: f32,
-	faders: Vec<Fader<f32>>,
-	ttl: Seconds,
+	faders: Box<[Fader<f32>]>,
 }
 
 trait Emitter {
-	fn emit(&mut self, dt: Seconds, id_counter: &mut usize, destination: &mut HashMap<obj::Id, Particle>) -> bool;
+	fn emit(&mut self, dt: Seconds, id_counter: &mut usize, destination: &mut HashMap<obj::Id, ParticleBatch>) -> bool;
 	fn attached_to(&self) -> EmitterAttachment { EmitterAttachment::None }
 	fn update_transform(&mut self, _transform: Transform, _motion: Option<Motion>) {}
 }
@@ -86,7 +90,8 @@ struct SimpleEmitter {
 	trail_length: usize,
 	pulse: Phase,
 	phase: Phase,
-	rate: f32,
+	pulse_rate: f32,
+	phase_rate: f32,
 	ttl: Option<Seconds>,
 	cluster_size: usize,
 	active: bool,
@@ -102,7 +107,8 @@ impl SimpleEmitter {
 			trail_length: TRAIL_LENGTH,
 			pulse: 0.,
 			phase: 0.,
-			rate: 5.,
+			pulse_rate: 5.,
+			phase_rate: 2.33,
 			ttl: None,
 			cluster_size: 10,
 			active: true,
@@ -118,41 +124,47 @@ impl SimpleEmitter {
 }
 
 impl Emitter for SimpleEmitter {
-	fn emit(&mut self, dt: Seconds, id_counter: &mut usize, destination: &mut HashMap<obj::Id, Particle>) -> bool {
+	fn emit(&mut self, dt: Seconds, id_counter: &mut usize, destination: &mut HashMap<obj::Id, ParticleBatch>) -> bool {
 		if self.active {
 			let pulse = self.pulse;
 			let phase = self.phase;
-			self.phase = (self.phase + dt.get() as f32 * 2.33) % 1.;
-			self.pulse = (self.pulse + dt.get() as f32 * self.rate) % 1.;
+			self.phase = (self.phase + dt.get() as f32 * self.phase_rate) % 1.;
+			self.pulse = (self.pulse + dt.get() as f32 * self.pulse_rate) % 1.;
 			if self.pulse < pulse {
-				for i in 0..self.cluster_size {
+				let particles = (0..self.cluster_size).map(|i| {
 					let alpha = consts::PI * 2. * (phase + i as f32 / self.cluster_size as f32);
 					let velocity = Transform::from_angle(self.transform.angle + alpha)
 						.apply_rotation(self.motion.velocity);
-					let id = *id_counter;
-					destination.insert(id, Particle {
-						id,
-						tag: 0,
+					Particle {
 						transform: Transform::new(self.transform.position, self.transform.angle + alpha),
 						trail_length: self.trail_length,
 						trail: VecDeque::new(),
 						motion: Motion::new(velocity, self.motion.spin),
 						dampening: 0.,
 						friction: 0.2,
-						faders: (0..MAX_FADER).map(|_| Fader::new(1.0, 0.95, 0.)).collect(),
+						faders: (0..MAX_FADER).map(|_| Fader::new(1.0, 0.95, 0.))
+							.collect::<Vec<_>>().into_boxed_slice(),
 						acceleration: -Velocity::unit_y(),
-						ttl: seconds(10.),
-					});
-					*id_counter = id + 1;
-				}
+					}
+				}).collect::<Vec<_>>().into_boxed_slice();
+				let id = *id_counter;
+				*id_counter = id + 1;
+				destination.insert(id,
+								   ParticleBatch {
+									   id,
+									   tag: 0,
+									   particles,
+									   ttl: seconds(10.),
+								   });
 			}
 		}
-		if let Some(ttl) = self.ttl {
-			let ttl = ttl - dt;
-			self.ttl = Some(ttl);
-			ttl.get() > 0.
-		} else {
-			true
+		match self.ttl {
+			None => true,
+			Some(ttl) => {
+				let ttl = ttl - dt;
+				self.ttl = Some(ttl);
+				ttl.get() > 0.
+			}
 		}
 	}
 
@@ -171,7 +183,7 @@ impl Emitter for SimpleEmitter {
 #[allow(unused)]
 pub struct ParticleSystem {
 	id_counter: usize,
-	particles: HashMap<obj::Id, Particle>,
+	particles: HashMap<obj::Id, ParticleBatch>,
 	emitters: HashMap<obj::Id, Box<Emitter>>,
 	dt: Seconds,
 	simulation_timer: SimulationTimer,
@@ -217,10 +229,9 @@ impl System for ParticleSystem {
 						})
 				}
 			};
-			if surviving.is_none() {
-				Some(id)
-			} else {
-				None
+			match surviving {
+				None => Some(id),
+				Some(_) => None
 			}
 		})
 			.filter_map(|i| i)
@@ -238,19 +249,21 @@ impl System for ParticleSystem {
 
 	fn put_to_world(&self, world: &mut world::World) {
 		world.clear_particles();
-		for (_, particle) in &self.particles {
-			world.add_particle(world::particle::Particle::new(
-				particle.transform.clone(),
-				particle.motion.velocity.normalize(),
-				particle.trail
-					.iter()
-					.map(|t| *t)
-					.collect::<Vec<_>>().into_boxed_slice(),
-				particle.faders
-					.iter()
-					.map(|f| f.value())
-					.collect::<Vec<_>>().into_boxed_slice(),
-			));
+		for (_, particle_batch) in &self.particles {
+			for particle in &*particle_batch.particles {
+				world.add_particle(world::particle::Particle::new(
+					particle.transform.clone(),
+					particle.motion.velocity.normalize(),
+					particle.trail
+						.iter()
+						.map(|t| *t)
+						.collect::<Vec<_>>().into_boxed_slice(),
+					particle.faders
+						.iter()
+						.map(|f| f.value())
+						.collect::<Vec<_>>().into_boxed_slice(),
+				));
+			}
 		}
 	}
 }
@@ -290,26 +303,29 @@ impl ParticleSystem {
 		let dt = self.dt;
 		let trail_length = TRAIL_LENGTH;
 		let expired: Vec<obj::Id> = self.particles
-			.par_iter_mut().map(|(id, particle)| {
-			particle.ttl -= dt;
-			if particle.ttl.get() <= 0. {
+			.par_iter_mut().map(|(id, particle_batch)| {
+			particle_batch.ttl -= dt;
+			if particle_batch.ttl.get() <= 0. {
 				Some(*id)
 			} else {
-				for fader in particle.faders.iter_mut() { fader.update(dt); }
-				let dt = dt.get() as f32;
-				let axis_x = particle.motion.velocity.normalize();
-				let axis_y = Velocity::new(-axis_x.y, axis_x.x);
-				let world_acceleration = particle.acceleration.x * axis_x
-					+ particle.acceleration.y * axis_y;
-				if particle.trail.len() > trail_length {
-					particle.trail.pop_front();
+				for particle in &mut *particle_batch.particles {
+					for fader in &mut *particle.faders { fader.update(dt); }
+					let dt = dt.get() as f32;
+					// local acceleration is relative to the current velocity
+					let axis_x = particle.motion.velocity.normalize();
+					let axis_y = Velocity::new(-axis_x.y, axis_x.x);
+					let world_acceleration = particle.acceleration.x * axis_x
+						+ particle.acceleration.y * axis_y;
+					if particle.trail.len() > trail_length {
+						particle.trail.pop_front();
+					}
+					particle.trail.push_back(particle.transform.position);
+					particle.motion.velocity += dt * world_acceleration;
+					particle.transform.position += dt * particle.motion.velocity;
+					particle.transform.angle += dt * particle.motion.spin;
+					particle.motion.velocity *= 1. - (dt * particle.friction);
+					particle.acceleration *= 1. - (dt * particle.dampening);
 				}
-				particle.trail.push_back(particle.transform.position);
-				particle.motion.velocity += dt * world_acceleration;
-				particle.transform.position += dt * particle.motion.velocity;
-				particle.transform.angle += dt * particle.motion.spin;
-				particle.motion.velocity *= 1. - (dt * particle.friction);
-				particle.acceleration *= 1. - (dt * particle.dampening);
 				None
 			}
 		}).filter_map(|i| i).collect();
