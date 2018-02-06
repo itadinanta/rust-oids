@@ -206,7 +206,7 @@ impl System for ParticleSystem {
 	fn get_from_world(&mut self, world: &world::World) {
 		for source in world.emitters() {
 			let emitter = match source.style {
-				world::particle::EmitterStyle::Explosion { cluster_size, color0, color1 } => {
+				world::particle::EmitterStyle::Explosion { cluster_size, color} => {
 					SimpleEmitter {
 						id: self.next_id(),
 						transform: source.transform.clone(),
@@ -217,38 +217,24 @@ impl System for ParticleSystem {
 						phase: 0.,
 						pulse_rate: 5.,
 						phase_rate: 2.33,
-						color0,
-						color1,
+						color0: color,
+						color1: COLOR_TRANSPARENT,
 						ttl: Some(seconds(0.5)),
 						cluster_size,
 						active: true,
 					}
-//					SimpleEmitter {
-//						id: self.next_id(),
-//						transform: Transform::default(),//source.transform.clone(),
-//						motion: Motion::default(),
-//						attached_to: EmitterAttachment::None,
-//						trail_length: 1,
-//						pulse: 0.,
-//						phase: 1.0,
-//						pulse_rate: 10.,
-//						phase_rate: 2.33,
-//						ttl: Some(seconds(0.5)),
-//						cluster_size,
-//						active: true,
-//					}
 				}
 			};
 			self.emitters.insert(emitter.id, Box::new(emitter));
 		}
 
-		if let Some(player_agent_id) = world.get_player_agent_id() {
-			if self.emitters.is_empty() {
-				let emitter = SimpleEmitter::new(self.next_id())
-					.attached_to(EmitterAttachment::Agent(player_agent_id));
-				self.emitters.insert(emitter.id, Box::new(emitter));
-			}
-		}
+//		if let Some(player_agent_id) = world.get_player_agent_id() {
+//			if self.emitters.is_empty() {
+//				let emitter = SimpleEmitter::new(self.next_id())
+//					.attached_to(EmitterAttachment::Agent(player_agent_id));
+//				self.emitters.insert(emitter.id, Box::new(emitter));
+//			}
+//		}
 
 		let orphan: Vec<obj::Id> = self.emitters.iter_mut().map(|(id, emitter)| {
 			let surviving = match emitter.attached_to() {
@@ -305,7 +291,7 @@ impl System for ParticleSystem {
 		world.clear_particles();
 		for (_, particle_batch) in &self.particles {
 			for particle in &*particle_batch.particles {
-				world.add_particle(world::particle::Particle::spark(
+				world.add_particle(world::particle::Particle::round(
 					particle.transform.clone(),
 					particle.motion.velocity.normalize(),
 					particle.trail
@@ -374,9 +360,9 @@ impl ParticleSystem {
 					for fader in &mut *particle.faders { fader.update(dt); }
 					let dt = dt.get() as f32;
 					// local acceleration is relative to the current velocity
-					// TODO: use case for stationary particles?
 					let speed = particle.motion.velocity.magnitude();
 					let world_acceleration = {
+						// if particle is stationary, use world frame
 						if speed > 0.001 {
 							let axis_x = particle.motion.velocity.normalize();
 							let axis_y = Velocity::new(-axis_x.y, axis_x.x);

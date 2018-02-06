@@ -35,8 +35,7 @@ impl Default for EmitterAttachment {
 pub enum EmitterStyle {
 	Explosion {
 		cluster_size: u8,
-		color0: Rgba<f32>,
-		color1: Rgba<f32>,
+		color: Rgba<f32>,
 	},
 }
 
@@ -44,19 +43,22 @@ impl Default for EmitterStyle {
 	fn default() -> EmitterStyle {
 		EmitterStyle::Explosion {
 			cluster_size: 10u8,
-			color0: [400., 90., 1., 1.],
-			color1: [0.; 4],
+			color: COLOR_SUNSHINE,
 		}
 	}
 }
 
-#[derive(Default)]
-pub struct Emitter {
-	pub id: Option<obj::Id>,
-	pub transform: Transform,
-	pub motion: Motion,
-	pub attached_to: EmitterAttachment,
-	pub style: EmitterStyle,
+impl EmitterStyle {
+	fn color_bang(color: Rgba<f32>, boost: f32) -> EmitterStyle {
+		EmitterStyle::Explosion {
+			cluster_size: 10u8,
+			color: [
+				color[0] * boost,
+				color[1] * boost,
+				color[2] * boost,
+				color[3]],
+		}
+	}
 }
 
 pub struct Particle {
@@ -70,10 +72,36 @@ pub struct Particle {
 	shape: Shape,
 }
 
-pub fn new_spore_emitter(transform: Transform) -> Emitter {
-	Emitter {
-		transform,
-		..Emitter::default()
+#[derive(Default)]
+pub struct Emitter {
+	pub id: Option<obj::Id>,
+	pub transform: Transform,
+	pub motion: Motion,
+	pub attached_to: EmitterAttachment,
+	pub style: EmitterStyle,
+}
+
+impl Emitter {
+	pub fn for_new_spore(transform: Transform, color: Rgba<f32>) -> Emitter {
+		Emitter {
+			transform,
+			style: EmitterStyle::color_bang(color, 100.),
+			..Emitter::default()
+		}
+	}
+	pub fn for_new_minion(transform: Transform, color: Rgba<f32>) -> Emitter {
+		Emitter {
+			transform,
+			style: EmitterStyle::color_bang(color, 100.),
+			..Emitter::default()
+		}
+	}
+	pub fn for_dead_minion(transform: Transform, color: Rgba<f32>) -> Emitter {
+		Emitter {
+			transform,
+			style: EmitterStyle::color_bang(color, 100.),
+			..Emitter::default()
+		}
 	}
 }
 
@@ -116,14 +144,13 @@ impl Particle {
 		}
 	}
 
-
 	pub fn transform(&self) -> Transform {
 		self.transform.clone()
 	}
 
 	pub fn scale(&self) -> f32 {
 		self.faders.get(Fader::Scale as usize)
-			.unwrap_or(&1.).mix(0.5, 2.)
+			.unwrap_or(&1.).mix(0.2, 2.)
 	}
 
 	pub fn color(&self) -> Rgba<f32> {

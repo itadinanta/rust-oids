@@ -54,6 +54,7 @@ void main() {
 	float r = min(1, sqrt(dx * dx + dy * dy * ratio));
 
 	float e = intensity; // or something
-	float f = exp(-r/frequency) * cos((phase + r)/frequency) * (r < 1 ? 1 : 0);
+	float w = cos((phase - r) * frequency);
+	float f = exp(-r) * w * w * (r < 1 ? 1 : 0);
 	o_Color = u_Emissive * e * f;
 }

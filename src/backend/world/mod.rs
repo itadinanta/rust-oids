@@ -176,6 +176,13 @@ impl World {
 			None,
 			DEFAULT_RESOURCE_CHARGE,
 			&clock);
+		let livery_color = self.agent(id).unwrap()
+			.segment(0).unwrap()
+			.livery.albedo;
+		self.add_emitter(particle::Emitter::for_dead_minion(
+			transform.clone(),
+			livery_color,
+		));
 		self.register(id)
 	}
 
@@ -188,7 +195,13 @@ impl World {
 			DEFAULT_SPORE_CHARGE,
 			&clock,
 		);
-		self.add_emitter(particle::new_spore_emitter(transform.clone()));
+		let livery_color = self.agent(id).unwrap()
+			.segment(0).unwrap()
+			.livery.albedo;
+		self.add_emitter(particle::Emitter::for_new_spore(
+			transform.clone(),
+			livery_color,
+		));
 		self.register(id)
 	}
 
@@ -201,6 +214,13 @@ impl World {
 			DEFAULT_MINION_CHARGE,
 			&clock,
 		);
+		let livery_color = self.agent(id).unwrap()
+			.segment(0).unwrap()
+			.livery.albedo;
+		self.add_emitter(particle::Emitter::for_new_minion(
+			transform.clone(),
+			livery_color,
+		));
 		self.register(id)
 	}
 
