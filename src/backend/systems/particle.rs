@@ -4,7 +4,9 @@ use core::geometry::Transform;
 use core::geometry::Motion;
 use core::geometry::Position;
 use core::geometry::Velocity;
+use app::constants::*;
 use num::Zero;
+use core::color::Rgba;
 use core::clock::{seconds, Seconds, SimulationTimer, TimerStopwatch};
 use backend::world;
 use std::collections::VecDeque;
@@ -52,7 +54,10 @@ type Tag = u64;
 struct ParticleBatch {
 	id: obj::Id,
 	tag: Tag,
-	ttl: Seconds,
+	lifespan: Seconds,
+	age: Seconds,
+	color0: Rgba<f32>,
+	color1: Rgba<f32>,
 	particles: Box<[Particle]>,
 }
 
@@ -92,6 +97,8 @@ struct SimpleEmitter {
 	phase: Phase,
 	pulse_rate: f32,
 	phase_rate: f32,
+	color0: Rgba<f32>,
+	color1: Rgba<f32>,
 	ttl: Option<Seconds>,
 	cluster_size: u8,
 	active: bool,
@@ -110,6 +117,8 @@ impl SimpleEmitter {
 			pulse_rate: 5.,
 			phase_rate: 2.33,
 			ttl: None,
+			color0: COLOR_SUNSHINE,
+			color1: COLOR_TRANSPARENT,
 			cluster_size: 10,
 			active: true,
 		}
@@ -154,7 +163,10 @@ impl Emitter for SimpleEmitter {
 									   id,
 									   tag: 0,
 									   particles,
-									   ttl: seconds(10.),
+									   color0: self.color0,
+									   color1: self.color1,
+									   age: seconds(0.),
+									   lifespan: seconds(10.),
 								   });
 			}
 		}
@@ -194,7 +206,7 @@ impl System for ParticleSystem {
 	fn get_from_world(&mut self, world: &world::World) {
 		for source in world.emitters() {
 			let emitter = match source.style {
-				world::particle::EmitterStyle::Explosion { cluster_size } => {
+				world::particle::EmitterStyle::Explosion { cluster_size, color0, color1 } => {
 					SimpleEmitter {
 						id: self.next_id(),
 						transform: source.transform.clone(),
@@ -205,6 +217,8 @@ impl System for ParticleSystem {
 						phase: 0.,
 						pulse_rate: 5.,
 						phase_rate: 2.33,
+						color0,
+						color1,
 						ttl: Some(seconds(0.5)),
 						cluster_size,
 						active: true,
@@ -228,13 +242,13 @@ impl System for ParticleSystem {
 			self.emitters.insert(emitter.id, Box::new(emitter));
 		}
 
-//		if let Some(player_agent_id) = world.get_player_agent_id() {
-//			if self.emitters.is_empty() {
-//				let emitter = SimpleEmitter::new(self.next_id())
-//					.attached_to(EmitterAttachment::Agent(player_agent_id));
-//				self.emitters.insert(emitter.id, Box::new(emitter));
-//			}
-//		}
+		if let Some(player_agent_id) = world.get_player_agent_id() {
+			if self.emitters.is_empty() {
+				let emitter = SimpleEmitter::new(self.next_id())
+					.attached_to(EmitterAttachment::Agent(player_agent_id));
+				self.emitters.insert(emitter.id, Box::new(emitter));
+			}
+		}
 
 		let orphan: Vec<obj::Id> = self.emitters.iter_mut().map(|(id, emitter)| {
 			let surviving = match emitter.attached_to() {
@@ -291,7 +305,7 @@ impl System for ParticleSystem {
 		world.clear_particles();
 		for (_, particle_batch) in &self.particles {
 			for particle in &*particle_batch.particles {
-				world.add_particle(world::particle::Particle::new(
+				world.add_particle(world::particle::Particle::spark(
 					particle.transform.clone(),
 					particle.motion.velocity.normalize(),
 					particle.trail
@@ -302,6 +316,9 @@ impl System for ParticleSystem {
 						.iter()
 						.map(|f| f.value())
 						.collect::<Vec<_>>().into_boxed_slice(),
+					particle_batch.color0,
+					particle_batch.color1,
+					particle_batch.age,
 				));
 			}
 		}
@@ -350,8 +367,7 @@ impl ParticleSystem {
 		let trail_length = TRAIL_LENGTH;
 		let expired: Vec<obj::Id> = self.particles
 			.par_iter_mut().map(|(id, particle_batch)| {
-			particle_batch.ttl -= dt;
-			if particle_batch.ttl.get() <= 0. {
+			if particle_batch.age >= particle_batch.lifespan {
 				Some(*id)
 			} else {
 				for particle in &mut *particle_batch.particles {
@@ -359,10 +375,17 @@ impl ParticleSystem {
 					let dt = dt.get() as f32;
 					// local acceleration is relative to the current velocity
 					// TODO: use case for stationary particles?
-					let axis_x = particle.motion.velocity.normalize();
-					let axis_y = Velocity::new(-axis_x.y, axis_x.x);
-					let world_acceleration = particle.acceleration.x * axis_x
-						+ particle.acceleration.y * axis_y;
+					let speed = particle.motion.velocity.magnitude();
+					let world_acceleration = {
+						if speed > 0.001 {
+							let axis_x = particle.motion.velocity.normalize();
+							let axis_y = Velocity::new(-axis_x.y, axis_x.x);
+							particle.acceleration.x * axis_x
+								+ particle.acceleration.y * axis_y
+						} else {
+							particle.acceleration
+						}
+					};
 					if particle.trail.len() > trail_length {
 						particle.trail.pop_front();
 					}
@@ -372,7 +395,8 @@ impl ParticleSystem {
 					particle.transform.angle += dt * particle.motion.spin;
 					particle.motion.velocity *= 1. - (dt * particle.friction);
 					particle.acceleration *= 1. - (dt * particle.dampening);
-				}
+				};
+				particle_batch.age += dt;
 				None
 			}
 		}).filter_map(|i| i).collect();

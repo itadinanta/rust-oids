@@ -142,6 +142,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 
 		let flat_shaders = load_shaders!("lighting", "lighting_flat")?;
 		let solid_shaders = load_shaders!("lighting", "lighting_poly")?;
+		let particle_shaders = load_shaders!("lighting", "ripple_particle")?;
 		let ball_shaders = load_shaders!("point_ball", "lighting", "lighting_poly")?;
 
 		let solid_rasterizer = gfx::state::Rasterizer {
@@ -168,6 +169,13 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 		let poly_pso = Self::new_pso(
 			factory,
 			&solid_shaders,
+			gfx::Primitive::TriangleList,
+			solid_rasterizer,
+			init.clone(),
+		)?;
+		let particle_pso = Self::new_pso(
+			factory,
+			&particle_shaders,
 			gfx::Primitive::TriangleList,
 			solid_rasterizer,
 			init.clone(),
@@ -202,6 +210,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 			pso: [
 				ball_pso,
 				poly_pso,
+				particle_pso,
 				wireframe_pso,
 				lines_pso,
 				debug_lines_pso,

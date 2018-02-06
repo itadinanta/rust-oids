@@ -20,11 +20,9 @@ impl App {
 	fn paint_particles<R>(&self, renderer: &mut R) where R: render::DrawBuffer {
 		let mut batch = render::PrimitiveBuffer::new();
 		for particle in self.world.particles() {
-			let appearance = render::Appearance::new(
-				particle.color(0).unwrap(),
-				particle.color(1).unwrap());
+			let appearance = render::Appearance::new(particle.color(), particle.effect());
 			let transform = Self::from_transform(&particle.transform()) * Matrix4::from_scale(particle.scale());
-			batch.draw_quad(Some(Style::Wireframe), transform, 1.0, appearance);
+			batch.draw_quad(Some(Style::Particle), transform, 1.0, appearance);
 		}
 		renderer.draw_buffer(batch);
 	}

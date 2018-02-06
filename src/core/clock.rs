@@ -7,7 +7,7 @@ use num::Zero;
 pub type SecondsValue = f64;
 pub type SpeedFactor = SecondsValue;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct Seconds(SecondsValue);
 
 const ZERO_SECONDS: Seconds = Seconds(0.0);

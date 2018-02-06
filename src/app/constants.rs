@@ -51,6 +51,14 @@ pub const DEFAULT_MINION_GENE_POOL: &'static [&'static str] = &[
 	"GzB2lQdwM10vQEu5zwaPgDhfq2v8GzB2lQdwM10vQEu5zwaPgDhfq2v8",
 ];
 
+pub const COLOR_SUNSHINE: [f32; 4] = [400.0, 90.0, 1.0, 1.0];
+pub const COLOR_TRANSPARENT: [f32; 4] = [0.; 4];
+pub const COLOR_WHITE: [f32; 4] = [1.; 4];
+pub const COLOR_BLACK: [f32; 4] = [0., 0., 0., 1.];
+
+pub const DEFAULT_RIPPLE_FREQUENCY: f32 = 5.0;
+pub const DEFAULT_SPARK_RATIO: f32 = 4.0;
+
 pub const DEFAULT_RESOURCE_GENE_POOL: &'static [&'static str] = &[
 	"GyA21QoQ",
 	"M00sWS0M"

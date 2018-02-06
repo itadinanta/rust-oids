@@ -31,10 +31,11 @@ pub struct Appearance {
 pub enum Style {
 	Ball = 0,
 	Flat = 1,
-	Wireframe = 2,
-	Lines = 3,
-	DebugLines = 4,
-	Count = 5,
+	Particle = 2,
+	Wireframe = 3,
+	Lines = 4,
+	DebugLines = 5,
+	Count = 6,
 }
 
 impl Appearance {
