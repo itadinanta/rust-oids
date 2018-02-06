@@ -77,6 +77,15 @@ impl Default for Transform {
 	}
 }
 
+impl Default for Motion {
+	fn default() -> Motion {
+		Motion {
+			velocity: Velocity::new(0., 0.),
+			spin: 0.,
+		}
+	}
+}
+
 #[allow(unused)]
 impl Transform {
 	pub fn new(position: Position, angle: f32) -> Self {

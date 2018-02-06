@@ -188,6 +188,7 @@ impl World {
 			DEFAULT_SPORE_CHARGE,
 			&clock,
 		);
+		self.add_emitter(particle::new_spore_emitter(transform.clone()));
 		self.register(id)
 	}
 
@@ -373,6 +374,18 @@ impl World {
 
 	pub fn add_particle(&mut self, particle: Particle) {
 		self.particles.push(particle);
+	}
+
+	pub fn emitters(&self) -> &[particle::Emitter] {
+		&self.emitters
+	}
+
+	pub fn clear_emitters(&mut self) {
+		self.emitters.clear();
+	}
+
+	pub fn add_emitter(&mut self, emitter: particle::Emitter) {
+		self.emitters.push(emitter)
 	}
 
 	pub fn sweep(&mut self) -> Box<[Agent]> {

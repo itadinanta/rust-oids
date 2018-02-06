@@ -93,7 +93,7 @@ struct SimpleEmitter {
 	pulse_rate: f32,
 	phase_rate: f32,
 	ttl: Option<Seconds>,
-	cluster_size: usize,
+	cluster_size: u8,
 	active: bool,
 }
 
@@ -192,16 +192,51 @@ pub struct ParticleSystem {
 
 impl System for ParticleSystem {
 	fn get_from_world(&mut self, world: &world::World) {
-		if let Some(player_agent_id) = world.get_player_agent_id() {
-			if self.emitters.is_empty() {
-				let emitter = SimpleEmitter::new(self.id_counter)
-					.attached_to(EmitterAttachment::Agent(player_agent_id));
-				self.emitters.insert(emitter.id, Box::new(emitter));
-				self.id_counter += 1;
-			}
+		for source in world.emitters() {
+			let emitter = match source.style {
+				world::particle::EmitterStyle::Explosion { cluster_size } => {
+					SimpleEmitter {
+						id: self.next_id(),
+						transform: source.transform.clone(),
+						motion: Motion::new(5. * Velocity::unit_x(), 0.),
+						attached_to: EmitterAttachment::None,
+						trail_length: 0,
+						pulse: 1.0,
+						phase: 0.,
+						pulse_rate: 5.,
+						phase_rate: 2.33,
+						ttl: Some(seconds(0.5)),
+						cluster_size,
+						active: true,
+					}
+//					SimpleEmitter {
+//						id: self.next_id(),
+//						transform: Transform::default(),//source.transform.clone(),
+//						motion: Motion::default(),
+//						attached_to: EmitterAttachment::None,
+//						trail_length: 1,
+//						pulse: 0.,
+//						phase: 1.0,
+//						pulse_rate: 10.,
+//						phase_rate: 2.33,
+//						ttl: Some(seconds(0.5)),
+//						cluster_size,
+//						active: true,
+//					}
+				}
+			};
+			self.emitters.insert(emitter.id, Box::new(emitter));
 		}
 
-		let expired: Vec<obj::Id> = self.emitters.iter_mut().map(|(id, emitter)| {
+//		if let Some(player_agent_id) = world.get_player_agent_id() {
+//			if self.emitters.is_empty() {
+//				let emitter = SimpleEmitter::new(self.next_id())
+//					.attached_to(EmitterAttachment::Agent(player_agent_id));
+//				self.emitters.insert(emitter.id, Box::new(emitter));
+//			}
+//		}
+
+		let orphan: Vec<obj::Id> = self.emitters.iter_mut().map(|(id, emitter)| {
 			let surviving = match emitter.attached_to() {
 				EmitterAttachment::None => { Some(id) }
 				EmitterAttachment::Agent(agent_id) => {
@@ -237,6 +272,10 @@ impl System for ParticleSystem {
 			.filter_map(|i| i)
 			.map(|i| *i)
 			.collect();
+
+		for id in &orphan {
+			self.emitters.remove(id);
+		}
 	}
 
 	fn update(&mut self, _: &AgentState, dt: Seconds) {
@@ -248,6 +287,7 @@ impl System for ParticleSystem {
 	}
 
 	fn put_to_world(&self, world: &mut world::World) {
+		world.clear_emitters();
 		world.clear_particles();
 		for (_, particle_batch) in &self.particles {
 			for particle in &*particle_batch.particles {
@@ -283,6 +323,12 @@ impl Default for ParticleSystem {
 }
 
 impl ParticleSystem {
+	fn next_id(&mut self) -> obj::Id {
+		let counter = self.id_counter;
+		self.id_counter += 1;
+		self.id_counter
+	}
+
 	fn update_emitters(&mut self) {
 		let dt = self.dt;
 		let mut expired: Vec<usize> = Vec::new();
@@ -312,6 +358,7 @@ impl ParticleSystem {
 					for fader in &mut *particle.faders { fader.update(dt); }
 					let dt = dt.get() as f32;
 					// local acceleration is relative to the current velocity
+					// TODO: use case for stationary particles?
 					let axis_x = particle.motion.velocity.normalize();
 					let axis_y = Velocity::new(-axis_x.y, axis_x.x);
 					let world_acceleration = particle.acceleration.x * axis_x

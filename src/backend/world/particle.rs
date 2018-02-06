@@ -11,24 +11,36 @@ enum Shape {
 }
 
 #[derive(Copy, Clone)]
-enum EmitterAttachment {
+pub enum EmitterAttachment {
 	None,
 	Agent(obj::Id),
 	Segment(obj::Id, u8),
 	Bone(obj::Id, u8, u8),
 }
 
-enum EmitterStyle {
-	Explosion,
+impl Default for EmitterAttachment {
+	fn default() -> EmitterAttachment {
+		EmitterAttachment::None
+	}
 }
 
+pub enum EmitterStyle {
+	Explosion { cluster_size: u8 },
+}
+
+impl Default for EmitterStyle {
+	fn default() -> EmitterStyle {
+		EmitterStyle::Explosion { cluster_size: 10u8 }
+	}
+}
+
+#[derive(Default)]
 pub struct Emitter {
-	id: Option<obj::Id>,
-	transform: Transform,
-	motion: Motion,
-	attached_to: EmitterAttachment,
-	style: EmitterStyle,
-	cluster_size: usize,
+	pub id: Option<obj::Id>,
+	pub transform: Transform,
+	pub motion: Motion,
+	pub attached_to: EmitterAttachment,
+	pub style: EmitterStyle,
 }
 
 pub struct Particle {
@@ -37,6 +49,13 @@ pub struct Particle {
 	trail: Box<[Position]>,
 	faders: Box<[f32]>,
 	shape: Shape,
+}
+
+pub fn new_spore_emitter(transform: Transform) -> Emitter {
+	Emitter {
+		transform,
+		..Emitter::default()
+	}
 }
 
 impl Particle {
