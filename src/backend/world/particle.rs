@@ -1,7 +1,6 @@
 use backend::obj;
 use app::constants::*;
 use core::clock::Seconds;
-use core::math::Mix;
 use core::color::Rgba;
 use core::color::Fade;
 use core::geometry::{Transform, Motion, Position, Velocity};
@@ -13,9 +12,9 @@ enum Shape {
 
 enum Fader {
 	Color = 0,
-	Intensity = 1,
-	Effect = 2,
-	Scale = 3,
+	Scale = 1,
+	Intensity = 2,
+	Effect = 3,
 }
 
 #[derive(Copy, Clone)]
@@ -37,6 +36,13 @@ pub enum EmitterStyle {
 		cluster_size: u8,
 		color: Rgba<f32>,
 	},
+	Ping {
+		color: Rgba<f32>,
+	},
+	Sparkle {
+		cluster_size: u8,
+		color: Rgba<f32>,
+	},
 }
 
 impl Default for EmitterStyle {
@@ -52,6 +58,27 @@ impl EmitterStyle {
 	fn color_bang(color: Rgba<f32>, boost: f32) -> EmitterStyle {
 		EmitterStyle::Explosion {
 			cluster_size: 10u8,
+			color: [
+				color[0] * boost,
+				color[1] * boost,
+				color[2] * boost,
+				color[3]],
+		}
+	}
+
+	fn color_sparkle(color: Rgba<f32>, boost: f32) -> EmitterStyle {
+		EmitterStyle::Sparkle {
+			cluster_size: 10u8,
+			color: [
+				color[0] * boost,
+				color[1] * boost,
+				color[2] * boost,
+				color[3]],
+		}
+	}
+
+	fn color_ping(color: Rgba<f32>, boost: f32) -> EmitterStyle {
+		EmitterStyle::Ping {
 			color: [
 				color[0] * boost,
 				color[1] * boost,
@@ -85,14 +112,14 @@ impl Emitter {
 	pub fn for_new_spore(transform: Transform, color: Rgba<f32>) -> Emitter {
 		Emitter {
 			transform,
-			style: EmitterStyle::color_bang(color, 100.),
+			style: EmitterStyle::color_ping(color, 100.),
 			..Emitter::default()
 		}
 	}
 	pub fn for_new_minion(transform: Transform, color: Rgba<f32>) -> Emitter {
 		Emitter {
 			transform,
-			style: EmitterStyle::color_bang(color, 100.),
+			style: EmitterStyle::color_sparkle(color, 100.),
 			..Emitter::default()
 		}
 	}
@@ -149,8 +176,7 @@ impl Particle {
 	}
 
 	pub fn scale(&self) -> f32 {
-		self.faders.get(Fader::Scale as usize)
-			.unwrap_or(&1.).mix(0.2, 2.)
+		*self.faders.get(Fader::Scale as usize).unwrap_or(&1.)
 	}
 
 	pub fn color(&self) -> Rgba<f32> {
@@ -169,8 +195,7 @@ impl Particle {
 			Shape::Spark(ratio) => ratio,
 		};
 
-		[*self.faders.get(Fader::Intensity as usize)
-			.unwrap_or(&1.0),
+		[*self.faders.get(Fader::Intensity as usize).unwrap_or(&1.0),
 			self.age.get() as f32,
 			frequency,
 			ratio

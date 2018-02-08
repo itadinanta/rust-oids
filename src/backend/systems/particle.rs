@@ -6,11 +6,14 @@ use num::Zero;
 use core::color::Rgba;
 use core::clock::{seconds, Seconds, SimulationTimer, TimerStopwatch};
 use backend::world;
+use backend::world::particle::EmitterStyle;
 use std::collections::VecDeque;
 use std::collections::HashMap;
 use backend::world::AgentState;
 use std::iter::Iterator;
 use std::f32::consts;
+use rand;
+use rand::Rng;
 use num;
 use num::NumCast;
 use cgmath::InnerSpace;
@@ -18,8 +21,8 @@ use rayon::prelude::*;
 
 type Phase = f32;
 
-const TRAIL_LENGTH: usize = 6;
-const MAX_FADER: usize = 4;
+const TRAIL_LENGTH: u8 = 6;
+const MAX_FADER: u8 = 4;
 
 #[derive(Clone)]
 struct Fader<S> {
@@ -72,6 +75,23 @@ impl<S> Fader<S> where S: num::Float {
 		self.value = self.value + (self.target - self.value) * self.fade_rate * NumCast::from(dt.get()).unwrap();
 		self.value
 	}
+
+	fn start() -> Faders<S> {
+		Faders::new()
+	}
+}
+
+struct Faders<S> where S: num::Float {
+	faders: Vec<Fader<S>>
+}
+
+impl<S> Faders<S> where S: num::Float {
+	pub fn new() -> Self { Faders { faders: Vec::new() } }
+	pub fn build(self) -> Box<[Fader<S>]> { self.faders.into_boxed_slice() }
+	pub fn push(mut self, f: Fader<S>) -> Self {
+		self.faders.push(f);
+		self
+	}
 }
 
 type Tag = u64;
@@ -93,7 +113,7 @@ struct Particle {
 	transform: Transform,
 	motion: Motion,
 	acceleration: Acceleration,
-	trail_length: usize,
+	trail_length: u8,
 	trail: VecDeque<Position>,
 }
 
@@ -117,8 +137,9 @@ struct SimpleEmitter {
 	tag: Tag,
 	transform: Transform,
 	motion: Motion,
+	acceleration: Acceleration,
 	attached_to: EmitterAttachment,
-	trail_length: usize,
+	trail_length: u8,
 	pulse: Phase,
 	phase: Phase,
 	pulse_rate: f32,
@@ -129,21 +150,23 @@ struct SimpleEmitter {
 	friction: f32,
 	ttl: Option<Seconds>,
 	cluster_size: u8,
-	faders: Vec<Fader<f32>>,
+	faders: Box<[Fader<f32>]>,
 	lifespan: Seconds,
+	jitter: f32,
 	active: bool,
 }
 
 #[allow(unused)]
-impl SimpleEmitter {
-	fn new(id: obj::Id) -> SimpleEmitter {
+impl Default for SimpleEmitter {
+	fn default() -> SimpleEmitter {
 		SimpleEmitter {
-			id,
-			tag: 0,
-			transform: Transform::new(Position::zero(), 0.),
-			motion: Motion::new(10. * Velocity::unit_x(), 0.),
+			id: obj::Id::default(),
+			tag: Tag::default(),
+			transform: Transform::default(),
+			motion: Motion::default(),
+			acceleration: Acceleration::zero(),
 			attached_to: EmitterAttachment::None,
-			trail_length: TRAIL_LENGTH,
+			trail_length: 0,
 			pulse: 0.,
 			phase: 0.,
 			pulse_rate: 5.,
@@ -151,14 +174,29 @@ impl SimpleEmitter {
 			ttl: None,
 			color0: COLOR_SUNSHINE,
 			color1: COLOR_TRANSPARENT,
-			dampening: 0.0,
+			dampening: 0.,
 			friction: 0.2,
 			cluster_size: 10,
-			faders: (0..MAX_FADER)
+			faders: (0..MAX_FADER as usize)
 				.map(|_| Fader::default().with_fade_rate(0.95))
-				.collect::<Vec<_>>(),
+				.collect::<Vec<_>>().into_boxed_slice(),
+			jitter: 1.,
 			lifespan: seconds(10.),
 			active: true,
+		}
+	}
+}
+
+#[allow(unused)]
+impl SimpleEmitter {
+	pub fn new(id: obj::Id) -> Self {
+		SimpleEmitter::default().with_id(id)
+	}
+
+	pub fn with_id(self, id: obj::Id) -> Self {
+		SimpleEmitter {
+			id,
+			..self
 		}
 	}
 
@@ -175,26 +213,125 @@ impl SimpleEmitter {
 			..self
 		}
 	}
+
+	pub fn with_jitter(self, jitter: f32) -> Self {
+		SimpleEmitter {
+			jitter,
+			..self
+		}
+	}
+
+	pub fn with_transform(self, transform: Transform) -> Self {
+		SimpleEmitter {
+			transform,
+			..self
+		}
+	}
+
+	pub fn with_motion(self, motion: Motion) -> Self {
+		SimpleEmitter {
+			motion,
+			..self
+		}
+	}
+
+	pub fn with_acceleration(self, acceleration: Acceleration) -> Self {
+		SimpleEmitter {
+			acceleration,
+			..self
+		}
+	}
+
+	pub fn with_trail_length(self, trail_length: u8) -> Self {
+		SimpleEmitter {
+			trail_length,
+			..self
+		}
+	}
+
+	pub fn with_pulse(self, pulse: f32, pulse_rate: f32) -> Self {
+		SimpleEmitter {
+			pulse,
+			pulse_rate,
+			..self
+		}
+	}
+
+	pub fn with_phase(self, phase: f32, phase_rate: f32) -> Self {
+		SimpleEmitter {
+			phase,
+			phase_rate,
+			..self
+		}
+	}
+
+	pub fn with_ttl(self, ttl: Option<Seconds>) -> Self {
+		SimpleEmitter {
+			ttl,
+			..self
+		}
+	}
+
+	pub fn with_color(self, color0: Rgba<f32>, color1: Rgba<f32>) -> Self {
+		SimpleEmitter {
+			color0,
+			color1,
+			..self
+		}
+	}
+
+	pub fn with_friction(self, friction: f32, dampening: f32) -> Self {
+		SimpleEmitter {
+			friction,
+			dampening,
+			..self
+		}
+	}
+
+	pub fn with_faders(self, faders: Box<[Fader<f32>]>) -> Self {
+		SimpleEmitter {
+			faders,
+			..self
+		}
+	}
+
+	pub fn with_lifespan(self, lifespan: Seconds) -> Self {
+		SimpleEmitter {
+			lifespan,
+			..self
+		}
+	}
+
+	pub fn with_cluster_size(self, cluster_size: u8) -> Self {
+		SimpleEmitter {
+			cluster_size,
+			..self
+		}
+	}
 }
 
 impl Emitter for SimpleEmitter {
 	fn emit(&mut self, dt: Seconds, id_counter: &mut usize, destination: &mut HashMap<obj::Id, ParticleBatch>) -> bool {
+		let mut rng = rand::thread_rng();
+		let jitter_value = self.jitter;
+		let mut jitter = move |w| (rng.next_f32() * 2. * w - w) * jitter_value + 1.;
 		if self.active {
 			let pulse = self.pulse;
 			let phase = self.phase;
-			self.phase = (self.phase + dt.get() as f32 * self.phase_rate) % 1.;
-			self.pulse = (self.pulse + dt.get() as f32 * self.pulse_rate) % 1.;
+			self.phase = (self.phase + dt.get() as f32 * self.phase_rate * jitter(0.1)) % 1.;
+			self.pulse = (self.pulse + dt.get() as f32 * self.pulse_rate * jitter(0.1)) % 1.;
 			if self.pulse < pulse {
 				let particles = (0..self.cluster_size).map(|i| {
 					let alpha = consts::PI * 2. * (phase + i as f32 / self.cluster_size as f32);
 					let velocity = Transform::from_angle(self.transform.angle + alpha)
-						.apply_rotation(self.motion.velocity);
+						.apply_rotation(self.motion.velocity * jitter(0.1));
 					Particle {
-						transform: Transform::new(self.transform.position, self.transform.angle + alpha),
+						transform: Transform::new(self.transform.position,
+												  self.transform.angle + alpha),
 						trail_length: self.trail_length,
 						trail: VecDeque::new(),
-						motion: Motion::new(velocity, self.motion.spin),
-						acceleration: -Velocity::unit_y(),
+						motion: Motion::new(velocity, self.motion.spin * jitter(0.1)),
+						acceleration: self.acceleration * jitter(0.5),
 					}
 				}).collect::<Vec<_>>().into_boxed_slice();
 				let id = *id_counter;
@@ -209,7 +346,7 @@ impl Emitter for SimpleEmitter {
 									   age: seconds(0.),
 									   dampening: self.dampening,
 									   friction: self.friction,
-									   faders: self.faders.clone().into_boxed_slice(),
+									   faders: self.faders.clone(),
 									   lifespan: self.lifespan,
 								   });
 			}
@@ -250,28 +387,42 @@ impl System for ParticleSystem {
 	fn get_from_world(&mut self, world: &world::World) {
 		for source in world.emitters() {
 			let emitter = match source.style {
-				world::particle::EmitterStyle::Explosion { cluster_size, color } => {
-					SimpleEmitter {
-						id: self.next_id(),
-						tag: 0,
-						transform: source.transform.clone(),
-						motion: Motion::new(5. * Velocity::unit_x(), 0.),
-						attached_to: EmitterAttachment::None,
-						trail_length: 0,
-						pulse: 1.0,
-						phase: 0.,
-						pulse_rate: 5.,
-						phase_rate: 2.33,
-						color0: color,
-						color1: COLOR_TRANSPARENT,
-						ttl: Some(seconds(0.5)),
-						cluster_size,
-						dampening: 0.,
-						friction: 0.2,
-						faders: vec![Fader::new(1.0, 0.9, 0.0)],
-						active: true,
-						lifespan: seconds(3.),
-					}
+				EmitterStyle::Explosion { cluster_size, color } => {
+					SimpleEmitter::new(self.next_id())
+						.with_transform(source.transform.clone())
+						.with_motion(Motion::new(10. * Velocity::unit_x(), 0.))
+						.with_color(color, COLOR_TRANSPARENT)
+						.with_ttl(Some(seconds(0.5)))
+						.with_cluster_size(cluster_size)
+						.with_acceleration(-Velocity::unit_y())
+						.with_faders(Fader::start()
+							.push(Fader::new(1.0, 0.99, 0.0))
+							.push(Fader::new(1.0, 0.7, 0.1))
+							.build())
+						.with_lifespan(seconds(3.0))
+				}
+				EmitterStyle::Ping { color } => {
+					SimpleEmitter::new(self.next_id())
+						.with_transform(source.transform.clone())
+						.with_color(color, COLOR_TRANSPARENT)
+						.with_ttl(Some(seconds(0.1)))
+						.with_faders(Fader::start()
+							.push(Fader::new(1.0, 0.9, 0.0))
+							.push(Fader::new(1.0, 1.1, 5.0))
+							.build())
+						.with_cluster_size(1)
+						.with_lifespan(seconds(3.0))
+				}
+				EmitterStyle::Sparkle { cluster_size, color } => {
+					SimpleEmitter::new(self.next_id())
+						.with_transform(source.transform.clone())
+						.with_motion(Motion::new(5. * Velocity::unit_x(), 0.))
+						.with_color(color, COLOR_TRANSPARENT)
+						.with_ttl(Some(seconds(0.16)))
+						.with_faders(Fader::start()
+							.push(Fader::new(1.0, 0.9, 0.0)).build())
+						.with_cluster_size(cluster_size)
+						.with_lifespan(seconds(3.0))
 				}
 			};
 			self.emitters.insert(emitter.id, Box::new(emitter));
@@ -280,7 +431,16 @@ impl System for ParticleSystem {
 //		if let Some(player_agent_id) = world.get_player_agent_id() {
 //			if self.emitters.is_empty() {
 //				let emitter = SimpleEmitter::new(self.next_id())
-//					.attached_to(EmitterAttachment::Agent(player_agent_id));
+//					.with_attached_to(EmitterAttachment::Agent(player_agent_id))
+//					.with_color(COLOR_SUNSHINE, COLOR_TRANSPARENT)
+//					.with_faders(Fader::start()
+//						.push(Fader::new(1.0, 0.9, 0.0))
+//						.push(Fader::new(1.0, 1.1, 5.0))
+//						.build())
+//					.with_cluster_size(1)
+//					.with_lifespan(seconds(3.0));
+////				let emitter = SimpleEmitter::new(self.next_id())
+////					.attached_to(EmitterAttachment::Agent(player_agent_id));
 //				self.emitters.insert(emitter.id, Box::new(emitter));
 //			}
 //		}
@@ -421,7 +581,7 @@ impl ParticleSystem {
 							particle.acceleration
 						}
 					};
-					if particle.trail.len() > trail_length {
+					while particle.trail.len() > trail_length as usize {
 						particle.trail.pop_front();
 					}
 					particle.trail.push_back(particle.transform.position);
