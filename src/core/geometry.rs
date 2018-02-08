@@ -8,6 +8,7 @@ use core::util::Initial;
 pub type Position = Vector2<f32>;
 // pub type Translation = Vector2<f32>;
 pub type Velocity = Vector2<f32>;
+pub type Acceleration = Vector2<f32>;
 pub type Angle = f32;
 // pub type Rotation = f32;
 pub type Spin = f32;

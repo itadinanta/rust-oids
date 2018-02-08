@@ -1,9 +1,6 @@
 use super::*;
 use backend::obj;
-use core::geometry::Transform;
-use core::geometry::Motion;
-use core::geometry::Position;
-use core::geometry::Velocity;
+use core::geometry::{Transform, Motion, Position, Velocity, Acceleration};
 use app::constants::*;
 use num::Zero;
 use core::color::Rgba;
@@ -24,10 +21,21 @@ type Phase = f32;
 const TRAIL_LENGTH: usize = 6;
 const MAX_FADER: usize = 4;
 
+#[derive(Clone)]
 struct Fader<S> {
 	value: S,
 	fade_rate: S,
 	target: S,
+}
+
+impl<S> Default for Fader<S> where S: num::Float {
+	fn default() -> Fader<S> {
+		Fader {
+			value: S::one(),
+			fade_rate: NumCast::from(0.5).unwrap(),
+			target: S::zero(),
+		}
+	}
 }
 
 impl<S> Fader<S> where S: num::Float {
@@ -39,8 +47,25 @@ impl<S> Fader<S> where S: num::Float {
 		self.value
 	}
 
-	fn with_target(&mut self, target: S) {
-		self.target = target
+	fn with_target(self, target: S) -> Self {
+		Fader {
+			target,
+			..self
+		}
+	}
+
+	fn with_fade_rate(self, fade_rate: S) -> Self {
+		Fader {
+			fade_rate,
+			..self
+		}
+	}
+
+	fn with_value(self, value: S) -> Self {
+		Fader {
+			value,
+			..self
+		}
 	}
 
 	fn update(&mut self, dt: Seconds) -> S {
@@ -58,18 +83,18 @@ struct ParticleBatch {
 	age: Seconds,
 	color0: Rgba<f32>,
 	color1: Rgba<f32>,
+	dampening: f32,
+	friction: f32,
+	faders: Box<[Fader<f32>]>,
 	particles: Box<[Particle]>,
 }
 
 struct Particle {
 	transform: Transform,
 	motion: Motion,
-	acceleration: Velocity,
+	acceleration: Acceleration,
 	trail_length: usize,
 	trail: VecDeque<Position>,
-	dampening: f32,
-	friction: f32,
-	faders: Box<[Fader<f32>]>,
 }
 
 trait Emitter {
@@ -89,6 +114,7 @@ enum EmitterAttachment {
 #[derive(Clone)]
 struct SimpleEmitter {
 	id: obj::Id,
+	tag: Tag,
 	transform: Transform,
 	motion: Motion,
 	attached_to: EmitterAttachment,
@@ -99,15 +125,21 @@ struct SimpleEmitter {
 	phase_rate: f32,
 	color0: Rgba<f32>,
 	color1: Rgba<f32>,
+	dampening: f32,
+	friction: f32,
 	ttl: Option<Seconds>,
 	cluster_size: u8,
+	faders: Vec<Fader<f32>>,
+	lifespan: Seconds,
 	active: bool,
 }
 
+#[allow(unused)]
 impl SimpleEmitter {
 	fn new(id: obj::Id) -> SimpleEmitter {
 		SimpleEmitter {
 			id,
+			tag: 0,
 			transform: Transform::new(Position::zero(), 0.),
 			motion: Motion::new(10. * Velocity::unit_x(), 0.),
 			attached_to: EmitterAttachment::None,
@@ -119,14 +151,27 @@ impl SimpleEmitter {
 			ttl: None,
 			color0: COLOR_SUNSHINE,
 			color1: COLOR_TRANSPARENT,
+			dampening: 0.0,
+			friction: 0.2,
 			cluster_size: 10,
+			faders: (0..MAX_FADER)
+				.map(|_| Fader::default().with_fade_rate(0.95))
+				.collect::<Vec<_>>(),
+			lifespan: seconds(10.),
 			active: true,
 		}
 	}
 
-	fn attached_to(self, attached_to: EmitterAttachment) -> Self {
+	pub fn with_attached_to(self, attached_to: EmitterAttachment) -> Self {
 		SimpleEmitter {
 			attached_to,
+			..self
+		}
+	}
+
+	pub fn with_tag(self, tag: Tag) -> Self {
+		SimpleEmitter {
+			tag,
 			..self
 		}
 	}
@@ -149,10 +194,6 @@ impl Emitter for SimpleEmitter {
 						trail_length: self.trail_length,
 						trail: VecDeque::new(),
 						motion: Motion::new(velocity, self.motion.spin),
-						dampening: 0.,
-						friction: 0.2,
-						faders: (0..MAX_FADER).map(|_| Fader::new(1.0, 0.95, 0.))
-							.collect::<Vec<_>>().into_boxed_slice(),
 						acceleration: -Velocity::unit_y(),
 					}
 				}).collect::<Vec<_>>().into_boxed_slice();
@@ -161,12 +202,15 @@ impl Emitter for SimpleEmitter {
 				destination.insert(id,
 								   ParticleBatch {
 									   id,
-									   tag: 0,
+									   tag: self.tag,
 									   particles,
 									   color0: self.color0,
 									   color1: self.color1,
 									   age: seconds(0.),
-									   lifespan: seconds(10.),
+									   dampening: self.dampening,
+									   friction: self.friction,
+									   faders: self.faders.clone().into_boxed_slice(),
+									   lifespan: self.lifespan,
 								   });
 			}
 		}
@@ -206,9 +250,10 @@ impl System for ParticleSystem {
 	fn get_from_world(&mut self, world: &world::World) {
 		for source in world.emitters() {
 			let emitter = match source.style {
-				world::particle::EmitterStyle::Explosion { cluster_size, color} => {
+				world::particle::EmitterStyle::Explosion { cluster_size, color } => {
 					SimpleEmitter {
 						id: self.next_id(),
+						tag: 0,
 						transform: source.transform.clone(),
 						motion: Motion::new(5. * Velocity::unit_x(), 0.),
 						attached_to: EmitterAttachment::None,
@@ -221,7 +266,11 @@ impl System for ParticleSystem {
 						color1: COLOR_TRANSPARENT,
 						ttl: Some(seconds(0.5)),
 						cluster_size,
+						dampening: 0.,
+						friction: 0.2,
+						faders: vec![Fader::new(1.0, 0.9, 0.0)],
 						active: true,
+						lifespan: seconds(3.),
 					}
 				}
 			};
@@ -298,7 +347,7 @@ impl System for ParticleSystem {
 						.iter()
 						.map(|t| *t)
 						.collect::<Vec<_>>().into_boxed_slice(),
-					particle.faders
+					particle_batch.faders
 						.iter()
 						.map(|f| f.value())
 						.collect::<Vec<_>>().into_boxed_slice(),
@@ -356,8 +405,8 @@ impl ParticleSystem {
 			if particle_batch.age >= particle_batch.lifespan {
 				Some(*id)
 			} else {
+				for fader in &mut *particle_batch.faders { fader.update(dt); }
 				for particle in &mut *particle_batch.particles {
-					for fader in &mut *particle.faders { fader.update(dt); }
 					let dt = dt.get() as f32;
 					// local acceleration is relative to the current velocity
 					let speed = particle.motion.velocity.magnitude();
@@ -379,8 +428,8 @@ impl ParticleSystem {
 					particle.motion.velocity += dt * world_acceleration;
 					particle.transform.position += dt * particle.motion.velocity;
 					particle.transform.angle += dt * particle.motion.spin;
-					particle.motion.velocity *= 1. - (dt * particle.friction);
-					particle.acceleration *= 1. - (dt * particle.dampening);
+					particle.motion.velocity *= 1. - (dt * particle_batch.friction);
+					particle.acceleration *= 1. - (dt * particle_batch.dampening);
 				};
 				particle_batch.age += dt;
 				None
