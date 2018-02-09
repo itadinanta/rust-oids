@@ -27,10 +27,10 @@ pub trait Fade<F, T> where T: num::Float {
 impl<T> Fade<Rgba<T>, T> for Rgba<T> where T: num::Float {
 	fn fade(&self, other: Rgba<T>, alpha: T) -> Rgba<T> {
 		let alpha1 = T::one() - alpha;
-		[self[0] * alpha + other[0] * alpha1,
-			self[1] * alpha + other[1] * alpha1,
-			self[2] * alpha + other[2] * alpha1,
-			self[3] * alpha + other[3] * alpha1]
+		[self[0] * alpha1 + other[0] * alpha,
+			self[1] * alpha1 + other[1] * alpha,
+			self[2] * alpha1 + other[2] * alpha,
+			self[3] * alpha1 + other[3] * alpha]
 	}
 }
 

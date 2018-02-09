@@ -167,7 +167,7 @@ impl Default for SimpleEmitter {
 			acceleration: Acceleration::zero(),
 			attached_to: EmitterAttachment::None,
 			trail_length: 0,
-			pulse: 0.,
+			pulse: 1.0,
 			phase: 0.,
 			pulse_rate: 5.,
 			phase_rate: 2.33,
@@ -396,7 +396,7 @@ impl System for ParticleSystem {
 						.with_cluster_size(cluster_size)
 						.with_acceleration(-Velocity::unit_y())
 						.with_faders(Fader::start()
-							.push(Fader::new(1.0, 0.99, 0.0))
+							.push(Fader::new(0.0, 2.0, 1.0))
 							.push(Fader::new(1.0, 0.7, 0.1))
 							.build())
 						.with_lifespan(seconds(3.0))
@@ -405,10 +405,10 @@ impl System for ParticleSystem {
 					SimpleEmitter::new(self.next_id())
 						.with_transform(source.transform.clone())
 						.with_color(color, COLOR_TRANSPARENT)
-						.with_ttl(Some(seconds(0.1)))
+						.with_ttl(Some(seconds(0.33)))
 						.with_faders(Fader::start()
-							.push(Fader::new(1.0, 0.9, 0.0))
-							.push(Fader::new(1.0, 1.1, 5.0))
+							.push(Fader::new(0.1, 4.0, 1.0))
+							.push(Fader::new(0.5, 0.7, 5.0))
 							.build())
 						.with_cluster_size(1)
 						.with_lifespan(seconds(3.0))
@@ -428,22 +428,20 @@ impl System for ParticleSystem {
 			self.emitters.insert(emitter.id, Box::new(emitter));
 		}
 
-//		if let Some(player_agent_id) = world.get_player_agent_id() {
-//			if self.emitters.is_empty() {
-//				let emitter = SimpleEmitter::new(self.next_id())
-//					.with_attached_to(EmitterAttachment::Agent(player_agent_id))
-//					.with_color(COLOR_SUNSHINE, COLOR_TRANSPARENT)
-//					.with_faders(Fader::start()
-//						.push(Fader::new(1.0, 0.9, 0.0))
-//						.push(Fader::new(1.0, 1.1, 5.0))
-//						.build())
-//					.with_cluster_size(1)
-//					.with_lifespan(seconds(3.0));
-////				let emitter = SimpleEmitter::new(self.next_id())
-////					.attached_to(EmitterAttachment::Agent(player_agent_id));
-//				self.emitters.insert(emitter.id, Box::new(emitter));
-//			}
-//		}
+		if let Some(player_agent_id) = world.get_player_agent_id() {
+			if self.emitters.is_empty() {
+				let emitter = SimpleEmitter::new(self.next_id())
+					.with_attached_to(EmitterAttachment::Agent(player_agent_id))
+					.with_color(COLOR_SUNSHINE, COLOR_TRANSPARENT)
+					.with_faders(Fader::start()
+						.push(Fader::new(0.0, 4.0, 1.0))
+						.push(Fader::new(1.0, 1.1, 5.0))
+						.build())
+					.with_cluster_size(1)
+					.with_lifespan(seconds(3.0));
+				self.emitters.insert(emitter.id, Box::new(emitter));
+			}
+		}
 
 		let orphan: Vec<obj::Id> = self.emitters.iter_mut().map(|(id, emitter)| {
 			let surviving = match emitter.attached_to() {
