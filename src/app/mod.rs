@@ -100,7 +100,7 @@ impl<T> systems::System for SendSystem<T> where T: systems::System {
 	fn unregister(&mut self, agent: &world::agent::Agent) { self.ptr.write().unwrap().unregister(agent) }
 
 	fn step(&mut self, world: &world::World, dt: Seconds) { self.ptr.write().unwrap().step(world, dt) }
-	fn retrieve(&self, world: &mut world::World) { self.ptr.read().unwrap().retrieve(world) }
+	fn apply(&self, world: &mut world::World) { self.ptr.read().unwrap().apply(world) }
 }
 
 // unsafe?
@@ -444,7 +444,7 @@ impl App {
 
 	fn update_systems(&mut self, dt: Seconds) {
 		self.systems.write(&self.world, &|s, world| s.step(&world, dt));
-		self.systems.read(&mut self.world, &|s, mut world| s.retrieve(&mut world));
+		self.systems.read(&mut self.world, &|s, mut world| s.apply(&mut world));
 	}
 
 	fn cleanup(&mut self) {

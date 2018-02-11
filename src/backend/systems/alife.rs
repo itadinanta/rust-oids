@@ -27,7 +27,7 @@ pub struct AlifeSystem {
 }
 
 impl System for AlifeSystem {
-	fn get_from_world(&mut self, world: &world::World) {
+	fn import(&mut self, world: &world::World) {
 		self.source = world.feeders().to_vec().into_boxed_slice();
 		self.eaten = Self::find_eaten_resources(
 			&world.agents(agent::AgentType::Minion),
@@ -44,7 +44,7 @@ impl System for AlifeSystem {
 		self.simulation_timer.tick(dt);
 	}
 
-	fn put_to_world(&self, world: &mut world::World) {
+	fn export(&self, world: &mut world::World) {
 		Self::update_resources(
 			self.dt,
 			&self.simulation_timer,

@@ -384,7 +384,7 @@ pub struct ParticleSystem {
 }
 
 impl System for ParticleSystem {
-	fn get_from_world(&mut self, world: &world::World) {
+	fn import(&mut self, world: &world::World) {
 		for source in world.emitters() {
 			let emitter = match source.style {
 				EmitterStyle::Explosion { cluster_size, color } => {
@@ -493,7 +493,7 @@ impl System for ParticleSystem {
 		self.update_particles();
 	}
 
-	fn put_to_world(&self, world: &mut world::World) {
+	fn export(&self, world: &mut world::World) {
 		world.clear_emitters();
 		world.clear_particles();
 		for (_, particle_batch) in &self.particles {

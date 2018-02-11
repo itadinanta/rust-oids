@@ -41,7 +41,7 @@ impl input::EventMapper<gilrs::Event> for GamepadEventLoop {
 			}
 		}
 
-		fn to_axis(axis: gilrs::Axis) -> Option<input::Axis> {
+		fn from_axis(axis: gilrs::Axis) -> Option<input::Axis> {
 			use frontend::input::Axis::*;
 			match axis {
 				gilrs::Axis::LeftStickX => Some(LStickX),
@@ -53,7 +53,7 @@ impl input::EventMapper<gilrs::Event> for GamepadEventLoop {
 		}
 
 
-		fn button_to_axis(axis: gilrs::Button) -> Option<input::Axis> {
+		fn from_button(axis: gilrs::Button) -> Option<input::Axis> {
 			use frontend::input::Axis::*;
 			match axis {
 				gilrs::Button::LeftTrigger2 => Some(L2),
@@ -68,13 +68,13 @@ impl input::EventMapper<gilrs::Event> for GamepadEventLoop {
 			gilrs::EventType::ButtonReleased(button, _) =>
 				to_key(button).map(|key| input::Event::GamepadButton(e.id, input::State::Up, key)),
 			gilrs::EventType::ButtonChanged(gilrs::Button::RightTrigger2, value, _) =>
-				button_to_axis(gilrs::Button::RightTrigger2)
+				from_button(gilrs::Button::RightTrigger2)
 					.map(|axis| input::Event::GamepadAxis(e.id, value, axis)),
 			gilrs::EventType::ButtonChanged(gilrs::Button::LeftTrigger2, value, _) =>
-				button_to_axis(gilrs::Button::LeftTrigger2)
+				from_button(gilrs::Button::LeftTrigger2)
 					.map(|axis| input::Event::GamepadAxis(e.id, value, axis)),
 			gilrs::EventType::AxisChanged(axis, value, _) =>
-				to_axis(axis).map(|axis| input::Event::GamepadAxis(e.id, value, axis)),
+				from_axis(axis).map(|axis| input::Event::GamepadAxis(e.id, value, axis)),
 			_ => None
 		}
 	}

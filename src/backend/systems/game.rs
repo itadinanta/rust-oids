@@ -51,7 +51,7 @@ impl Feeder where {
 }
 
 impl System for GameSystem {
-	fn get_from_world(&mut self, world: &world::World) {
+	fn import(&mut self, world: &world::World) {
 		let source = world.feeders();
 		// Add missing emitters - deletion not supported
 		for i in self.feeders.len()..source.len() {
@@ -96,7 +96,7 @@ impl System for GameSystem {
 		self.playerstate.trigger_held = false;
 	}
 
-	fn put_to_world(&self, world: &mut world::World) {
+	fn export(&self, world: &mut world::World) {
 		let rng = &mut rand::thread_rng();
 		for e in &self.feeders {
 			for i in e.spawned..e.to_spawn {

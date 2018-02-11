@@ -18,16 +18,16 @@ pub trait System {
 	fn init(&mut self, _: &world::World) {}
 	fn register(&mut self, _: &world::agent::Agent) {}
 	fn unregister(&mut self, _: &world::agent::Agent) {}
-	fn get_from_world(&mut self, _: &world::World) {}
+	fn import(&mut self, _: &world::World) {}
 	fn update(&mut self, _world_state: &world::AgentState, _dt: Seconds) {}
-	fn put_to_world(&self, _: &mut world::World) {}
+	fn export(&self, _: &mut world::World) {}
 
 	fn step(&mut self, world: &world::World, dt: Seconds) {
-		self.get_from_world(world);
+		self.import(world);
 		self.update(world, dt)
 	}
 
-	fn retrieve(&self, world: &mut world::World) {
-		self.put_to_world(world)
+	fn apply(&self, world: &mut world::World) {
+		self.export(world)
 	}
 }
