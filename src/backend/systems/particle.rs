@@ -330,11 +330,11 @@ impl Emitter for SimpleEmitter {
 			if self.pulse < pulse {
 				let particles = (0..self.cluster_size).map(|i| {
 					let alpha = consts::PI * 2. * (phase - self.cluster_fanout / 2. + (self.cluster_fanout * i as f32 / self.cluster_size as f32));
-					let velocity = Transform::from_angle(self.transform.angle + alpha)
+					let velocity = Transform::from_angle(self.transform.angle + alpha * jitter(0.1))
 						.apply_rotation(self.motion.velocity * jitter(0.1));
 					Particle {
 						transform: Transform::new(self.transform.position,
-												  self.transform.angle + alpha),
+												  self.transform.angle + alpha * jitter(0.1)),
 						trail_length: self.trail_length,
 						trail: VecDeque::new(),
 						motion: Motion::new(velocity, self.motion.spin * jitter(0.1)),
@@ -443,13 +443,14 @@ impl System for ParticleSystem {
 					.with_effect(COLOR_WHITE, [1., 1., 1., 0.2])
 					.with_pulse(0., 60. / 5.)
 					.with_phase(0., 0.)
+					.with_jitter(3.)
 					.with_faders([
 						Fader::new(0.0, 4.0, 1.0),
 						Fader::new(1.0, 1.1, 0.1),
 						Fader::default(),
 						Fader::new(0.0, 4.0, 1.0)])
 					.with_cluster_size(3)
-					.with_cluster_wedge(0.25)
+					.with_cluster_wedge(0.15)
 					.with_lifespan(seconds(3.0));
 				self.emitters.insert(emitter.id, Box::new(emitter));
 			}
