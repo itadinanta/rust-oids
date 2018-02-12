@@ -5,16 +5,11 @@ use core::color::Rgba;
 use core::color::Fade;
 use core::geometry::{Transform, Motion, Position, Velocity};
 
-enum Shape {
-	Round(f32),
-	Spark(f32),
-}
-
 enum Fader {
 	Color = 0,
 	Scale = 1,
-	Intensity = 2,
-	Effect = 3,
+	Effect = 2,
+	Frequency = 3,
 }
 
 #[derive(Copy, Clone)]
@@ -92,11 +87,10 @@ pub struct Particle {
 	transform: Transform,
 	direction: Velocity,
 	trail: Box<[Position]>,
-	faders: Box<[f32]>,
-	color0: Rgba<f32>,
-	color1: Rgba<f32>,
+	faders: [f32; 4],
+	color: (Rgba<f32>, Rgba<f32>),
+	effect: (Rgba<f32>, Rgba<f32>),
 	age: Seconds,
-	shape: Shape,
 }
 
 #[derive(Default)]
@@ -133,41 +127,31 @@ impl Emitter {
 }
 
 impl Particle {
-	pub fn round(transform: Transform,
-				 direction: Velocity,
-				 trail: Box<[Position]>,
-				 faders: Box<[f32]>,
-				 color0: Rgba<f32>,
-				 color1: Rgba<f32>,
-				 age: Seconds) -> Particle {
-		Particle {
-			transform,
-			direction,
-			trail,
-			faders,
-			color0,
-			color1,
-			age,
-			shape: Shape::Round(DEFAULT_RIPPLE_FREQUENCY),
-		}
+	pub fn spark(frequency: f32, ratio: f32) -> [Rgba<f32>; 2] {
+		[[1., 1., frequency, ratio],
+			[1., 1., frequency, ratio]]
 	}
 
-	pub fn spark(transform: Transform,
-				 direction: Velocity,
-				 trail: Box<[Position]>,
-				 faders: Box<[f32]>,
-				 color0: Rgba<f32>,
-				 color1: Rgba<f32>,
-				 age: Seconds) -> Particle {
+	pub fn round(frequency: f32) -> [Rgba<f32>; 2] {
+		[[1., 1., frequency, 1.],
+			[1., 1., frequency, 1.]]
+	}
+
+	pub fn new(transform: Transform,
+			   direction: Velocity,
+			   trail: Box<[Position]>,
+			   faders: [f32; 4],
+			   color: (Rgba<f32>, Rgba<f32>),
+			   effect: (Rgba<f32>, Rgba<f32>),
+			   age: Seconds) -> Particle {
 		Particle {
 			transform,
 			direction,
 			trail,
 			faders,
-			color0,
-			color1,
+			color,
+			effect,
 			age,
-			shape: Shape::Spark(DEFAULT_SPARK_RATIO),
 		}
 	}
 
@@ -176,29 +160,16 @@ impl Particle {
 	}
 
 	pub fn scale(&self) -> f32 {
-		*self.faders.get(Fader::Scale as usize).unwrap_or(&1.)
+		self.faders[Fader::Scale as usize]
 	}
 
 	pub fn color(&self) -> Rgba<f32> {
-		self.faders.get(Fader::Color as usize)
-			.map(move |fader| self.color0.fade(self.color1, *fader))
-			.unwrap_or(COLOR_WHITE)
+		self.color.0.fade(self.color.1, self.faders[Fader::Color as usize])
 	}
 
 	pub fn effect(&self) -> Rgba<f32> {
-		let frequency = match self.shape {
-			Shape::Round(frequency) => frequency,
-			Shape::Spark(_) => 1.,
-		};
-		let ratio = match self.shape {
-			Shape::Round(_) => 1.,
-			Shape::Spark(ratio) => ratio,
-		};
-
-		[*self.faders.get(Fader::Intensity as usize).unwrap_or(&1.0),
-			self.age.get() as f32,
-			frequency,
-			ratio
-		]
+		let effect = self.effect.0.fade(self.effect.1, self.faders[Fader::Effect as usize]);
+		let frequency = self.faders[Fader::Frequency as usize];
+		[effect[0], effect[1] * self.age.get() as f32, effect[2] * frequency, effect[3]]
 	}
 }

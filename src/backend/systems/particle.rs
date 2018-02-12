@@ -24,8 +24,8 @@ type Phase = f32;
 const TRAIL_LENGTH: u8 = 6;
 const MAX_FADER: u8 = 4;
 
-#[derive(Clone)]
-struct Fader<S> {
+#[derive(Clone, Copy)]
+struct Fader<S> where S: Copy {
 	value: S,
 	fade_rate: S,
 	target: S,
@@ -75,23 +75,6 @@ impl<S> Fader<S> where S: num::Float {
 		self.value = self.value + (self.target - self.value) * self.fade_rate * NumCast::from(dt.get()).unwrap();
 		self.value
 	}
-
-	fn start() -> Faders<S> {
-		Faders::new()
-	}
-}
-
-struct Faders<S> where S: num::Float {
-	faders: Vec<Fader<S>>
-}
-
-impl<S> Faders<S> where S: num::Float {
-	pub fn new() -> Self { Faders { faders: Vec::new() } }
-	pub fn build(self) -> Box<[Fader<S>]> { self.faders.into_boxed_slice() }
-	pub fn push(mut self, f: Fader<S>) -> Self {
-		self.faders.push(f);
-		self
-	}
 }
 
 type Tag = u64;
@@ -101,11 +84,11 @@ struct ParticleBatch {
 	tag: Tag,
 	lifespan: Seconds,
 	age: Seconds,
-	color0: Rgba<f32>,
-	color1: Rgba<f32>,
+	color: (Rgba<f32>, Rgba<f32>),
+	effect: (Rgba<f32>, Rgba<f32>),
 	dampening: f32,
 	friction: f32,
-	faders: Box<[Fader<f32>]>,
+	faders: [Fader<f32>; MAX_FADER as usize],
 	particles: Box<[Particle]>,
 }
 
@@ -144,13 +127,13 @@ struct SimpleEmitter {
 	phase: Phase,
 	pulse_rate: f32,
 	phase_rate: f32,
-	color0: Rgba<f32>,
-	color1: Rgba<f32>,
+	color: (Rgba<f32>, Rgba<f32>),
+	effect: (Rgba<f32>, Rgba<f32>),
 	dampening: f32,
 	friction: f32,
 	ttl: Option<Seconds>,
 	cluster_size: u8,
-	faders: Box<[Fader<f32>]>,
+	faders: [Fader<f32>; MAX_FADER as usize],
 	lifespan: Seconds,
 	jitter: f32,
 	active: bool,
@@ -172,14 +155,12 @@ impl Default for SimpleEmitter {
 			pulse_rate: 5.,
 			phase_rate: 2.33,
 			ttl: None,
-			color0: COLOR_SUNSHINE,
-			color1: COLOR_TRANSPARENT,
+			color: (COLOR_SUNSHINE, COLOR_TRANSPARENT),
+			effect: (COLOR_WHITE, COLOR_WHITE),
 			dampening: 0.,
 			friction: 0.2,
 			cluster_size: 10,
-			faders: (0..MAX_FADER as usize)
-				.map(|_| Fader::default().with_fade_rate(0.95))
-				.collect::<Vec<_>>().into_boxed_slice(),
+			faders: [Fader::default().with_fade_rate(0.95); MAX_FADER as usize],
 			jitter: 1.,
 			lifespan: seconds(10.),
 			active: true,
@@ -274,8 +255,14 @@ impl SimpleEmitter {
 
 	pub fn with_color(self, color0: Rgba<f32>, color1: Rgba<f32>) -> Self {
 		SimpleEmitter {
-			color0,
-			color1,
+			color: (color0, color1),
+			..self
+		}
+	}
+
+	pub fn with_effect(self, effect0: Rgba<f32>, effect1: Rgba<f32>) -> Self {
+		SimpleEmitter {
+			effect: (effect0, effect1),
 			..self
 		}
 	}
@@ -288,7 +275,19 @@ impl SimpleEmitter {
 		}
 	}
 
-	pub fn with_faders(self, faders: Box<[Fader<f32>]>) -> Self {
+	pub fn with_1_fader(self, fader0: Fader<f32>) -> Self {
+		self.with_faders([fader0, Fader::default(), Fader::default(), Fader::default()])
+	}
+
+	pub fn with_2_faders(self, fader0: Fader<f32>, fader1: Fader<f32>) -> Self {
+		self.with_faders([fader0, Fader::default(), Fader::default(), Fader::default()])
+	}
+
+	pub fn with_3_faders(self, fader0: Fader<f32>, fader1: Fader<f32>, fader2: Fader<f32>) -> Self {
+		self.with_faders([fader0, fader1, fader2, Fader::default()])
+	}
+
+	pub fn with_faders(self, faders: [Fader<f32>; MAX_FADER as usize]) -> Self {
 		SimpleEmitter {
 			faders,
 			..self
@@ -341,8 +340,8 @@ impl Emitter for SimpleEmitter {
 									   id,
 									   tag: self.tag,
 									   particles,
-									   color0: self.color0,
-									   color1: self.color1,
+									   color: self.color,
+									   effect: self.effect,
 									   age: seconds(0.),
 									   dampening: self.dampening,
 									   friction: self.friction,
@@ -395,10 +394,9 @@ impl System for ParticleSystem {
 						.with_ttl(Some(seconds(0.5)))
 						.with_cluster_size(cluster_size)
 						.with_acceleration(-Velocity::unit_y())
-						.with_faders(Fader::start()
-							.push(Fader::new(0.0, 2.0, 1.0))
-							.push(Fader::new(1.0, 0.7, 0.1))
-							.build())
+						.with_2_faders(
+							Fader::new(0.0, 2.0, 1.0),
+							Fader::new(1.0, 0.7, 0.1))
 						.with_lifespan(seconds(3.0))
 				}
 				EmitterStyle::Ping { color } => {
@@ -406,10 +404,9 @@ impl System for ParticleSystem {
 						.with_transform(source.transform.clone())
 						.with_color(color, COLOR_TRANSPARENT)
 						.with_ttl(Some(seconds(0.33)))
-						.with_faders(Fader::start()
-							.push(Fader::new(0.1, 4.0, 1.0))
-							.push(Fader::new(0.5, 0.7, 5.0))
-							.build())
+						.with_2_faders(
+							Fader::new(0.1, 4.0, 1.0),
+							Fader::new(0.5, 0.7, 5.0))
 						.with_cluster_size(1)
 						.with_lifespan(seconds(3.0))
 				}
@@ -419,8 +416,7 @@ impl System for ParticleSystem {
 						.with_motion(Motion::new(5. * Velocity::unit_x(), 0.))
 						.with_color(color, COLOR_TRANSPARENT)
 						.with_ttl(Some(seconds(0.16)))
-						.with_faders(Fader::start()
-							.push(Fader::new(1.0, 0.9, 0.0)).build())
+						.with_1_fader(Fader::new(0.0, 0.9, 1.0))
 						.with_cluster_size(cluster_size)
 						.with_lifespan(seconds(3.0))
 				}
@@ -428,15 +424,19 @@ impl System for ParticleSystem {
 			self.emitters.insert(emitter.id, Box::new(emitter));
 		}
 
+		// Player trail
 		if let Some(player_agent_id) = world.get_player_agent_id() {
 			if self.emitters.is_empty() {
 				let emitter = SimpleEmitter::new(self.next_id())
 					.with_attached_to(EmitterAttachment::Agent(player_agent_id))
 					.with_color(COLOR_SUNSHINE, COLOR_TRANSPARENT)
-					.with_faders(Fader::start()
-						.push(Fader::new(0.0, 4.0, 1.0))
-						.push(Fader::new(1.0, 1.1, 5.0))
-						.build())
+					.with_effect(COLOR_WHITE, [1., 1., 1., 0.2])
+					.with_pulse(0., 60. / 5.)
+					.with_faders([
+						Fader::new(0.0, 4.0, 1.0),
+						Fader::new(1.0, 1.1, 5.0),
+						Fader::default(),
+						Fader::new(0.0, 4.0, 1.0)])
 					.with_cluster_size(1)
 					.with_lifespan(seconds(3.0));
 				self.emitters.insert(emitter.id, Box::new(emitter));
@@ -498,19 +498,20 @@ impl System for ParticleSystem {
 		world.clear_particles();
 		for (_, particle_batch) in &self.particles {
 			for particle in &*particle_batch.particles {
-				world.add_particle(world::particle::Particle::round(
+				let mut faders = [1.; MAX_FADER as usize];
+				for i in 0..MAX_FADER as usize {
+					faders[i] = particle_batch.faders[i].value();
+				}
+				world.add_particle(world::particle::Particle::new(
 					particle.transform.clone(),
 					particle.motion.velocity.normalize(),
 					particle.trail
 						.iter()
 						.map(|t| *t)
 						.collect::<Vec<_>>().into_boxed_slice(),
-					particle_batch.faders
-						.iter()
-						.map(|f| f.value())
-						.collect::<Vec<_>>().into_boxed_slice(),
-					particle_batch.color0,
-					particle_batch.color1,
+					faders,
+					particle_batch.color,
+					particle_batch.effect,
 					particle_batch.age,
 				));
 			}
@@ -563,7 +564,7 @@ impl ParticleSystem {
 			if particle_batch.age >= particle_batch.lifespan {
 				Some(*id)
 			} else {
-				for fader in &mut *particle_batch.faders { fader.update(dt); }
+				particle_batch.faders.iter_mut().for_each(|fader| { fader.update(dt); });
 				for particle in &mut *particle_batch.particles {
 					let dt = dt.get() as f32;
 					// local acceleration is relative to the current velocity
