@@ -438,6 +438,7 @@ impl System for ParticleSystem {
 			if self.emitters.is_empty() {
 				let emitter = SimpleEmitter::new(self.next_id())
 					.with_attached_to(EmitterAttachment::Agent(player_agent_id))
+					.with_motion(Motion::new(-5. * Velocity::unit_x(), 0.))
 					.with_color(COLOR_SUNSHINE, COLOR_TRANSPARENT)
 					.with_effect(COLOR_WHITE, [1., 1., 1., 0.2])
 					.with_pulse(0., 60. / 5.)
@@ -446,7 +447,7 @@ impl System for ParticleSystem {
 						Fader::new(1.0, 1.1, 5.0),
 						Fader::default(),
 						Fader::new(0.0, 4.0, 1.0)])
-					.with_cluster_size(3)
+					.with_cluster_size(2)
 					.with_cluster_wedge(0.25)
 					.with_lifespan(seconds(3.0));
 				self.emitters.insert(emitter.id, Box::new(emitter));
