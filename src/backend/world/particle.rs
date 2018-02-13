@@ -5,11 +5,12 @@ use core::color::Rgba;
 use core::color::Fade;
 use core::geometry::{Transform, Motion, Position, Velocity};
 
-enum Fader {
+pub enum Fader {
 	Color = 0,
 	Scale = 1,
 	Effect = 2,
 	Frequency = 3,
+	Count = 4,
 }
 
 #[derive(Copy, Clone)]

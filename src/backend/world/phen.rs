@@ -121,7 +121,7 @@ impl Phenotype for Minion {
 		let torso = builder.start(transform, motion, &torso_shape).index();
 		let head_shape = gen.iso_triangle();
 		let tail_shape = gen.vbar();
-		let i = ::std::cmp::max((torso_shape.length() as isize / 5), 1);
+		let i = ::std::cmp::max(torso_shape.length() as isize / 5, 1);
 		builder
 			.addr(
 				torso,

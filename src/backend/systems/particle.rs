@@ -22,7 +22,7 @@ use rayon::prelude::*;
 type Phase = f32;
 
 const TRAIL_LENGTH: u8 = 6;
-const MAX_FADER: u8 = 4;
+const MAX_FADER: usize = world::particle::Fader::Count as usize;
 
 #[derive(Clone, Copy)]
 struct Fader<S> where S: Copy {
@@ -31,11 +31,13 @@ struct Fader<S> where S: Copy {
 	target: S,
 }
 
+type FaderList = [Option<Fader<f32>>; MAX_FADER];
+
 impl<S> Default for Fader<S> where S: num::Float {
 	fn default() -> Fader<S> {
 		Fader {
 			value: S::one(),
-			fade_rate: NumCast::from(0.5).unwrap(),
+			fade_rate: NumCast::from(0.95).unwrap(),
 			target: S::zero(),
 		}
 	}
@@ -44,6 +46,10 @@ impl<S> Default for Fader<S> where S: num::Float {
 impl<S> Fader<S> where S: num::Float {
 	fn new(value: S, fade_rate: S, target: S) -> Fader<S> {
 		Fader { value, fade_rate, target }
+	}
+
+	fn flat(value: S) -> Fader<S> {
+		Fader { value, fade_rate: S::zero(), target: value }
 	}
 
 	fn value(&self) -> S {
@@ -88,7 +94,7 @@ struct ParticleBatch {
 	effect: (Rgba<f32>, Rgba<f32>),
 	dampening: f32,
 	friction: f32,
-	faders: [Fader<f32>; MAX_FADER as usize],
+	faders: FaderList,
 	particles: Box<[Particle]>,
 }
 
@@ -134,7 +140,7 @@ struct SimpleEmitter {
 	ttl: Option<Seconds>,
 	cluster_size: u8,
 	cluster_fanout: f32,
-	faders: [Fader<f32>; MAX_FADER as usize],
+	faders: FaderList,
 	lifespan: Seconds,
 	jitter: f32,
 	active: bool,
@@ -162,7 +168,7 @@ impl Default for SimpleEmitter {
 			friction: 0.2,
 			cluster_size: 10,
 			cluster_fanout: 1.,
-			faders: [Fader::default().with_fade_rate(0.95); MAX_FADER as usize],
+			faders: [None; MAX_FADER],
 			jitter: 1.,
 			lifespan: seconds(10.),
 			active: true,
@@ -277,19 +283,33 @@ impl SimpleEmitter {
 		}
 	}
 
-	pub fn with_1_fader(self, fader0: Fader<f32>) -> Self {
-		self.with_faders([fader0, Fader::default(), Fader::default(), Fader::default()])
+
+	pub fn with_1_fader(self, fader_color: Fader<f32>) -> Self {
+		self.with_faders([Some(fader_color), None, None, None])
 	}
 
-	pub fn with_2_faders(self, fader0: Fader<f32>, fader1: Fader<f32>) -> Self {
-		self.with_faders([fader0, Fader::default(), Fader::default(), Fader::default()])
+	pub fn with_2_faders(self, fader_color: Fader<f32>, fader_scale: Fader<f32>) -> Self {
+		self.with_faders([Some(fader_color), Some(fader_scale), None, None])
 	}
 
-	pub fn with_3_faders(self, fader0: Fader<f32>, fader1: Fader<f32>, fader2: Fader<f32>) -> Self {
-		self.with_faders([fader0, fader1, fader2, Fader::default()])
+	pub fn with_3_faders(self, fader_color: Fader<f32>, fader_scale: Fader<f32>, fader_effect: Fader<f32>) -> Self {
+		self.with_faders([Some(fader_color), Some(fader_scale), Some(fader_effect), None])
 	}
 
-	pub fn with_faders(self, faders: [Fader<f32>; MAX_FADER as usize]) -> Self {
+	pub fn with_4_faders(self, fader_color: Fader<f32>, fader_scale: Fader<f32>, fader_effect: Fader<f32>, fader_frequency: Fader<f32>) -> Self {
+		self.with_faders([Some(fader_color), Some(fader_scale), Some(fader_effect), Some(fader_frequency)])
+	}
+
+	pub fn with_fader(self, index: world::particle::Fader, value: Option<Fader<f32>>) -> Self {
+		let mut faders = self.faders.clone();
+		faders[index as usize] = value;
+		SimpleEmitter {
+			faders,
+			..self
+		}
+	}
+
+	pub fn with_faders(self, faders: FaderList) -> Self {
 		SimpleEmitter {
 			faders,
 			..self
@@ -353,7 +373,7 @@ impl Emitter for SimpleEmitter {
 									   age: seconds(0.),
 									   dampening: self.dampening,
 									   friction: self.friction,
-									   faders: self.faders.clone(),
+									   faders: self.faders,
 									   lifespan: self.lifespan,
 								   });
 			}
@@ -413,19 +433,26 @@ impl System for ParticleSystem {
 						.with_transform(source.transform.clone())
 						.with_color(color, COLOR_TRANSPARENT)
 						.with_ttl(Some(seconds(0.33)))
-						.with_2_faders(
-							Fader::new(0.1, 4.0, 1.0),
-							Fader::new(0.5, 0.7, 5.0))
+						.with_4_faders(Fader::new(0.0, 4.0, 1.0),
+									   Fader::new(0.5, 0.7, 5.0),
+									   Fader::flat(1.),
+									   Fader::new(3., 1., 1.))
 						.with_cluster_size(1)
 						.with_lifespan(seconds(3.0))
 				}
 				EmitterStyle::Sparkle { cluster_size, color } => {
 					SimpleEmitter::new(self.next_id())
+						.with_jitter(0.)
 						.with_transform(source.transform.clone())
-						.with_motion(Motion::new(5. * Velocity::unit_x(), 0.))
+						.with_motion(Motion::new(8. * Velocity::unit_x(), 0.))
+						.with_effect(COLOR_WHITE, [1., 1., 1., 16.0])
 						.with_color(color, COLOR_TRANSPARENT)
-						.with_ttl(Some(seconds(0.16)))
-						.with_1_fader(Fader::new(0.0, 0.9, 1.0))
+						.with_ttl(Some(seconds(0.30)))
+						.with_pulse(1.0, 10.)
+						.with_phase(0.0, 1. / cluster_size as f32)
+						.with_3_faders(Fader::new(0.0, 1.2, 1.0),
+									   Fader::default(),
+									   Fader::default())
 						.with_cluster_size(cluster_size)
 						.with_lifespan(seconds(3.0))
 				}
@@ -440,15 +467,15 @@ impl System for ParticleSystem {
 					.with_attached_to(EmitterAttachment::Agent(player_agent_id))
 					.with_motion(Motion::new(-10. * Velocity::unit_x(), 0.))
 					.with_color(COLOR_SUNSHINE, COLOR_TRANSPARENT)
-					.with_effect(COLOR_WHITE, [1., 1., 1., 0.2])
+					.with_effect(COLOR_WHITE, [1., 1., 1., 16.0])
 					.with_pulse(0., 60. / 5.)
 					.with_phase(0., 0.)
 					.with_jitter(3.)
-					.with_faders([
+					.with_4_faders(
 						Fader::new(0.0, 4.0, 1.0),
 						Fader::new(1.0, 1.1, 0.1),
 						Fader::default(),
-						Fader::new(0.0, 4.0, 1.0)])
+						Fader::new(1.0, 4.0, 0.0))
 					.with_cluster_size(3)
 					.with_cluster_wedge(0.15)
 					.with_lifespan(seconds(3.0));
@@ -511,9 +538,9 @@ impl System for ParticleSystem {
 		world.clear_particles();
 		for (_, particle_batch) in &self.particles {
 			for particle in &*particle_batch.particles {
-				let mut faders = [1.; MAX_FADER as usize];
-				for i in 0..MAX_FADER as usize {
-					faders[i] = particle_batch.faders[i].value();
+				let mut faders = [1.; MAX_FADER];
+				for (src, dest) in particle_batch.faders.iter().zip(faders.iter_mut()) {
+					*dest = src.map(|f| f.value()).unwrap_or(1.)
 				}
 				world.add_particle(world::particle::Particle::new(
 					particle.transform.clone(),
@@ -577,7 +604,11 @@ impl ParticleSystem {
 			if particle_batch.age >= particle_batch.lifespan {
 				Some(*id)
 			} else {
-				particle_batch.faders.iter_mut().for_each(|fader| { fader.update(dt); });
+				for f in &mut particle_batch.faders {
+					if let &mut Some(ref mut v) = f {
+						v.update(dt);
+					}
+				};
 				for particle in &mut *particle_batch.particles {
 					let dt = dt.get() as f32;
 					// local acceleration is relative to the current velocity
