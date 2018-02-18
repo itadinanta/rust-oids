@@ -190,14 +190,14 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 		let lines_pso = Self::new_pso(
 			factory,
 			&flat_shaders,
-			gfx::Primitive::LineStrip,
+			gfx::Primitive::LineList,
 			line_rasterizer,
 			init.clone(),
 		)?;
 		let debug_lines_pso = Self::new_pso(
 			factory,
 			&flat_shaders,
-			gfx::Primitive::LineStrip,
+			gfx::Primitive::LineList,
 			debug_line_rasterizer,
 			init.clone(),
 		)?;

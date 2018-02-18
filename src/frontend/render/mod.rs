@@ -240,15 +240,23 @@ impl<T> Draw for T where T: PrimitiveSequence {
 	}
 
 	fn draw_lines(&mut self, style: Option<Style>, transform: M44, vertices: &[Position], appearance: Appearance) {
-		let v: Vec<_> = vertices
-			.iter()
-			.map(|v| Vertex::new([v.x, v.y, 0.0], [0.5, 0.5]))
-			.collect();
+		let n = vertices.len();
+		if n > 1 {
+			let dv = 1. / (n - 1) as f32;
+			let v: Vec<_> = vertices
+				.iter()
+				.enumerate()
+				.map(|(i, v)| Vertex::new([v.x, v.y, 0.0], [0.5, i as f32 * dv]))
+				.collect();
+			let mut i: Vec<VertexIndex> = Vec::new();
+			for k in 0..n - 1 {
+				i.push(k as VertexIndex);
+				i.push((k + 1) as VertexIndex);
+			}
 
-		let i: Vec<_> = (0..vertices.len() as VertexIndex).collect();
-
-		self.push_primitive(style.unwrap_or(Style::Lines), v, i, transform, appearance)
-			.expect("Unable to draw lines");
+			self.push_primitive(style.unwrap_or(Style::Lines), v, i, transform, appearance)
+				.expect("Unable to draw lines");
+		}
 	}
 
 	fn draw_ball(&mut self, style: Option<Style>, transform: M44, appearance: Appearance) {

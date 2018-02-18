@@ -27,6 +27,15 @@ impl App {
 		renderer.draw_buffer(batch);
 	}
 
+	fn paint_particles_trails<R>(&self, renderer: &mut R) where R: render::DrawBuffer {
+		let mut batch = render::PrimitiveBuffer::new();
+		for particle in self.world.particles() {
+			let appearance = render::Appearance::new(particle.color(), particle.effect());
+			batch.draw_lines(None, Matrix4::identity(), particle.trail(), appearance);
+		}
+		renderer.draw_buffer(batch);
+	}
+
 	fn paint_minions<R>(&self, renderer: &mut R) where R: render::DrawBuffer {
 		for (_, swarm) in self.world.swarms().iter() {
 			let mut batch_buffer = render::PrimitiveBuffer::new();
@@ -174,6 +183,7 @@ impl App {
 		self.paint_minions(renderer);
 		self.paint_extent(renderer);
 		self.paint_particles(renderer);
+		self.paint_particles_trails(renderer);
 		self.paint_hud(renderer);
 	}
 }

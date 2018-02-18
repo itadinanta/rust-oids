@@ -161,6 +161,10 @@ impl Particle {
 		self.transform.clone()
 	}
 
+	pub fn trail(&self) -> &[Position] {
+		&self.trail
+	}
+
 	pub fn scale(&self) -> f32 {
 		self.faders[Fader::Scale as usize]
 	}

@@ -21,7 +21,6 @@ use rayon::prelude::*;
 
 type Phase = f32;
 
-const TRAIL_LENGTH: u8 = 6;
 const MAX_FADER: usize = world::particle::Fader::Count as usize;
 
 #[derive(Clone, Copy)]
@@ -95,6 +94,7 @@ struct ParticleBatch {
 	dampening: f32,
 	friction: f32,
 	faders: FaderList,
+	trail_length: u8,
 	particles: Box<[Particle]>,
 }
 
@@ -102,7 +102,6 @@ struct Particle {
 	transform: Transform,
 	motion: Motion,
 	acceleration: Acceleration,
-	trail_length: u8,
 	trail: VecDeque<Position>,
 }
 
@@ -348,7 +347,6 @@ impl Emitter for SimpleEmitter {
 					Particle {
 						transform: Transform::new(self.transform.position,
 												  self.transform.angle + alpha * jitter(0.1)),
-						trail_length: self.trail_length,
 						trail: VecDeque::new(),
 						motion: Motion::new(velocity, self.motion.spin * jitter(0.1)),
 						acceleration: self.acceleration * jitter(0.5),
@@ -364,6 +362,7 @@ impl Emitter for SimpleEmitter {
 									   color: self.color,
 									   effect: self.effect,
 									   age: seconds(0.),
+									   trail_length: self.trail_length,
 									   dampening: self.dampening,
 									   friction: self.friction,
 									   faders: self.faders,
@@ -448,6 +447,7 @@ impl System for ParticleSystem {
 									   Fader::default(),
 									   Fader::default())
 						.with_cluster_size(cluster_size)
+						.with_trail_length(3)
 						.with_lifespan(seconds(3.0))
 				}
 			};
@@ -471,6 +471,7 @@ impl System for ParticleSystem {
 						Fader::default(),
 						Fader::new(1.0, 4.0, 0.0))
 					.with_cluster_size(3)
+					.with_trail_length(5)
 					.with_cluster_wedge(0.15)
 					.with_lifespan(seconds(3.0));
 				self.emitters.insert(emitter.id, Box::new(emitter));
@@ -597,7 +598,6 @@ impl ParticleSystem {
 
 	fn update_particles(&mut self) {
 		let dt = self.dt;
-		let trail_length = TRAIL_LENGTH;
 		let expired: Vec<obj::Id> = self.particles
 			.par_iter_mut().map(|(id, particle_batch)| {
 			if particle_batch.age >= particle_batch.lifespan {
@@ -623,10 +623,10 @@ impl ParticleSystem {
 							particle.acceleration
 						}
 					};
-					while particle.trail.len() > trail_length as usize {
-						particle.trail.pop_front();
+					while particle.trail.len() > particle_batch.trail_length as usize {
+						particle.trail.pop_back();
 					}
-					particle.trail.push_back(particle.transform.position);
+					particle.trail.push_front(particle.transform.position);
 					particle.motion.velocity += dt * world_acceleration;
 					particle.transform.position += dt * particle.motion.velocity;
 					particle.transform.angle += dt * particle.motion.spin;
