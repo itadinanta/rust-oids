@@ -111,11 +111,11 @@ impl System for PhysicsSystem {
 						match target_angle {
 							&PilotRotation::LookAt(target) => {
 								let look_at_vector = target - from_vec2(&center);
-								let target_angle = f32::atan2(look_at_vector.y, look_at_vector.x);
+								let target_angle = f32::atan2(-look_at_vector.x, look_at_vector.y);
 								body_updates.push((h, Transform(*(*body).position(), target_angle)));
 							}
 							&PilotRotation::Orientation(direction) => {
-								let target_angle = f32::atan2(direction.y, direction.x);
+								let target_angle = f32::atan2(-direction.x, direction.y);
 								body_updates.push((h, Transform(*(*body).position(), target_angle)));
 							}
 							&PilotRotation::Turn(angle) => {

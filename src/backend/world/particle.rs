@@ -18,7 +18,7 @@ pub enum EmitterAttachment {
 	None,
 	Agent(obj::Id),
 	Segment(obj::Id, u8),
-	Bone(obj::Id, u8, u8),
+	Vertex(obj::Id, u8, u8),
 }
 
 impl Default for EmitterAttachment {
@@ -104,9 +104,10 @@ pub struct Emitter {
 }
 
 impl Emitter {
-	pub fn for_new_spore(transform: Transform, color: Rgba<f32>) -> Emitter {
+	pub fn for_new_spore(transform: Transform, color: Rgba<f32>, id: obj::Id) -> Emitter {
 		Emitter {
 			transform,
+			attached_to: EmitterAttachment::Agent(id),
 			style: EmitterStyle::color_ping(color, 100.),
 			..Emitter::default()
 		}

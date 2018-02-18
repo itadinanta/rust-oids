@@ -201,6 +201,7 @@ impl World {
 		self.add_emitter(particle::Emitter::for_new_spore(
 			transform.clone(),
 			livery_color,
+			id
 		));
 		self.register(id)
 	}
@@ -298,8 +299,8 @@ impl World {
 		self.get_player_segment().map(move |segment| {
 			let angle = segment.transform.angle.clone();
 			let scale = segment.mesh().shape.radius();
-			let zero_dir = Position::unit_x();
-			(Transform::new(segment.transform.apply(scale * zero_dir), angle + consts::PI / 6.),
+			let zero_dir = Position::unit_y();
+			(Transform::new(segment.transform.apply(scale * zero_dir), angle),
 			 Motion::new(segment.transform.apply_rotation(bullet_speed * zero_dir), 0.))
 		})
 			.map(|(t, v)| {

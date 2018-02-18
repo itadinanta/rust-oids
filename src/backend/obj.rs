@@ -3,6 +3,7 @@ use core::geometry::*;
 use core::geometry::Transform;
 use core::color;
 use app::constants::*;
+
 pub type Rgba = color::Rgba<f32>;
 
 pub type Id = usize;
@@ -202,6 +203,14 @@ impl Mesh {
 			flags: winding_flags | shape_flags,
 			vertices,
 		}
+	}
+
+	pub fn vertex(&self, index: usize) -> Position {
+		self.vertices[index % self.vertices.len()]
+	}
+
+	pub fn scaled_vertex(&self, index: usize) -> Position {
+		self.vertex(index) * self.shape.radius()
 	}
 
 	#[inline]

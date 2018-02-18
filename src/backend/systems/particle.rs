@@ -6,7 +6,7 @@ use num::Zero;
 use core::color::Rgba;
 use core::clock::{seconds, Seconds, SimulationTimer, TimerStopwatch};
 use backend::world;
-use backend::world::particle::EmitterStyle;
+use backend::world::particle::{EmitterAttachment, EmitterStyle};
 use std::collections::VecDeque;
 use std::collections::HashMap;
 use backend::world::AgentState;
@@ -112,13 +112,6 @@ trait Emitter {
 	fn update_transform(&mut self, _transform: Transform, _motion: Option<Motion>) {}
 }
 
-#[derive(Copy, Clone)]
-enum EmitterAttachment {
-	None,
-	Agent(obj::Id),
-	Segment(obj::Id, u8),
-	Bone(obj::Id, u8, u8),
-}
 
 #[derive(Clone)]
 struct SimpleEmitter {
@@ -430,6 +423,7 @@ impl System for ParticleSystem {
 				}
 				EmitterStyle::Ping { color } => {
 					SimpleEmitter::new(self.next_id())
+						.with_attached_to(source.attached_to)
 						.with_transform(source.transform.clone())
 						.with_color(color, COLOR_TRANSPARENT)
 						.with_ttl(Some(seconds(0.33)))
@@ -464,8 +458,8 @@ impl System for ParticleSystem {
 		if let Some(player_agent_id) = world.get_player_agent_id() {
 			if self.emitters.is_empty() {
 				let emitter = SimpleEmitter::new(self.next_id())
-					.with_attached_to(EmitterAttachment::Agent(player_agent_id))
-					.with_motion(Motion::new(-10. * Velocity::unit_x(), 0.))
+					.with_attached_to(EmitterAttachment::Vertex(player_agent_id, 0, 10))
+					.with_motion(Motion::new(10. * Velocity::unit_x(), 0.))
 					.with_color(COLOR_SUNSHINE, COLOR_TRANSPARENT)
 					.with_effect(COLOR_WHITE, [1., 1., 1., 16.0])
 					.with_pulse(0., 60. / 5.)
@@ -489,25 +483,30 @@ impl System for ParticleSystem {
 				EmitterAttachment::Agent(agent_id) => {
 					world.agent(agent_id)
 						.and_then(|agent| agent.segment(0))
-						.and_then(|segment| {
+						.map(|segment| {
 							emitter.update_transform(segment.transform.clone(), segment.motion.clone());
-							Some(id)
+							id
 						})
 				}
 				EmitterAttachment::Segment(agent_id, segment_id) => {
 					world.agent(agent_id)
 						.and_then(|agent| agent.segment(segment_id))
-						.and_then(|segment| {
+						.map(|segment| {
 							emitter.update_transform(segment.transform.clone(), segment.motion.clone());
-							Some(id)
+							id
 						})
 				}
-				EmitterAttachment::Bone(agent_id, segment_id, bone_id) => {
+				EmitterAttachment::Vertex(agent_id, segment_id, bone_id) => {
 					world.agent(agent_id)
 						.and_then(|agent| agent.segment(segment_id))
-						.and_then(|segment| {
-							emitter.update_transform(segment.transform.clone(), segment.motion.clone());
-							Some(id)
+						.map(|segment| {
+							let vertex = segment.mesh.scaled_vertex(bone_id as usize);
+							let vertex_angle = f32::atan2(vertex.y, vertex.x);
+							let transform = Transform::new(
+								segment.transform.apply(vertex),
+								segment.transform.angle + vertex_angle);
+							emitter.update_transform(transform, segment.motion.clone());
+							id
 						})
 				}
 			};
