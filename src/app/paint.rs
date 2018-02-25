@@ -46,7 +46,7 @@ impl App {
 					let body_transform = Self::from_transform(&segment.transform());
 
 					let mesh = &segment.mesh();
-					let fixture_scale = Matrix4::from_scale(mesh.shape.radius());
+					let fixture_scale = Matrix4::from_scale(segment.growing_radius());
 					let transform = body_transform * fixture_scale;
 
 					let appearance = render::Appearance::new(segment.color(), [energy_left, phase, 0., 0.]);
@@ -112,7 +112,7 @@ impl App {
 					let sensor = agent.first_segment(segment::Flags::HEAD).unwrap();
 					let p0 = sensor.transform.position;
 					let a0 = sensor.transform.angle;
-					let radar_range = sensor.mesh.shape.radius() * 10.;
+					let radar_range = sensor.growing_radius() * 10.;
 					let p1 = *agent.state.target_position();
 					batch_buffer.draw_lines(
 						Some(Style::DebugLines),

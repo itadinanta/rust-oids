@@ -45,6 +45,7 @@ enum BodyUpdate {
 struct JointRef<'a> {
 	refs: agent::Key,
 	handle: b2::BodyHandle,
+	growing_radius: f32,
 	mesh: &'a obj::Mesh,
 	flags: segment::Flags,
 	attachment: Option<segment::Attachment>,
@@ -79,7 +80,7 @@ impl System for PhysicsSystem {
 
 	fn update(&mut self, state: &world::AgentState, dt_sec: Seconds) {
 		use self::BodyUpdate::*;
-		let mut body_updates = Vec::new();
+		let mut dynamic_updates = Vec::new();
 		let dt: f32 = dt_sec.into();
 		#[inline]
 		fn to_vec2(v: Position) -> b2::Vec2 { PhysicsSystem::to_vec2(&v) };
@@ -93,12 +94,12 @@ impl System for PhysicsSystem {
 				.and_then(|c| c.segment(key.segment_index)) {
 				match segment.state.intent {
 					Intent::Move(force) =>
-						body_updates.push((h, Force(center, to_vec2(force)))),
+						dynamic_updates.push((h, Force(center, to_vec2(force)))),
 					Intent::Brake(force) => {
 						let linear_velocity = from_vec2((*body).linear_velocity());
 						let comp = force.dot(linear_velocity);
 						if comp < 0. {
-							body_updates.push((h, Force(center, to_vec2(force))));
+							dynamic_updates.push((h, Force(center, to_vec2(force))));
 						}
 					}
 					Intent::PilotTo(force, ref target_angle) => {
@@ -106,20 +107,20 @@ impl System for PhysicsSystem {
 							let linear_velocity = from_vec2((*body).linear_velocity());
 							let speed = linear_velocity.magnitude2();
 							let drag_factor = (1. - (speed * speed) * DRAG_COEFFICIENT).min(1.).max(0.);
-							body_updates.push((h, Force(center, to_vec2(force * drag_factor))));
+							dynamic_updates.push((h, Force(center, to_vec2(force * drag_factor))));
 						}
 						match target_angle {
 							&PilotRotation::LookAt(target) => {
 								let look_at_vector = target - from_vec2(&center);
 								let target_angle = f32::atan2(-look_at_vector.x, look_at_vector.y);
-								body_updates.push((h, Transform(*(*body).position(), target_angle)));
+								dynamic_updates.push((h, Transform(*(*body).position(), target_angle)));
 							}
 							&PilotRotation::Orientation(direction) => {
 								let target_angle = f32::atan2(-direction.x, direction.y);
-								body_updates.push((h, Transform(*(*body).position(), target_angle)));
+								dynamic_updates.push((h, Transform(*(*body).position(), target_angle)));
 							}
 							&PilotRotation::Turn(angle) => {
-								body_updates.push((h, Torque(angle)));
+								dynamic_updates.push((h, Torque(angle)));
 							}
 							&PilotRotation::None => {}
 							//TODO: try physics!
@@ -130,13 +131,13 @@ impl System for PhysicsSystem {
 						}
 					}
 					Intent::RunAway(impulse) =>
-						body_updates.push((h, LinearImpulse(center, to_vec2(impulse * dt)))),
+						dynamic_updates.push((h, LinearImpulse(center, to_vec2(impulse * dt)))),
 					_ => {}
 				}
 			}
 		}
 
-		for (h, update) in body_updates {
+		for (h, update) in dynamic_updates {
 			let b = &mut self.world.body_mut(h);
 			match update {
 				BodyUpdate::Torque(torque) =>
@@ -223,8 +224,14 @@ impl PhysicsSystem {
 		}
 	}
 
+	fn refresh_registration(&mut self, agent: &world::agent::Agent) {
+		self.unregister(agent);
+		self.register(agent);
+	}
+
 	fn build_fixture_for_segment(world: &mut b2::World<AgentData>,
 								 handle: b2::BodyHandle,
+								 maturity: f32,
 								 object_id: obj::Id,
 								 segment_index: usize,
 								 refs: agent::Key,
@@ -232,27 +239,30 @@ impl PhysicsSystem {
 								 mesh: &Mesh) {
 		match mesh.shape {
 			obj::Shape::Ball { radius } => {
+				let grown_radius = radius * maturity;
 				let mut circle_shape = b2::CircleShape::new();
-				circle_shape.set_radius(radius);
+				circle_shape.set_radius(grown_radius);
 				world.body_mut(handle).create_fixture_with(&circle_shape, f_def, refs);
 			}
 			obj::Shape::Box { radius, ratio } => {
 				let mut rect_shape = b2::PolygonShape::new();
-				rect_shape.set_as_box(radius * ratio, radius);
+				rect_shape.set_as_box(radius * ratio, radius * maturity);
 				world.body_mut(handle).create_fixture_with(&rect_shape, f_def, refs);
 			}
 			obj::Shape::Poly { radius, n, .. } => {
+				let grown_radius = radius * maturity;
 				let p = &mesh.vertices;
 				let offset = if n < 0 { 1 } else { 0 };
 				let mut poly = b2::PolygonShape::new();
 				let mut vertices = Vec::new();
 				for i in 0..n.abs() {
-					vertices.push(Self::vec2(&p[2 * i as usize + offset], radius));
+					vertices.push(Self::vec2(&p[2 * i as usize + offset], grown_radius));
 				}
 				poly.set(vertices.as_slice());
 				world.body_mut(handle).create_fixture_with(&poly, f_def, refs);
 			}
 			obj::Shape::Star { radius, n, .. } => {
+				let grown_radius = radius * maturity;
 				let p = &mesh.vertices;
 				for i in 0..n {
 					let mut quad = b2::PolygonShape::new();
@@ -266,9 +276,9 @@ impl PhysicsSystem {
 					quad.set(
 						&[
 							b2::Vec2 { x: 0., y: 0. },
-							Self::vec2(&p1, radius),
-							Self::vec2(&p2, radius),
-							Self::vec2(&p3, radius),
+							Self::vec2(&p1, grown_radius),
+							Self::vec2(&p2, grown_radius),
+							Self::vec2(&p3, grown_radius),
 						],
 					);
 					let refs = agent::Key::with_bone(object_id, segment_index as u8, i as u8);
@@ -276,6 +286,7 @@ impl PhysicsSystem {
 				}
 			}
 			obj::Shape::Triangle { radius, .. } => {
+				let grown_radius = radius * maturity;
 				let p = &mesh.vertices;
 				let mut tri = b2::PolygonShape::new();
 				let (p1, p2, p3) = match mesh.winding() {
@@ -284,9 +295,9 @@ impl PhysicsSystem {
 				};
 				tri.set(
 					&[
-						Self::vec2(p1, radius),
-						Self::vec2(p2, radius),
-						Self::vec2(p3, radius),
+						Self::vec2(p1, grown_radius),
+						Self::vec2(p2, grown_radius),
+						Self::vec2(p3, grown_radius),
 					],
 				);
 				world.body_mut(handle).create_fixture_with(&tri, f_def, refs);
@@ -302,6 +313,7 @@ impl PhysicsSystem {
 			.enumerate()
 			.map(|(segment_index, segment)| {
 				let material = segment.material();
+				let growing_radius = segment.growing_radius();
 				let mut f_def = b2::FixtureDef::new();
 				f_def.density = material.density;
 				f_def.restitution = material.restitution;
@@ -322,10 +334,11 @@ impl PhysicsSystem {
 				let handle = world.create_body_with(&b_def, refs);
 				let mesh = segment.mesh();
 
-				Self::build_fixture_for_segment(world, handle, object_id, segment_index, refs, &mut f_def, mesh);
+				Self::build_fixture_for_segment(world, handle, segment.state.maturity(), object_id, segment_index, refs, &mut f_def, mesh);
 
 				JointRef {
 					refs,
+					growing_radius,
 					handle,
 					mesh,
 					flags: segment.flags,
@@ -339,6 +352,7 @@ impl PhysicsSystem {
 		for &JointRef {
 			handle: distal,
 			mesh,
+			growing_radius,
 			attachment,
 			flags,
 			..
@@ -349,8 +363,8 @@ impl PhysicsSystem {
 					let medial = upstream.handle;
 					let angle_delta = world.body(distal).angle() - world.body(medial).angle();
 
-					let v0 = upstream.mesh.vertices[attachment.attachment_point as usize] * upstream.mesh.shape.radius();
-					let v1 = mesh.vertices[0] * mesh.shape.radius();
+					let v0 = upstream.mesh.vertices[attachment.attachment_point as usize] * upstream.growing_radius;
+					let v1 = mesh.vertices[0] * growing_radius;
 					let a = b2::Vec2 { x: v0.x, y: v0.y };
 					let b = b2::Vec2 { x: v1.x, y: v1.y };
 					macro_rules! common_joint (

@@ -298,7 +298,7 @@ impl World {
 	pub fn primary_fire(&mut self, bullet_speed: f32) {
 		self.get_player_segment().map(move |segment| {
 			let angle = segment.transform.angle.clone();
-			let scale = segment.mesh().shape.radius();
+			let scale = segment.growing_radius();
 			let zero_dir = Position::unit_y();
 			(Transform::new(segment.transform.apply(scale * zero_dir), angle),
 			 Motion::new(segment.transform.apply_rotation(bullet_speed * zero_dir), 0.))

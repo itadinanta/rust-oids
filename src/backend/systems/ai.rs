@@ -75,7 +75,7 @@ impl AiSystem {
 			let head = agent.first_segment(segment::Flags::SENSOR);
 			if let Some(sensor) = head {
 				let p0 = sensor.transform.position;
-				let radar_range = sensor.mesh.shape.radius() * 10.;
+				let radar_range = sensor.growing_radius() * 10.;
 				let current_target = agent.state.target().clone();
 				let current_target_position = agent.state.target_position().clone();
 				// if our original target is dead then we need to find another one
@@ -123,7 +123,7 @@ impl AiSystem {
 				for segment in segments.iter_mut() {
 					let flags = &segment.flags;
 					if flags.contains(segment::Flags::ACTUATOR) {
-						let power = segment.state.get_charge() * segment.mesh.shape.radius().powi(2) * POWER_BOOST;
+						let power = segment.state.get_charge() * segment.growing_radius().powi(2) * POWER_BOOST;
 						let f = Matrix2::from_angle(Rad(segment.transform.angle)) * Position::unit_y() * power;
 						let intent = if let Some(refs) = segment.state.last_touched {
 							match refs.id().type_of() {

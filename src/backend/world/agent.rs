@@ -255,6 +255,7 @@ pub struct State {
 	flags: Flags,
 	phase: f32,
 	energy: f32,
+	growth: f32,
 	target: Option<Id>,
 	target_position: Position,
 	limits: Limits,
@@ -300,6 +301,14 @@ impl State {
 
 	pub fn absorb(&mut self, q: f32) {
 		self.energy = self.limits.max_energy.min(self.energy + q);
+	}
+
+	pub fn grow_by(&mut self, q: f32) {
+		self.growth += q;//dummy value
+	}
+
+	pub fn growth(&mut self, value: f32) {
+		self.growth = value;
 	}
 
 	pub fn is_fertilised(&self) -> bool {
@@ -456,6 +465,7 @@ impl Agent {
 				flags: Flags::ACTIVE,
 				lifecycle: Hourglass::new(Seconds::new(5.), timer),
 				energy: max_energy * 0.5,
+				growth: 0.,
 				phase: 0.,
 				target: None,
 				target_position: segments[0].transform.position,

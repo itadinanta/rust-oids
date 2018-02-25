@@ -29,6 +29,7 @@ pub enum Intent {
 pub struct State {
 	age_seconds: Seconds,
 	age_frames: usize,
+	maturity: f32,
 	charge: f32,
 	target_charge: f32,
 	recharge: f32,
@@ -42,6 +43,7 @@ impl Default for State {
 		State {
 			age_seconds: Seconds::zero(),
 			age_frames: 0,
+			maturity: 0.5,
 			charge: 1.,
 			target_charge: 0.,
 			recharge: 1.,
@@ -56,6 +58,8 @@ impl State {
 	pub fn get_charge(&self) -> f32 {
 		self.charge
 	}
+
+	pub fn maturity(&self) -> f32 { self.maturity }
 
 	pub fn set_charge(&mut self, charge: f32) {
 		self.charge = charge;
@@ -135,6 +139,14 @@ impl Segment {
 			index: self.index,
 			attachment_point: if attachment_point < max { attachment_point } else { max - 1 },
 		})
+	}
+
+	pub fn growing_radius(&self) -> f32 {
+		self.state.maturity * self.mesh.shape.radius()
+	}
+
+	pub fn growing_scaled_vertex(&self, index: usize) -> Position {
+		self.state.maturity * self.mesh.scaled_vertex(index)
 	}
 }
 

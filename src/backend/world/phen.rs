@@ -335,8 +335,8 @@ impl AgentBuilder {
 		let spoke = parent.mesh.vertices[attachment_index];
 		let p0 = cgmath::Matrix2::from_angle(cgmath::Rad(parent_angle)) * spoke;
 		let angle = f32::atan2(p0.y, p0.x);
-		let r0 = spoke.magnitude() * parent.mesh.shape.radius();
-		let r1 = shape.radius();
+		let r0 = spoke.magnitude() * parent.growing_radius();
+		let r1 = self.state.maturity() * shape.radius();
 		let segment = self.new_segment(
 			shape,
 			winding,

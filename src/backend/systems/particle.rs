@@ -499,7 +499,7 @@ impl System for ParticleSystem {
 					world.agent(agent_id)
 						.and_then(|agent| agent.segment(segment_id))
 						.map(|segment| {
-							let vertex = segment.mesh.scaled_vertex(bone_id as usize);
+							let vertex = segment.growing_scaled_vertex(bone_id as usize);
 							let vertex_angle = f32::atan2(vertex.y, vertex.x);
 							let transform = Transform::new(
 								segment.transform.apply(vertex),

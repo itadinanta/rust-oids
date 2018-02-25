@@ -162,12 +162,14 @@ impl AlifeSystem {
 					if segment.flags.contains(segment::Flags::MOUTH) {
 						if let Some(id) = segment.state.last_touched {
 							if let Some(eaten_state) = eaten.get(&id.id()) {
-								agent.state.absorb(eaten_state.energy());
+								let energy = eaten_state.energy();
+								agent.state.absorb(energy);
+								agent.state.grow_by(energy)
 							}
 						}
 					}
 					agent.state.consume(
-						dt.get() as f32 * segment.state.get_charge() * segment.mesh.shape.radius(),
+						dt.get() as f32 * segment.state.get_charge() * segment.growing_radius(),
 					);
 					segment.state.update(dt);
 				}
