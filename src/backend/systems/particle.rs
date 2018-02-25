@@ -42,6 +42,7 @@ impl<S> Default for Fader<S> where S: num::Float {
 	}
 }
 
+#[allow(unused)]
 impl<S> Fader<S> where S: num::Float {
 	fn new(value: S, fade_rate: S, target: S) -> Fader<S> {
 		Fader { value, fade_rate, target }
@@ -82,7 +83,7 @@ impl<S> Fader<S> where S: num::Float {
 	}
 }
 
-type Tag = u64;
+type Tag = isize;
 
 struct ParticleBatch {
 	id: obj::Id,
@@ -110,7 +111,6 @@ trait Emitter {
 	fn attached_to(&self) -> EmitterAttachment { EmitterAttachment::None }
 	fn update_transform(&mut self, _transform: Transform, _motion: Option<Motion>) {}
 }
-
 
 #[derive(Clone)]
 struct SimpleEmitter {
@@ -275,7 +275,6 @@ impl SimpleEmitter {
 		}
 	}
 
-
 	pub fn with_1_fader(self, fader_color: Fader<f32>) -> Self {
 		self.with_faders([Some(fader_color), None, None, None])
 	}
@@ -414,7 +413,6 @@ impl System for ParticleSystem {
 						.with_ttl(Some(seconds(0.5)))
 						.with_cluster_size(cluster_size)
 						.with_cluster_wedge(0.5)
-						.with_acceleration(-Velocity::unit_y())
 						.with_2_faders(
 							Fader::new(0.0, 2.0, 1.0),
 							Fader::new(1.0, 0.7, 0.1))
@@ -447,7 +445,8 @@ impl System for ParticleSystem {
 									   Fader::default(),
 									   Fader::default())
 						.with_cluster_size(cluster_size)
-						.with_trail_length(3)
+						.with_trail_length(5)
+						.with_acceleration(-5. * Velocity::unit_y())
 						.with_lifespan(seconds(3.0))
 				}
 			};
@@ -471,7 +470,6 @@ impl System for ParticleSystem {
 						Fader::default(),
 						Fader::new(1.0, 4.0, 0.0))
 					.with_cluster_size(3)
-					.with_trail_length(5)
 					.with_cluster_wedge(0.15)
 					.with_lifespan(seconds(3.0));
 				self.emitters.insert(emitter.id, Box::new(emitter));
@@ -545,6 +543,7 @@ impl System for ParticleSystem {
 				world.add_particle(world::particle::Particle::new(
 					particle.transform.clone(),
 					particle.motion.velocity.normalize(),
+					particle_batch.tag,
 					particle.trail
 						.iter()
 						.map(|t| *t)
@@ -575,7 +574,6 @@ impl Default for ParticleSystem {
 
 impl ParticleSystem {
 	fn next_id(&mut self) -> obj::Id {
-		let counter = self.id_counter;
 		self.id_counter += 1;
 		self.id_counter
 	}

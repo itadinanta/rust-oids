@@ -13,6 +13,7 @@ pub enum Fader {
 	Count = 4,
 }
 
+#[allow(unused)]
 #[derive(Copy, Clone)]
 pub enum EmitterAttachment {
 	None,
@@ -87,6 +88,7 @@ impl EmitterStyle {
 pub struct Particle {
 	transform: Transform,
 	direction: Velocity,
+	tag: isize,
 	trail: Box<[Position]>,
 	faders: [f32; 4],
 	color: (Rgba<f32>, Rgba<f32>),
@@ -129,18 +131,9 @@ impl Emitter {
 }
 
 impl Particle {
-	pub fn spark(frequency: f32, ratio: f32) -> [Rgba<f32>; 2] {
-		[[1., 1., frequency, ratio],
-			[1., 1., frequency, ratio]]
-	}
-
-	pub fn round(frequency: f32) -> [Rgba<f32>; 2] {
-		[[1., 1., frequency, 1.],
-			[1., 1., frequency, 1.]]
-	}
-
 	pub fn new(transform: Transform,
 			   direction: Velocity,
+			   tag: isize,
 			   trail: Box<[Position]>,
 			   faders: [f32; 4],
 			   color: (Rgba<f32>, Rgba<f32>),
@@ -149,6 +142,7 @@ impl Particle {
 		Particle {
 			transform,
 			direction,
+			tag,
 			trail,
 			faders,
 			color,

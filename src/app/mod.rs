@@ -29,7 +29,6 @@ use backend::world;
 use backend::world::segment;
 use backend::world::agent;
 use backend::systems;
-use backend::systems::System;
 
 use core::view::Viewport;
 use core::view::WorldTransform;
