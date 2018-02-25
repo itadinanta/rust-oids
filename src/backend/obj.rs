@@ -117,7 +117,8 @@ impl Shape {
 				(0..n)
 					.map(|i| {
 						let p = (i as f32) / (n as f32) * 2. * PI;
-						Position::new(xunit * f32::sin(p), f32::cos(p))
+						let (sp, cp) = p.sin_cos();
+						Position::new(xunit * sp, cp)
 					})
 					.collect()
 			}
@@ -142,7 +143,8 @@ impl Shape {
 					.map(|i| {
 						let p = i as f32 * phi;
 						let r = ratio[i as usize % 2];
-						Position::new(xunit * r * f32::sin(p), r * f32::cos(p))
+						let (sp, cp) = p.sin_cos();
+						Position::new(xunit * r * sp, r * cp)
 					})
 					.collect()
 			}
@@ -154,15 +156,18 @@ impl Shape {
 						let p = i as f32 * (PI / n as f32);
 						let r = f32::max(damp, 0.01); // zero is bad!
 						damp *= ratio[i as usize % 2];
-						Position::new(xunit * r * f32::sin(p), r * f32::cos(p))
+						let (sp, cp) = p.sin_cos();
+						Position::new(xunit * r * sp, r * cp)
 					})
 					.collect()
 			}
 			&Shape::Triangle { angle1, angle2, .. } => {
+				let (sa1, ca1) = angle1.sin_cos();
+				let (sa2, ca2) = angle2.sin_cos();
 				vec![
 					Position::new(0., 1.),
-					Position::new(xunit * f32::sin(angle1), f32::cos(angle1)),
-					Position::new(xunit * f32::sin(angle2), f32::cos(angle2)),
+					Position::new(xunit * sa1, ca1),
+					Position::new(xunit * sa2, ca2),
 				]
 			}
 		}.into_boxed_slice()
