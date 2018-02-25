@@ -71,7 +71,9 @@ impl Phenotype for Player {
 			gen.dna(),
 			segment::State::with_charge(charge, charge, charge),
 		);
-		builder.start(transform, motion, &body).build(timer)
+		builder
+			.start(transform, motion, &body)
+			.build(timer)
 	}
 }
 
@@ -93,7 +95,9 @@ impl Phenotype for Minion {
 			gen.dna(),
 			segment::State::with_charge(0., charge, charge),
 		);
-		builder.gender(gender);
+		builder
+			.maturity(0.5)
+			.gender(gender);
 
 		// personality parameters
 		let mut weights_in = [[0.; N_WEIGHTS]; N_WEIGHTS];
@@ -357,6 +361,11 @@ impl AgentBuilder {
 			0 => 0,
 			n => (n - 1) as SegmentIndex,
 		}
+	}
+
+	pub fn maturity(&mut self, maturity: f32) -> &mut Self {
+		self.state.set_maturity(maturity);
+		self
 	}
 
 	pub fn hunger(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {

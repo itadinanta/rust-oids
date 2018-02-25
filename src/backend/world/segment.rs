@@ -43,7 +43,7 @@ impl Default for State {
 		State {
 			age_seconds: Seconds::zero(),
 			age_frames: 0,
-			maturity: 0.5,
+			maturity: 1.0,
 			charge: 1.,
 			target_charge: 0.,
 			recharge: 1.,
@@ -57,6 +57,10 @@ impl Default for State {
 impl State {
 	pub fn get_charge(&self) -> f32 {
 		self.charge
+	}
+
+	pub fn set_maturity(&mut self, maturity: f32) {
+		self.maturity = maturity
 	}
 
 	pub fn maturity(&self) -> f32 { self.maturity }
