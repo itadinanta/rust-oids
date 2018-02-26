@@ -154,12 +154,14 @@ impl AlifeSystem {
 					if agent.state.consume_ratio(1. - r, r) {
 						let growth = 1. + r;
 						agent.state.grow_by(growth);
+						let zero = agent.segment(0).unwrap().transform.position;
 						for segment in agent.segments.iter_mut() {
 							let maturity = segment.state.maturity();
 							segment.state.set_maturity(maturity * growth);
+							segment.transform.position = zero + (segment.transform.position - zero) * growth;
 						}
 					}
-				} else {
+				} else { // reproduce if enough energy
 					if agent.state.consume_ratio(0.95, 0.75) {
 						spawns.push((
 							agent.last_segment().transform().clone(),
