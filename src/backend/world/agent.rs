@@ -307,8 +307,12 @@ impl State {
 		self.growth += q;//dummy value
 	}
 
-	pub fn growth(&mut self, value: f32) {
-		self.growth = value;
+	pub fn reset_growth(&mut self) {
+		self.growth = 0.;
+	}
+
+	pub fn growth(&self) -> f32 {
+		self.growth
 	}
 
 	pub fn is_fertilised(&self) -> bool {

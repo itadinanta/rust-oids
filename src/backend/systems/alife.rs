@@ -174,6 +174,12 @@ impl AlifeSystem {
 					segment.state.update(dt);
 				}
 
+				if agent.state.growth() > 0. {
+					for segment in agent.segments.iter_mut() {
+						segment.state.set_maturity(1.);
+					}
+				}
+
 				if agent.state.energy() < 1. {
 					let transforms = agent.segments.into_iter()
 						.map(|segment| segment.transform.clone())

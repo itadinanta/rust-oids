@@ -78,6 +78,14 @@ impl System for PhysicsSystem {
 		}
 	}
 
+	fn import(&mut self, world: &world::World) {
+		for (_, agent) in world.agents(agent::AgentType::Minion).iter() {
+			if agent.state.growth() > 0. {
+				self.refresh_registration(agent)
+			}
+		}
+	}
+
 	fn update(&mut self, state: &world::AgentState, dt_sec: Seconds) {
 		use self::BodyUpdate::*;
 		let mut dynamic_updates = Vec::new();
@@ -168,6 +176,9 @@ impl System for PhysicsSystem {
 					segment.state.last_touched = self.touched.borrow().get(key).map(|r| *r);
 				}
 			}
+		}
+		for (_, agent) in world.agents_mut(agent::AgentType::Minion).iter_mut() {
+			agent.state.reset_growth()
 		}
 		self.touched.borrow_mut().clear();
 	}
