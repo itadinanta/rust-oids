@@ -147,12 +147,25 @@ impl AlifeSystem {
 		let mut corpses = Vec::new();
 		for (_, agent) in minions.iter_mut() {
 			if agent.state.is_active() {
-				if agent.state.lifecycle().is_expired(timer) && agent.state.consume_ratio(0.75) {
-					spawns.push((
-						agent.last_segment().transform().clone(),
-						agent.dna().clone(),
-					));
-					agent.state.renew(timer);
+				agent.state.reset_growth();
+				let maturity = agent.segment(0).unwrap().state.maturity();
+				if maturity < 1. { // just grow a bit
+					let r = 0.1;
+					if agent.state.consume_ratio(1. - r, r) {
+						let growth = 1. + r;
+						agent.state.grow_by(growth);
+						for segment in agent.segments.iter_mut() {
+							let maturity = segment.state.maturity();
+							segment.state.set_maturity(maturity * growth);
+						}
+					}
+				} else {
+					if agent.state.consume_ratio(0.95, 0.75) {
+						spawns.push((
+							agent.last_segment().transform().clone(),
+							agent.dna().clone(),
+						));
+					}
 				}
 				for segment in agent.segments.iter_mut() {
 					let p = segment.transform().position;
@@ -164,7 +177,6 @@ impl AlifeSystem {
 							if let Some(eaten_state) = eaten.get(&id.id()) {
 								let energy = eaten_state.energy();
 								agent.state.absorb(energy);
-								agent.state.grow_by(energy)
 							}
 						}
 					}
@@ -172,12 +184,6 @@ impl AlifeSystem {
 						dt.get() as f32 * segment.state.get_charge() * segment.growing_radius(),
 					);
 					segment.state.update(dt);
-				}
-
-				if agent.state.growth() > 0. {
-					for segment in agent.segments.iter_mut() {
-						segment.state.set_maturity(1.);
-					}
 				}
 
 				if agent.state.energy() < 1. {

@@ -294,9 +294,13 @@ impl State {
 		}
 	}
 
-	pub fn consume_ratio(&mut self, ratio: f32) -> bool {
+	pub fn consume_ratio(&mut self, threshold: f32, ratio: f32) -> bool {
 		let max = self.limits.max_energy;
-		self.consume(max * ratio)
+		if self.energy / self.limits.max_energy < threshold {
+			false
+		} else {
+			self.consume(max * ratio)
+		}
 	}
 
 	pub fn absorb(&mut self, q: f32) {
