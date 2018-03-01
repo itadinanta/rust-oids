@@ -437,6 +437,11 @@ impl App {
 		self.systems.register(&found[..]);
 	}
 
+	fn cleanup_before(&mut self) {
+		self.world.cleanup_before();
+		self.systems.unregister(&self.world.sweep());
+	}
+
 	fn init_systems(&mut self) {
 		self.systems.write(&self.world, &|s, world| s.init(&world));
 	}
@@ -446,8 +451,9 @@ impl App {
 		self.systems.read(&mut self.world, &|s, mut world| s.apply(&mut world));
 	}
 
-	fn cleanup(&mut self) {
-		self.systems.unregister(&self.world.sweep());
+	fn cleanup_after(&mut self) {
+		self.register_all();
+		self.world.cleanup_after();
 	}
 
 	fn tick(&mut self, dt: Seconds) {
@@ -514,9 +520,9 @@ impl App {
 	}
 
 	pub fn simulate(&mut self, dt: Seconds) -> SimulationUpdate {
-		self.cleanup();
+		self.cleanup_before();
 		self.update_systems(dt);
-		self.register_all();
+		self.cleanup_after();
 		self.tick(dt);
 
 		self.simulations_count += 1;

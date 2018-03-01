@@ -201,7 +201,7 @@ impl World {
 		self.add_emitter(particle::Emitter::for_new_spore(
 			transform,
 			livery_color,
-			id
+			id,
 		));
 		self.register(id)
 	}
@@ -403,6 +403,14 @@ impl World {
 
 	pub fn clear_emitters(&mut self) {
 		self.emitters.clear();
+	}
+
+	pub fn cleanup_before(&mut self) {
+		self.clear_particles();
+	}
+
+	pub fn cleanup_after(&mut self) {
+		self.clear_emitters();
 	}
 
 	pub fn add_emitter(&mut self, emitter: particle::Emitter) {
