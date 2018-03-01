@@ -126,6 +126,7 @@ bitflags! {
 #[derive(Clone)]
 pub struct Segment {
 	pub transform: Transform,
+	pub rest_angle: Angle,
 	pub motion: Option<Motion>,
 	pub index: SegmentIndex,
 	pub mesh: Mesh,

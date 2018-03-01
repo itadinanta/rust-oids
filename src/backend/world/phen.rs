@@ -417,9 +417,11 @@ impl AgentBuilder {
 		&mut self, shape: &Shape, winding: Winding, transform: Transform, motion: Option<&Motion>,
 		attachment: Option<segment::Attachment>, flags: segment::Flags,
 	) -> segment::Segment {
+		let rest_angle = transform.angle;
 		segment::Segment {
 			index: self.segments.len() as SegmentIndex,
 			transform,
+			rest_angle,
 			motion: motion.map(|m| m.clone()),
 			mesh: Mesh::from_shape(shape.clone(), winding),
 			material: self.material.clone(),

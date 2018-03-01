@@ -185,7 +185,7 @@ impl fmt::Debug for Hourglass {
 		write!(f, "({}, {})", self.timeout, self.capacity)
 	}
 }
-
+#[allow(unused)]
 impl Hourglass {
 	pub fn new<T>(seconds: Seconds, timer: &T) -> Self where T: Timer {
 		Hourglass {

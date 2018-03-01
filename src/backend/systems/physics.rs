@@ -9,7 +9,6 @@ use wrapped2d::dynamics::world::callbacks::ContactAccess;
 use core::geometry::*;
 use core::geometry::Transform;
 use cgmath::InnerSpace;
-use std::f32::consts;
 use backend::obj;
 use backend::obj::*;
 use backend::world;
@@ -47,6 +46,7 @@ struct JointRef<'a> {
 	refs: agent::Key,
 	handle: b2::BodyHandle,
 	growing_radius: f32,
+	rest_angle: f32,
 	mesh: &'a obj::Mesh,
 	flags: segment::Flags,
 	attachment: Option<segment::Attachment>,
@@ -345,12 +345,13 @@ impl PhysicsSystem {
 				let refs = agent::Key::with_segment(object_id, segment_index as u8);
 				let handle = world.create_body_with(&b_def, refs);
 				let mesh = segment.mesh();
-
+				let rest_angle = segment.rest_angle;
 				Self::build_fixture_for_segment(world, handle, segment.state.maturity(), object_id, segment_index, refs, &mut f_def, mesh);
 
 				JointRef {
 					refs,
 					growing_radius,
+					rest_angle,
 					handle,
 					mesh,
 					flags: segment.flags,
@@ -365,6 +366,7 @@ impl PhysicsSystem {
 			handle: distal,
 			mesh,
 			growing_radius,
+			rest_angle,
 			attachment,
 			flags,
 			..
@@ -373,7 +375,7 @@ impl PhysicsSystem {
 				if let Some(attachment) = attachment {
 					let upstream = &joint_refs[attachment.index as usize];
 					let medial = upstream.handle;
-					let angle_delta = world.body(distal).angle() - world.body(medial).angle();
+					let angle_delta = rest_angle - upstream.rest_angle;//world.body(distal).angle() - world.body(medial).angle();
 					let v0 = upstream.mesh.vertices[attachment.attachment_point as usize] * upstream.growing_radius;
 					//let angle_delta = v0.x.atan2(-v0.y) as f32;//consts::PI;
 					let v1 = mesh.vertices[0] * growing_radius;

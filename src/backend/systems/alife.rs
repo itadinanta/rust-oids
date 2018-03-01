@@ -54,8 +54,7 @@ impl System for AlifeSystem {
 
 		let (spores, corpses) = Self::update_minions(
 			self.dt,
-			&self.simulation_timer,
-			&world.extent.clone(),
+			world.extent.clone(),
 			&mut world.agents_mut(agent::AgentType::Minion),
 			&self.eaten,
 		);
@@ -139,7 +138,7 @@ impl AlifeSystem {
 		touched
 	}
 
-	fn update_minions(dt: Seconds, timer: &SimulationTimer, extent: &geometry::Rect, minions: &mut agent::AgentMap, eaten: &StateMap)
+	fn update_minions(dt: Seconds, extent: geometry::Rect, minions: &mut agent::AgentMap, eaten: &StateMap)
 					  -> (Box<[(geometry::Transform, gen::Dna)]>,
 						  Box<[(Box<[geometry::Transform]>, gen::Dna)]>,
 					  ) {

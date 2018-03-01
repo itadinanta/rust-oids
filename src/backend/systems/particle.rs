@@ -86,6 +86,7 @@ impl<S> Fader<S> where S: num::Float {
 type Tag = isize;
 
 struct ParticleBatch {
+	#[allow(unused)]
 	id: obj::Id,
 	tag: Tag,
 	lifespan: Seconds,

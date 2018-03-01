@@ -269,10 +269,6 @@ impl State {
 		&self.lifecycle
 	}
 
-	pub fn renew<T>(&mut self, timer: &T) where T: Timer {
-		self.lifecycle.renew(timer)
-	}
-
 	pub fn energy(&self) -> f32 {
 		self.energy
 	}

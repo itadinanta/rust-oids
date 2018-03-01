@@ -85,6 +85,7 @@ impl EmitterStyle {
 	}
 }
 
+#[allow(unused)]
 pub struct Particle {
 	transform: Transform,
 	direction: Velocity,
