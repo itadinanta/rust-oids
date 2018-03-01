@@ -106,7 +106,7 @@ impl System for GameSystem {
 					Emission::CW(angle) => -angle * i as f32,
 				};
 				world.new_resource(
-					&Transform::new(e.position, r),
+					Transform::new(e.position, r),
 					Some(&Motion {
 						velocity: Velocity::new(r.cos(), r.sin()) * e.velocity,
 						spin: e.spin,

@@ -60,7 +60,7 @@ impl Swarm {
 		}
 	}
 
-	pub fn spawn<P, T>(&mut self, genome: &mut Genome, transform: &Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> Id
+	pub fn spawn<P, T>(&mut self, genome: &mut Genome, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> Id
 		where
 			P: phen::Phenotype,
 			T: Timer {

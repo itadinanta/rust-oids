@@ -156,7 +156,7 @@ impl World {
 		if self.regenerations > 1 { self.regenerations - 1 } else { 0usize }
 	}
 
-	pub fn new_resource(&mut self, transform: &Transform, motion: Option<&Motion>) -> obj::Id {
+	pub fn new_resource(&mut self, transform: Transform, motion: Option<&Motion>) -> obj::Id {
 		let mut gen = &mut self.resource_gene_pool.next();
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Resource).spawn::<phen::Resource, _>(
@@ -168,11 +168,11 @@ impl World {
 		self.register(id)
 	}
 
-	pub fn decay_to_resource(&mut self, transform: &Transform, dna: &gen::Dna) -> obj::Id {
+	pub fn decay_to_resource(&mut self, transform: Transform, dna: &gen::Dna) -> obj::Id {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Resource).spawn::<phen::Resource, _>(
 			&mut gen::Genome::new(dna),
-			transform,
+			transform.clone(),
 			None,
 			DEFAULT_RESOURCE_CHARGE,
 			&clock);
@@ -180,17 +180,17 @@ impl World {
 			.segment(0).unwrap()
 			.livery.albedo;
 		self.add_emitter(particle::Emitter::for_dead_minion(
-			transform.clone(),
+			transform,
 			livery_color,
 		));
 		self.register(id)
 	}
 
-	pub fn new_spore(&mut self, transform: &Transform, dna: &gen::Dna) -> obj::Id {
+	pub fn new_spore(&mut self, transform: Transform, dna: &gen::Dna) -> obj::Id {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Spore).spawn::<phen::Spore, _>(
 			&mut gen::Genome::new(dna).mutate(&mut rand::thread_rng()),
-			transform,
+			transform.clone(),
 			None,
 			DEFAULT_SPORE_CHARGE,
 			&clock,
@@ -199,18 +199,18 @@ impl World {
 			.segment(0).unwrap()
 			.livery.albedo;
 		self.add_emitter(particle::Emitter::for_new_spore(
-			transform.clone(),
+			transform,
 			livery_color,
 			id
 		));
 		self.register(id)
 	}
 
-	pub fn hatch_spore(&mut self, transform: &Transform, dna: &gen::Dna) -> obj::Id {
+	pub fn hatch_spore(&mut self, transform: Transform, dna: &gen::Dna) -> obj::Id {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Minion, _>(
 			&mut gen::Genome::new(dna),
-			transform,
+			transform.clone(),
 			None,
 			DEFAULT_MINION_CHARGE,
 			&clock,
@@ -219,7 +219,7 @@ impl World {
 			.segment(0).unwrap()
 			.livery.albedo;
 		self.add_emitter(particle::Emitter::for_new_minion(
-			transform.clone(),
+			transform,
 			livery_color,
 		));
 		self.register(id)
@@ -242,7 +242,7 @@ impl World {
 			let mut gen = self.minion_gene_pool.next();
 			let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Minion, _>(
 				&mut gen,
-				&Transform::new(pos, angle + consts::PI / 2.),
+				Transform::new(pos, angle + consts::PI / 2.),
 				None,
 				DEFAULT_MINION_CHARGE,
 				&clock,
@@ -262,7 +262,7 @@ impl World {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Player).spawn::<phen::Player, _>(
 			&mut gen,
-			&Transform::new(
+			Transform::new(
 				pos,
 				0.,
 			),
@@ -305,7 +305,7 @@ impl World {
 		})
 			.map(|(t, v)| {
 				self.alert(Alert::NewBullet(0));
-				self.new_resource(&t, Some(&v));
+				self.new_resource(t, Some(&v));
 			});
 	}
 
@@ -321,7 +321,7 @@ impl World {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Minion, _>(
 			&mut gen,
-			&Transform::new(
+			Transform::new(
 				pos,
 				angle,
 			),

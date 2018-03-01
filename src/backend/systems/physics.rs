@@ -9,6 +9,7 @@ use wrapped2d::dynamics::world::callbacks::ContactAccess;
 use core::geometry::*;
 use core::geometry::Transform;
 use cgmath::InnerSpace;
+use std::f32::consts;
 use backend::obj;
 use backend::obj::*;
 use backend::world;
@@ -373,8 +374,8 @@ impl PhysicsSystem {
 					let upstream = &joint_refs[attachment.index as usize];
 					let medial = upstream.handle;
 					let angle_delta = world.body(distal).angle() - world.body(medial).angle();
-
 					let v0 = upstream.mesh.vertices[attachment.attachment_point as usize] * upstream.growing_radius;
+					//let angle_delta = v0.x.atan2(-v0.y) as f32;//consts::PI;
 					let v1 = mesh.vertices[0] * growing_radius;
 					let a = b2::Vec2 { x: v0.x, y: v0.y };
 					let b = b2::Vec2 { x: v1.x, y: v1.y };

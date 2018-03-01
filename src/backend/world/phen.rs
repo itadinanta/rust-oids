@@ -18,7 +18,7 @@ use cgmath;
 use cgmath::InnerSpace;
 
 pub trait Phenotype {
-	fn develop<T>(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer;
+	fn develop<T>(gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer;
 }
 
 pub struct Resource {}
@@ -30,7 +30,7 @@ pub struct Player {}
 pub struct Spore {}
 
 impl Phenotype for Resource {
-	fn develop<T>(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer {
+	fn develop<T>(gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer {
 		gen.next_integer::<u8>(0, 3);
 		let albedo = color::YPbPr::new(0.5, gen.next_float(-0.5, 0.5), gen.next_float(-0.5, 0.5));
 		let body = gen.eq_triangle();
@@ -52,7 +52,7 @@ impl Phenotype for Resource {
 }
 
 impl Phenotype for Player {
-	fn develop<T>(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer {
+	fn develop<T>(gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer {
 		let albedo = color::YPbPr::new(0.5, 0., 0.);
 		let body = Shape::new_star(10, 3.0, 0.9, 1. / 0.9);
 		let mut builder = AgentBuilder::new(
@@ -78,7 +78,7 @@ impl Phenotype for Player {
 }
 
 impl Phenotype for Minion {
-	fn develop<T>(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer {
+	fn develop<T>(gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer {
 		let gender = gen.next_integer::<u8>(0, 3);
 		let tint = gen.next_float(0., 1.);
 		let albedo = color::Hsl::new(tint, 0.5, 0.5);
@@ -223,7 +223,7 @@ impl Phenotype for Minion {
 }
 
 impl Phenotype for Spore {
-	fn develop<T>(gen: &mut Genome, id: Id, transform: &Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer {
+	fn develop<T>(gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer {
 		let gender = gen.next_integer::<u8>(0, 3);
 		let tint = gen.next_float(0., 1.);
 		let albedo = color::Hsl::new(tint, 0.5, 0.5);
@@ -273,7 +273,7 @@ impl AgentBuilder {
 		}
 	}
 
-	pub fn start(&mut self, transform: &Transform, motion: Option<&Motion>, shape: &Shape) -> &mut Self {
+	pub fn start(&mut self, transform: Transform, motion: Option<&Motion>, shape: &Shape) -> &mut Self {
 		let segment = self.new_segment(
 			shape,
 			Winding::CW,
@@ -344,7 +344,7 @@ impl AgentBuilder {
 		let segment = self.new_segment(
 			shape,
 			winding,
-			&Transform::new(
+			Transform::new(
 				parent_pos + (p0.normalize_to(r0 + r1)),
 				consts::PI / 2. + angle,
 			),
@@ -414,12 +414,12 @@ impl AgentBuilder {
 	}
 
 	fn new_segment(
-		&mut self, shape: &Shape, winding: Winding, transform: &Transform, motion: Option<&Motion>,
+		&mut self, shape: &Shape, winding: Winding, transform: Transform, motion: Option<&Motion>,
 		attachment: Option<segment::Attachment>, flags: segment::Flags,
 	) -> segment::Segment {
 		segment::Segment {
 			index: self.segments.len() as SegmentIndex,
-			transform: transform.clone(),
+			transform,
 			motion: motion.map(|m| m.clone()),
 			mesh: Mesh::from_shape(shape.clone(), winding),
 			material: self.material.clone(),
