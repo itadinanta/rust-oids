@@ -68,27 +68,23 @@ impl System for AlifeSystem {
 		);
 
 		for &(ref transform, ref dna) in spores.into_iter() {
-			world.alert(alert::Alert::NewSpore);
 			outbox.post(alert::Alert::NewSpore.into());
-			world.new_spore(transform.clone(), dna);
+			world.new_spore(outbox, transform.clone(), dna);
 		}
 
 		for &(ref transform, ref dna) in hatch.into_iter() {
-			world.alert(alert::Alert::NewMinion);
 			outbox.post(alert::Alert::NewMinion.into());
-			world.hatch_spore(transform.clone(), dna);
+			world.hatch_spore(outbox, transform.clone(), dna);
 		}
 
 		for &(ref transforms, ref dna) in corpses.into_iter() {
-			world.alert(alert::Alert::DieMinion);
 			outbox.post(alert::Alert::DieMinion.into());
 			for transform in transforms.iter() {
-				world.decay_to_resource(transform.clone(), dna);
+				world.decay_to_resource(outbox, transform.clone(), dna);
 			}
 		}
 
 		for _ in 0..fertilised {
-			world.alert(alert::Alert::Fertilised);
 			outbox.post(alert::Alert::DieMinion.into());
 		}
 	}

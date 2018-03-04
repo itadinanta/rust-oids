@@ -151,7 +151,6 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 		}
 
 		app.play_alerts(&mut audio_alert_player);
-		app.play_interactions(&mut audio_alert_player);
 
 		// push the commands
 		renderer.end_frame(&mut device);

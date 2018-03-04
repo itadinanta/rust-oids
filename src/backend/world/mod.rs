@@ -29,9 +29,9 @@ use self::agent::AgentType;
 use self::agent::TypedAgent;
 use self::swarm::*;
 use self::particle::{Emitter, Particle};
+use backend::systems::messagebus::{Outbox, Message, PubSub};
 
 pub use self::alert::Alert;
-pub use self::alert::AlertEvent;
 
 pub trait AgentState {
 	fn agent(&self, id: obj::Id) -> Option<&Agent>;
@@ -51,21 +51,14 @@ pub struct World {
 	minion_gene_pool: gen::GenePool,
 	resource_gene_pool: gen::GenePool,
 	clock: SimulationTimer,
-	alerts: Vec<AlertEvent>,
-	emitters: Vec<Emitter>,
+	//	alerts: Vec<AlertEvent>,
+//	emitters: Vec<Emitter>,
 	particles: Vec<Particle>,
 }
 
 impl AgentState for World {
 	fn agent(&self, id: obj::Id) -> Option<&Agent> {
 		self.swarms.get(&id.type_of()).and_then(|m| m.get(id))
-	}
-}
-
-impl AlertReceiver for World {
-	fn alert(&mut self, alert: Alert) {
-		let timestamp = self.clock.seconds();
-		self.alerts.push(AlertEvent::new(timestamp, alert));
 	}
 }
 
@@ -140,8 +133,8 @@ impl World {
 			registered_player_id: None,
 			regenerations: 0usize,
 			clock,
-			alerts: Vec::new(),
-			emitters: Vec::new(),
+			//alerts: Vec::new(),
+			//emitters: Vec::new(),
 			particles: Vec::new(),
 		}
 	}
@@ -168,7 +161,7 @@ impl World {
 		self.register(id)
 	}
 
-	pub fn decay_to_resource(&mut self, transform: Transform, dna: &gen::Dna) -> obj::Id {
+	pub fn decay_to_resource(&mut self, outbox: &Outbox, transform: Transform, dna: &gen::Dna) -> obj::Id {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Resource).spawn::<phen::Resource, _>(
 			&mut gen::Genome::new(dna),
@@ -179,14 +172,14 @@ impl World {
 		let livery_color = self.agent(id).unwrap()
 			.segment(0).unwrap()
 			.livery.albedo;
-		self.add_emitter(particle::Emitter::for_dead_minion(
+		outbox.post(Message::NewEmitter(particle::Emitter::for_dead_minion(
 			transform,
 			livery_color,
-		));
+		)));
 		self.register(id)
 	}
 
-	pub fn new_spore(&mut self, transform: Transform, dna: &gen::Dna) -> obj::Id {
+	pub fn new_spore(&mut self, outbox: &Outbox, transform: Transform, dna: &gen::Dna) -> obj::Id {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Spore).spawn::<phen::Spore, _>(
 			&mut gen::Genome::new(dna).mutate(&mut rand::thread_rng()),
@@ -198,15 +191,15 @@ impl World {
 		let livery_color = self.agent(id).unwrap()
 			.segment(0).unwrap()
 			.livery.albedo;
-		self.add_emitter(particle::Emitter::for_new_spore(
+		outbox.post(Message::NewEmitter(particle::Emitter::for_new_spore(
 			transform,
 			livery_color,
 			id,
-		));
+		)));
 		self.register(id)
 	}
 
-	pub fn hatch_spore(&mut self, transform: Transform, dna: &gen::Dna) -> obj::Id {
+	pub fn hatch_spore(&mut self, outbox: &Outbox, transform: Transform, dna: &gen::Dna) -> obj::Id {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Minion, _>(
 			&mut gen::Genome::new(dna),
@@ -218,10 +211,10 @@ impl World {
 		let livery_color = self.agent(id).unwrap()
 			.segment(0).unwrap()
 			.livery.albedo;
-		self.add_emitter(particle::Emitter::for_new_minion(
+		outbox.post(Message::NewEmitter(particle::Emitter::for_new_minion(
 			transform,
 			livery_color,
-		));
+		)));
 		self.register(id)
 	}
 
@@ -295,7 +288,7 @@ impl World {
 		)
 	}
 
-	pub fn primary_fire(&mut self, bullet_speed: f32) {
+	pub fn primary_fire(&mut self, outbox: &Outbox, bullet_speed: f32) {
 		self.get_player_segment().map(move |segment| {
 			let angle = segment.transform.angle.clone();
 			let scale = segment.growing_radius();
@@ -304,7 +297,7 @@ impl World {
 			 Motion::new(segment.transform.apply_rotation(bullet_speed * zero_dir), 0.))
 		})
 			.map(|(t, v)| {
-				self.alert(Alert::NewBullet(0));
+				outbox.post(Alert::NewBullet(0).into());
 				self.new_resource(t, Some(&v));
 			});
 	}
@@ -397,25 +390,25 @@ impl World {
 		self.particles.push(particle);
 	}
 
-	pub fn emitters(&self) -> &[particle::Emitter] {
-		&self.emitters
-	}
-
-	pub fn clear_emitters(&mut self) {
-		self.emitters.clear();
-	}
+//	pub fn emitters(&self) -> &[particle::Emitter] {
+//		&self.emitters
+//	}
+//
+//	pub fn clear_emitters(&mut self) {
+//		self.emitters.clear();
+//	}
 
 	pub fn cleanup_before(&mut self) {
 		self.clear_particles();
 	}
 
-	pub fn cleanup_after(&mut self) {
-		self.clear_emitters();
-	}
+//	pub fn cleanup_after(&mut self) {
+//		self.clear_emitters();
+//	}
 
-	pub fn add_emitter(&mut self, emitter: particle::Emitter) {
-		self.emitters.push(emitter)
-	}
+//	pub fn add_emitter(&mut self, emitter: particle::Emitter) {
+//		self.emitters.push(emitter)
+//	}
 
 	pub fn sweep(&mut self) -> Box<[Agent]> {
 		let mut v = Vec::new();
@@ -425,9 +418,9 @@ impl World {
 		v.into_boxed_slice()
 	}
 
-	pub fn consume_alerts(&mut self) -> Box<[AlertEvent]> {
-		self.alerts.drain(..).collect::<Vec<_>>().into_boxed_slice()
-	}
+//	pub fn consume_alerts(&mut self) -> Box<[AlertEvent]> {
+//		self.alerts.drain(..).collect::<Vec<_>>().into_boxed_slice()
+//	}
 
 	pub fn dump(&self) -> io::Result<String> {
 		let now: DateTime<Utc> = Utc::now();

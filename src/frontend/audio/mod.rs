@@ -14,7 +14,6 @@ use std::sync::Mutex;
 use app;
 use sample::ToFrameSliceMut;
 use frontend::ui::AlertPlayer;
-use backend::world::AlertEvent;
 use backend::world::Alert;
 // Currently supports i8, i32, f32.
 //pub type AudioSample = f32;
@@ -107,18 +106,18 @@ impl<S> SoundSystemAlertPlayer<S> where S: SoundSystem {
 
 pub type ThreadedAlertPlayer = SoundSystemAlertPlayer<ThreadedSoundSystem>;
 
-impl AlertPlayer<AlertEvent, self::Error> for SoundSystemAlertPlayer<ThreadedSoundSystem> {
-	fn play(&mut self, alert: &AlertEvent) -> Result<(), self::Error> {
-		let note = match alert.alert {
-			Alert::BeginSimulation => SoundEffect::Startup,
-			Alert::NewMinion => SoundEffect::NewMinion,
-			Alert::NewSpore => SoundEffect::NewSpore,
-			Alert::Fertilised => SoundEffect::Fertilised,
-			Alert::DieMinion => SoundEffect::DieMinion,
-			Alert::NewBullet(id) => SoundEffect::Bullet(id),
+impl AlertPlayer<Alert, self::Error> for SoundSystemAlertPlayer<ThreadedSoundSystem> {
+	fn play(&mut self, alert: &Alert) -> Result<(), self::Error> {
+		let note = match alert {
+			&Alert::BeginSimulation => SoundEffect::Startup,
+			&Alert::NewMinion => SoundEffect::NewMinion,
+			&Alert::NewSpore => SoundEffect::NewSpore,
+			&Alert::Fertilised => SoundEffect::Fertilised,
+			&Alert::DieMinion => SoundEffect::DieMinion,
+			&Alert::NewBullet(id) => SoundEffect::Bullet(id),
 			_ => SoundEffect::None,
 		};
-		trace!("Playing alert: {:?}", alert.alert);
+		trace!("Playing alert: {:?}", alert);
 		self.sound_system.trigger.send(note)?;
 		Ok(())
 	}

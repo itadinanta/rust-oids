@@ -1,18 +1,26 @@
-pub use backend::world::alert::Alert;
-pub use backend::world::AlertReceiver;
-pub use backend::world::particle::Emitter;
+use app::Event;
+use backend::world::alert::Alert;
+use backend::world::AlertReceiver;
+use backend::world::particle::Emitter;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
 
 #[derive(Clone)]
 pub enum Message {
 	Alert(Alert),
+	Event(Event),
 	NewEmitter(Emitter),
 }
 
 impl From<Emitter> for Message {
 	fn from(value: Emitter) -> Self {
 		Message::NewEmitter(value)
+	}
+}
+
+impl From<Event> for Message {
+	fn from(value: Event) -> Self {
+		Message::Event(value)
 	}
 }
 

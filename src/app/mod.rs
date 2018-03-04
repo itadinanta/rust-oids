@@ -2,9 +2,10 @@ use app::constants::*;
 use backend::obj;
 use backend::obj::*;
 use backend::systems;
-use backend::systems::messagebus::Outbox;
-use backend::systems::messagebus::PubSub;
+use backend::systems::messagebus::{Inbox, ReceiveDrain, Outbox, PubSub, Whiteboard, Message};
 use backend::world;
+use backend::world::Alert;
+use backend::world::AlertReceiver;
 use backend::world::agent;
 use backend::world::segment;
 use cgmath;
@@ -25,6 +26,7 @@ use frontend::ui;
 use getopts::Options;
 use num;
 use rayon::prelude::*;
+
 pub use self::controller::DefaultController;
 pub use self::controller::InputController;
 pub use self::events::Event;
@@ -192,7 +194,7 @@ pub struct App {
 	frame_smooth: math::MovingAverage<Seconds>,
 	is_running: bool,
 	is_paused: bool,
-	interactions: Vec<Event>,
+	// interactions: Vec<Event>,
 	//
 	camera: math::Inertial<f32>,
 	lights: Cycle<Rgba>,
@@ -201,6 +203,7 @@ pub struct App {
 	//
 	world: world::World,
 	bus: PubSub,
+	inbox: Inbox,
 	systems: Systems,
 	//
 	debug_flags: DebugFlags,
@@ -240,10 +243,15 @@ impl App {
 		where
 			R: ResourceLoader<u8>, {
 		let system_timer = SystemTimer::new();
+		let mut bus = PubSub::new();
+		let inbox = bus.subscribe(Box::new(|e| match e {
+			&Message::Alert(_) => true,
+			_ => false
+		}));
+
 		App {
 			viewport: Viewport::rect(w, h, scale),
 			input_state: input::InputState::default(),
-			interactions: Vec::new(),
 
 			camera: Self::init_camera(),
 			lights: Self::init_lights(),
@@ -251,7 +259,8 @@ impl App {
 			speed_factors: Self::init_speed_factors(),
 
 			world: world::World::new(resource_loader, minion_gene_pool),
-			bus: PubSub::new(),
+			bus,
+			inbox,
 			// subsystems
 			systems: Systems::default(),
 			// runtime and timing
@@ -326,7 +335,7 @@ impl App {
 	}
 
 	pub fn interact(&mut self, e: Event) {
-		self.interactions.push(e);
+		self.bus.post(e.into());
 		self.on_app_event(e)
 	}
 
@@ -430,11 +439,17 @@ impl App {
 	}
 }
 
+impl AlertReceiver for App {
+	fn alert(&mut self, alert: Alert) {
+		let timestamp = self.wall_clock.seconds();
+		self.bus.post(alert.into());
+	}
+}
+
 impl App {
 	pub fn init(&mut self) {
-		use backend::world::AlertReceiver;
 		self.init_systems();
-		self.world.alert(world::alert::Alert::BeginSimulation);
+		self.alert(world::alert::Alert::BeginSimulation);
 	}
 
 	fn register_all(&mut self) {
@@ -464,27 +479,29 @@ impl App {
 
 	fn cleanup_after(&mut self) {
 		self.register_all();
-		self.world.cleanup_after();
+		// self.world.cleanup_after();
 	}
 
 	fn tick(&mut self, dt: Seconds) {
 		self.world.tick(dt);
 	}
 
-	pub fn play_alerts<P, E>(&mut self, player: &mut P) where P: ui::AlertPlayer<world::alert::AlertEvent, E>, E: Debug {
-		for alert in self.world.consume_alerts().into_iter() {
-			match player.play(alert) {
-				Err(e) => error!("Unable to play alert {:?}", e),
-				Ok(_) => ()
-			}
-		}
-	}
-
-	pub fn play_interactions<P, E>(&mut self, player: &mut P) where P: ui::AlertPlayer<Event, E>, E: Debug {
-		for alert in self.interactions.drain(..) {
-			match player.play(&alert) {
-				Err(e) => error!("Unable to play interaction {:?}", e),
-				Ok(_) => ()
+	pub fn play_alerts<P, E>(&mut self, alert_player: &mut P)
+		where P: ui::AlertPlayer<world::alert::Alert, E> + ui::AlertPlayer<Event, E>,
+			  E: Debug {
+		for alert in self.inbox.drain().into_iter() {
+			match alert {
+				Message::Event(ref alert) =>
+					match alert_player.play(alert) {
+						Err(e) => error!("Unable to play alert {:?}", e),
+						Ok(_) => ()
+					}
+				Message::Alert(ref alert) =>
+					match alert_player.play(alert) {
+						Err(e) => error!("Unable to play interaction {:?}", e),
+						Ok(_) => ()
+					}
+				_ => {}
 			}
 		}
 	}

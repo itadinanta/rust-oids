@@ -6,6 +6,7 @@ use num::Zero;
 use core::color::Rgba;
 use core::clock::{seconds, Seconds, SimulationTimer, TimerStopwatch};
 use backend::world;
+use backend::systems::messagebus::{Inbox, Message, Whiteboard, ReceiveDrain};
 use backend::world::particle::{EmitterAttachment, EmitterStyle};
 use std::collections::VecDeque;
 use std::collections::HashMap;
@@ -395,6 +396,7 @@ impl Emitter for SimpleEmitter {
 #[allow(unused)]
 pub struct ParticleSystem {
 	id_counter: usize,
+	inbox: Option<Inbox>,
 	particles: HashMap<obj::Id, ParticleBatch>,
 	emitters: HashMap<obj::Id, Box<Emitter>>,
 	dt: Seconds,
@@ -403,8 +405,21 @@ pub struct ParticleSystem {
 }
 
 impl System for ParticleSystem {
+	fn attach(&mut self, bus: &mut PubSub) {
+		self.inbox = Some(bus.subscribe(Box::new(|m| if let &Message::NewEmitter(_) = m { true } else { false })));
+	}
+
 	fn import(&mut self, world: &world::World) {
-		for source in world.emitters() {
+		let mut emitters = Vec::new();
+		if let Some(ref inbox) = self.inbox {
+			for message in inbox.drain() {
+				match message {
+					Message::NewEmitter(emitter) => { emitters.push(emitter); }
+					_ => {}
+				}
+			}
+		}
+		for source in emitters.into_iter() {
 			let emitter = match source.style {
 				EmitterStyle::Explosion { cluster_size, color } => {
 					SimpleEmitter::new(self.next_id())
@@ -562,6 +577,7 @@ impl Default for ParticleSystem {
 		let simulation_timer = SimulationTimer::new();
 		ParticleSystem {
 			id_counter: 0,
+			inbox: None,
 			emitters: HashMap::new(),
 			particles: HashMap::new(),
 			dt: seconds(0.),
