@@ -19,7 +19,8 @@ These are the little rustoid critters.
 - Each Minion has a **sensor** to detect nearby Resources and the nearest Emitter, among other variables.
 - Up to 4 **inputs** from the **sensor** determine the **outputs** of the brain which enable **actuators** if their value exceed certain **personality**-dependent **thresholds**. Left and right **rudders** which exert pull, **thrusters** push, and a linear **brake** reduces forward speed.
 - Each action by a Minion, including waiting idle and reproducing, consumes a certain amount of **energy**. When energy is depleted, the Minion **dies** and some of its body is released back as Resources.
-- Minions who **eat** resources can top-up their energy pool, survive longer and **reproduce** via **spores**.
+- Minions who **eat** resources can top-up their energy pool, survive longer and **grow**
+- Minions who grow enough to reach **maturity** will **reproduce** via **spores**.
 - Minions who are unsuccessful at finding and eating food will not leave offspring driving their lineage **extinct**. 
 
 ### Spores.
