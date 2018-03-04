@@ -9,7 +9,6 @@ use wrapped2d::dynamics::world::callbacks::ContactAccess;
 use core::geometry::*;
 use core::geometry::Transform;
 use cgmath::InnerSpace;
-use super::messagebus::{PubSub, Inbox, Whiteboard, ReceiveDrain};
 use backend::obj;
 use backend::obj::*;
 use backend::world;
@@ -17,6 +16,7 @@ use backend::world::agent;
 use backend::world::segment;
 use backend::world::segment::Intent;
 use backend::world::segment::PilotRotation;
+use backend::messagebus::{PubSub, Inbox, Whiteboard, ReceiveDrain};
 
 struct AgentData;
 

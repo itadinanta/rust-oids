@@ -12,8 +12,8 @@ use backend::world::agent;
 use backend::world::segment;
 use backend::world::AgentState;
 use backend::world::alert;
+use backend::messagebus::Outbox;
 use serialize::base64::{self, ToBase64};
-use super::messagebus::Outbox;
 
 type StateMap = HashMap<obj::Id, agent::State>;
 type GeneMap = HashMap<obj::Id, gen::Dna>;

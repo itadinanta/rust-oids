@@ -2,12 +2,10 @@ use app::constants::*;
 use backend::obj;
 use backend::obj::*;
 use backend::systems;
-use backend::systems::messagebus::{Inbox, ReceiveDrain, Outbox, PubSub, Whiteboard, Message};
 use backend::world;
-use backend::world::Alert;
-use backend::world::AlertReceiver;
 use backend::world::agent;
 use backend::world::segment;
+use backend::messagebus::{Inbox, ReceiveDrain, Outbox, PubSub, Whiteboard, Message};
 use cgmath;
 use cgmath::Matrix4;
 use core::clock::*;
@@ -434,16 +432,10 @@ impl App {
 	}
 }
 
-impl AlertReceiver for App {
-	fn alert(&mut self, alert: Alert) {
-		self.bus.post(alert.into());
-	}
-}
-
 impl App {
 	pub fn init(&mut self) {
 		self.init_systems();
-		self.alert(world::alert::Alert::BeginSimulation);
+		self.bus.post(world::alert::Alert::BeginSimulation.into());
 	}
 
 	fn register_all(&mut self) {
@@ -473,7 +465,6 @@ impl App {
 
 	fn cleanup_after(&mut self) {
 		self.register_all();
-		// self.world.cleanup_after();
 	}
 
 	fn tick(&mut self, dt: Seconds) {

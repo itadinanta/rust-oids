@@ -1,6 +1,5 @@
 use app::Event;
 use backend::world::alert::Alert;
-use backend::world::AlertReceiver;
 use backend::world::particle::Emitter;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
@@ -100,12 +99,6 @@ impl<M> Whiteboard<M> for PubSub<M> where M: Send + Clone {
 			sender,
 		});
 		Inbox { receiver }
-	}
-}
-
-impl AlertReceiver for PubSub<Message> {
-	fn alert(&mut self, alert: Alert) {
-		self.post(Message::Alert(alert));
 	}
 }
 

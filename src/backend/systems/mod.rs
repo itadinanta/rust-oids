@@ -4,7 +4,6 @@ pub mod ai;
 pub mod alife;
 pub mod game;
 pub mod particle;
-pub mod messagebus;
 
 pub use self::physics::PhysicsSystem;
 pub use self::animation::AnimationSystem;
@@ -12,9 +11,10 @@ pub use self::game::GameSystem;
 pub use self::ai::AiSystem;
 pub use self::alife::AlifeSystem;
 pub use self::particle::ParticleSystem;
-pub use self::messagebus::PubSub;
-pub use self::messagebus::Outbox;
+
 use backend::world;
+use backend::messagebus::{PubSub, Outbox};
+
 use core::clock::Seconds;
 
 pub trait System {

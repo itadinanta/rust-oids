@@ -24,21 +24,17 @@ use core::geometry::*;
 use core::geometry::Transform;
 use core::resource::ResourceLoader;
 use serialize::base64::{self, ToBase64};
+use backend::messagebus::{Outbox, Message};
 use self::agent::Agent;
 use self::agent::AgentType;
 use self::agent::TypedAgent;
 use self::swarm::*;
 use self::particle::Particle;
-use backend::systems::messagebus::{Outbox, Message};
 
 pub use self::alert::Alert;
 
 pub trait AgentState {
 	fn agent(&self, id: obj::Id) -> Option<&Agent>;
-}
-
-pub trait AlertReceiver {
-	fn alert(&mut self, ev: Alert);
 }
 
 pub struct World {
@@ -131,9 +127,7 @@ impl World {
 			registered_player_id: None,
 			regenerations: 0usize,
 			clock,
-			//alerts: Vec::new(),
-			//emitters: Vec::new(),
-			particles: Vec::new(),
+			particles: Vec::with_capacity(10000),
 		}
 	}
 
@@ -388,25 +382,9 @@ impl World {
 		self.particles.push(particle);
 	}
 
-//	pub fn emitters(&self) -> &[particle::Emitter] {
-//		&self.emitters
-//	}
-//
-//	pub fn clear_emitters(&mut self) {
-//		self.emitters.clear();
-//	}
-
 	pub fn cleanup_before(&mut self) {
 		self.clear_particles();
 	}
-
-//	pub fn cleanup_after(&mut self) {
-//		self.clear_emitters();
-//	}
-
-//	pub fn add_emitter(&mut self, emitter: particle::Emitter) {
-//		self.emitters.push(emitter)
-//	}
 
 	pub fn sweep(&mut self) -> Box<[Agent]> {
 		let mut v = Vec::new();
@@ -415,10 +393,6 @@ impl World {
 		}
 		v.into_boxed_slice()
 	}
-
-//	pub fn consume_alerts(&mut self) -> Box<[AlertEvent]> {
-//		self.alerts.drain(..).collect::<Vec<_>>().into_boxed_slice()
-//	}
 
 	pub fn dump(&self) -> io::Result<String> {
 		let now: DateTime<Utc> = Utc::now();
