@@ -22,7 +22,7 @@ impl System for AnimationSystem {
 		self.animation_timer.tick(dt * self.speed);
 	}
 
-	fn export(&self, world: &mut world::World) {
+	fn export(&self, world: &mut world::World, _outbox: &Outbox) {
 		for (_, agent) in &mut world.agents_mut(agent::AgentType::Minion).iter_mut() {
 			if agent.state.is_active() {
 				let energy = agent.state.energy();

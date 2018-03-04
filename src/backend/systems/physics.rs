@@ -9,6 +9,7 @@ use wrapped2d::dynamics::world::callbacks::ContactAccess;
 use core::geometry::*;
 use core::geometry::Transform;
 use cgmath::InnerSpace;
+use super::messagebus::{PubSub, Inbox, Whiteboard, ReceiveDrain};
 use backend::obj;
 use backend::obj::*;
 use backend::world;
@@ -29,6 +30,7 @@ type ContactSet = Rc<RefCell<HashMap<agent::Key, agent::Key>>>;
 
 pub struct PhysicsSystem {
 	world: b2::World<AgentData>,
+	inbox: Option<Inbox>,
 	handles: HashMap<agent::Key, b2::BodyHandle>,
 	touched: ContactSet,
 }
@@ -53,6 +55,10 @@ struct JointRef<'a> {
 }
 
 impl System for PhysicsSystem {
+	fn attach(&mut self, bus: &mut PubSub) {
+		self.inbox = Some(bus.subscribe(Box::new(|_| true)));
+	}
+
 	fn init(&mut self, world: &world::World) {
 		self.init_extent(&world.extent);
 	}
@@ -80,6 +86,10 @@ impl System for PhysicsSystem {
 	}
 
 	fn import(&mut self, world: &world::World) {
+		match self.inbox {
+			Some(ref drain) => drain.drain(),
+			None => Vec::new(),
+		};
 		for (_, agent) in world.agents(agent::AgentType::Minion).iter() {
 			if agent.state.growth() > 0. {
 				self.refresh_registration(agent)
@@ -164,7 +174,7 @@ impl System for PhysicsSystem {
 		self.world.step(dt, 8, 3);
 	}
 
-	fn export(&self, world: &mut world::World) {
+	fn export(&self, world: &mut world::World, outbox: &Outbox) {
 		for (_, b) in self.world.bodies() {
 			let body = b.borrow();
 			let position = (*body).position();
@@ -189,6 +199,7 @@ impl Default for PhysicsSystem {
 	fn default() -> Self {
 		let touched = Rc::new(RefCell::new(HashMap::new()));
 		PhysicsSystem {
+			inbox: None,
 			world: Self::new_world(touched.clone()),
 			handles: HashMap::new(),
 			touched,

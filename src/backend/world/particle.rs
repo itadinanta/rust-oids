@@ -28,6 +28,7 @@ impl Default for EmitterAttachment {
 	}
 }
 
+#[derive(Clone)]
 pub enum EmitterStyle {
 	Explosion {
 		cluster_size: u8,
@@ -97,7 +98,7 @@ pub struct Particle {
 	age: Seconds,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Emitter {
 	pub id: Option<obj::Id>,
 	pub transform: Transform,

@@ -1,3 +1,43 @@
+use app::constants::*;
+use backend::obj;
+use backend::obj::*;
+use backend::systems;
+use backend::systems::messagebus::Outbox;
+use backend::systems::messagebus::PubSub;
+use backend::world;
+use backend::world::agent;
+use backend::world::segment;
+use cgmath;
+use cgmath::{Matrix4, SquareMatrix};
+use core::clock::*;
+use core::geometry::*;
+use core::geometry::Transform;
+use core::math;
+use core::math::Directional;
+use core::math::Relative;
+use core::math::Smooth;
+use core::resource::ResourceLoader;
+use core::util::Cycle;
+use core::view::Viewport;
+use core::view::WorldTransform;
+use frontend::input;
+use frontend::ui;
+use getopts::Options;
+use num;
+use rayon::prelude::*;
+pub use self::controller::DefaultController;
+pub use self::controller::InputController;
+pub use self::events::Event;
+use self::events::VectorDirection;
+pub use self::winit_event::WinitEventMapper;
+pub use self::winit_event::WinitEventMapper as EventMapper;
+use std::ffi::OsString;
+use std::fmt::Debug;
+use std::iter::Iterator;
+use std::process;
+use std::sync::Arc;
+use std::sync::RwLock;
+
 mod main;
 mod winit_event;
 mod controller;
@@ -5,53 +45,6 @@ mod events;
 mod paint;
 
 pub mod constants;
-
-use std::process;
-use std::fmt::Debug;
-
-use std::sync::Arc;
-use std::sync::RwLock;
-
-use core::util::Cycle;
-use core::geometry::*;
-use core::geometry::Transform;
-use core::clock::*;
-use core::math;
-use core::math::Directional;
-use core::math::Relative;
-use core::math::Smooth;
-
-use core::resource::ResourceLoader;
-
-use backend::obj;
-use backend::obj::*;
-use backend::world;
-use backend::world::segment;
-use backend::world::agent;
-use backend::systems;
-
-use core::view::Viewport;
-use core::view::WorldTransform;
-
-use frontend::input;
-use frontend::ui;
-use getopts::Options;
-use std::ffi::OsString;
-
-use app::constants::*;
-
-use num;
-use cgmath;
-use cgmath::{Matrix4, SquareMatrix};
-use std::iter::Iterator;
-use rayon::prelude::*;
-
-pub use self::winit_event::WinitEventMapper;
-pub use self::winit_event::WinitEventMapper as EventMapper;
-pub use self::controller::InputController;
-pub use self::controller::DefaultController;
-pub use self::events::Event;
-use self::events::VectorDirection;
 
 pub fn run(args: &[OsString]) {
 	let mut opt = Options::new();
@@ -94,12 +87,13 @@ impl<T> SendSystem<T> where T: systems::System {
 }
 
 impl<T> systems::System for SendSystem<T> where T: systems::System {
+	fn attach(&mut self, bus: &mut PubSub) { self.ptr.write().unwrap().attach(bus) }
 	fn init(&mut self, world: &world::World) { self.ptr.write().unwrap().init(world) }
 	fn register(&mut self, agent: &world::agent::Agent) { self.ptr.write().unwrap().register(agent) }
 	fn unregister(&mut self, agent: &world::agent::Agent) { self.ptr.write().unwrap().unregister(agent) }
 
 	fn step(&mut self, world: &world::World, dt: Seconds) { self.ptr.write().unwrap().step(world, dt) }
-	fn apply(&self, world: &mut world::World) { self.ptr.read().unwrap().apply(world) }
+	fn apply(&self, world: &mut world::World, outbox: &Outbox) { self.ptr.read().unwrap().apply(world, outbox) }
 }
 
 // unsafe?
@@ -151,16 +145,30 @@ impl Systems {
 		}
 	}
 
-	fn write(&mut self, world: &world::World, apply: &(Fn(&mut systems::System, &world::World) + Sync)) {
+	fn init(&mut self, world: &world::World) {
 		//for r in self.systems().as_mut_slice() {
-		self.systems().par_iter_mut().for_each(
-			|r| apply(&mut (**r), &world)
+		for system in self.systems().iter_mut() {
+			system.init(world);
+		}
+	}
+
+	fn attach(&mut self, bus: &mut PubSub) {
+		//for r in self.systems().as_mut_slice() {
+		for system in self.systems().iter_mut() {
+			system.attach(bus);
+		}
+	}
+
+	fn for_each_read(&mut self, world: &mut world::World, outbox: &Outbox, apply: &(Fn(&mut systems::System, &mut world::World, &Outbox) + Sync)) {
+		self.systems().iter_mut().for_each(
+			|r| apply(&mut (**r), world, outbox)
 		)
 	}
 
-	fn read(&mut self, mut world: &mut world::World, apply: &(Fn(&mut systems::System, &mut world::World) + Sync)) {
-		self.systems().iter_mut().for_each(
-			|r| apply(&mut (**r), &mut world)
+	fn for_each_par_write(&mut self, world: &world::World, apply: &(Fn(&mut systems::System, &world::World) + Sync)) {
+		//for r in self.systems().as_mut_slice() {
+		self.systems().par_iter_mut().for_each(
+			|r| apply(&mut (**r), world)
 		)
 	}
 }
@@ -192,6 +200,7 @@ pub struct App {
 	speed_factors: Cycle<SpeedFactor>,
 	//
 	world: world::World,
+	bus: PubSub,
 	systems: Systems,
 	//
 	debug_flags: DebugFlags,
@@ -242,6 +251,7 @@ impl App {
 			speed_factors: Self::init_speed_factors(),
 
 			world: world::World::new(resource_loader, minion_gene_pool),
+			bus: PubSub::new(),
 			// subsystems
 			systems: Systems::default(),
 			// runtime and timing
@@ -443,12 +453,13 @@ impl App {
 	}
 
 	fn init_systems(&mut self) {
-		self.systems.write(&self.world, &|s, world| s.init(&world));
+		self.systems.attach(&mut self.bus);
+		self.systems.init(&self.world);
 	}
 
 	fn update_systems(&mut self, dt: Seconds) {
-		self.systems.write(&self.world, &|s, world| s.step(&world, dt));
-		self.systems.read(&mut self.world, &|s, mut world| s.apply(&mut world));
+		self.systems.for_each_par_write(&self.world, &|s, world| s.step(&world, dt));
+		self.systems.for_each_read(&mut self.world, &self.bus, &|s, mut world, outbox| s.apply(&mut world, outbox));
 	}
 
 	fn cleanup_after(&mut self) {

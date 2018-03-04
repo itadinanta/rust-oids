@@ -96,7 +96,7 @@ impl System for GameSystem {
 		self.playerstate.trigger_held = false;
 	}
 
-	fn export(&self, world: &mut world::World) {
+	fn export(&self, world: &mut world::World, outbox: &Outbox) {
 		let rng = &mut rand::thread_rng();
 		for e in &self.feeders {
 			for i in e.spawned..e.to_spawn {

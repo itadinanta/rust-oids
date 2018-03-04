@@ -14,6 +14,7 @@ use backend::world::AgentState;
 use backend::world::alert;
 use backend::world::AlertReceiver;
 use serialize::base64::{self, ToBase64};
+use super::messagebus::Outbox;
 
 type StateMap = HashMap<obj::Id, agent::State>;
 type GeneMap = HashMap<obj::Id, gen::Dna>;
@@ -44,7 +45,7 @@ impl System for AlifeSystem {
 		self.simulation_timer.tick(dt);
 	}
 
-	fn export(&self, world: &mut world::World) {
+	fn export(&self, world: &mut world::World, outbox: &Outbox) {
 		Self::update_resources(
 			self.dt,
 			&self.simulation_timer,
@@ -68,16 +69,19 @@ impl System for AlifeSystem {
 
 		for &(ref transform, ref dna) in spores.into_iter() {
 			world.alert(alert::Alert::NewSpore);
+			outbox.post(alert::Alert::NewSpore.into());
 			world.new_spore(transform.clone(), dna);
 		}
 
 		for &(ref transform, ref dna) in hatch.into_iter() {
 			world.alert(alert::Alert::NewMinion);
+			outbox.post(alert::Alert::NewMinion.into());
 			world.hatch_spore(transform.clone(), dna);
 		}
 
 		for &(ref transforms, ref dna) in corpses.into_iter() {
 			world.alert(alert::Alert::DieMinion);
+			outbox.post(alert::Alert::DieMinion.into());
 			for transform in transforms.iter() {
 				world.decay_to_resource(transform.clone(), dna);
 			}
@@ -85,6 +89,7 @@ impl System for AlifeSystem {
 
 		for _ in 0..fertilised {
 			world.alert(alert::Alert::Fertilised);
+			outbox.post(alert::Alert::DieMinion.into());
 		}
 	}
 }
