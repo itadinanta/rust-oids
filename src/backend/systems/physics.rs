@@ -174,7 +174,7 @@ impl System for PhysicsSystem {
 		self.world.step(dt, 8, 3);
 	}
 
-	fn export(&self, world: &mut world::World, outbox: &Outbox) {
+	fn export(&self, world: &mut world::World, _outbox: &Outbox) {
 		for (_, b) in self.world.bodies() {
 			let body = b.borrow();
 			let position = (*body).position();

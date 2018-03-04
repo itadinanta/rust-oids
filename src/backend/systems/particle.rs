@@ -547,7 +547,7 @@ impl System for ParticleSystem {
 		self.update_particles();
 	}
 
-	fn export(&self, world: &mut world::World, outbox: &Outbox) {
+	fn export(&self, world: &mut world::World, _outbox: &Outbox) {
 		for (_, particle_batch) in &self.particles {
 			for particle in &*particle_batch.particles {
 				let mut faders = [1.; MAX_FADER];

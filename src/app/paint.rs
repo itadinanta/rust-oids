@@ -30,6 +30,7 @@ impl App {
 	fn paint_particles_trails<R>(&self, renderer: &mut R) where R: render::DrawBuffer {
 		let mut batch = render::PrimitiveBuffer::new();
 		for particle in self.world.particles() {
+			use cgmath::SquareMatrix;
 			let appearance = render::Appearance::new(particle.color(), particle.effect());
 			batch.draw_lines(None, Matrix4::identity(), particle.trail(), appearance);
 		}
@@ -76,6 +77,7 @@ impl App {
 
 	fn paint_extent<R>(&self, renderer: &mut R)
 		where R: render::Draw {
+		use cgmath::SquareMatrix;
 		let extent = &self.world.extent;
 		let points = &[
 			extent.min,

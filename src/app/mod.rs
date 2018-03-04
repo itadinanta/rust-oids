@@ -9,7 +9,7 @@ use backend::world::AlertReceiver;
 use backend::world::agent;
 use backend::world::segment;
 use cgmath;
-use cgmath::{Matrix4, SquareMatrix};
+use cgmath::Matrix4;
 use core::clock::*;
 use core::geometry::*;
 use core::geometry::Transform;
@@ -137,8 +137,6 @@ impl Systems {
 
 	pub fn register(&mut self, agents: &[world::agent::Agent]) {
 		if !agents.is_empty() {
-			// self.physics.write().unwrap().register(agent);
-			// self.physics.register(agent);
 			self.systems().par_iter_mut().for_each(
 				|system| for agent in agents {
 					system.register(&agent)
@@ -148,14 +146,12 @@ impl Systems {
 	}
 
 	fn init(&mut self, world: &world::World) {
-		//for r in self.systems().as_mut_slice() {
 		for system in self.systems().iter_mut() {
 			system.init(world);
 		}
 	}
 
 	fn attach(&mut self, bus: &mut PubSub) {
-		//for r in self.systems().as_mut_slice() {
 		for system in self.systems().iter_mut() {
 			system.attach(bus);
 		}
@@ -168,7 +164,6 @@ impl Systems {
 	}
 
 	fn for_each_par_write(&mut self, world: &world::World, apply: &(Fn(&mut systems::System, &world::World) + Sync)) {
-		//for r in self.systems().as_mut_slice() {
 		self.systems().par_iter_mut().for_each(
 			|r| apply(&mut (**r), world)
 		)
@@ -441,7 +436,6 @@ impl App {
 
 impl AlertReceiver for App {
 	fn alert(&mut self, alert: Alert) {
-		let timestamp = self.wall_clock.seconds();
 		self.bus.post(alert.into());
 	}
 }

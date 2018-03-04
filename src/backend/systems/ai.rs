@@ -14,7 +14,6 @@ use cgmath::*;
 use core::geometry::Position;
 use itertools::Itertools;
 use app::constants::*;
-use super::messagebus::PubSub;
 
 type IdPositionMap = HashMap<obj::Id, Position>;
 
@@ -39,7 +38,7 @@ impl System for AiSystem {
 			.collect::<HashMap<_, _>>();
 	}
 
-	fn export(&self, world: &mut world::World, outbox: &Outbox) {
+	fn export(&self, world: &mut world::World, _outbox: &Outbox) {
 		Self::update_minions(
 			&self.targets,
 			&self.beacons,

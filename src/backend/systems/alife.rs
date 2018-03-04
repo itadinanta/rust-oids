@@ -12,7 +12,6 @@ use backend::world::agent;
 use backend::world::segment;
 use backend::world::AgentState;
 use backend::world::alert;
-use backend::world::AlertReceiver;
 use serialize::base64::{self, ToBase64};
 use super::messagebus::Outbox;
 

@@ -28,8 +28,8 @@ use self::agent::Agent;
 use self::agent::AgentType;
 use self::agent::TypedAgent;
 use self::swarm::*;
-use self::particle::{Emitter, Particle};
-use backend::systems::messagebus::{Outbox, Message, PubSub};
+use self::particle::Particle;
+use backend::systems::messagebus::{Outbox, Message};
 
 pub use self::alert::Alert;
 
@@ -51,8 +51,6 @@ pub struct World {
 	minion_gene_pool: gen::GenePool,
 	resource_gene_pool: gen::GenePool,
 	clock: SimulationTimer,
-	//	alerts: Vec<AlertEvent>,
-//	emitters: Vec<Emitter>,
 	particles: Vec<Particle>,
 }
 
