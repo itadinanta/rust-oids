@@ -43,6 +43,7 @@ pub enum SoundEffect {
 	Release(usize),
 	NewSpore,
 	NewMinion,
+	GrowMinion,
 	DieMinion,
 	SelectMinion,
 	UserOption,
@@ -114,6 +115,7 @@ impl AlertPlayer<Alert, self::Error> for SoundSystemAlertPlayer<ThreadedSoundSys
 			&Alert::NewSpore => SoundEffect::NewSpore,
 			&Alert::Fertilised => SoundEffect::Fertilised,
 			&Alert::DieMinion => SoundEffect::DieMinion,
+			&Alert::GrowMinion => SoundEffect::GrowMinion,
 			&Alert::NewBullet(id) => SoundEffect::Bullet(id),
 			_ => SoundEffect::None,
 		};

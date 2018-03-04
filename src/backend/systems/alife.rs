@@ -10,6 +10,7 @@ use backend::world;
 use backend::world::gen;
 use backend::world::agent;
 use backend::world::segment;
+use backend::world::particle;
 use backend::world::AgentState;
 use backend::world::alert;
 use backend::messagebus::Outbox;
@@ -53,6 +54,7 @@ impl System for AlifeSystem {
 		);
 
 		let (spores, corpses) = Self::update_minions(
+			outbox,
 			self.dt,
 			world.extent.clone(),
 			&mut world.agents_mut(agent::AgentType::Minion),
@@ -138,7 +140,7 @@ impl AlifeSystem {
 		touched
 	}
 
-	fn update_minions(dt: Seconds, extent: geometry::Rect, minions: &mut agent::AgentMap, eaten: &StateMap)
+	fn update_minions(outbox: &Outbox, dt: Seconds, extent: geometry::Rect, minions: &mut agent::AgentMap, eaten: &StateMap)
 					  -> (Box<[(geometry::Transform, gen::Dna)]>,
 						  Box<[(Box<[geometry::Transform]>, gen::Dna)]>,
 					  ) {
@@ -147,12 +149,21 @@ impl AlifeSystem {
 		for (_, agent) in minions.iter_mut() {
 			if agent.state.is_active() {
 				agent.state.reset_growth();
-				let maturity = agent.segment(0).unwrap().state.maturity();
+				let segment = agent.segment(0).unwrap().clone();
+				let id = agent.id();
+				let maturity = segment.state.maturity();
+				let livery_color = segment.livery.albedo;
+				let transform = segment.transform().clone();
 				if maturity < 1. { // just grow a bit
 					let r = 0.1;
 					if agent.state.consume_ratio(1. - r, r) {
 						let growth = 1. + r;
 						agent.state.grow_by(growth);
+						outbox.post(alert::Alert::GrowMinion.into());
+						outbox.post(particle::Emitter::for_new_spore(
+							transform,
+							livery_color,
+							id).into());
 						let zero = agent.segment(0).unwrap().transform.position;
 						for segment in agent.segments.iter_mut() {
 							let maturity = segment.state.maturity();

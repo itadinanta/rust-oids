@@ -443,7 +443,7 @@ impl System for ParticleSystem {
 						.with_4_faders(Fader::new(0.0, 4.0, 1.0),
 									   Fader::new(0.5, 0.7, 5.0),
 									   Fader::flat(1.),
-									   Fader::new(3., 1., 1.))
+									   Fader::new(10., 1., 5.))
 						.with_cluster_size(1)
 						.with_lifespan(seconds(3.0))
 				}

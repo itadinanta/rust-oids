@@ -9,4 +9,5 @@ pub enum Alert {
 	DieMinion,
 	DieResource,
 	Fertilised,
+	GrowMinion,
 }
