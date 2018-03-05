@@ -110,15 +110,15 @@ impl World {
 			gen::GenePool::parse_from_base64(DEFAULT_MINION_GENE_POOL)
 		}
 		let emitter_rate = Seconds::new(EMITTER_PERIOD);
+		let num_emitters: usize = 7;
+		let feeders = (0..num_emitters).map(|i| {
+			let (s, c) = (consts::PI * 2. * (i as f32 / num_emitters as f32)).sin_cos();
+			Feeder::new(c * EMITTER_DISTANCE, s * EMITTER_DISTANCE, emitter_rate, Emission::Random)
+		}).collect::<Vec<_>>();
 		World {
 			extent: Rect::new(-WORLD_RADIUS, -WORLD_RADIUS, WORLD_RADIUS, WORLD_RADIUS),
 			swarms,
-			feeders: vec![
-				Feeder::new(-EMITTER_DISTANCE, -EMITTER_DISTANCE, emitter_rate, Emission::CW(EMITTER_SPREAD_ANGLE)),
-				Feeder::new(-EMITTER_DISTANCE, EMITTER_DISTANCE, emitter_rate, Emission::Random),
-				Feeder::new(EMITTER_DISTANCE, EMITTER_DISTANCE, emitter_rate, Emission::CCW(EMITTER_SPREAD_ANGLE)),
-				Feeder::new(EMITTER_DISTANCE, -EMITTER_DISTANCE, emitter_rate, Emission::Random),
-			],
+			feeders,
 			minion_gene_pool: res.load(minion_gene_pool)
 				.map(|data| gen::GenePool::parse_from_resource(&data))
 				.unwrap_or_else(default_gene_pool),

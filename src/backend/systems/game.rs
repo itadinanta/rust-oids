@@ -118,7 +118,7 @@ impl System for GameSystem {
 		if self.playerstate.bullet_ready {
 			world.primary_fire(outbox, self.playerstate.bullet_speed);
 		}
-// if there are no minions, spawn some
+		// if there are no minions, spawn some
 		if world.agents(agent::AgentType::Minion).is_empty() {
 			world.init_minions();
 		}
