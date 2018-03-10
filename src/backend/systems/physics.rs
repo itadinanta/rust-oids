@@ -260,12 +260,48 @@ impl PhysicsSystem {
 								 refs: agent::Key,
 								 f_def: &mut b2::FixtureDef,
 								 mesh: &Mesh) {
+		fn make_circle_shape(world: &mut b2::World<AgentData>,
+							 handle: b2::BodyHandle,
+							 grown_radius: f32,
+							 f_def: &mut b2::FixtureDef,
+							 refs: agent::Key) {
+			let mut circle_shape = b2::CircleShape::new();
+			circle_shape.set_radius(grown_radius);
+			world.body_mut(handle).create_fixture_with(&circle_shape, f_def, refs);
+		}
+
+		fn make_safe_poly_shape(world: &mut b2::World<AgentData>,
+								handle: b2::BodyHandle,
+								grown_radius: f32,
+								vertices: &[b2::Vec2],
+								f_def: &mut b2::FixtureDef,
+								refs: agent::Key) {
+			// from box2d code, checks unique vertices
+			let mut dupes = 0;
+			for (i, v1) in vertices.iter().enumerate() {
+				for v2 in &vertices[(i + 1)..] {
+					let d2 = (v2 - v1).sqr_norm();
+					const b2_linear_slop: f32 = 0.005;
+					if d2 < 0.5f32 * b2_linear_slop {
+						dupes += 1;
+					}
+				}
+			}
+			// if we have enough non-degenerate vertices, we hand them over to b2d
+			// TOOD: optimize (don't send dupes)
+			if vertices.len() - dupes > 2 {
+				let mut poly = b2::PolygonShape::new();
+				poly.set(vertices);
+				world.body_mut(handle).create_fixture_with(&poly, f_def, refs);
+			} else {
+				// tiny circle, failover
+				make_circle_shape(world, handle, grown_radius, f_def, refs);
+			}
+		}
+
 		match mesh.shape {
 			obj::Shape::Ball { radius } => {
-				let grown_radius = radius * maturity;
-				let mut circle_shape = b2::CircleShape::new();
-				circle_shape.set_radius(grown_radius);
-				world.body_mut(handle).create_fixture_with(&circle_shape, f_def, refs);
+				make_circle_shape(world, handle, radius * maturity, f_def, refs);
 			}
 			obj::Shape::Box { radius, ratio } => {
 				let mut rect_shape = b2::PolygonShape::new();
@@ -276,54 +312,51 @@ impl PhysicsSystem {
 				let grown_radius = radius * maturity;
 				let p = &mesh.vertices;
 				let offset = if n < 0 { 1 } else { 0 };
-				let mut poly = b2::PolygonShape::new();
 				let mut vertices = Vec::new();
 				for i in 0..n.abs() {
 					vertices.push(Self::vec2(&p[2 * i as usize + offset], grown_radius));
 				}
-				poly.set(vertices.as_slice());
-				world.body_mut(handle).create_fixture_with(&poly, f_def, refs);
+				make_safe_poly_shape(world, handle, grown_radius, vertices.as_slice(), f_def, refs);
 			}
 			obj::Shape::Star { radius, n, .. } => {
 				let grown_radius = radius * maturity;
-				let p = &mesh.vertices;
-				for i in 0..n {
-					let mut quad = b2::PolygonShape::new();
-					let i1 = (i * 2 + 1) as usize;
-					let i2 = (i * 2) as usize;
-					let i3 = ((i * 2 + (n * 2) - 1) % (n * 2)) as usize;
-					let (p1, p2, p3) = match mesh.winding() {
-						obj::Winding::CW => (&p[i1], &p[i2], &p[i3]),
-						obj::Winding::CCW => (&p[i1], &p[i3], &p[i2]),
-					};
-					quad.set(
-						&[
+				if grown_radius < 0.05 * n as f32 {
+					make_circle_shape(world, handle, grown_radius, f_def, refs);
+				} else {
+					let p = &mesh.vertices;
+					for i in 0..n {
+						let mut quad = b2::PolygonShape::new();
+						let i1 = (i * 2 + 1) as usize;
+						let i2 = (i * 2) as usize;
+						let i3 = ((i * 2 + (n * 2) - 1) % (n * 2)) as usize;
+						let (p1, p2, p3) = match mesh.winding() {
+							obj::Winding::CW => (&p[i1], &p[i2], &p[i3]),
+							obj::Winding::CCW => (&p[i1], &p[i3], &p[i2]),
+						};
+						let quad_vertices = &[
 							b2::Vec2 { x: 0., y: 0. },
 							Self::vec2(&p1, grown_radius),
 							Self::vec2(&p2, grown_radius),
 							Self::vec2(&p3, grown_radius),
-						],
-					);
-					let refs = agent::Key::with_bone(object_id, segment_index as u8, i as u8);
-					world.body_mut(handle).create_fixture_with(&quad, f_def, refs);
+						];
+						let refs = agent::Key::with_bone(object_id, segment_index as u8, i as u8);
+						make_safe_poly_shape(world, handle, grown_radius, quad_vertices, f_def, refs);
+					}
 				}
 			}
 			obj::Shape::Triangle { radius, .. } => {
 				let grown_radius = radius * maturity;
 				let p = &mesh.vertices;
-				let mut tri = b2::PolygonShape::new();
 				let (p1, p2, p3) = match mesh.winding() {
 					obj::Winding::CW => (&p[0], &p[2], &p[1]),
 					obj::Winding::CCW => (&p[0], &p[1], &p[2]),
 				};
-				tri.set(
-					&[
-						Self::vec2(p1, grown_radius),
-						Self::vec2(p2, grown_radius),
-						Self::vec2(p3, grown_radius),
-					],
-				);
-				world.body_mut(handle).create_fixture_with(&tri, f_def, refs);
+				let tri_vertices = &[
+					Self::vec2(p1, grown_radius),
+					Self::vec2(p2, grown_radius),
+					Self::vec2(p3, grown_radius),
+				];
+				make_safe_poly_shape(world, handle, grown_radius, tri_vertices, f_def, refs);
 			}
 		};
 	}
