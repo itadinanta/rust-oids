@@ -12,7 +12,7 @@ use conrod;
 
 use core::resource::filesystem::ResourceLoaderBuilder;
 use core::math::Directional;
-use core::clock::{seconds, SecondsValue,Hourglass, SystemTimer};
+use core::clock::{seconds, SecondsValue, Hourglass, SystemTimer};
 use ctrlc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -73,7 +73,7 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 
 	let audio = audio::ThreadedSoundSystem::new().expect("Failure in audio initialization");
 	let mut audio_alert_player = audio::ThreadedAlertPlayer::new(audio);
-	app.init();
+	app.init(app::SystemMode::Interactive);
 
 	'main: loop {
 		gamepad.poll_events(|event| app.on_input_event(&event));
@@ -169,7 +169,7 @@ pub fn main_loop_headless(minion_gene_pool: &str) {
 
 	let mut app = app::App::new(WIDTH, HEIGHT, 100.0, &res, minion_gene_pool);
 	let mut no_audio = ui::NullAlertPlayer::new();
-	app.init();
+	app.init(app::SystemMode::Batch);
 
 	let running = Arc::new(AtomicBool::new(true));
 	let r = running.clone();

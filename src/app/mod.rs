@@ -99,8 +99,21 @@ impl<T> systems::System for SendSystem<T> where T: systems::System {
 // unsafe?
 unsafe impl<T> Send for SendSystem<T> where T: systems::System {}
 
+#[derive(Copy, Clone)]
+pub enum SystemMode {
+	Interactive,
+	Batch,
+}
+
+impl Default for SystemMode {
+	fn default() -> Self {
+		SystemMode::Interactive
+	}
+}
+
 #[derive(Default)]
 pub struct Systems {
+	mode: SystemMode,
 	physics: Arc<RwLock<systems::PhysicsSystem>>,
 	animation: Arc<RwLock<systems::AnimationSystem>>,
 	game: Arc<RwLock<systems::GameSystem>>,
@@ -110,15 +123,29 @@ pub struct Systems {
 }
 
 impl Systems {
+	fn set_mode(&mut self, mode: SystemMode) {
+		self.mode = mode;
+	}
+
 	fn systems(&mut self) -> Vec<Box<(systems::System + Send)>> {
-		vec![
-			SendSystem::boxed(self.physics.clone()),
-			SendSystem::boxed(self.animation.clone()),
-			SendSystem::boxed(self.particle.clone()),
-			SendSystem::boxed(self.game.clone()),
-			SendSystem::boxed(self.ai.clone()),
-			SendSystem::boxed(self.alife.clone()),
-		]
+		match self.mode {
+			SystemMode::Interactive =>
+				vec![
+					SendSystem::boxed(self.physics.clone()),
+					SendSystem::boxed(self.animation.clone()),
+					SendSystem::boxed(self.particle.clone()),
+					SendSystem::boxed(self.game.clone()),
+					SendSystem::boxed(self.ai.clone()),
+					SendSystem::boxed(self.alife.clone()),
+				],
+			SystemMode::Batch =>
+				vec![
+					SendSystem::boxed(self.physics.clone()),
+					SendSystem::boxed(self.game.clone()),
+					SendSystem::boxed(self.ai.clone()),
+					SendSystem::boxed(self.alife.clone()),
+				]
+		}
 	}
 
 	pub fn unregister(&mut self, agents: &[world::agent::Agent]) {
@@ -433,8 +460,8 @@ impl App {
 }
 
 impl App {
-	pub fn init(&mut self) {
-		self.init_systems();
+	pub fn init(&mut self, mode: SystemMode) {
+		self.init_systems(mode);
 		self.bus.post(world::alert::Alert::BeginSimulation.into());
 	}
 
@@ -453,7 +480,8 @@ impl App {
 		self.systems.unregister(&self.world.sweep());
 	}
 
-	fn init_systems(&mut self) {
+	fn init_systems(&mut self, mode: SystemMode) {
+		self.systems.set_mode(mode);
 		self.systems.attach(&mut self.bus);
 		self.systems.init(&self.world);
 	}
