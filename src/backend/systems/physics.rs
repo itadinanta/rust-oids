@@ -281,8 +281,7 @@ impl PhysicsSystem {
 			for (i, v1) in vertices.iter().enumerate() {
 				for v2 in &vertices[(i + 1)..] {
 					let d2 = (v2 - v1).sqr_norm();
-					const b2_linear_slop: f32 = 0.005;
-					if d2 < 0.5f32 * b2_linear_slop {
+					if d2 < 0.5f32 * B2_LINEAR_SLOP {
 						dupes += 1;
 					}
 				}
@@ -325,7 +324,6 @@ impl PhysicsSystem {
 				} else {
 					let p = &mesh.vertices;
 					for i in 0..n {
-						let mut quad = b2::PolygonShape::new();
 						let i1 = (i * 2 + 1) as usize;
 						let i2 = (i * 2) as usize;
 						let i3 = ((i * 2 + (n * 2) - 1) % (n * 2)) as usize;
