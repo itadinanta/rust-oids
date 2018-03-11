@@ -234,7 +234,7 @@ impl World {
 			);
 			self.register(id);
 			angle += angle_delta;
-			r += 1.;
+			r += INITIAL_SPAWN_RADIUS_INCREMENT;
 		}
 	}
 
