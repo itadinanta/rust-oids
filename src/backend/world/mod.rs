@@ -5,6 +5,7 @@ pub mod swarm;
 pub mod gen;
 pub mod phen;
 pub mod particle;
+pub mod persist;
 
 use backend::obj;
 use backend::obj::*;

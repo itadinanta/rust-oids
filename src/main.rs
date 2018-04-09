@@ -14,6 +14,12 @@ extern crate bitflags;
 extern crate bit_set;
 extern crate cgmath;
 
+#[macro_use]
+extern crate serde_derive;
+
+extern crate serde;
+extern crate serde_json;
+
 extern crate wrapped2d;
 
 #[macro_use]
