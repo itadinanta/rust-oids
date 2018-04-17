@@ -6,6 +6,7 @@ use std::cmp;
 use rand;
 use rand::Rng;
 use backend::obj::*;
+use std::slice::Iter;
 use serialize::base64::{self, ToBase64, FromBase64};
 
 pub type Dna = Box<[u8]>;
@@ -26,6 +27,10 @@ pub struct GenePool {
 }
 
 impl GenePool {
+	pub fn gene_pool_iter(&self) -> Iter<Dna> {
+		self.gene_pool.iter()
+	}
+
 	pub fn parse_from_base64(base64: &[&str]) -> Self {
 		GenePool {
 			gene_pool: base64
@@ -79,12 +84,12 @@ impl GenePool {
 #[allow(dead_code)]
 pub trait Generator {
 	fn next_float<T>(&mut self, min: T, max: T) -> T
-	where
-		T: rand::Rand + num::Float;
+		where
+			T: rand::Rand + num::Float;
 
 	fn next_integer<T>(&mut self, min: T, max: T) -> T
-	where
-		T: rand::Rand + num::Integer + num::ToPrimitive + num::FromPrimitive + Copy;
+		where
+			T: rand::Rand + num::Integer + num::ToPrimitive + num::FromPrimitive + Copy;
 
 	fn next_bool(&mut self) -> bool {
 		self.next_integer::<u8>(0, 1) == 1
@@ -171,8 +176,8 @@ pub trait Generator {
 
 #[allow(dead_code)]
 pub struct Randomizer<R>
-where
-	R: rand::Rng,
+	where
+		R: rand::Rng,
 {
 	rng: R,
 }
@@ -186,14 +191,14 @@ impl Randomizer<rand::ThreadRng> {
 
 impl Generator for Randomizer<rand::ThreadRng> {
 	fn next_float<T>(&mut self, min: T, max: T) -> T
-	where
-		T: rand::Rand + num::Float, {
+		where
+			T: rand::Rand + num::Float, {
 		self.rng.gen::<T>() * (max - min) + min
 	}
 
 	fn next_integer<T>(&mut self, min: T, max: T) -> T
-	where
-		T: rand::Rand + num::Integer + Copy, {
+		where
+			T: rand::Rand + num::Integer + Copy, {
 		self.rng.gen::<T>() % (max - min + T::one()) + min
 	}
 }
@@ -203,8 +208,8 @@ trait Seeder {
 }
 
 impl<R> Seeder for Randomizer<R>
-where
-	R: rand::Rng,
+	where
+		R: rand::Rng,
 {
 	fn seed(&mut self) -> Genome {
 		let mut dna = vec![0u8; 72];
@@ -313,16 +318,16 @@ const BITS_FOR_FLOAT: u8 = 10;
 
 impl Generator for Genome {
 	fn next_float<T>(&mut self, min: T, max: T) -> T
-	where
-		T: rand::Rand + num::Float, {
+		where
+			T: rand::Rand + num::Float, {
 		let u0 = self.next_bits(BITS_FOR_FLOAT);
 		let n: T = T::from(u0).unwrap() / T::from(1 << BITS_FOR_FLOAT).unwrap();
 		n * (max - min) + min
 	}
 
 	fn next_integer<T>(&mut self, min: T, max: T) -> T
-	where
-		T: rand::Rand + num::Integer + num::ToPrimitive + num::FromPrimitive + Copy, {
+		where
+			T: rand::Rand + num::Integer + num::ToPrimitive + num::FromPrimitive + Copy, {
 		num::NumCast::from(min)
 			.and_then(|a| num::NumCast::from(max).map(|b| self.next_i32(a, b)))
 			.and_then(|value| num::FromPrimitive::from_i32(value))

@@ -1,5 +1,6 @@
 use backend::world;
 use serde_json;
+use serialize::base64::{self, ToBase64, FromBase64};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Vector {
@@ -41,7 +42,7 @@ struct Agent {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Swarm {
 	agent_type: usize,
-	agent: Vec<Agent>,
+	agents: Vec<Agent>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -58,21 +59,37 @@ pub struct Serializer;
 
 impl Serializer {
 	pub fn to_string(world: &world::World) -> String {
-		let swarms = Vec::new();
+		fn serialize_agent(src: &world::agent::Agent) -> Agent {}
 
+		fn serialize_swarm(src: &world::swarm::Swarm) -> Swarm {
+			Swarm {
+				agent_type: src.agent_type as usize,
+				agents: src.agents().iter().map(|(k, v)| -> serialize_agent(v)),
+			}
+		}
+
+		let swarms = Vec::new();
+		let minion_gene_pool: Vec<_> = world.minion_gene_pool
+			.gene_pool_iter()
+			.map(|dna| dna.to_base64(base64::STANDARD))
+			.collect();
+		let resource_gene_pool: Vec<_> = world.resource_gene_pool
+			.gene_pool_iter()
+			.map(|dna| dna.to_base64(base64::STANDARD))
+			.collect();
 		let s_world = World {
 			extent_min: Vector {
-				x: 0.0,
-				y: 0.0,
+				x: world.extent.min.x,
+				y: world.extent.min.y,
 			},
 			extent_max: Vector {
-				x: 0.0,
-				y: 0.0,
+				x: world.extent.max.x,
+				y: world.extent.max.y,
 			},
 			swarms,
-			regenerations: 0,
-			minion_gene_pool: Vec::new(),
-			resource_gene_pool: Vec::new(),
+			regenerations: world.regenerations,
+			minion_gene_pool,
+			resource_gene_pool,
 
 		};
 		let serialized = serde_json::to_string(&s_world).unwrap();
