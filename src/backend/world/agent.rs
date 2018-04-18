@@ -281,6 +281,8 @@ impl State {
 		self.phase
 	}
 
+	pub fn flags(&self) -> Flags { self.flags }
+
 	pub fn consume(&mut self, q: f32) -> bool {
 		if self.energy >= q {
 			self.energy -= q;
@@ -417,6 +419,8 @@ impl Agent {
 	pub fn dna(&self) -> &Dna {
 		&self.dna
 	}
+
+	pub fn id(&self) -> Id { self.id }
 
 	#[inline]
 	pub fn gender(&self) -> u8 {

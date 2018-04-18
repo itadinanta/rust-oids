@@ -163,12 +163,12 @@ impl TimerStopwatch {
 }
 
 impl Stopwatch for TimerStopwatch {
-	fn elapsed<T>(&self, timer: &T) -> Seconds where T: Timer {
-		timer.seconds() - self.t0
-	}
-
 	fn reset<T>(&mut self, timer: &T) where T: Timer {
 		self.t0 = timer.seconds();
+	}
+
+	fn elapsed<T>(&self, timer: &T) -> Seconds where T: Timer {
+		timer.seconds() - self.t0
 	}
 }
 

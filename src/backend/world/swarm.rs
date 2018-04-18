@@ -39,6 +39,8 @@ impl Swarm {
 		self.agents.get_mut(&id)
 	}
 
+	pub fn agent_type(&self) -> AgentType { self.agent_type }
+
 	pub fn next_id(&mut self) -> Id {
 		self.seq = self.seq + 1;
 		self.seq << 8 | (self.agent_type as usize)

@@ -30,6 +30,18 @@ impl GenePool {
 	pub fn gene_pool_iter(&self) -> Iter<Dna> {
 		self.gene_pool.iter()
 	}
+	pub fn gene_pool_index(&self) -> usize {
+		self.round_robin
+	}
+
+	pub fn populate_from_base64(&mut self, base64: &[String], round_robin: usize) {
+		self.gene_pool = base64
+			.iter()
+			.map(|s| s.from_base64().unwrap().into_boxed_slice())
+			.collect::<Vec<_>>()
+			.into_boxed_slice();
+		self.round_robin = round_robin;
+	}
 
 	pub fn parse_from_base64(base64: &[&str]) -> Self {
 		GenePool {

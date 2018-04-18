@@ -290,6 +290,16 @@ impl InputRead for InputState {
 		self.key_pressed.contains(b as usize)
 	}
 
+	fn key_once(&self, b: Key) -> bool {
+		self.key_pressed.contains(b as usize) &&
+			!self.key_pressed_last.contains(b as usize)
+	}
+
+	fn any_key_pressed(&self, b: &[Key]) -> bool {
+		let other: BitSet = b.into_iter().map(|k| *k as usize).collect();
+		!self.key_pressed.is_disjoint(&other)
+	}
+
 	fn any_ctrl_pressed(&self) -> bool {
 		self.any_key_pressed(&[Key::LCtrl, Key::RCtrl])
 	}
@@ -302,27 +312,9 @@ impl InputRead for InputState {
 		self.any_key_pressed(&[Key::LSuper, Key::RSuper])
 	}
 
-	fn gamepad_axis(&self, gamepad_id: usize, axis: Axis) -> AxisValue {
-		self.gamepad(gamepad_id)
-			.or_else(|| self.gamepad(0))
-			.map(|state| state.axis[axis as usize])
-			.unwrap_or_default()
-	}
-
-	fn any_key_pressed(&self, b: &[Key]) -> bool {
-		let other: BitSet = b.into_iter().map(|k| *k as usize).collect();
-		!self.key_pressed.is_disjoint(&other)
-	}
-
 	fn chord_pressed(&self, b: &[Key]) -> bool {
 		let other: BitSet = b.into_iter().map(|k| *k as usize).collect();
 		self.key_pressed.is_superset(&other)
-	}
-
-	fn gamepad_button_once(&self, gamepad_id: usize, b: Key) -> bool {
-		self.gamepad.get(&gamepad_id)
-			.map(|gamepad| gamepad.button_once(b))
-			.unwrap_or_default()
 	}
 
 	fn gamepad_button_pressed(&self, gamepad_id: usize, b: Key) -> bool {
@@ -331,9 +323,17 @@ impl InputRead for InputState {
 			.unwrap_or_default()
 	}
 
-	fn key_once(&self, b: Key) -> bool {
-		self.key_pressed.contains(b as usize) &&
-			!self.key_pressed_last.contains(b as usize)
+	fn gamepad_axis(&self, gamepad_id: usize, axis: Axis) -> AxisValue {
+		self.gamepad(gamepad_id)
+			.or_else(|| self.gamepad(0))
+			.map(|state| state.axis[axis as usize])
+			.unwrap_or_default()
+	}
+
+	fn gamepad_button_once(&self, gamepad_id: usize, b: Key) -> bool {
+		self.gamepad.get(&gamepad_id)
+			.map(|gamepad| gamepad.button_once(b))
+			.unwrap_or_default()
 	}
 
 	fn mouse_position(&self) -> Position {

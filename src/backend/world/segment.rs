@@ -55,19 +55,25 @@ impl Default for State {
 }
 
 impl State {
+	pub fn age_seconds(&self) -> Seconds { self.age_seconds }
+	pub fn age_frames(&self) -> usize { self.age_frames }
+
 	pub fn get_charge(&self) -> f32 {
 		self.charge
 	}
-
-	pub fn set_maturity(&mut self, maturity: f32) {
-		self.maturity = maturity
-	}
-
-	pub fn maturity(&self) -> f32 { self.maturity }
-
 	pub fn set_charge(&mut self, charge: f32) {
 		self.charge = charge;
 		self.smooth.reset(self.charge);
+	}
+
+	pub fn target_charge(&self) -> f32 { self.target_charge }
+
+	pub fn recharge(&self) -> f32 { self.recharge }
+
+	pub fn maturity(&self) -> f32 { self.maturity }
+
+	pub fn set_maturity(&mut self, maturity: f32) {
+		self.maturity = maturity
 	}
 
 	pub fn set_target_charge(&mut self, target_charge: f32) {

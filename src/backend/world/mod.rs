@@ -396,6 +396,9 @@ impl World {
 	}
 
 	pub fn dump(&self) -> io::Result<String> {
+
+		println!("{}", persist::Serializer::to_string(self));
+
 		let now: DateTime<Utc> = Utc::now();
 		let file_name = now.format(DUMP_FILE_PATTERN).to_string();
 		let mut f = fs::File::create(&file_name)?;
