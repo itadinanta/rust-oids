@@ -85,7 +85,7 @@ impl GenePool {
 	}
 
 	pub fn next(&mut self) -> Genome {
-		let gen = Genome::new(&self.gene_pool[self.round_robin].clone());
+		let gen = Genome::copy_from(&self.gene_pool[self.round_robin].clone());
 		let mutated = gen.mutate(&mut rand::thread_rng());
 		self.gene_pool[self.round_robin] = mutated.dna().clone();
 		self.round_robin = (self.round_robin + 1) % self.gene_pool.len();
@@ -225,9 +225,8 @@ impl<R> Seeder for Randomizer<R>
 {
 	fn seed(&mut self) -> Genome {
 		let mut dna = vec![0u8; 72];
-		let r = dna.as_mut_slice();
-		self.rng.fill_bytes(r);
-		Genome::new(r)
+		self.rng.fill_bytes(dna.as_mut_slice());
+		Genome::new(dna)
 	}
 }
 
@@ -239,11 +238,19 @@ pub struct Genome {
 }
 
 impl Genome {
-	pub fn new(dna: &[u8]) -> Self {
+	pub fn copy_from(dna: &[u8]) -> Self {
 		Genome {
 			ptr: 0,
 			bit_count: bit_count(dna.len()),
 			dna: dna.to_owned().into_boxed_slice(),
+		}
+	}
+
+	pub fn new(dna: Vec<u8>) -> Self {
+		Genome {
+			ptr: 0,
+			bit_count: bit_count(dna.len()),
+			dna: dna.into_boxed_slice(),
 		}
 	}
 
@@ -302,7 +309,7 @@ impl Genome {
 			new_genes.to_base64(base64::STANDARD)
 		);
 
-		Genome::new(&new_genes)
+		Genome::new(new_genes)
 	}
 
 	pub fn mutate<R: rand::Rng>(&self, rng: &mut R) -> Self {
@@ -312,7 +319,7 @@ impl Genome {
 			let (byte, bit) = split_bit(rng.gen::<usize>() % self.bit_count);
 			new_genes[byte] ^= 1 << bit;
 		}
-		Genome::new(&new_genes)
+		Genome::new(new_genes)
 	}
 
 	pub fn dna(&self) -> &Box<[u8]> {

@@ -1,4 +1,9 @@
 use backend::world;
+use backend::world::agent;
+use backend::world::gen;
+use backend::world::phen;
+use backend::world::segment;
+use num_traits::FromPrimitive;
 use core::geometry;
 use core::clock;
 use serde_json;
@@ -124,13 +129,13 @@ impl Serializer {
 		fn serialize_swarm(src: &world::swarm::Swarm, timer: &clock::SimulationTimer) -> Swarm {
 			Swarm {
 				agent_type: src.agent_type() as usize,
-				agents: src.agents().iter().map(|(k, v)| serialize_agent(v, timer)).collect(),
+				agents: src.agents().iter().map(|(_k, v)| serialize_agent(v, timer)).collect(),
 			}
 		}
 
 		let swarms = world.swarms()
 			.iter()
-			.map(|(k, v)| serialize_swarm(v, &world.clock))
+			.map(|(_k, v)| serialize_swarm(v, &world.clock))
 			.collect();
 		let minion_gene_pool: Vec<_> = world.minion_gene_pool
 			.gene_pool_iter()
@@ -164,6 +169,7 @@ impl Serializer {
 		let result: Result<World, _> = serde_json::from_str(source);
 		match result {
 			Ok(src) => {
+				let timer = world.clock.clone();
 				world.extent.min.x = src.extent_min.x;
 				world.extent.min.y = src.extent_min.y;
 				world.extent.max.x = src.extent_max.x;
@@ -172,6 +178,19 @@ impl Serializer {
 
 				world.minion_gene_pool.populate_from_base64(&src.minion_gene_pool, src.minion_gene_pool_index);
 				world.resource_gene_pool.populate_from_base64(&src.resource_gene_pool, src.resource_gene_pool_index);
+
+				for src_swarm in src.swarms.iter() {
+					if let Some(agent_type) = agent::AgentType::from_usize(src_swarm.agent_type) {
+						let swarm = world.swarm_mut(&agent_type);
+						//swarm.clear();
+						for src_agent in &src_swarm.agents {
+							if let Ok(dna) = src_agent.dna.from_base64() {
+								swarm.spawn::<phen::Minion, _>(&mut gen::Genome::new(dna),
+															   geometry::Transform::default(), None, 0.0, &timer);
+							}
+						}
+					}
+				}
 			}
 			Err(_) => {}
 		}

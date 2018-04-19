@@ -233,7 +233,7 @@ impl AlifeSystem {
 	fn crossover(dna: &gen::Dna, foreign_dna: &Option<gen::Dna>) -> gen::Dna {
 		match foreign_dna {
 			&Some(ref foreign) => {
-				gen::Genome::new(&foreign)
+				gen::Genome::copy_from(&foreign)
 					.crossover(&mut rand::thread_rng(), dna)
 					.dna()
 					.clone()

@@ -157,7 +157,7 @@ impl World {
 	pub fn decay_to_resource(&mut self, outbox: &Outbox, transform: Transform, dna: &gen::Dna) -> obj::Id {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Resource).spawn::<phen::Resource, _>(
-			&mut gen::Genome::new(dna),
+			&mut gen::Genome::copy_from(dna),
 			transform.clone(),
 			None,
 			DEFAULT_RESOURCE_CHARGE,
@@ -175,7 +175,7 @@ impl World {
 	pub fn new_spore(&mut self, outbox: &Outbox, transform: Transform, dna: &gen::Dna) -> obj::Id {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Spore).spawn::<phen::Spore, _>(
-			&mut gen::Genome::new(dna).mutate(&mut rand::thread_rng()),
+			&mut gen::Genome::copy_from(dna).mutate(&mut rand::thread_rng()),
 			transform.clone(),
 			None,
 			DEFAULT_SPORE_CHARGE,
@@ -195,7 +195,7 @@ impl World {
 	pub fn hatch_spore(&mut self, outbox: &Outbox, transform: Transform, dna: &gen::Dna) -> obj::Id {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Minion).spawn::<phen::Minion, _>(
-			&mut gen::Genome::new(dna),
+			&mut gen::Genome::copy_from(dna),
 			transform.clone(),
 			None,
 			DEFAULT_MINION_CHARGE,
@@ -244,7 +244,7 @@ impl World {
 	}
 
 	pub fn spawn_player(&mut self, pos: Position, _motion: Option<&Motion>) -> obj::Id {
-		let mut gen = gen::Genome::new(&[0, 0, 0, 0]);
+		let mut gen = gen::Genome::copy_from(&[0, 0, 0, 0]);
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Player).spawn::<phen::Player, _>(
 			&mut gen,
