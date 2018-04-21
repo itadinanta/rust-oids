@@ -185,8 +185,12 @@ impl Serializer {
 						//swarm.clear();
 						for src_agent in &src_swarm.agents {
 							if let Ok(dna) = src_agent.dna.from_base64() {
-								swarm.spawn::<phen::Minion, _>(&mut gen::Genome::new(dna),
-															   geometry::Transform::default(), None, 0.0, &timer);
+								swarm.spawn(
+									&mut gen::Genome::new(dna),
+									geometry::Transform::default(),
+									None,
+									0.0,
+									&timer);
 							}
 						}
 					}

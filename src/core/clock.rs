@@ -156,7 +156,7 @@ pub struct TimerStopwatch {
 }
 
 impl TimerStopwatch {
-	pub fn new<T>(timer: &T) -> Self where T: Timer {
+	pub fn new(timer: &Timer) -> Self {
 		let t0 = timer.seconds();
 		TimerStopwatch { t0 }
 	}
@@ -185,9 +185,10 @@ impl fmt::Debug for Hourglass {
 		write!(f, "({}, {})", self.timeout, self.capacity)
 	}
 }
+
 #[allow(unused)]
 impl Hourglass {
-	pub fn new<T>(seconds: Seconds, timer: &T) -> Self where T: Timer {
+	pub fn new(seconds: Seconds, timer: &Timer) -> Self {
 		Hourglass {
 			stopwatch: TimerStopwatch::new(timer),
 			capacity: seconds,

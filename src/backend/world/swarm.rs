@@ -14,14 +14,16 @@ use backend::world::gen::*;
 pub struct Swarm {
 	seq: Id,
 	agent_type: AgentType,
+	phenotype: Box<phen::Phenotype>,
 	agents: agent::AgentMap,
 }
 
 impl Swarm {
-	pub fn new(agent_type: AgentType) -> Swarm {
+	pub fn new(agent_type: AgentType, phenotype: Box<phen::Phenotype>) -> Swarm {
 		Swarm {
 			seq: 0,
 			agent_type,
+			phenotype,
 			agents: HashMap::new(),
 		}
 	}
@@ -62,19 +64,6 @@ impl Swarm {
 		}
 	}
 
-	pub fn spawn<P, T>(&mut self, genome: &mut Genome, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> Id
-		where
-			P: phen::Phenotype,
-			T: Timer {
-		let id = self.next_id();
-		match id.type_of() {
-			AgentType::Minion | AgentType::Spore => info!("spawn: {} as {}", genome, id.type_of()),
-			_ => {}
-		}
-		let entity = P::develop(genome, id, transform, motion, charge, timer);
-		self.insert(entity)
-	}
-
 	fn insert(&mut self, agent: Agent) -> Id {
 		let id = agent.id();
 		self.agents.insert(id, agent);
@@ -84,6 +73,17 @@ impl Swarm {
 	#[allow(dead_code)]
 	pub fn is_empty(&self) -> bool {
 		self.agents.is_empty()
+	}
+
+	pub fn spawn(&mut self, genome: &mut Genome, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &Timer) -> Id {
+		let id = self.next_id();
+		match id.type_of() {
+			AgentType::Minion | AgentType::Spore => info!("spawn: {} as {}", genome, id.type_of()),
+			_ => {}
+		}
+		// dynamic dispatch
+		let entity = self.phenotype.develop(genome, id, transform, motion, charge, timer);
+		self.insert(entity)
 	}
 
 	pub fn agents(&self) -> &HashMap<Id, Agent> {

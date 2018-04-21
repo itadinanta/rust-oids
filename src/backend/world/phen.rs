@@ -17,20 +17,29 @@ use backend::world::gen::*;
 use cgmath;
 use cgmath::InnerSpace;
 
-pub trait Phenotype {
-	fn develop<T>(gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer;
+pub trait Phenotype: Send + Sync {
+	fn develop(&self, gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &Timer) -> agent::Agent;
 }
 
-pub struct Resource {}
+pub struct Resource;
 
-pub struct Minion {}
+pub struct Minion;
 
-pub struct Player {}
+pub struct Player;
 
-pub struct Spore {}
+pub struct Spore;
+
+pub fn phenotype_of(agent_type: &agent::AgentType) -> Box<Phenotype> {
+	match agent_type {
+		&agent::AgentType::Minion => Box::new(Minion {}),
+		&agent::AgentType::Spore => Box::new(Spore {}),
+		&agent::AgentType::Player => Box::new(Player {}),
+		_ => Box::new(Resource {}),
+	}
+}
 
 impl Phenotype for Resource {
-	fn develop<T>(gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer {
+	fn develop(&self, gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &Timer) -> agent::Agent {
 		gen.next_integer::<u8>(0, 3);
 		let albedo = color::YPbPr::new(0.5, gen.next_float(-0.5, 0.5), gen.next_float(-0.5, 0.5));
 		let body = gen.eq_triangle();
@@ -52,7 +61,7 @@ impl Phenotype for Resource {
 }
 
 impl Phenotype for Player {
-	fn develop<T>(gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer {
+	fn develop(&self, gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &Timer) -> agent::Agent {
 		let albedo = color::YPbPr::new(0.5, 0., 0.);
 		let body = Shape::new_star(10, 3.0, 0.9, 1. / 0.9);
 		let mut builder = AgentBuilder::new(
@@ -78,7 +87,7 @@ impl Phenotype for Player {
 }
 
 impl Phenotype for Minion {
-	fn develop<T>(gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer {
+	fn develop(&self, gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &Timer) -> agent::Agent {
 		let gender = gen.next_integer::<u8>(0, 3);
 		let tint = gen.next_float(0., 1.);
 		let albedo = color::Hsl::new(tint, 0.5, 0.5);
@@ -223,7 +232,7 @@ impl Phenotype for Minion {
 }
 
 impl Phenotype for Spore {
-	fn develop<T>(gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &T) -> agent::Agent where T: Timer {
+	fn develop(&self, gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &Timer) -> agent::Agent {
 		let gender = gen.next_integer::<u8>(0, 3);
 		let tint = gen.next_float(0., 1.);
 		let albedo = color::Hsl::new(tint, 0.5, 0.5);
@@ -432,7 +441,7 @@ impl AgentBuilder {
 		}
 	}
 
-	pub fn build<T>(&self, timer: &T) -> Agent where T: Timer {
+	pub fn build(&self, timer: &Timer) -> Agent {
 		trace!("Agent {:?} has brain {:?}", self.id, self.brain);
 		Agent::new(
 			self.id,

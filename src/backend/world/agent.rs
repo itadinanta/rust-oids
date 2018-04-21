@@ -78,7 +78,7 @@ impl TypedAgent for Id {
 enum_from_primitive! {
 	#[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
 	pub enum AgentType {
-		Minion ,
+		Minion,
 		Spore,
 		Player,
 		FriendlyBullet,
@@ -460,7 +460,7 @@ impl Agent {
 			.map(|sensor| sensor.clone())
 	}
 
-	pub fn new<T>(id: Id, gender: u8, brain: &Brain, dna: &Dna, segments: Box<[Segment]>, timer: &T) -> Self where T: Timer {
+	pub fn new(id: Id, gender: u8, brain: &Brain, dna: &Dna, segments: Box<[Segment]>, timer: &Timer) -> Self {
 		const SCALE: f32 = 100.;
 		let max_energy = SCALE *
 			segments
