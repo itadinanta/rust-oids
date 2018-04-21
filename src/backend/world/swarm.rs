@@ -43,6 +43,13 @@ impl Swarm {
 
 	pub fn agent_type(&self) -> AgentType { self.agent_type }
 
+	pub fn seq(&self) -> Id { self.seq }
+
+	pub fn reset(&mut self, seq: Id) {
+		self.agents.clear();
+		self.seq = seq;
+	}
+
 	pub fn next_id(&mut self) -> Id {
 		self.seq = self.seq + 1;
 		self.seq << 8 | (self.agent_type as usize)
@@ -83,6 +90,11 @@ impl Swarm {
 		}
 		// dynamic dispatch
 		let entity = self.phenotype.develop(genome, id, transform, motion, charge, timer);
+		self.insert(entity)
+	}
+
+	pub fn rebuild(&mut self, id: Id, genome: &mut Genome, timer: &Timer) -> Id {
+		let entity = self.phenotype.develop(genome, id, Transform::default(), None, 0.0, timer);
 		self.insert(entity)
 	}
 

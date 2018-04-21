@@ -21,14 +21,6 @@ pub trait Phenotype: Send + Sync {
 	fn develop(&self, gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &Timer) -> agent::Agent;
 }
 
-pub struct Resource;
-
-pub struct Minion;
-
-pub struct Player;
-
-pub struct Spore;
-
 pub fn phenotype_of(agent_type: &agent::AgentType) -> Box<Phenotype> {
 	match agent_type {
 		&agent::AgentType::Minion => Box::new(Minion {}),
@@ -37,6 +29,14 @@ pub fn phenotype_of(agent_type: &agent::AgentType) -> Box<Phenotype> {
 		_ => Box::new(Resource {}),
 	}
 }
+
+struct Resource;
+
+struct Minion;
+
+struct Player;
+
+struct Spore;
 
 impl Phenotype for Resource {
 	fn develop(&self, gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &Timer) -> agent::Agent {
