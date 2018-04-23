@@ -390,10 +390,13 @@ impl World {
 	}
 
 	pub fn dump(&self) -> io::Result<String> {
-		println!("{}", persist::Serializer::to_string(self));
-
 		let now: DateTime<Utc> = Utc::now();
-		let file_name = now.format(DUMP_FILE_PATTERN).to_string();
+		//persist::Serializer::to_string(self).iter().for_each(|s| println!("{}", s));
+
+		let file_name = now.format(DUMP_FILE_PATTERN_JSON).to_string();
+		persist::Serializer::save(&file_name, self).is_ok();
+
+		let file_name = now.format(DUMP_FILE_PATTERN_CSV).to_string();
 		let mut f = fs::File::create(&file_name)?;
 		for (_, agent) in self.agents(agent::AgentType::Minion).iter() {
 			info!("{}", agent.dna().to_base64(base64::STANDARD));

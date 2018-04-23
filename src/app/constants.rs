@@ -64,7 +64,8 @@ pub const DEFAULT_RESOURCE_GENE_POOL: &'static [&'static str] = &[
 	"M00sWS0M"
 ];
 
-pub const DUMP_FILE_PATTERN: &'static str = "resources/%Y%m%d_%H%M%S.csv";
+pub const DUMP_FILE_PATTERN_CSV: &'static str = "resources/%Y%m%d_%H%M%S.csv";
+pub const DUMP_FILE_PATTERN_JSON: &'static str = "resources/%Y%m%d_%H%M%S.json";
 
 pub const AMBIENT_LIGHTS: &'static [[f32; 4]] = &[
 	[1.0, 1.0, 1.0, 1.0],

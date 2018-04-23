@@ -1,3 +1,6 @@
+use std::io;
+use std::fs;
+use std::io::Write;
 use backend::world;
 use backend::world::agent;
 use backend::world::gen;
@@ -159,21 +162,35 @@ impl Serializer {
 		}
 	}
 
-	pub fn from_string(source: &str, dest: &mut world::World) {
+	#[allow(unused)]
+	pub fn from_string(source: &str, dest: &mut world::World) -> Result<(), serde_json::Error> {
 		let result: Result<World, _> = serde_json::from_str(source);
 		match result {
-			Ok(src) => Self::from_world(src, dest),
-			Err(_) => {}
+			Ok(src) => {
+				Self::from_world(src, dest);
+				Ok(())
+			}
+			Err(e) => Err(e)
 		}
 	}
 
-	pub fn to_string(world: &world::World) -> String {
+	#[allow(unused)]
+	pub fn to_string(world: &world::World) -> Result<String, serde_json::Error> {
 		let s_world = Self::to_world(world);
-		serde_json::to_string_pretty(&s_world).unwrap()
+		serde_json::to_string_pretty(&s_world)
 	}
 
-	pub fn save(world: &world::World) -> bool {
+	pub fn save(file_path: &str, world: &world::World) -> io::Result<()> {
+		let mut out_file = fs::File::create(file_path)?;
 		let s_world = Self::to_world(world);
-		serde_json::to_writer_pretty(file,&s_world).is_ok()
- 	}
+		serde_json::to_writer_pretty(out_file, &s_world)?;
+		Ok(())
+	}
+
+	pub fn load(file_path: &str, world: &mut world::World) -> io::Result<()> {
+		let mut in_file = fs::File::open(file_path)?;
+		let src = serde_json::from_reader(in_file)?;
+		Self::from_world(src, world);
+		Ok(())
+	}
 }
