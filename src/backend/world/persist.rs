@@ -132,6 +132,7 @@ impl Serializer {
 		world.minion_gene_pool.populate_from_base64(&src.minion_gene_pool, src.minion_gene_pool_index);
 		world.resource_gene_pool.populate_from_base64(&src.resource_gene_pool, src.resource_gene_pool_index);
 
+		let mut registered = Vec::new();
 		for src_swarm in src.swarms.iter() {
 			if let Some(agent_type) = agent::AgentType::from_usize(src_swarm.agent_type) {
 				let swarm = world.swarm_mut(&agent_type);
@@ -148,9 +149,13 @@ impl Serializer {
 								dest_segment.state.set_maturity(src_segment.maturity);
 							}
 						}
+						registered.push(id);
 					}
 				}
 			}
+		}
+		for id in registered {
+			world.register(id);
 		}
 	}
 
@@ -166,4 +171,9 @@ impl Serializer {
 		let s_world = Self::to_world(world);
 		serde_json::to_string_pretty(&s_world).unwrap()
 	}
+
+	pub fn save(world: &world::World) -> bool {
+		let s_world = Self::to_world(world);
+		serde_json::to_writer_pretty(file,&s_world).is_ok()
+ 	}
 }
