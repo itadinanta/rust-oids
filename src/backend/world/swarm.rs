@@ -93,8 +93,8 @@ impl Swarm {
 		self.insert(entity)
 	}
 
-	pub fn rebuild(&mut self, id: Id, genome: &mut Genome, timer: &Timer) -> Id {
-		let entity = self.phenotype.develop(genome, id, Transform::default(), None, 0.0, timer);
+	pub fn rebuild(&mut self, id: Id, genome: &mut Genome, transform: Transform, timer: &Timer) -> Id {
+		let entity = self.phenotype.develop(genome, id, transform, None, 0.0, timer);
 		self.insert(entity)
 	}
 

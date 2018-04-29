@@ -80,6 +80,12 @@ impl State {
 		self.target_charge = target_charge;
 	}
 
+	pub fn restore(&mut self, maturity: f32, charge: f32, target_charge: f32) {
+		self.maturity = maturity;
+		self.charge = charge;
+		self.target_charge = target_charge;
+	}
+
 	pub fn update(&mut self, dt: Seconds) {
 		self.age_seconds += dt;
 		self.age_frames += 1;

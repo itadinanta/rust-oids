@@ -140,29 +140,27 @@ impl Serializer {
 				swarm.reset(src_swarm.seq);
 				for src_agent in &src_swarm.agents {
 					if let Ok(dna) = src_agent.dna.from_base64() {
-						let id = swarm.rebuild(src_agent.id, &mut gen::Genome::new(dna), &timer);
+						let src_segment = &src_agent.segments[0];
+						let initial_transform = geometry::Transform::new(geometry::Position::new(src_segment.x, src_segment.y),
+																		 src_segment.angle);
+						let initial_maturity = src_segment.maturity;
+						let id = swarm.rebuild(src_agent.id, &mut gen::Genome::new(dna), initial_transform, &timer);
 						if let Some(agent) = swarm.get_mut(id) {
-							//agent.set_flags(src_agent.flags)
-							//agent.set_growth(src_agent.growth);
-							//agent.set_energy(src_agent.energy);
+							agent.state.restore(src_agent.flags, src_agent.phase, src_agent.growth, src_agent.energy);
 
 							for (src_segment, dest_segment) in src_agent.segments.iter().zip(agent.segments_mut().iter_mut()) {
-								dest_segment.transform = geometry::Transform {
-									position: geometry::Position::new(src_segment.x, src_segment.y),
-									angle: src_segment.angle,
-								};
-								dest_segment.state.set_charge(src_segment.charge);
-								dest_segment.state.set_target_charge(src_segment.target_charge);
-								dest_segment.state.set_maturity(src_segment.maturity);
-							}
+								//dest_segment.transform = geometry::Transform::new(geometry::Position::new(src_segment.x, src_segment.y),
+								//												  src_segment.angle);
+								dest_segment.state.restore(src_segment.maturity, src_segment.charge, src_segment.target_charge);
+							};
+							registered.push(id);
 						}
-						registered.push(id);
 					}
 				}
 			}
 		}
 		world.registered_player_id = world.swarms().get(&agent::AgentType::Player)
-			.and_then(|swarm| swarm.agents().iter().next().map(|(k, v)| *k));
+			.and_then(|swarm| swarm.agents().iter().next().map(|(k, _s)| *k));
 		for id in registered {
 			world.register(id);
 		}
