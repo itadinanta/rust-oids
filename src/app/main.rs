@@ -22,7 +22,7 @@ use winit::{self, WindowEvent, VirtualKeyCode, KeyboardInput};
 use glutin;
 use glutin::GlContext;
 
-pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Option<u32>, height: Option<u32>) {
+pub fn main_loop(minion_gene_pool: &str, world_file: Option<String>, fullscreen: Option<usize>, width: Option<u32>, height: Option<u32>) {
 	const WIDTH: u32 = 1280;
 	const HEIGHT: u32 = 1024;
 
@@ -64,7 +64,7 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 	let mapper = app::WinitEventMapper::new();
 
 	// Create a new game and run it.
-	let mut app = app::App::new(w as u32, h as u32, 100.0, &res, minion_gene_pool);
+	let mut app = app::App::new(w as u32, h as u32, 100.0, &res, minion_gene_pool, world_file);
 
 	let mut ui = ui::conrod_ui::Ui::new(&res,
 										&mut factory,
@@ -160,14 +160,14 @@ pub fn main_loop(minion_gene_pool: &str, fullscreen: Option<usize>, width: Optio
 	};
 }
 
-pub fn main_loop_headless(minion_gene_pool: &str) {
+pub fn main_loop_headless(minion_gene_pool: &str, world_file: Option<String>) {
 	const WIDTH: u32 = 1024;
 	const HEIGHT: u32 = 1024;
 	let res = ResourceLoaderBuilder::new()
 		.add(path::Path::new("resources"))
 		.build();
 
-	let mut app = app::App::new(WIDTH, HEIGHT, 100.0, &res, minion_gene_pool);
+	let mut app = app::App::new(WIDTH, HEIGHT, 100.0, &res, minion_gene_pool, world_file);
 	let mut no_audio = ui::NullAlertPlayer::new();
 	app.init(app::SystemMode::Batch);
 

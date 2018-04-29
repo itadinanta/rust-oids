@@ -50,6 +50,7 @@ pub fn run(args: &[OsString]) {
 	let mut opt = Options::new();
 	opt.optflag("t", "terminal", "Headless mode");
 	opt.optopt("f", "fullscreen", "Fullscreen mode on monitor X", "0");
+	opt.optopt("i", "infile", "Load world file", "resources/20180423_234300.json");
 	opt.optopt("w", "width", "Window width", "1024");
 	opt.optopt("h", "height", "Window height", "1024");
 	match opt.parse(args) {
@@ -57,14 +58,15 @@ pub fn run(args: &[OsString]) {
 			let pool_file_name = options.free.get(1).map(|n| n.as_str()).unwrap_or(
 				"minion_gene_pool.csv",
 			);
+			let world_file = options.opt_str("i");
 			if options.opt_present("t") {
-				main::main_loop_headless(pool_file_name);
+				main::main_loop_headless(pool_file_name, world_file);
 			} else {
 				let fullscreen = options.opt_default("f", "0").and_then(|v| v.parse::<usize>().ok());
 				let width = options.opt_default("w", "1024").and_then(|v| v.parse::<u32>().ok());
 				let height = options.opt_default("h", "1024").and_then(|v| v.parse::<u32>().ok());
 
-				main::main_loop(pool_file_name, fullscreen, width, height);
+				main::main_loop(pool_file_name, world_file, fullscreen, width, height);
 			}
 		}
 		Err(message) => {
@@ -259,7 +261,7 @@ pub struct FrameUpdate {
 }
 
 impl App {
-	pub fn new<R>(w: u32, h: u32, scale: f32, resource_loader: &R, minion_gene_pool: &str) -> Self
+	pub fn new<R>(w: u32, h: u32, scale: f32, resource_loader: &R, minion_gene_pool: &str, world_file: Option<String>) -> Self
 		where
 			R: ResourceLoader<u8>, {
 		let system_timer = SystemTimer::new();
@@ -268,6 +270,12 @@ impl App {
 			&Message::Alert(_) => true,
 			_ => false
 		}));
+
+		let mut new_world = world::World::new(resource_loader, minion_gene_pool);
+		if let Some(world_file) = world_file {
+			world::persist::Serializer::load(&world_file, &mut new_world)
+				.expect(&format!("Could not load {}", &world_file));
+		}
 
 		App {
 			viewport: Viewport::rect(w, h, scale),
@@ -278,7 +286,7 @@ impl App {
 			backgrounds: Self::init_backgrounds(),
 			speed_factors: Self::init_speed_factors(),
 
-			world: world::World::new(resource_loader, minion_gene_pool),
+			world: new_world,
 			bus,
 			inbox,
 			// subsystems
@@ -462,6 +470,7 @@ impl App {
 impl App {
 	pub fn init(&mut self, mode: SystemMode) {
 		self.init_systems(mode);
+		self.register_all();
 		self.bus.post(world::alert::Alert::BeginSimulation.into());
 	}
 

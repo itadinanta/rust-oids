@@ -1,10 +1,8 @@
 use std::io;
 use std::fs;
-use std::io::Write;
 use backend::world;
 use backend::world::agent;
 use backend::world::gen;
-use backend::world::segment;
 use num_traits::FromPrimitive;
 use core::geometry;
 use core::clock;
@@ -144,11 +142,17 @@ impl Serializer {
 					if let Ok(dna) = src_agent.dna.from_base64() {
 						let id = swarm.rebuild(src_agent.id, &mut gen::Genome::new(dna), &timer);
 						if let Some(agent) = swarm.get_mut(id) {
+							//agent.set_flags(src_agent.flags)
+							//agent.set_growth(src_agent.growth);
+							//agent.set_energy(src_agent.energy);
+
 							for (src_segment, dest_segment) in src_agent.segments.iter().zip(agent.segments_mut().iter_mut()) {
 								dest_segment.transform = geometry::Transform {
 									position: geometry::Position::new(src_segment.x, src_segment.y),
 									angle: src_segment.angle,
 								};
+								dest_segment.state.set_charge(src_segment.charge);
+								dest_segment.state.set_target_charge(src_segment.target_charge);
 								dest_segment.state.set_maturity(src_segment.maturity);
 							}
 						}
@@ -157,6 +161,8 @@ impl Serializer {
 				}
 			}
 		}
+		world.registered_player_id = world.swarms().get(&agent::AgentType::Player)
+			.and_then(|swarm| swarm.agents().iter().next().map(|(k, v)| *k));
 		for id in registered {
 			world.register(id);
 		}
@@ -181,14 +187,14 @@ impl Serializer {
 	}
 
 	pub fn save(file_path: &str, world: &world::World) -> io::Result<()> {
-		let mut out_file = fs::File::create(file_path)?;
+		let out_file = fs::File::create(file_path)?;
 		let s_world = Self::to_world(world);
 		serde_json::to_writer_pretty(out_file, &s_world)?;
 		Ok(())
 	}
 
 	pub fn load(file_path: &str, world: &mut world::World) -> io::Result<()> {
-		let mut in_file = fs::File::open(file_path)?;
+		let in_file = fs::File::open(file_path)?;
 		let src = serde_json::from_reader(in_file)?;
 		Self::from_world(src, world);
 		Ok(())
