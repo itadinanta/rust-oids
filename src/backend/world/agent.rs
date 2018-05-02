@@ -249,6 +249,28 @@ pub struct Limits {
 	max_energy: f32,
 }
 
+pub struct InitialState {
+	pub transform: Transform,
+	pub motion: Option<Motion>,
+	pub charge: f32,
+	pub maturity: Option<f32>,
+	pub age_seconds: Seconds,
+	pub age_frames: usize,
+}
+
+impl Default for InitialState {
+	fn default() -> InitialState {
+		InitialState {
+			transform: Transform::default(),
+			motion: None,
+			charge: 0.0,
+			maturity: None,
+			age_seconds: seconds(0.0),
+			age_frames: 0,
+		}
+	}
+}
+
 #[derive(Clone, Debug)]
 pub struct State {
 	lifecycle: Hourglass,

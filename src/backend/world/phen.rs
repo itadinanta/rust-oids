@@ -18,7 +18,7 @@ use cgmath;
 use cgmath::InnerSpace;
 
 pub trait Phenotype: Send + Sync {
-	fn develop(&self, gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &Timer) -> agent::Agent;
+	fn develop(&self, gen: &mut Genome, id: Id, initial_state: agent::InitialState, timer: &Timer) -> agent::Agent;
 }
 
 pub fn phenotype_of(agent_type: &agent::AgentType) -> Box<Phenotype> {
@@ -39,7 +39,7 @@ struct Player;
 struct Spore;
 
 impl Phenotype for Resource {
-	fn develop(&self, gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &Timer) -> agent::Agent {
+	fn develop(&self, gen: &mut Genome, id: Id, initial_state: agent::InitialState, timer: &Timer) -> agent::Agent {
 		gen.next_integer::<u8>(0, 3);
 		let albedo = color::YPbPr::new(0.5, gen.next_float(-0.5, 0.5), gen.next_float(-0.5, 0.5));
 		let body = gen.eq_triangle();
@@ -54,16 +54,19 @@ impl Phenotype for Resource {
 				..Default::default()
 			},
 			gen.dna(),
-			segment::State::with_charge(charge, 0., charge),
+			segment::State::with_charge(initial_state.charge, 0., initial_state.charge),
 		);
-		builder.start(transform, motion, &body).build(timer)
+		builder
+			.maturity(initial_state.maturity.unwrap_or(MATURITY_DEFAULT))
+			.start(initial_state.transform, initial_state.motion.as_ref(), &body).build(timer)
 	}
 }
 
 impl Phenotype for Player {
-	fn develop(&self, gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &Timer) -> agent::Agent {
+	fn develop(&self, gen: &mut Genome, id: Id, initial_state: agent::InitialState, timer: &Timer) -> agent::Agent {
 		let albedo = color::YPbPr::new(0.5, 0., 0.);
 		let body = Shape::new_star(10, 3.0, 0.9, 1. / 0.9);
+		let charge = initial_state.charge;
 		let mut builder = AgentBuilder::new(
 			id,
 			Material {
@@ -81,13 +84,14 @@ impl Phenotype for Player {
 			segment::State::with_charge(charge, charge, charge),
 		);
 		builder
-			.start(transform, motion, &body)
+			.maturity(initial_state.maturity.unwrap_or(MATURITY_DEFAULT))
+			.start(initial_state.transform, initial_state.motion, &body)
 			.build(timer)
 	}
 }
 
 impl Phenotype for Minion {
-	fn develop(&self, gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &Timer) -> agent::Agent {
+	fn develop(&self, gen: &mut Genome, id: Id, initial_state: agent::InitialState, timer: &Timer) -> agent::Agent {
 		let gender = gen.next_integer::<u8>(0, 3);
 		let tint = gen.next_float(0., 1.);
 		let albedo = color::Hsl::new(tint, 0.5, 0.5);
@@ -102,10 +106,10 @@ impl Phenotype for Minion {
 				..Default::default()
 			},
 			gen.dna(),
-			segment::State::with_charge(0., charge, charge),
+			segment::State::with_charge(0., initial_state.charge, initial_state.charge),
 		);
 		builder
-			.maturity(0.5)
+			.maturity(initial_state.maturity.unwrap_or(MATURITY_MINION_DEFAULT))
 			.gender(gender);
 
 		// personality parameters
@@ -131,7 +135,7 @@ impl Phenotype for Minion {
 			.weights_out(&weights_out);
 		// body plan and shape
 		let torso_shape = gen.any_poly();
-		let torso = builder.start(transform, motion, &torso_shape).index();
+		let torso = builder.start(initial_state.transform, initial_state.motion, &torso_shape).index();
 		let head_shape = gen.iso_triangle();
 		let tail_shape = gen.vbar();
 		let i = ::std::cmp::max(torso_shape.length() as isize / 5, 1);
@@ -232,7 +236,7 @@ impl Phenotype for Minion {
 }
 
 impl Phenotype for Spore {
-	fn develop(&self, gen: &mut Genome, id: Id, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &Timer) -> agent::Agent {
+	fn develop(&self, gen: &mut Genome, id: Id, initial_state: agent::InitialState, timer: &Timer) -> agent::Agent {
 		let gender = gen.next_integer::<u8>(0, 3);
 		let tint = gen.next_float(0., 1.);
 		let albedo = color::Hsl::new(tint, 0.5, 0.5);
@@ -248,11 +252,12 @@ impl Phenotype for Spore {
 				..Default::default()
 			},
 			gen.dna(),
-			segment::State::with_charge(0., charge, charge),
+			segment::State::with_charge(0., initial_state.charge, initial_state.charge),
 		);
 		builder
+			.maturity(initial_state.maturity.unwrap_or(MATURITY_DEFAULT))
 			.gender(gender)
-			.start(transform, motion, &gen.ball())
+			.start(initial_state.transform, initial_state.motion, &gen.ball())
 			.build(timer)
 	}
 }

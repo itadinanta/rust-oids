@@ -2,6 +2,7 @@ use backend::obj::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use core::clock::Timer;
+use core::clock::Seconds;
 use core::geometry::*;
 use core::geometry::Transform;
 use backend::world::phen;
@@ -82,19 +83,19 @@ impl Swarm {
 		self.agents.is_empty()
 	}
 
-	pub fn spawn(&mut self, genome: &mut Genome, transform: Transform, motion: Option<&Motion>, charge: f32, timer: &Timer) -> Id {
+	pub fn spawn(&mut self, genome: &mut Genome, initial_state: agent::InitialState, timer: &Timer) -> Id {
 		let id = self.next_id();
 		match id.type_of() {
 			AgentType::Minion | AgentType::Spore => info!("spawn: {} as {}", genome, id.type_of()),
 			_ => {}
 		}
 		// dynamic dispatch
-		let entity = self.phenotype.develop(genome, id, transform, motion, charge, timer);
+		let entity = self.phenotype.develop(genome, id, initial_state, timer);
 		self.insert(entity)
 	}
 
-	pub fn rebuild(&mut self, id: Id, genome: &mut Genome, transform: Transform, timer: &Timer) -> Id {
-		let entity = self.phenotype.develop(genome, id, transform, None, 0.0, timer);
+	pub fn rebuild(&mut self, id: Id, genome: &mut Genome, initial_state: agent::InitialState, timer: &Timer) -> Id {
+		let entity = self.phenotype.develop(genome, id, initial_state, timer);
 		self.insert(entity)
 	}
 

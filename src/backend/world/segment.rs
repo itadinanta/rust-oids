@@ -68,7 +68,7 @@ impl State {
 
 	pub fn target_charge(&self) -> f32 { self.target_charge }
 
-	pub fn recharge(&self) -> f32 { self.recharge }
+	//pub fn recharge(&self) -> f32 { self.recharge }
 
 	pub fn maturity(&self) -> f32 { self.maturity }
 
@@ -80,8 +80,7 @@ impl State {
 		self.target_charge = target_charge;
 	}
 
-	pub fn restore(&mut self, maturity: f32, charge: f32, target_charge: f32) {
-		self.maturity = maturity;
+	pub fn restore(&mut self, charge: f32, target_charge: f32) {
 		self.charge = charge;
 		self.target_charge = target_charge;
 	}

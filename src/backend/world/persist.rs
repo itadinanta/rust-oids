@@ -11,27 +11,23 @@ use serialize::base64::{self, ToBase64, FromBase64};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Segment {
-	index: usize,
-	x: f32,
-	y: f32,
-	angle: f32,
-	age_seconds: f64,
-	age_frames: usize,
-	maturity: f32,
 	charge: f32,
 	target_charge: f32,
-	recharge: f32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Agent {
 	id: usize,
+	x: f32,
+	y: f32,
+	angle: f32,
 	dna: String,
-	lifecycle: f64,
+	age_seconds: f64,
+	age_frames: usize,
 	flags: u32,
+	maturity: f32,
 	phase: f32,
 	energy: f32,
-	growth: f32,
 	segments: Vec<Segment>,
 }
 
@@ -69,30 +65,28 @@ impl Serializer {
 		}
 
 		fn serialize_agent(src: &world::agent::Agent, timer: &clock::SimulationTimer) -> Agent {
+			let body = &src.segments[0];
+
 			Agent {
 				id: src.id(),
+				x: body.transform.position.x,
+				y: body.transform.position.y,
+				angle: body.transform.angle,
 				dna: src.dna().to_base64(base64::STANDARD),
-				lifecycle: src.state.lifecycle().elapsed(timer).into(),
+				age_seconds: body.state.age_seconds().into(),
+				age_frames: body.state.age_frames(),
+				maturity: body.state.maturity(),
 				flags: src.state.flags().bits(),
 				phase: src.state.phase(),
 				energy: src.state.energy(),
-				growth: src.state.growth(),
 				segments: src.segments().iter().map(|s| serialize_segment(s)).collect(),
 			}
 		}
 
 		fn serialize_segment(src: &world::segment::Segment) -> Segment {
 			Segment {
-				x: src.transform.position.x,
-				y: src.transform.position.y,
-				angle: src.transform.angle,
-				index: src.index as usize,
-				age_seconds: src.state.age_seconds().into(),
-				age_frames: src.state.age_frames(),
-				maturity: src.state.maturity(),
 				charge: src.state.get_charge(),
 				target_charge: src.state.target_charge(),
-				recharge: src.state.recharge(),
 			}
 		}
 
@@ -140,18 +134,17 @@ impl Serializer {
 				swarm.reset(src_swarm.seq);
 				for src_agent in &src_swarm.agents {
 					if let Ok(dna) = src_agent.dna.from_base64() {
-						let src_segment = &src_agent.segments[0];
-						let initial_transform = geometry::Transform::new(geometry::Position::new(src_segment.x, src_segment.y),
-																		 src_segment.angle);
-						let initial_maturity = src_segment.maturity;
-						let id = swarm.rebuild(src_agent.id, &mut gen::Genome::new(dna), initial_transform, &timer);
+						let initial_transform = geometry::Transform::new(geometry::Position::new(src_agent.x, src_agent.y),
+																		 src_agent.angle);
+						let initial_maturity = src_agent.maturity;
+						let id = swarm.rebuild(src_agent.id, &mut gen::Genome::new(dna), initial_transform, initial_maturity, &timer);
 						if let Some(agent) = swarm.get_mut(id) {
-							agent.state.restore(src_agent.flags, src_agent.phase, src_agent.growth, src_agent.energy);
+							agent.state.restore(src_agent.flags, src_agent.phase, src_agent.energy);
 
 							for (src_segment, dest_segment) in src_agent.segments.iter().zip(agent.segments_mut().iter_mut()) {
 								//dest_segment.transform = geometry::Transform::new(geometry::Position::new(src_segment.x, src_segment.y),
 								//												  src_segment.angle);
-								dest_segment.state.restore(src_segment.maturity, src_segment.charge, src_segment.target_charge);
+								dest_segment.state.restore(src_segment.charge, src_segment.target_charge, src_agent.age_seconds, src_agent.age_frames);
 							};
 							registered.push(id);
 						}

@@ -147,9 +147,12 @@ impl World {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Resource).spawn(
 			&mut gen,
-			transform,
-			motion,
-			DEFAULT_RESOURCE_CHARGE,
+			agent::InitialState {
+				transform,
+				motion: motion.map(|m| m.clone()),
+				charge: DEFAULT_RESOURCE_CHARGE,
+				..Default::default()
+			},
 			&clock);
 		self.register(id)
 	}
@@ -158,9 +161,11 @@ impl World {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Resource).spawn(
 			&mut gen::Genome::copy_from(dna),
-			transform.clone(),
-			None,
-			DEFAULT_RESOURCE_CHARGE,
+			agent::InitialState {
+				transform: transform.clone(),
+				charge: DEFAULT_RESOURCE_CHARGE,
+				..Default::default()
+			},
 			&clock);
 		let livery_color = self.agent(id).unwrap()
 			.segment(0).unwrap()
@@ -176,9 +181,11 @@ impl World {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Spore).spawn(
 			&mut gen::Genome::copy_from(dna).mutate(&mut rand::thread_rng()),
-			transform.clone(),
-			None,
-			DEFAULT_SPORE_CHARGE,
+			agent::InitialState {
+				transform: transform.clone(),
+				charge: DEFAULT_SPORE_CHARGE,
+				..Default::default()
+			},
 			&clock,
 		);
 		let livery_color = self.agent(id).unwrap()
@@ -196,9 +203,11 @@ impl World {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Minion).spawn(
 			&mut gen::Genome::copy_from(dna),
-			transform.clone(),
-			None,
-			DEFAULT_MINION_CHARGE,
+			agent::InitialState {
+				transform: transform.clone(),
+				charge: DEFAULT_MINION_CHARGE,
+				..Default::default()
+			},
 			&clock,
 		);
 		let livery_color = self.agent(id).unwrap()
@@ -228,9 +237,11 @@ impl World {
 			let mut gen = self.minion_gene_pool.next();
 			let id = self.swarm_mut(&AgentType::Minion).spawn(
 				&mut gen,
-				Transform::new(pos, angle + consts::PI / 2.),
-				None,
-				DEFAULT_MINION_CHARGE,
+				agent::InitialState {
+					transform: Transform::new(pos, angle + consts::PI / 2.),
+					charge: DEFAULT_MINION_CHARGE,
+					..Default::default()
+				},
 				&clock,
 			);
 			self.register(id);
@@ -248,9 +259,11 @@ impl World {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Player).spawn(
 			&mut gen,
-			Transform::new(pos, 0.),
-			None,
-			DEFAULT_MINION_CHARGE,
+			agent::InitialState {
+				transform: Transform::new(pos, 0.),
+				charge: DEFAULT_MINION_CHARGE,
+				..Default::default()
+			},
 			&clock,
 		);
 		self.register(id)
@@ -304,9 +317,11 @@ impl World {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Minion).spawn(
 			&mut gen,
-			Transform::new(pos, angle),
-			motion,
-			0.3,
+			agent::InitialState {
+				transform: Transform::new(pos, angle),
+				motion,
+				charge: 0.3,
+			},
 			&clock,
 		);
 		self.register(id)
