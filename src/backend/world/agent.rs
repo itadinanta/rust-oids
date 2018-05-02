@@ -305,10 +305,9 @@ impl State {
 
 	pub fn flags(&self) -> Flags { self.flags }
 
-	pub fn restore(&mut self, flags: u32, phase: f32, growth: f32, energy: f32) {
+	pub fn restore(&mut self, flags: u32, phase: f32, energy: f32) {
 		self.flags.bits = flags;
 		self.phase = phase;
-		self.growth = growth;
 		self.energy = energy;
 	}
 

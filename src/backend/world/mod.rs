@@ -220,7 +220,7 @@ impl World {
 		self.register(id)
 	}
 
-	pub fn randomize_minion(&mut self, pos: Position, motion: Option<&Motion>) -> obj::Id {
+	pub fn randomize_minion(&mut self, pos: Position, motion: Option<Motion>) -> obj::Id {
 		self.minion_gene_pool.randomize();
 		self.new_minion(pos, motion)
 	}
@@ -311,7 +311,7 @@ impl World {
 		});
 	}
 
-	pub fn new_minion(&mut self, pos: Position, motion: Option<&Motion>) -> obj::Id {
+	pub fn new_minion(&mut self, pos: Position, motion: Option<Motion>) -> obj::Id {
 		let angle = consts::PI / 2. + f32::atan2(pos.y, pos.x);
 		let mut gen = self.minion_gene_pool.next();
 		let clock = self.clock.clone();
@@ -321,6 +321,7 @@ impl World {
 				transform: Transform::new(pos, angle),
 				motion,
 				charge: 0.3,
+				..Default::default()
 			},
 			&clock,
 		);

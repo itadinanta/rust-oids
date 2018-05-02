@@ -56,15 +56,15 @@ pub struct Serializer;
 
 impl Serializer {
 	pub fn to_world(world: &world::World) -> World {
-		fn serialize_swarm(src: &world::swarm::Swarm, timer: &clock::SimulationTimer) -> Swarm {
+		fn serialize_swarm(src: &world::swarm::Swarm) -> Swarm {
 			Swarm {
 				seq: src.seq() as usize,
 				agent_type: src.agent_type() as usize,
-				agents: src.agents().iter().map(|(_k, v)| serialize_agent(v, timer)).collect(),
+				agents: src.agents().iter().map(|(_k, v)| serialize_agent(v)).collect(),
 			}
 		}
 
-		fn serialize_agent(src: &world::agent::Agent, timer: &clock::SimulationTimer) -> Agent {
+		fn serialize_agent(src: &world::agent::Agent) -> Agent {
 			let body = &src.segments[0];
 
 			Agent {
@@ -92,7 +92,7 @@ impl Serializer {
 
 		let swarms = world.swarms()
 			.iter()
-			.map(|(_k, v)| serialize_swarm(v, &world.clock))
+			.map(|(_k, v)| serialize_swarm(v))
 			.collect();
 		let minion_gene_pool: Vec<_> = world.minion_gene_pool
 			.gene_pool_iter()
@@ -134,17 +134,19 @@ impl Serializer {
 				swarm.reset(src_swarm.seq);
 				for src_agent in &src_swarm.agents {
 					if let Ok(dna) = src_agent.dna.from_base64() {
-						let initial_transform = geometry::Transform::new(geometry::Position::new(src_agent.x, src_agent.y),
-																		 src_agent.angle);
-						let initial_maturity = src_agent.maturity;
-						let id = swarm.rebuild(src_agent.id, &mut gen::Genome::new(dna), initial_transform, initial_maturity, &timer);
+						let id = swarm.rebuild(src_agent.id, &mut gen::Genome::new(dna), agent::InitialState {
+							transform: geometry::Transform::new(geometry::Position::new(src_agent.x, src_agent.y),
+																src_agent.angle),
+							age_seconds: clock::seconds(src_agent.age_seconds),
+							age_frames: src_agent.age_frames,
+							maturity: Some(src_agent.maturity),
+							..Default::default()
+						}, &timer);
 						if let Some(agent) = swarm.get_mut(id) {
 							agent.state.restore(src_agent.flags, src_agent.phase, src_agent.energy);
 
 							for (src_segment, dest_segment) in src_agent.segments.iter().zip(agent.segments_mut().iter_mut()) {
-								//dest_segment.transform = geometry::Transform::new(geometry::Position::new(src_segment.x, src_segment.y),
-								//												  src_segment.angle);
-								dest_segment.state.restore(src_segment.charge, src_segment.target_charge, src_agent.age_seconds, src_agent.age_frames);
+								dest_segment.state.restore(src_segment.charge, src_segment.target_charge);
 							};
 							registered.push(id);
 						}

@@ -96,6 +96,15 @@ impl Transform {
 			..Transform::default()
 		}
 	}
+
+	pub fn from_components(x: f32, y: f32, angle: f32) -> Self {
+		Transform {
+			position: Position::new(x, y),
+			angle,
+			..Transform::default()
+		}
+	}
+
 	pub fn from_position(position: Position) -> Self {
 		Transform {
 			position,

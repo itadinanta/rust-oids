@@ -58,7 +58,7 @@ impl Phenotype for Resource {
 		);
 		builder
 			.maturity(initial_state.maturity.unwrap_or(MATURITY_DEFAULT))
-			.start(initial_state.transform, initial_state.motion.as_ref(), &body).build(timer)
+			.start(initial_state.transform, initial_state.motion, &body).build(timer)
 	}
 }
 
@@ -287,7 +287,7 @@ impl AgentBuilder {
 		}
 	}
 
-	pub fn start(&mut self, transform: Transform, motion: Option<&Motion>, shape: &Shape) -> &mut Self {
+	pub fn start(&mut self, transform: Transform, motion: Option<Motion>, shape: &Shape) -> &mut Self {
 		let segment = self.new_segment(
 			shape,
 			Winding::CW,
@@ -428,7 +428,7 @@ impl AgentBuilder {
 	}
 
 	fn new_segment(
-		&mut self, shape: &Shape, winding: Winding, transform: Transform, motion: Option<&Motion>,
+		&mut self, shape: &Shape, winding: Winding, transform: Transform, motion: Option<Motion>,
 		attachment: Option<segment::Attachment>, flags: segment::Flags,
 	) -> segment::Segment {
 		let rest_angle = transform.angle;
@@ -436,7 +436,7 @@ impl AgentBuilder {
 			index: self.segments.len() as SegmentIndex,
 			transform,
 			rest_angle,
-			motion: motion.map(|m| m.clone()),
+			motion,
 			mesh: Mesh::from_shape(shape.clone(), winding),
 			material: self.material.clone(),
 			livery: self.livery.clone(),
