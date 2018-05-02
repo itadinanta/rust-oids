@@ -135,8 +135,7 @@ impl Serializer {
 				for src_agent in &src_swarm.agents {
 					if let Ok(dna) = src_agent.dna.from_base64() {
 						let id = swarm.rebuild(src_agent.id, &mut gen::Genome::new(dna), agent::InitialState {
-							transform: geometry::Transform::new(geometry::Position::new(src_agent.x, src_agent.y),
-																src_agent.angle),
+							transform: geometry::Transform::from_components(src_agent.x, src_agent.y, src_agent.angle),
 							age_seconds: clock::seconds(src_agent.age_seconds),
 							age_frames: src_agent.age_frames,
 							maturity: Some(src_agent.maturity),
