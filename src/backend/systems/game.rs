@@ -107,10 +107,7 @@ impl System for GameSystem {
 				};
 				world.new_resource(
 					Transform::new(e.position, r),
-					Some(&Motion {
-						velocity: Velocity::new(r.cos(), r.sin()) * e.velocity,
-						spin: e.spin,
-					}),
+					Motion::new(Velocity::new(r.cos(), r.sin()) * e.velocity, e.spin),
 				);
 			}
 		}

@@ -138,7 +138,7 @@ bitflags! {
 pub struct Segment {
 	pub transform: Transform,
 	pub rest_angle: Angle,
-	pub motion: Option<Motion>,
+	pub motion: Motion,
 	pub index: SegmentIndex,
 	pub mesh: Mesh,
 	pub material: Material,

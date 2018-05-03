@@ -328,11 +328,11 @@ impl App {
 	}
 
 	fn randomize_minion(&mut self, pos: Position) {
-		self.world.randomize_minion(pos, None);
+		self.world.randomize_minion(pos, Motion::default());
 	}
 
 	fn new_minion(&mut self, pos: Position) {
-		self.world.new_minion(pos, None);
+		self.world.new_minion(pos, Motion::default());
 	}
 
 	fn primary_fire(&mut self, bullet_speed: f32, rate: SecondsValue) {

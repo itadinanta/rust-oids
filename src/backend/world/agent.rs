@@ -251,7 +251,7 @@ pub struct Limits {
 
 pub struct InitialState {
 	pub transform: Transform,
-	pub motion: Option<Motion>,
+	pub motion: Motion,
 	pub charge: f32,
 	pub maturity: Option<f32>,
 	pub age_seconds: Seconds,
@@ -262,7 +262,7 @@ impl Default for InitialState {
 	fn default() -> InitialState {
 		InitialState {
 			transform: Transform::default(),
-			motion: None,
+			motion: Motion::default(),
 			charge: 0.0,
 			maturity: None,
 			age_seconds: seconds(0.0),

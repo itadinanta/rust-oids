@@ -142,14 +142,14 @@ impl World {
 		if self.regenerations > 1 { self.regenerations - 1 } else { 0usize }
 	}
 
-	pub fn new_resource(&mut self, transform: Transform, motion: Option<&Motion>) -> obj::Id {
+	pub fn new_resource(&mut self, transform: Transform, motion: Motion) -> obj::Id {
 		let mut gen = &mut self.resource_gene_pool.next();
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Resource).spawn(
 			&mut gen,
 			agent::InitialState {
 				transform,
-				motion: motion.map(|m| m.clone()),
+				motion,
 				charge: DEFAULT_RESOURCE_CHARGE,
 				..Default::default()
 			},
@@ -220,7 +220,7 @@ impl World {
 		self.register(id)
 	}
 
-	pub fn randomize_minion(&mut self, pos: Position, motion: Option<Motion>) -> obj::Id {
+	pub fn randomize_minion(&mut self, pos: Position, motion: Motion) -> obj::Id {
 		self.minion_gene_pool.randomize();
 		self.new_minion(pos, motion)
 	}
@@ -251,10 +251,10 @@ impl World {
 	}
 
 	pub fn init_players(&mut self) {
-		self.registered_player_id = Some(self.spawn_player(Position::new(0., 0.), None))
+		self.registered_player_id = Some(self.spawn_player(Position::new(0., 0.), Motion::default()))
 	}
 
-	pub fn spawn_player(&mut self, pos: Position, _motion: Option<&Motion>) -> obj::Id {
+	pub fn spawn_player(&mut self, pos: Position, _motion: Motion) -> obj::Id {
 		let mut gen = gen::Genome::copy_from(&[0, 0, 0, 0]);
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Player).spawn(
@@ -301,7 +301,7 @@ impl World {
 		})
 			.map(|(t, v)| {
 				outbox.post(Alert::NewBullet(0).into());
-				self.new_resource(t, Some(&v));
+				self.new_resource(t, v.clone());
 			});
 	}
 
@@ -311,7 +311,7 @@ impl World {
 		});
 	}
 
-	pub fn new_minion(&mut self, pos: Position, motion: Option<Motion>) -> obj::Id {
+	pub fn new_minion(&mut self, pos: Position, motion: Motion) -> obj::Id {
 		let angle = consts::PI / 2. + f32::atan2(pos.y, pos.x);
 		let mut gen = self.minion_gene_pool.next();
 		let clock = self.clock.clone();

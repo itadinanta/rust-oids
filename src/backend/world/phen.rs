@@ -287,7 +287,7 @@ impl AgentBuilder {
 		}
 	}
 
-	pub fn start(&mut self, transform: Transform, motion: Option<Motion>, shape: &Shape) -> &mut Self {
+	pub fn start(&mut self, transform: Transform, motion: Motion, shape: &Shape) -> &mut Self {
 		let segment = self.new_segment(
 			shape,
 			Winding::CW,
@@ -362,7 +362,7 @@ impl AgentBuilder {
 				parent_pos + (p0.normalize_to(r0 + r1)),
 				consts::PI / 2. + angle,
 			),
-			None,
+			Motion::default(),
 			parent.new_attachment(attachment_index as AttachmentIndex),
 			flags,
 		);
@@ -428,7 +428,7 @@ impl AgentBuilder {
 	}
 
 	fn new_segment(
-		&mut self, shape: &Shape, winding: Winding, transform: Transform, motion: Option<Motion>,
+		&mut self, shape: &Shape, winding: Winding, transform: Transform, motion: Motion,
 		attachment: Option<segment::Attachment>, flags: segment::Flags,
 	) -> segment::Segment {
 		let rest_angle = transform.angle;

@@ -111,7 +111,7 @@ struct Particle {
 trait Emitter {
 	fn emit(&mut self, dt: Seconds, id_counter: &mut usize, destination: &mut HashMap<obj::Id, ParticleBatch>) -> bool;
 	fn attached_to(&self) -> EmitterAttachment { EmitterAttachment::None }
-	fn update_transform(&mut self, _transform: Transform, _motion: Option<Motion>) {}
+	fn update_transform(&mut self, _transform: Transform, _motion: Motion) {}
 }
 
 #[derive(Clone)]
@@ -385,11 +385,10 @@ impl Emitter for SimpleEmitter {
 		self.attached_to
 	}
 
-	fn update_transform(&mut self, transform: Transform, motion: Option<Motion>) {
-		self.transform = transform.clone();
-		if let Some(motion) = motion {
-			self.motion = motion
-		};
+	fn update_transform(&mut self, transform: Transform, motion: Motion) {
+		self.transform = transform;
+		self.motion.velocity += motion.velocity;
+		self.motion.spin += motion.spin;
 	}
 }
 

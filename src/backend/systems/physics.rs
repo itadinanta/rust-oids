@@ -380,10 +380,8 @@ impl PhysicsSystem {
 				b_def.angular_damping = material.angular_damping;
 				b_def.angle = transform.angle;
 				b_def.position = Self::vec2(&transform.position, 1.);
-				if let Some(Motion { velocity, spin }) = segment.motion {
-					b_def.linear_velocity = Self::vec2(&velocity, 1.);
-					b_def.angular_velocity = spin;
-				}
+				b_def.linear_velocity = Self::vec2(&segment.motion.velocity, 1.);
+				b_def.angular_velocity = segment.motion.spin;
 				let refs = agent::Key::with_segment(object_id, segment_index as u8);
 				let handle = world.create_body_with(&b_def, refs);
 				let mesh = segment.mesh();

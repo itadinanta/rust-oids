@@ -64,15 +64,13 @@ impl Rect {
 }
 
 impl Initial for Position {
-	fn initial() -> Self {
-		Position::new(0., 0.)
-	}
+	fn initial() -> Self { Position::zero() }
 }
 
 impl Default for Transform {
 	fn default() -> Transform {
 		Transform {
-			position: Position::new(0., 0.),
+			position: Position::zero(),
 			angle: 0.,
 		}
 	}
@@ -81,7 +79,7 @@ impl Default for Transform {
 impl Default for Motion {
 	fn default() -> Motion {
 		Motion {
-			velocity: Velocity::new(0., 0.),
+			velocity: Velocity::zero(),
 			spin: 0.,
 		}
 	}
@@ -150,6 +148,10 @@ impl Motion {
 			velocity,
 			spin,
 		}
+	}
+
+	pub fn from_components(x: f32, y: f32, angle: f32) -> Self {
+		Self::new(Position::new(x, y), angle)
 	}
 }
 
