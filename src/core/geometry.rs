@@ -90,33 +90,19 @@ impl Default for Motion {
 #[allow(unused)]
 impl Transform {
 	pub fn new(position: Position, angle: f32) -> Self {
-		Transform {
-			position,
-			angle,
-			..Transform::default()
-		}
+		Transform { position, angle }
 	}
 
 	pub fn from_components(x: f32, y: f32, angle: f32) -> Self {
-		Transform {
-			position: Position::new(x, y),
-			angle,
-			..Transform::default()
-		}
+		Self::new(Position::new(x, y), angle)
 	}
 
 	pub fn from_position(position: Position) -> Self {
-		Transform {
-			position,
-			..Transform::default()
-		}
+		Transform { position, ..Transform::default() }
 	}
 
 	pub fn from_angle(angle: Angle) -> Self {
-		Transform {
-			angle,
-			..Transform::default()
-		}
+		Transform { angle, ..Transform::default() }
 	}
 
 	pub fn apply_rotation(&self, position: Position) -> Position {
