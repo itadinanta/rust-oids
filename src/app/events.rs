@@ -31,7 +31,8 @@ pub enum Event {
 	PrevSpeedFactor,
 
 	Reload,
-	DumpToFile,
+	SaveGenePoolToFile,
+	SaveWorldToFile,
 	ToggleDebug,
 
 	TogglePause,

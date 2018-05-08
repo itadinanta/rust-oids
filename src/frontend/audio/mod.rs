@@ -137,7 +137,8 @@ impl AlertPlayer<app::Event, self::Error> for SoundSystemAlertPlayer<ThreadedSou
 			&Event::NextSpeedFactor |
 			&Event::PrevSpeedFactor |
 			&Event::Reload |
-			&Event::DumpToFile |
+			&Event::SaveGenePoolToFile |
+			&Event::SaveWorldToFile |
 			&Event::DeselectAll |
 			&Event::ToggleDebug => SoundEffect::UserOption,
 

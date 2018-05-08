@@ -190,13 +190,13 @@ pub fn main_loop_headless(minion_gene_pool: &str, world_file: Option<String>) {
 
 		if !running.load(Ordering::SeqCst) {
 			eprintln!("Interrupted, exiting");
-			app.dump_to_file();
+			app.save_world_to_file();
 			break 'main;
 		}
 // update and measure
 		let simulation_update = app.simulate(seconds(FRAME_SIMULATION_LENGTH));
 		if save_hourglass.flip_if_expired(&wall_clock) {
-			app.dump_to_file();
+			app.save_world_to_file();
 		}
 
 		app.play_alerts(&mut no_audio);

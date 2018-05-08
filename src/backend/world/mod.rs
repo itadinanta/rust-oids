@@ -405,13 +405,15 @@ impl World {
 		v.into_boxed_slice()
 	}
 
+	pub fn serialize(&self) -> io::Result<String> {
+		let now: DateTime<Utc> = Utc::now();
+		let file_name = now.format(DUMP_FILE_PATTERN_JSON).to_string();
+		persist::Serializer::save(&file_name, self)?;
+		Ok(file_name)
+	}
+
 	pub fn dump(&self) -> io::Result<String> {
 		let now: DateTime<Utc> = Utc::now();
-		//persist::Serializer::to_string(self).iter().for_each(|s| println!("{}", s));
-
-		let file_name = now.format(DUMP_FILE_PATTERN_JSON).to_string();
-		persist::Serializer::save(&file_name, self).is_ok();
-
 		let file_name = now.format(DUMP_FILE_PATTERN_CSV).to_string();
 		let mut f = fs::File::create(&file_name)?;
 		for (_, agent) in self.agents(agent::AgentType::Minion).iter() {

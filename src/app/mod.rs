@@ -355,8 +355,15 @@ impl App {
 		self.world.agent_mut(id).map(|a| a.state.toggle_selection());
 	}
 
-	pub fn dump_to_file(&self) {
+	pub fn save_gene_pool_to_file(&self) {
 		match self.world.dump() {
+			Err(_) => error!("Failed to dump log"),
+			Ok(name) => info!("Saved {}", name),
+		}
+	}
+
+	pub fn save_world_to_file(&self) {
+		match self.world.serialize() {
 			Err(_) => error!("Failed to dump log"),
 			Ok(name) => info!("Saved {}", name),
 		}
@@ -403,7 +410,8 @@ impl App {
 			Event::AppQuit => self.quit(),
 			Event::TogglePause => self.is_paused = !self.is_paused,
 			Event::ToggleGui => self.has_ui_overlay = !self.has_ui_overlay,
-			Event::DumpToFile => self.dump_to_file(),
+			Event::SaveGenePoolToFile => self.save_gene_pool_to_file(),
+			Event::SaveWorldToFile => self.save_world_to_file(),
 			Event::BeginDrag(_, _) => { self.camera.zero(); }
 			Event::Drag(start, end) => { self.camera.set_relative(start - end); }
 			Event::EndDrag(start, end, vel) => {
