@@ -293,14 +293,15 @@ impl World {
 	pub fn primary_fire(&mut self, outbox: &Outbox, bullet_speed: f32) {
 		self.get_player_segment().map(move |segment| {
 			let angle = segment.transform.angle.clone();
-			let scale = segment.growing_radius();
+			let scale = segment.growing_radius() + 0.5;
 			let zero_dir = Position::unit_y();
-			(Transform::new(segment.transform.apply(scale * zero_dir), angle),
-			 Motion::new(segment.transform.apply_rotation(bullet_speed * zero_dir), 0.))
+			let transform = Transform::new(segment.transform.apply(scale * zero_dir), angle);
+			let motion = Motion::new(segment.motion.velocity + segment.transform.apply_rotation(bullet_speed * zero_dir), 0.);
+			(transform, motion)
 		})
 			.map(|(t, v)| {
 				outbox.post(Alert::NewBullet(0).into());
-				self.new_resource(t, v.clone());
+				self.new_resource(t, v);
 			});
 	}
 

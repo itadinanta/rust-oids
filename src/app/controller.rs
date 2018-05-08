@@ -39,10 +39,10 @@ impl InputController for DefaultController {
 		}
 
 		on_key_held![
-			Up -> CamUp(1.),
-			Down -> CamDown(1.),
-			Left -> CamLeft(1.),
-			Right-> CamRight(1.),
+			W -> CamUp(1.),
+			S -> CamDown(1.),
+			A -> CamLeft(1.),
+			D -> CamRight(1.),
 			GamepadDPadUp -> CamUp(1.),
 			GamepadDPadDown -> CamDown(1.),
 			GamepadDPadLeft -> CamLeft(1.),
@@ -92,19 +92,18 @@ impl InputController for DefaultController {
 				events.push(Event::PrimaryFire(1.0, 1.0));
 			}
 		}
-
 		let thrust = Position {
-			x: if input_state.key_pressed(input::Key::D) {
+			x: if input_state.key_pressed(input::Key::Right) {
 				1.
-			} else if input_state.key_pressed(input::Key::A) {
+			} else if input_state.key_pressed(input::Key::Left) {
 				-1.
 			} else {
 				input_state.gamepad_axis(0, input::Axis::LStickX)
 			},
 
-			y: if input_state.key_pressed(input::Key::W) {
+			y: if input_state.key_pressed(input::Key::Up) {
 				1.
-			} else if input_state.key_pressed(input::Key::S) {
+			} else if input_state.key_pressed(input::Key::Down) {
 				-1.
 			} else {
 				input_state.gamepad_axis(0, input::Axis::LStickY)
@@ -124,14 +123,16 @@ impl InputController for DefaultController {
 			} else {
 				None
 			},
-			if input_state.key_pressed(input::Key::Q) {
+			if input_state.key_pressed(input::Key::PageUp) {
 				VectorDirection::Turn(TURN_SPEED)
-			} else if input_state.key_pressed(input::Key::E) {
+			} else if input_state.key_pressed(input::Key::PageDown) {
 				VectorDirection::Turn(-TURN_SPEED)
 			} else if yaw.magnitude() >= DEAD_ZONE {
 				VectorDirection::Orientation(yaw)
 			} else if mouse_left_pressed {
 				VectorDirection::LookAt(mouse_world_pos)
+			} else if thrust.magnitude2() > 0.1 {
+				VectorDirection::FromVelocity
 			} else {
 				VectorDirection::None
 			}));

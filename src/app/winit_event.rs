@@ -53,6 +53,8 @@ impl input::EventMapper<winit::WindowEvent> for WinitEventMapper {
 				Up -> Up,
 				Left -> Left,
 				Right -> Right,
+				PageUp -> PageUp,
+				PageDown -> PageDown,
 				LControl -> LCtrl,
 				RControl -> RCtrl,
 				LShift -> LShift,

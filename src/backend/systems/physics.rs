@@ -124,8 +124,8 @@ impl System for PhysicsSystem {
 					Intent::PilotTo(force, ref target_angle) => {
 						if let Some(force) = force {
 							let linear_velocity = from_vec2((*body).linear_velocity());
-							let speed = linear_velocity.magnitude2();
-							let drag_factor = (1. - (speed * speed) * DRAG_COEFFICIENT).min(1.).max(0.);
+							let speed2 = linear_velocity.magnitude2();
+							let drag_factor = (1. - speed2 * DRAG_COEFFICIENT).min(1.).max(0.);
 							dynamic_updates.push((h, Force(center, to_vec2(force * drag_factor))));
 						}
 						match target_angle {
@@ -140,6 +140,11 @@ impl System for PhysicsSystem {
 							}
 							&PilotRotation::Turn(angle) => {
 								dynamic_updates.push((h, Torque(angle)));
+							}
+							&PilotRotation::FromVelocity => {
+								let linear_velocity = from_vec2((*body).linear_velocity());
+								let target_angle = f32::atan2(-linear_velocity.x, linear_velocity.y);
+								dynamic_updates.push((h, Transform(*(*body).position(), target_angle)));
 							}
 							&PilotRotation::None => {}
 							//TODO: try physics!

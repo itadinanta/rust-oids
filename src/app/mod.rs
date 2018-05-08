@@ -390,6 +390,7 @@ impl App {
 					VectorDirection::Orientation(yaw) => segment::PilotRotation::Orientation(yaw),
 					VectorDirection::LookAt(target) => segment::PilotRotation::LookAt(target),
 					VectorDirection::Turn(angle) => segment::PilotRotation::Turn(angle),
+					VectorDirection::FromVelocity => segment::PilotRotation::FromVelocity,
 				};
 				self.set_player_intent(segment::Intent::PilotTo(thrust.map(|v| v * THRUST_POWER), pilot_rotation));
 			}

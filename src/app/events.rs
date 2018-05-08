@@ -7,6 +7,7 @@ pub enum VectorDirection {
 	Orientation(Position),
 	LookAt(Position),
 	Turn(Angle),
+	FromVelocity,
 }
 
 #[derive(Clone, Copy, Debug)]
