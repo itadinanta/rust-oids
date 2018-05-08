@@ -91,9 +91,8 @@ impl Transformable for Feeder {
 	fn transform(&self) -> &Transform {
 		&self.transform
 	}
-	fn transform_to(&mut self, t: &Transform) {
-		self.transform.position = t.position;
-		self.transform.angle = t.angle;
+	fn transform_to(&mut self, t: Transform) {
+		self.transform = t;
 	}
 }
 

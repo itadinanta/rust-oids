@@ -236,7 +236,12 @@ pub trait Identified {
 
 pub trait Transformable {
 	fn transform(&self) -> &Transform;
-	fn transform_to(&mut self, t: &Transform);
+	fn transform_to(&mut self, t: Transform);
+}
+
+pub trait Motionable {
+	fn motion(&self) -> &Motion;
+	fn motion_to(&mut self, m: Motion);
 }
 
 #[derive(Clone)]

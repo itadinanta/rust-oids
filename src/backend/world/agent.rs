@@ -437,8 +437,17 @@ impl Transformable for Agent {
 	fn transform(&self) -> &Transform {
 		self.segments.first().unwrap().transform()
 	}
-	fn transform_to(&mut self, t: &Transform) {
+	fn transform_to(&mut self, t: Transform) {
 		self.segments.first_mut().unwrap().transform_to(t);
+	}
+}
+
+impl Motionable for Agent {
+	fn motion(&self) -> &Motion {
+		self.segments.first().unwrap().motion()
+	}
+	fn motion_to(&mut self, m: Motion) {
+		self.segments.first_mut().unwrap().motion_to(m);
 	}
 }
 

@@ -81,8 +81,8 @@ impl State {
 	}
 
 	pub fn restore(&mut self, charge: f32, target_charge: f32) {
-		self.charge = charge;
 		self.target_charge = target_charge;
+		self.set_charge(charge);
 	}
 
 	pub fn update(&mut self, dt: Seconds) {
@@ -184,9 +184,18 @@ impl Transformable for Segment {
 		&self.transform
 	}
 
-	fn transform_to(&mut self, t: &Transform) {
-		self.transform.position = t.position;
-		self.transform.angle = t.angle;
+	fn transform_to(&mut self, t: Transform) {
+		self.transform = t;
+	}
+}
+
+impl Motionable for Segment {
+	fn motion(&self) -> &Motion {
+		&self.motion
+	}
+
+	fn motion_to(&mut self, m: Motion) {
+		self.motion = m;
 	}
 }
 

@@ -179,11 +179,14 @@ impl System for PhysicsSystem {
 			let body = b.borrow();
 			let position = (*body).position();
 			let angle = (*body).angle();
+			let velocity = (*body).linear_velocity();
+			let spin = (*body).angular_velocity();
 			let key = (*body).user_data();
 
 			if let Some(agent) = world.agent_mut(key.agent_id) {
 				if let Some(segment) = agent.segment_mut(key.segment_index) {
-					segment.transform_to(&Transform::new(PhysicsSystem::from_vec2(&position), angle));
+					segment.transform_to(Transform::from_components(position.x, position.y, angle));
+					segment.motion_to(Motion::from_components(velocity.x, velocity.y, spin));
 					segment.state.last_touched = self.touched.borrow().get(key).map(|r| *r);
 				}
 			}

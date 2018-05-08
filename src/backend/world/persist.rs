@@ -21,6 +21,9 @@ struct Agent {
 	x: f32,
 	y: f32,
 	angle: f32,
+	vx: f32,
+	vy: f32,
+	spin: f32,
 	dna: String,
 	age_seconds: f64,
 	age_frames: usize,
@@ -72,6 +75,9 @@ impl Serializer {
 				x: body.transform.position.x,
 				y: body.transform.position.y,
 				angle: body.transform.angle,
+				vx: body.motion.velocity.x,
+				vy: body.motion.velocity.y,
+				spin: body.motion.spin,
 				dna: src.dna().to_base64(base64::STANDARD),
 				age_seconds: body.state.age_seconds().into(),
 				age_frames: body.state.age_frames(),
@@ -136,6 +142,7 @@ impl Serializer {
 					if let Ok(dna) = src_agent.dna.from_base64() {
 						let id = swarm.rebuild(src_agent.id, &mut gen::Genome::new(dna), agent::InitialState {
 							transform: geometry::Transform::from_components(src_agent.x, src_agent.y, src_agent.angle),
+							motion: geometry::Motion::from_components(src_agent.vx, src_agent.vy, src_agent.spin),
 							age_seconds: clock::seconds(src_agent.age_seconds),
 							age_frames: src_agent.age_frames,
 							maturity: Some(src_agent.maturity),

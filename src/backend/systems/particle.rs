@@ -120,6 +120,7 @@ struct SimpleEmitter {
 	tag: Tag,
 	transform: Transform,
 	motion: Motion,
+	frame_motion: Motion,
 	acceleration: Acceleration,
 	attached_to: EmitterAttachment,
 	trail_length: u8,
@@ -148,6 +149,7 @@ impl Default for SimpleEmitter {
 			tag: Tag::default(),
 			transform: Transform::default(),
 			motion: Motion::default(),
+			frame_motion: Motion::default(),
 			acceleration: Acceleration::zero(),
 			attached_to: EmitterAttachment::None,
 			trail_length: 0,
@@ -345,11 +347,12 @@ impl Emitter for SimpleEmitter {
 					let alpha = consts::PI * 2. * (phase - self.cluster_fanout / 2. + (self.cluster_fanout * i as f32 / self.cluster_size as f32));
 					let velocity = Transform::from_angle(self.transform.angle + alpha * jitter(0.1))
 						.apply_rotation(self.motion.velocity * jitter(0.1));
+					let frame_velocity = self.frame_motion.velocity;
 					Particle {
 						transform: Transform::new(self.transform.position,
 												  self.transform.angle + alpha * jitter(0.1)),
 						trail: VecDeque::new(),
-						motion: Motion::new(velocity, self.motion.spin * jitter(0.1)),
+						motion: Motion::new(velocity + frame_velocity, self.motion.spin * jitter(0.1)),
 						acceleration: self.acceleration * jitter(0.5),
 					}
 				}).collect::<Vec<_>>().into_boxed_slice();
@@ -387,8 +390,7 @@ impl Emitter for SimpleEmitter {
 
 	fn update_transform(&mut self, transform: Transform, motion: Motion) {
 		self.transform = transform;
-		self.motion.velocity += motion.velocity;
-		self.motion.spin += motion.spin;
+		self.frame_motion = motion;
 	}
 }
 
