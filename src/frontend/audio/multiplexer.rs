@@ -14,6 +14,7 @@ use std::f32;
 use std::f64;
 
 const CHANNELS: usize = super::CHANNELS;
+const SAMPLE_HZ: f64 = super::SAMPLE_HZ;
 
 #[allow(unused)]
 struct Signal<S, F> where S: num::Float {
@@ -306,7 +307,7 @@ impl<T, S> SignalBuilder<T, S>
 			oscillator: Oscillator::sin(),
 			tone: Tone::default(),
 			envelope: Envelope::default(),
-			sample_rate: NumCast::from(48000.0).unwrap(),
+			sample_rate: NumCast::from(SAMPLE_HZ).unwrap(),
 			pan: NumCast::from(0.5).unwrap(),
 			delay: Delay::default(),
 		}
@@ -317,7 +318,7 @@ impl<T, S> SignalBuilder<T, S>
 			oscillator,
 			tone: Tone::default(),
 			envelope: Envelope::ramp_down(seconds(1.0)),
-			sample_rate: NumCast::from(48000.0).unwrap(),
+			sample_rate: NumCast::from(SAMPLE_HZ).unwrap(),
 			pan: NumCast::from(0.5).unwrap(),
 			delay: Delay::default(),
 		}
