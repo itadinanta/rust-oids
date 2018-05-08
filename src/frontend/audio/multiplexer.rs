@@ -508,6 +508,9 @@ impl Multiplexer {
 					// returns true on EOF
 					terminated_voices.insert(voice_index);
 				}
+				else {
+					trace!("Voice {} playing", voice_index);
+				}
 			}
 		}
 		for voice_index in &terminated_voices {

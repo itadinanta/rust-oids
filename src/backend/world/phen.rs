@@ -447,7 +447,7 @@ impl AgentBuilder {
 	}
 
 	pub fn build(&self, timer: &Timer) -> Agent {
-		trace!("Agent {:?} has brain {:?}", self.id, self.brain);
+		// trace!("Agent {:?} has brain {:?}", self.id, self.brain);
 		Agent::new(
 			self.id,
 			self.gender,

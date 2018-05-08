@@ -180,7 +180,22 @@ impl SoundSystem for ThreadedSoundSystem {
 			info!("Started sound control thread");
 			let portaudio = pa::PortAudio::new()
 				.expect("Unable to open portAudio");
-			info!("Detected {:?} devices", portaudio.device_count());
+			if let Ok(device_count) = portaudio.device_count() {
+				info!("Detected {:?} devices", device_count);
+				if let Ok(default_device) = portaudio.default_output_device() {
+					if let Ok(devices) = portaudio.devices() {
+						for device_result in devices {
+							if let Ok((device_index, device_info)) = device_result {
+								if device_index == default_device {
+									info!("Using device {:?} {}", device_index, device_info.name);
+								} else {
+									info!("Found device {:?} {}", device_index, device_info.name);
+								}
+							}
+						}
+					}
+				}
+			}
 			let settings = portaudio.default_output_stream_settings::<f32>(
 				CHANNELS as i32,
 				SAMPLE_HZ,
@@ -191,11 +206,14 @@ impl SoundSystem for ThreadedSoundSystem {
 			let dsp_handle = dsp.clone();
 
 			let callback = move |pa::OutputStreamCallbackArgs { buffer, .. }| {
+				trace!("Callback start");
 				let buffer: &mut [[f32; CHANNELS as usize]] =
 					buffer.to_frame_slice_mut().unwrap();
 				sample::slice::equilibrium(buffer);
 				// uhm what?
 				dsp_handle.lock().unwrap().audio_requested(buffer);
+
+				trace!("Callback end");
 				pa::Continue
 			};
 			let mut stream = portaudio.open_non_blocking_stream(settings, callback)
