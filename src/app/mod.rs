@@ -228,6 +228,8 @@ pub struct App {
 	inbox: Inbox,
 	systems: Systems,
 	//
+	last_saved: Option<String>,
+	//
 	debug_flags: DebugFlags,
 	has_ui_overlay: bool,
 }
@@ -272,10 +274,11 @@ impl App {
 		}));
 
 		let mut new_world = world::World::new(resource_loader, minion_gene_pool);
-		if let Some(world_file) = world_file {
+		let last_saved = world_file.map(|world_file| {
 			world::persist::Serializer::load(&world_file, &mut new_world)
 				.expect(&format!("Could not load {}", &world_file));
-		}
+			world_file
+		});
 
 		App {
 			viewport: Viewport::rect(w, h, scale),
@@ -300,6 +303,8 @@ impl App {
 			frame_smooth: math::MovingAverage::new(FRAME_SMOOTH_COUNT),
 			is_running: true,
 			is_paused: false,
+			// savegame
+			last_saved,
 			// debug
 			debug_flags: DebugFlags::empty(),
 			has_ui_overlay: true,
@@ -357,16 +362,24 @@ impl App {
 
 	pub fn save_gene_pool_to_file(&self) {
 		match self.world.dump() {
-			Err(_) => error!("Failed to dump log"),
+			Err(_) => error!("Failed to save gene pool"),
 			Ok(name) => info!("Saved {}", name),
 		}
 	}
 
-	pub fn save_world_to_file(&self) {
-		match self.world.serialize() {
-			Err(_) => error!("Failed to dump log"),
-			Ok(name) => info!("Saved {}", name),
+	pub fn save_world_to_file(&mut self) {
+		let result = self.world.serialize();
+		match result {
+			Err(_) => error!("Failed to save world state"),
+			Ok(name) => {
+				info!("Saved {}", name);
+				self.set_last_saved(name);
+			}
 		}
+	}
+
+	fn set_last_saved(&mut self, name: String) {
+		self.last_saved = Some(name)
 	}
 
 	pub fn interact(&mut self, e: Event) {

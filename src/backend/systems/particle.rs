@@ -134,7 +134,7 @@ struct SimpleEmitter {
 	friction: f32,
 	ttl: Option<Seconds>,
 	cluster_size: u8,
-	cluster_fanout: f32,
+	cluster_spread: f32,
 	faders: FaderList,
 	lifespan: Seconds,
 	jitter: f32,
@@ -163,7 +163,7 @@ impl Default for SimpleEmitter {
 			dampening: 0.,
 			friction: 0.2,
 			cluster_size: 10,
-			cluster_fanout: 1.,
+			cluster_spread: 1.,
 			faders: [None; MAX_FADER],
 			jitter: 1.,
 			lifespan: seconds(10.),
@@ -324,9 +324,9 @@ impl SimpleEmitter {
 			..self
 		}
 	}
-	pub fn with_cluster_wedge(self, cluster_wedge: f32) -> Self {
+	pub fn with_cluster_spread(self, cluster_spread: f32) -> Self {
 		SimpleEmitter {
-			cluster_fanout: cluster_wedge,
+			cluster_spread,
 			..self
 		}
 	}
@@ -344,7 +344,9 @@ impl Emitter for SimpleEmitter {
 			self.pulse = (self.pulse + dt.get() as f32 * self.pulse_rate * jitter(0.1)) % 1.;
 			if self.pulse < pulse {
 				let particles = (0..self.cluster_size).map(|i| {
-					let alpha = consts::PI * 2. * (phase - self.cluster_fanout / 2. + (self.cluster_fanout * i as f32 / self.cluster_size as f32));
+					let spread = self.cluster_spread / self.cluster_size as f32 *
+						(i as f32 - (self.cluster_size as f32 - 1.) / 2.);
+					let alpha = consts::PI * 2. * (phase + spread);
 					let velocity = Transform::from_angle(self.transform.angle + alpha * jitter(0.1))
 						.apply_rotation(self.motion.velocity * jitter(0.1));
 					let frame_velocity = self.frame_motion.velocity;
@@ -429,7 +431,7 @@ impl System for ParticleSystem {
 						.with_color(color, COLOR_TRANSPARENT)
 						.with_ttl(Some(seconds(0.5)))
 						.with_cluster_size(cluster_size)
-						.with_cluster_wedge(0.5)
+						.with_cluster_spread(0.5)
 						.with_2_faders(
 							Fader::new(0.0, 2.0, 1.0),
 							Fader::new(1.0, 0.7, 0.1))
@@ -487,7 +489,7 @@ impl System for ParticleSystem {
 						Fader::default(),
 						Fader::new(1.0, 4.0, 0.0))
 					.with_cluster_size(3)
-					.with_cluster_wedge(0.15)
+					.with_cluster_spread(0.15)
 					.with_lifespan(seconds(3.0));
 				self.emitters.insert(emitter.id, Box::new(emitter));
 			}
