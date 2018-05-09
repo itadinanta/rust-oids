@@ -347,14 +347,15 @@ impl Emitter for SimpleEmitter {
 					let spread = self.cluster_spread / self.cluster_size as f32 *
 						(i as f32 - (self.cluster_size as f32 - 1.) / 2.);
 					let alpha = consts::PI * 2. * (phase + spread);
-					let velocity = Transform::from_angle(self.transform.angle + alpha * jitter(0.1))
-						.apply_rotation(self.motion.velocity * jitter(0.1));
+					let velocity =
+						Transform::from_angle(self.transform.angle + alpha + jitter(0.1) - 1.)
+							.apply_rotation(self.motion.velocity * jitter(0.1));
 					let frame_velocity = self.frame_motion.velocity;
 					Particle {
 						transform: Transform::new(self.transform.position,
-												  self.transform.angle + alpha * jitter(0.1)),
+												  self.transform.angle + alpha + jitter(0.1) - 1.),
 						trail: VecDeque::new(),
-						motion: Motion::new(velocity + frame_velocity, self.motion.spin * jitter(0.1)),
+						motion: Motion::new(velocity + frame_velocity, self.motion.spin + jitter(0.1) - 1.),
 						acceleration: self.acceleration * jitter(0.5),
 					}
 				}).collect::<Vec<_>>().into_boxed_slice();
