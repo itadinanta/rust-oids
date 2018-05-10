@@ -3,6 +3,7 @@ use std::f32::consts;
 use rand;
 use rand::Rng;
 use app::constants::*;
+use app::Event;
 use core::clock::*;
 use core::geometry::*;
 use core::geometry::Transform;
@@ -10,6 +11,7 @@ use backend::obj::Transformable;
 use backend::world;
 use backend::world::agent;
 use backend::world::Emission;
+use backend::messagebus::{PubSub, Inbox, Whiteboard, ReceiveDrain, Message};
 
 #[derive(Default)]
 pub struct PlayerState {
@@ -24,6 +26,7 @@ pub struct GameSystem {
 	timer: SimulationTimer,
 	playerstate: PlayerState,
 	feeders: Vec<Feeder>,
+	inbox: Option<Inbox>,
 }
 
 struct Feeder {
@@ -51,7 +54,25 @@ impl Feeder where {
 }
 
 impl System for GameSystem {
+	fn attach(&mut self, bus: &mut PubSub) {
+		self.inbox = Some(bus.subscribe(Box::new(|ev|
+			if let &Message::Event(Event::PrimaryFire(_, _)) = ev { true } else { false })));
+	}
+
 	fn import(&mut self, world: &world::World) {
+		let messages = match self.inbox {
+			Some(ref m) => m.drain(),
+			None => Vec::new(),
+		};
+		for message in messages {
+			match message {
+				Message::Event(Event::PrimaryFire(bullet_speed, rate)) => {
+					self.primary_fire(bullet_speed, rate);
+				}
+				_ => {}
+			}
+		}
+
 		let source = world.feeders();
 		// Add missing emitters - deletion not supported
 		for i in self.feeders.len()..source.len() {
@@ -132,6 +153,7 @@ impl Default for GameSystem {
 			timer: SimulationTimer::new(),
 			playerstate: PlayerState::default(),
 			feeders: Vec::new(),
+			inbox: None,
 		}
 	}
 }

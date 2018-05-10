@@ -341,8 +341,8 @@ impl App {
 	}
 
 	fn primary_fire(&mut self, bullet_speed: f32, rate: SecondsValue) {
-		// TODO: send a message to the system instead
-		self.systems.game.write().unwrap().primary_fire(bullet_speed, rate)
+		// forwards the message to the bus
+		self.bus.post(Message::Event(Event::PrimaryFire(bullet_speed, rate)));
 	}
 
 	pub fn set_player_intent(&mut self, intent: segment::Intent) {

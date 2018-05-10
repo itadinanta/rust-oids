@@ -155,7 +155,8 @@ pub fn main_loop(minion_gene_pool: &str, world_file: Option<String>, fullscreen:
 		// push the commands
 		renderer.end_frame(&mut device);
 
-		window.swap_buffers().unwrap();
+		window.swap_buffers()
+			.expect("swap_buffers() failed");
 		renderer.cleanup(&mut device);
 	};
 }
