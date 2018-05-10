@@ -58,6 +58,7 @@ impl InputController for DefaultController {
 			KpHome -> CamReset,
 			F6 -> SaveGenePoolToFile,
 			F7 -> SaveWorldToFile,
+			F8 -> RestartFromCheckpoint,
 			F10 -> ToggleDebug,
 			GamepadStart -> ToggleDebug,
 			Z -> DeselectAll,

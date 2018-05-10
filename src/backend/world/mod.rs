@@ -131,6 +131,13 @@ impl World {
 		}
 	}
 
+	pub fn clear(&mut self) {
+		for (_, swarm) in self.swarms.iter_mut() { swarm.clear(); }
+		self.registered.clear();
+		self.registered_player_id = None;
+		self.particles.clear();
+	}
+
 	pub fn tick(&mut self, dt: Seconds) {
 		self.clock.tick(dt);
 	}

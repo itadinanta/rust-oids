@@ -93,6 +93,7 @@ impl<T> SendSystem<T> where T: systems::System {
 impl<T> systems::System for SendSystem<T> where T: systems::System {
 	fn attach(&mut self, bus: &mut PubSub) { self.ptr.write().unwrap().attach(bus) }
 	fn init(&mut self, world: &world::World) { self.ptr.write().unwrap().init(world) }
+	fn clear(&mut self) { self.ptr.write().unwrap().clear() }
 	fn register(&mut self, agent: &world::agent::Agent) { self.ptr.write().unwrap().register(agent) }
 	fn unregister(&mut self, agent: &world::agent::Agent) { self.ptr.write().unwrap().unregister(agent) }
 
@@ -177,6 +178,12 @@ impl Systems {
 	fn init(&mut self, world: &world::World) {
 		for system in self.systems().iter_mut() {
 			system.init(world);
+		}
+	}
+
+	fn clear(&mut self) {
+		for system in self.systems().iter_mut() {
+			system.clear();
 		}
 	}
 
@@ -421,7 +428,8 @@ impl App {
 			Event::NextSpeedFactor => { self.speed_factors.next(); }
 			Event::PrevSpeedFactor => { self.speed_factors.prev(); }
 			Event::ToggleDebug => self.debug_flags.toggle(DebugFlags::DEBUG_TARGETS),
-			Event::Reload => {}
+			Event::Reload => { /* Handled in the main loop */ }
+			Event::RestartFromCheckpoint => { self.restart_from_checkpoint() }
 
 			Event::AppQuit => self.quit(),
 			Event::TogglePause => self.is_paused = !self.is_paused,
@@ -450,6 +458,14 @@ impl App {
 
 	pub fn quit(&mut self) {
 		self.is_running = false;
+	}
+
+	fn restart_from_checkpoint(&mut self) {
+		self.systems.clear();
+		self.world.clear();
+		if let Some(ref world_file) = self.last_saved {
+			world::persist::Serializer::load(&world_file, &mut self.world).is_ok();
+		}
 	}
 
 	pub fn is_running(&self) -> bool {

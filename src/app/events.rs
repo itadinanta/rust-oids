@@ -34,6 +34,7 @@ pub enum Event {
 	Reload,
 	SaveGenePoolToFile,
 	SaveWorldToFile,
+	RestartFromCheckpoint,
 	ToggleDebug,
 
 	TogglePause,

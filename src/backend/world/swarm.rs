@@ -43,6 +43,10 @@ impl Swarm {
 
 	pub fn seq(&self) -> Id { self.seq }
 
+	pub fn clear(&mut self) {
+		self.agents.clear()
+	}
+
 	pub fn reset(&mut self, seq: Id) {
 		self.agents.clear();
 		self.seq = seq;
