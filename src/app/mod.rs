@@ -53,6 +53,7 @@ pub fn run(args: &[OsString]) {
 	opt.optopt("i", "infile", "Load world file", "resources/20180423_234300.json");
 	opt.optopt("w", "width", "Window width", "1024");
 	opt.optopt("h", "height", "Window height", "1024");
+	opt.optopt("a", "audio_device", "Audio device index (portaudio)", "0");
 	match opt.parse(args) {
 		Ok(options) => {
 			let pool_file_name = options.free.get(1).map(|n| n.as_str()).unwrap_or(
@@ -65,8 +66,9 @@ pub fn run(args: &[OsString]) {
 				let fullscreen = options.opt_default("f", "0").and_then(|v| v.parse::<usize>().ok());
 				let width = options.opt_default("w", "1024").and_then(|v| v.parse::<u32>().ok());
 				let height = options.opt_default("h", "1024").and_then(|v| v.parse::<u32>().ok());
+				let audio_device = options.opt_default("a", "0").and_then(|v| v.parse::<usize>().ok());
 
-				main::main_loop(pool_file_name, world_file, fullscreen, width, height);
+				main::main_loop(pool_file_name, world_file, fullscreen, width, height, audio_device);
 			}
 		}
 		Err(message) => {

@@ -78,7 +78,7 @@ impl From<io::Error> for self::Error {
 }
 
 pub trait SoundSystem: Sized {
-	fn new() -> Result<Self, self::Error>;
+	fn new(preferred_device: Option<usize>) -> Result<Self, self::Error>;
 
 	fn open(&mut self) -> Result<(), self::Error>;
 
@@ -174,33 +174,40 @@ impl ThreadedAlertPlayer {
 }
 
 impl SoundSystem for ThreadedSoundSystem {
-	fn new() -> Result<ThreadedSoundSystem, self::Error> {
+	fn new(audio_device: Option<usize>) -> Result<ThreadedSoundSystem, self::Error> {
 		let (tx, rx) = channel();
 		let sound_thread = thread::Builder::new().name("SoundControl".to_string()).spawn(move || {
 			info!("Started sound control thread");
 			let portaudio = pa::PortAudio::new()
 				.expect("Unable to open portAudio");
-			if let Ok(device_count) = portaudio.device_count() {
+
+			fn portaudio_device(portaudio: &pa::PortAudio, preferred_device: Option<pa::DeviceIndex>)
+								-> Result<(pa::DeviceIndex, String, f64), pa::Error> {
+				let device_count = portaudio.device_count()?;
 				info!("Detected {:?} devices", device_count);
-				if let Ok(default_device) = portaudio.default_output_device() {
-					if let Ok(devices) = portaudio.devices() {
-						for device_result in devices {
-							if let Ok((device_index, device_info)) = device_result {
-								if device_index == default_device {
-									info!("Using device {:?} {}", device_index, device_info.name);
-								} else {
-									info!("Found device {:?} {}", device_index, device_info.name);
-								}
-							}
+				let default_device = portaudio.default_output_device()?;
+				let selected_device = preferred_device.unwrap_or(default_device);
+				let devices = portaudio.devices()?;
+				let mut result = Err(pa::Error::InvalidDevice);
+				for device_result in devices {
+					if let Ok((device_index, device_info)) = device_result {
+						if device_index == selected_device {
+							info!("Selecting device {:?} {}", device_index, device_info.name);
+							result = Ok((device_index, device_info.name.to_owned(), device_info.default_low_output_latency));
+						} else {
+							info!("Found device {:?} {}", device_index, device_info.name);
 						}
 					}
 				}
+				result
 			}
-			let settings = portaudio.default_output_stream_settings::<f32>(
-				CHANNELS as i32,
-				SAMPLE_HZ,
-				FRAMES,
-			).expect("Unable to setup portAudio");
+
+			let (device_index, _device_name, device_latency) =
+				portaudio_device(&portaudio, audio_device.map(|d| pa::DeviceIndex(d as u32))).unwrap();
+
+			const INTERLEAVED: bool = true;
+			let stream_parameters: pa::StreamParameters<f32> = pa::StreamParameters::new(device_index, CHANNELS as i32, INTERLEAVED, device_latency);
+			let settings = pa::OutputStreamSettings::new(stream_parameters, SAMPLE_HZ, FRAMES);
 
 			let dsp = Arc::new(Mutex::new(multiplexer::Multiplexer::new(SAMPLE_HZ, MAX_VOICES)));
 			let dsp_handle = dsp.clone();
@@ -233,7 +240,9 @@ impl SoundSystem for ThreadedSoundSystem {
 						break 'sound_main;
 					}
 					Ok(sound_effect) => {
-						dsp.lock().unwrap().trigger(sound_effect)
+						if stream.is_active().unwrap_or(false) {
+							dsp.lock().unwrap().trigger(sound_effect)
+						}
 					}
 					Err(msg) => {
 						warn!("Received error {:?}", msg);

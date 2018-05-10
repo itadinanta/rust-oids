@@ -22,7 +22,7 @@ use winit::{self, WindowEvent, VirtualKeyCode, KeyboardInput};
 use glutin;
 use glutin::GlContext;
 
-pub fn main_loop(minion_gene_pool: &str, world_file: Option<String>, fullscreen: Option<usize>, width: Option<u32>, height: Option<u32>) {
+pub fn main_loop(minion_gene_pool: &str, world_file: Option<String>, fullscreen: Option<usize>, width: Option<u32>, height: Option<u32>, audio_device: Option<usize>) {
 	const WIDTH: u32 = 1280;
 	const HEIGHT: u32 = 1024;
 
@@ -71,7 +71,8 @@ pub fn main_loop(minion_gene_pool: &str, world_file: Option<String>, fullscreen:
 										&frame_buffer, window.hidpi_factor() as f64)
 		.expect("Unable to create UI");
 
-	let audio = audio::ThreadedSoundSystem::new().expect("Failure in audio initialization");
+	let audio = audio::ThreadedSoundSystem::new(audio_device)
+		.expect("Failure in audio initialization");
 	let mut audio_alert_player = audio::ThreadedAlertPlayer::new(audio);
 	app.init(app::SystemMode::Interactive);
 
