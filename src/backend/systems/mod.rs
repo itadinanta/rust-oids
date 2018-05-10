@@ -20,6 +20,7 @@ use core::clock::Seconds;
 pub trait System {
 	fn attach(&mut self, _: &mut PubSub) {}
 	fn init(&mut self, _: &world::World) {}
+	fn clear(&mut self) {}
 	fn register(&mut self, _: &world::agent::Agent) {}
 	fn unregister(&mut self, _: &world::agent::Agent) {}
 	fn import(&mut self, _: &world::World) {}

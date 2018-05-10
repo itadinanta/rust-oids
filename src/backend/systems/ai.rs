@@ -45,6 +45,11 @@ impl System for AiSystem {
 			&mut world.agents_mut(agent::AgentType::Minion),
 		);
 	}
+
+	fn clear(&mut self) {
+		self.beacons = Box::new([]);
+		self.targets.clear();
+	}
 }
 
 impl Default for AiSystem {

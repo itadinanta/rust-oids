@@ -542,6 +542,12 @@ impl System for ParticleSystem {
 		for id in &orphan {
 			self.emitters.remove(id);
 		}
+
+	}
+
+	fn clear(&mut self) {
+		self.particles.clear();
+		self.emitters.clear();
 	}
 
 	fn update(&mut self, _: &AgentState, dt: Seconds) {

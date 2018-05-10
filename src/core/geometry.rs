@@ -63,6 +63,10 @@ impl Rect {
 	}
 }
 
+impl Default for Rect {
+	fn default() -> Self { Rect::new(0., 0., 0., 0.) }
+}
+
 impl Initial for Position {
 	fn initial() -> Self { Position::zero() }
 }

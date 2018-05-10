@@ -30,6 +30,7 @@ type ContactSet = Rc<RefCell<HashMap<agent::Key, agent::Key>>>;
 
 pub struct PhysicsSystem {
 	world: b2::World<AgentData>,
+	initial_extent: Rect,
 	inbox: Option<Inbox>,
 	handles: HashMap<agent::Key, b2::BodyHandle>,
 	touched: ContactSet,
@@ -60,7 +61,8 @@ impl System for PhysicsSystem {
 	}
 
 	fn init(&mut self, world: &world::World) {
-		self.init_extent(&world.extent);
+		self.initial_extent = world.extent;
+		self.init_extent();
 	}
 
 	fn register(&mut self, agent: &world::agent::Agent) {
@@ -201,6 +203,14 @@ impl System for PhysicsSystem {
 		}
 		self.touched.borrow_mut().clear();
 	}
+
+	fn clear(&mut self) {
+		for i in &self.inbox { i.drain(); }
+		self.touched.borrow_mut().clear();
+		self.handles.clear();
+		self.world = Self::new_world(self.touched.clone());
+		self.init_extent();
+	}
 }
 
 impl Default for PhysicsSystem {
@@ -208,6 +218,7 @@ impl Default for PhysicsSystem {
 		let touched = Rc::new(RefCell::new(HashMap::new()));
 		PhysicsSystem {
 			inbox: None,
+			initial_extent: Rect::default(),
 			world: Self::new_world(touched.clone()),
 			handles: HashMap::new(),
 			touched,
@@ -224,7 +235,8 @@ impl PhysicsSystem {
 		Position::new(p.x, p.y)
 	}
 
-	fn init_extent(&mut self, extent: &Rect) {
+	fn init_extent(&mut self) {
+		let extent = self.initial_extent;
 		let mut f_def = b2::FixtureDef::new();
 		let mut b_def = b2::BodyDef::new();
 		b_def.body_type = b2::BodyType::Static;

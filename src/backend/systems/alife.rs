@@ -89,6 +89,12 @@ impl System for AlifeSystem {
 			outbox.post(alert::Alert::DieMinion.into());
 		}
 	}
+
+	fn clear(&mut self) {
+		self.source = Box::new([]);
+		self.eaten.clear();
+		self.touched.clear();
+	}
 }
 
 impl Default for AlifeSystem {

@@ -145,6 +145,11 @@ impl System for GameSystem {
 			world.init_players();
 		}
 	}
+
+	fn clear(&mut self) {
+		self.playerstate = PlayerState::default();
+		self.feeders = Vec::new();
+	}
 }
 
 impl Default for GameSystem {
@@ -159,7 +164,7 @@ impl Default for GameSystem {
 }
 
 impl GameSystem {
-	pub fn primary_fire(&mut self, bullet_speed: f32, firing_rate: SecondsValue) {
+	fn primary_fire(&mut self, bullet_speed: f32, firing_rate: SecondsValue) {
 		self.playerstate.bullet_speed = bullet_speed;
 		self.playerstate.firing_rate = firing_rate;
 		self.playerstate.trigger_held = true;
