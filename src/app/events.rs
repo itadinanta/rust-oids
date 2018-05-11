@@ -46,6 +46,7 @@ pub enum Event {
 	RandomizeMinion(Position),
 
 	PickMinion(Position),
+	SelectMinion(usize),
 	DeselectAll,
 
 	BeginDrag(Position, Position),

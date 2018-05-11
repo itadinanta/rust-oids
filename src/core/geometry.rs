@@ -154,8 +154,8 @@ impl Motion {
 		}
 	}
 
-	pub fn from_components(x: f32, y: f32, angle: f32) -> Self {
-		Self::new(Position::new(x, y), angle)
+	pub fn from_components(vx: f32, vy: f32, spin: f32) -> Self {
+		Self::new(Velocity::new(vx, vy), spin)
 	}
 }
 

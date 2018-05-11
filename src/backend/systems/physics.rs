@@ -1,8 +1,10 @@
 use super::*;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::rc::Rc;
 use std::cell::RefCell;
 use app::constants::*;
+use app::Event;
 use wrapped2d::b2;
 use wrapped2d::user_data::*;
 use wrapped2d::dynamics::world::callbacks::ContactAccess;
@@ -16,7 +18,7 @@ use backend::world::agent;
 use backend::world::segment;
 use backend::world::segment::Intent;
 use backend::world::segment::PilotRotation;
-use backend::messagebus::{PubSub, Inbox, Whiteboard, ReceiveDrain};
+use backend::messagebus::{PubSub, Inbox, Message, Whiteboard, ReceiveDrain};
 
 struct AgentData;
 
@@ -34,6 +36,7 @@ pub struct PhysicsSystem {
 	inbox: Option<Inbox>,
 	handles: HashMap<agent::Key, b2::BodyHandle>,
 	touched: ContactSet,
+	picked: HashSet<Id>,
 }
 
 #[allow(unused)]
@@ -57,7 +60,11 @@ struct JointRef<'a> {
 
 impl System for PhysicsSystem {
 	fn attach(&mut self, bus: &mut PubSub) {
-		self.inbox = Some(bus.subscribe(Box::new(|_| true)));
+		self.inbox = Some(bus.subscribe(Box::new(
+			|m| match m {
+				&Message::Event(Event::PickMinion(_)) => true,
+				_ => false
+			})));
 	}
 
 	fn init(&mut self, world: &world::World) {
@@ -88,10 +95,22 @@ impl System for PhysicsSystem {
 	}
 
 	fn import(&mut self, world: &world::World) {
-		match self.inbox {
+		let messages = match self.inbox {
 			Some(ref drain) => drain.drain(),
 			None => Vec::new(),
 		};
+		self.picked.clear();
+		for message in messages {
+			match message {
+				Message::Event(Event::PickMinion(position)) => {
+					let picked = self.pick(position);
+					if let Some(picked_id) = picked {
+						self.picked.insert(picked_id);
+					}
+				}
+				_ => {}
+			}
+		}
 		for (_, agent) in world.agents(agent::AgentType::Minion).iter() {
 			if agent.state.growth() > 0. {
 				self.refresh_registration(agent)
@@ -104,9 +123,9 @@ impl System for PhysicsSystem {
 		let mut dynamic_updates = Vec::new();
 		let dt: f32 = dt_sec.into();
 		#[inline]
-		fn to_vec2(v: Position) -> b2::Vec2 { PhysicsSystem::to_vec2(&v) };
+		fn to_vec2(v: Position) -> b2::Vec2 { PhysicsSystem::p2v(&v) };
 		#[inline]
-		fn from_vec2(v: &b2::Vec2) -> Position { PhysicsSystem::from_vec2(v) };
+		fn from_vec2(v: &b2::Vec2) -> Position { PhysicsSystem::v2p(v) };
 		for (h, b) in self.world.bodies() {
 			let body = b.borrow();
 			let center = (*body).world_center().clone();
@@ -181,7 +200,7 @@ impl System for PhysicsSystem {
 		self.world.step(dt, 8, 3);
 	}
 
-	fn export(&self, world: &mut world::World, _outbox: &Outbox) {
+	fn export(&self, world: &mut world::World, outbox: &Outbox) {
 		for (_, b) in self.world.bodies() {
 			let body = b.borrow();
 			let position = (*body).position();
@@ -201,6 +220,9 @@ impl System for PhysicsSystem {
 		for (_, agent) in world.agents_mut(agent::AgentType::Minion).iter_mut() {
 			agent.state.reset_growth()
 		}
+		for id in &self.picked {
+			outbox.post(Event::SelectMinion(*id).into());
+		}
 		self.touched.borrow_mut().clear();
 	}
 
@@ -208,6 +230,7 @@ impl System for PhysicsSystem {
 		for i in &self.inbox { i.drain(); }
 		self.touched.borrow_mut().clear();
 		self.handles.clear();
+		self.picked.clear();
 		self.world = Self::new_world(self.touched.clone());
 		self.init_extent();
 	}
@@ -220,20 +243,29 @@ impl Default for PhysicsSystem {
 			inbox: None,
 			initial_extent: Rect::default(),
 			world: Self::new_world(touched.clone()),
-			handles: HashMap::new(),
+			handles: HashMap::with_capacity(5000),
+			picked: HashSet::with_capacity(100),
 			touched,
 		}
 	}
 }
 
 impl PhysicsSystem {
-	fn to_vec2(p: &Position) -> b2::Vec2 {
+	fn p2v(p: &Position) -> b2::Vec2 {
 		b2::Vec2 { x: p.x, y: p.y }
 	}
 
-	fn from_vec2(p: &b2::Vec2) -> Position {
+	fn pr2v(p: &Position, radius: f32) -> b2::Vec2 {
+		b2::Vec2 {
+			x: p.x * radius,
+			y: p.y * radius,
+		}
+	}
+
+	fn v2p(p: &b2::Vec2) -> Position {
 		Position::new(p.x, p.y)
 	}
+
 
 	fn init_extent(&mut self) {
 		let extent = self.initial_extent;
@@ -246,10 +278,10 @@ impl PhysicsSystem {
 		let mut rect = b2::ChainShape::new();
 		rect.create_loop(
 			&[
-				Self::to_vec2(&extent.bottom_left()),
-				Self::to_vec2(&extent.bottom_right()),
-				Self::to_vec2(&extent.top_right()),
-				Self::to_vec2(&extent.top_left()),
+				Self::p2v(&extent.bottom_left()),
+				Self::p2v(&extent.bottom_right()),
+				Self::p2v(&extent.top_right()),
+				Self::p2v(&extent.top_left()),
 			],
 		);
 
@@ -258,13 +290,6 @@ impl PhysicsSystem {
 			&mut f_def,
 			refs,
 		);
-	}
-
-	fn vec2(p: &Position, radius: f32) -> b2::Vec2 {
-		b2::Vec2 {
-			x: p.x * radius,
-			y: p.y * radius,
-		}
 	}
 
 	fn refresh_registration(&mut self, agent: &world::agent::Agent) {
@@ -333,7 +358,7 @@ impl PhysicsSystem {
 				let offset = if n < 0 { 1 } else { 0 };
 				let mut vertices = Vec::new();
 				for i in 0..n.abs() {
-					vertices.push(Self::vec2(&p[2 * i as usize + offset], grown_radius));
+					vertices.push(Self::pr2v(&p[2 * i as usize + offset], grown_radius));
 				}
 				make_safe_poly_shape(world, handle, grown_radius, vertices.as_slice(), f_def, refs);
 			}
@@ -353,9 +378,9 @@ impl PhysicsSystem {
 						};
 						let quad_vertices = &[
 							b2::Vec2 { x: 0., y: 0. },
-							Self::vec2(&p1, grown_radius),
-							Self::vec2(&p2, grown_radius),
-							Self::vec2(&p3, grown_radius),
+							Self::pr2v(&p1, grown_radius),
+							Self::pr2v(&p2, grown_radius),
+							Self::pr2v(&p3, grown_radius),
 						];
 						let refs = agent::Key::with_bone(object_id, segment_index as u8, i as u8);
 						make_safe_poly_shape(world, handle, grown_radius, quad_vertices, f_def, refs);
@@ -370,9 +395,9 @@ impl PhysicsSystem {
 					obj::Winding::CCW => (&p[0], &p[1], &p[2]),
 				};
 				let tri_vertices = &[
-					Self::vec2(p1, grown_radius),
-					Self::vec2(p2, grown_radius),
-					Self::vec2(p3, grown_radius),
+					Self::pr2v(p1, grown_radius),
+					Self::pr2v(p2, grown_radius),
+					Self::pr2v(p3, grown_radius),
 				];
 				make_safe_poly_shape(world, handle, grown_radius, tri_vertices, f_def, refs);
 			}
@@ -399,8 +424,8 @@ impl PhysicsSystem {
 				b_def.linear_damping = material.linear_damping;
 				b_def.angular_damping = material.angular_damping;
 				b_def.angle = transform.angle;
-				b_def.position = Self::vec2(&transform.position, 1.);
-				b_def.linear_velocity = Self::vec2(&segment.motion.velocity, 1.);
+				b_def.position = Self::pr2v(&transform.position, 1.);
+				b_def.linear_velocity = Self::pr2v(&segment.motion.velocity, 1.);
 				b_def.angular_velocity = segment.motion.spin;
 				let refs = agent::Key::with_segment(object_id, segment_index as u8);
 				let handle = world.create_body_with(&b_def, refs);
@@ -473,7 +498,7 @@ impl PhysicsSystem {
 	}
 
 	pub fn pick(&self, pos: Position) -> Option<Id> {
-		let point = Self::to_vec2(&pos);
+		let point = Self::p2v(&pos);
 		let eps = PICK_EPS;
 		let aabb = b2::AABB {
 			lower: b2::Vec2 {

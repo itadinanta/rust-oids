@@ -234,7 +234,8 @@ pub struct App {
 	//
 	world: world::World,
 	bus: PubSub,
-	inbox: Inbox,
+	reply_inbox: Inbox,
+	alert_inbox: Inbox,
 	systems: Systems,
 	//
 	last_saved: Option<String>,
@@ -277,8 +278,13 @@ impl App {
 			R: ResourceLoader<u8>, {
 		let system_timer = SystemTimer::new();
 		let mut bus = PubSub::new();
-		let inbox = bus.subscribe(Box::new(|e| match e {
+		let alert_inbox = bus.subscribe(Box::new(|e| match e {
 			&Message::Alert(_) => true,
+			&Message::Event(_) => true,
+			_ => false
+		}));
+		let reply_inbox = bus.subscribe(Box::new(|e| match e {
+			&Message::Event(Event::SelectMinion(_)) => true,
 			_ => false
 		}));
 
@@ -300,7 +306,8 @@ impl App {
 
 			world: new_world,
 			bus,
-			inbox,
+			alert_inbox,
+			reply_inbox,
 			// subsystems
 			systems: Systems::default(),
 			// runtime and timing
@@ -334,11 +341,6 @@ impl App {
 
 	fn init_backgrounds() -> Cycle<[f32; 4]> {
 		Cycle::new(constants::BACKGROUNDS)
-	}
-
-	pub fn pick_minion(&self, pos: Position) -> Option<Id> {
-		// TODO: send a message to the system instead (how does it reply though?)
-		self.systems.physics.read().unwrap().pick(pos)
 	}
 
 	fn randomize_minion(&mut self, pos: Position) {
@@ -428,8 +430,7 @@ impl App {
 			Event::NextSpeedFactor => { self.speed_factors.next(); }
 			Event::PrevSpeedFactor => { self.speed_factors.prev(); }
 			Event::ToggleDebug => self.debug_flags.toggle(DebugFlags::DEBUG_TARGETS),
-			Event::Reload => { /* Handled in the main loop */ }
-			Event::RestartFromCheckpoint => { self.restart_from_checkpoint() }
+			Event::RestartFromCheckpoint => self.restart_from_checkpoint(),
 
 			Event::AppQuit => self.quit(),
 			Event::TogglePause => self.is_paused = !self.is_paused,
@@ -442,13 +443,12 @@ impl App {
 				self.camera.set_relative(start - end);
 				self.camera.velocity(vel);
 			}
-			Event::PickMinion(position) => {
-				self.pick_minion(position).map(
-					|id| self.select_minion(id));
-			}
+			Event::SelectMinion(id) => self.select_minion(id),
 			Event::DeselectAll => self.deselect_all(),
 			Event::NewMinion(pos) => self.new_minion(pos),
 			Event::RandomizeMinion(pos) => self.randomize_minion(pos),
+			Event::Reload => { /* Handled in the main loop */ }
+			Event::PickMinion(position) => { /* Handled by the physics system */ }
 		}
 	}
 
@@ -549,10 +549,19 @@ impl App {
 		self.world.tick(dt);
 	}
 
+	pub fn receive(&mut self) {
+		for event in self.reply_inbox.drain().into_iter() {
+			match event {
+				Message::Event(event) => self.on_app_event(event),
+				_ => {}
+			}
+		}
+	}
+
 	pub fn play_alerts<P, E>(&mut self, alert_player: &mut P)
 		where P: ui::AlertPlayer<world::alert::Alert, E> + ui::AlertPlayer<Event, E>,
 			  E: Debug {
-		for alert in self.inbox.drain().into_iter() {
+		for alert in self.alert_inbox.drain().into_iter() {
 			match alert {
 				Message::Event(ref alert) =>
 					match alert_player.play(alert) {
@@ -580,7 +589,7 @@ impl App {
 		let target_duration = frame_time_smooth.get();
 
 		self.update_input::<DefaultController>(frame_time_smooth);
-
+		self.receive();
 		let speed_factor = if self.is_paused { 0.0 as SpeedFactor } else { self.speed_factors.get() };
 		let quantum = num::clamp(target_duration, MIN_FRAME_LENGTH, MAX_FRAME_LENGTH);
 		let (dt, rounds) = if speed_factor <= 1.0 {
