@@ -21,6 +21,7 @@ use core::view::Viewport;
 use core::view::WorldTransform;
 use frontend::input;
 use frontend::ui;
+use std::fs;
 use getopts::Options;
 use num;
 use rayon::prelude::*;
@@ -51,6 +52,7 @@ pub fn run(args: &[OsString]) {
 	opt.optflag("t", "terminal", "Headless mode");
 	opt.optopt("f", "fullscreen", "Fullscreen mode on monitor X", "0");
 	opt.optopt("i", "infile", "Load world file", "resources/20180423_234300.json");
+	opt.optflag("r", "resume", "Resume from last snapshot");
 	opt.optopt("w", "width", "Window width", "1024");
 	opt.optopt("h", "height", "Window height", "1024");
 	opt.optopt("a", "audio_device", "Audio device index (portaudio)", "0");
@@ -59,7 +61,29 @@ pub fn run(args: &[OsString]) {
 			let pool_file_name = options.free.get(1).map(|n| n.as_str()).unwrap_or(
 				"minion_gene_pool.csv",
 			);
-			let world_file = options.opt_str("i");
+			let mut world_file = options.opt_str("i");
+
+			// TODO: tidy up
+			if options.opt_present("r") && world_file.is_none() {
+				let mut max_path = "".to_owned();
+				if let Ok(dir) = fs::read_dir("resources") {
+					for entry in dir {
+						let path_name = entry
+							.unwrap().path()
+							.to_str()
+							.unwrap_or("")
+							.to_owned();
+						if path_name.ends_with(".json") && path_name > max_path {
+							max_path = path_name;
+						}
+					}
+				}
+				if !max_path.is_empty() {
+					info!("Resuming simulation from snapshot: {}", &max_path);
+					world_file = Some(max_path);
+				}
+			}
+
 			if options.opt_present("t") {
 				main::main_loop_headless(pool_file_name, world_file);
 			} else {
@@ -327,77 +351,6 @@ impl App {
 		}
 	}
 
-	fn init_camera() -> math::Inertial<f32> {
-		math::Inertial::new(5.0, 1.0, 0.5)
-	}
-
-	fn init_lights() -> Cycle<[f32; 4]> {
-		Cycle::new(constants::AMBIENT_LIGHTS)
-	}
-
-	fn init_speed_factors() -> Cycle<SpeedFactor> {
-		Cycle::new(constants::SPEED_FACTORS)
-	}
-
-	fn init_backgrounds() -> Cycle<[f32; 4]> {
-		Cycle::new(constants::BACKGROUNDS)
-	}
-
-	fn randomize_minion(&mut self, pos: Position) {
-		self.world.randomize_minion(pos, Motion::default());
-	}
-
-	fn new_minion(&mut self, pos: Position) {
-		self.world.new_minion(pos, Motion::default());
-	}
-
-	fn primary_fire(&mut self, bullet_speed: f32, rate: SecondsValue) {
-		// forwards the message to the bus
-		self.bus.post(Event::PrimaryFire(bullet_speed, rate).into());
-	}
-
-	pub fn set_player_intent(&mut self, intent: segment::Intent) {
-		self.world.set_player_intent(intent)
-	}
-
-	fn deselect_all(&mut self) {
-		self.world.for_all_agents(
-			&mut |agent| agent.state.deselect(),
-		);
-	}
-
-	fn select_minion(&mut self, id: Id) {
-		self.debug_flags |= DebugFlags::DEBUG_TARGETS;
-		self.world.agent_mut(id).map(|a| a.state.toggle_selection());
-	}
-
-	pub fn save_gene_pool_to_file(&self) {
-		match self.world.dump() {
-			Err(_) => error!("Failed to save gene pool"),
-			Ok(name) => info!("Saved {}", name),
-		}
-	}
-
-	pub fn save_world_to_file(&mut self) {
-		let result = self.world.serialize();
-		match result {
-			Err(_) => error!("Failed to save world state"),
-			Ok(name) => {
-				info!("Saved {}", name);
-				self.set_last_saved(name);
-			}
-		}
-	}
-
-	fn set_last_saved(&mut self, name: String) {
-		self.last_saved = Some(name)
-	}
-
-	pub fn interact(&mut self, e: Event) {
-		self.bus.post(e.into());
-		self.on_app_event(e)
-	}
-
 	fn on_app_event(&mut self, e: Event) {
 		match e {
 			Event::CamUp(w) => self.camera.push(math::Direction::Up, w),
@@ -444,13 +397,84 @@ impl App {
 				self.camera.velocity(vel);
 			}
 			Event::SelectMinion(id) => self.select_minion(id),
-			Event::DeselectAll => self.deselect_all(),
+			Event::DeselectAll => self.deselect_all_minions(),
 			Event::NewMinion(pos) => self.new_minion(pos),
 			Event::RandomizeMinion(pos) => self.randomize_minion(pos),
 			Event::PrimaryFire(_, _) => { /* Handled by the gameplay system */ }
 			Event::Reload => { /* Handled in the main loop */ }
 			Event::PickMinion(_) => { /* Handled by the physics system */ }
 		}
+	}
+
+	fn init_camera() -> math::Inertial<f32> {
+		math::Inertial::new(5.0, 1.0, 0.5)
+	}
+
+	fn init_lights() -> Cycle<[f32; 4]> {
+		Cycle::new(constants::AMBIENT_LIGHTS)
+	}
+
+	fn init_speed_factors() -> Cycle<SpeedFactor> {
+		Cycle::new(constants::SPEED_FACTORS)
+	}
+
+	fn init_backgrounds() -> Cycle<[f32; 4]> {
+		Cycle::new(constants::BACKGROUNDS)
+	}
+
+	fn randomize_minion(&mut self, pos: Position) {
+		self.world.randomize_minion(pos, Motion::default());
+	}
+
+	fn new_minion(&mut self, pos: Position) {
+		self.world.new_minion(pos, Motion::default());
+	}
+
+	fn primary_fire(&mut self, bullet_speed: f32, rate: SecondsValue) {
+		// forwards the message to the bus
+		self.bus.post(Event::PrimaryFire(bullet_speed, rate).into());
+	}
+
+	fn set_player_intent(&mut self, intent: segment::Intent) {
+		self.world.set_player_intent(intent)
+	}
+
+	fn deselect_all_minions(&mut self) {
+		self.world.for_all_agents(
+			&mut |agent| agent.state.deselect(),
+		);
+	}
+
+	fn select_minion(&mut self, id: Id) {
+		self.debug_flags |= DebugFlags::DEBUG_TARGETS;
+		self.world.agent_mut(id).map(|a| a.state.toggle_selection());
+	}
+
+	pub fn save_gene_pool_to_file(&self) {
+		match self.world.dump() {
+			Err(_) => error!("Failed to save gene pool"),
+			Ok(name) => info!("Saved {}", name),
+		}
+	}
+
+	pub fn save_world_to_file(&mut self) {
+		let result = self.world.serialize();
+		match result {
+			Err(_) => error!("Failed to save world state"),
+			Ok(name) => {
+				info!("Saved {}", name);
+				self.set_last_saved(name);
+			}
+		}
+	}
+
+	fn set_last_saved(&mut self, name: String) {
+		self.last_saved = Some(name)
+	}
+
+	pub fn interact(&mut self, e: Event) {
+		self.bus.post(e.into());
+		self.on_app_event(e)
 	}
 
 	pub fn has_ui_overlay(&self) -> bool {
@@ -507,9 +531,7 @@ impl App {
 	fn from_position(position: &Position) -> Matrix4<f32> {
 		Matrix4::from_translation(cgmath::Vector3::new(position.x, position.y, 0.0))
 	}
-}
 
-impl App {
 	pub fn init(&mut self, mode: SystemMode) {
 		self.init_systems(mode);
 		self.register_all();
