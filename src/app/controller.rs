@@ -86,11 +86,11 @@ impl InputController for DefaultController {
 		let firerate = input_state.gamepad_axis(0, input::Axis::L2);
 		let firepower = input_state.gamepad_axis(0, input::Axis::R2);
 		if firepower >= DEAD_ZONE {
-			events.push(Event::PrimaryFire(firepower, firerate as f64));
+			events.push(Event::PrimaryTrigger(firepower, firerate as f64));
 		} else {
 			if input_state.key_pressed(input::Key::Space) ||
 				mouse_left_pressed {
-				events.push(Event::PrimaryFire(1.0, 1.0));
+				events.push(Event::PrimaryTrigger(1.0, 1.0));
 			}
 		}
 		let thrust = Position {

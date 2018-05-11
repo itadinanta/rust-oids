@@ -404,6 +404,7 @@ impl App {
 			Event::CamDown(w) => self.camera.push(math::Direction::Down, w),
 			Event::CamLeft(w) => self.camera.push(math::Direction::Left, w),
 			Event::CamRight(w) => self.camera.push(math::Direction::Right, w),
+			Event::CamReset => { self.camera.reset(); }
 
 			Event::VectorThrust(None, VectorDirection::None) => {
 				self.world.set_player_intent(segment::Intent::Idle);
@@ -418,11 +419,11 @@ impl App {
 				};
 				self.set_player_intent(segment::Intent::PilotTo(thrust.map(|v| v * THRUST_POWER), pilot_rotation));
 			}
-			Event::PrimaryFire(speed, rate) => {
+			Event::PrimaryTrigger(speed, rate) => {
 				self.primary_fire(BULLET_SPEED_SCALE * speed,
-								  BULLET_FIRE_RATE_SCALE * rate + (1. - BULLET_FIRE_RATE_SCALE));
+								  BULLET_FIRE_RATE_SCALE * rate + (1. - BULLET_FIRE_RATE_SCALE))
 			}
-			Event::CamReset => { self.camera.reset(); }
+
 			Event::NextLight => { self.lights.next(); }
 			Event::PrevLight => { self.lights.prev(); }
 			Event::NextBackground => { self.backgrounds.next(); }
@@ -447,8 +448,9 @@ impl App {
 			Event::DeselectAll => self.deselect_all(),
 			Event::NewMinion(pos) => self.new_minion(pos),
 			Event::RandomizeMinion(pos) => self.randomize_minion(pos),
+			Event::PrimaryFire(_, _) => { /* Handled by the gameplay system */ }
 			Event::Reload => { /* Handled in the main loop */ }
-			Event::PickMinion(position) => { /* Handled by the physics system */ }
+			Event::PickMinion(_) => { /* Handled by the physics system */ }
 		}
 	}
 

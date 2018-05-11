@@ -18,6 +18,7 @@ pub enum Event {
 	CamRight(f32),
 
 	VectorThrust(Option<Position>, VectorDirection),
+	PrimaryTrigger(f32, SecondsValue),
 	PrimaryFire(f32, SecondsValue),
 
 	CamReset,
