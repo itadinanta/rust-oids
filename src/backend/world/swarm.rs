@@ -87,12 +87,12 @@ impl Swarm {
 	pub fn spawn(&mut self, genome: &mut Genome, initial_state: agent::InitialState, timer: &Timer) -> Id {
 		let id = self.next_id();
 		match id.type_of() {
-			AgentType::Minion | AgentType::Spore => info!("spawn: {} as {}", genome, id.type_of()),
+			AgentType::Minion | AgentType::Spore => debug!("spawn: {} as {}", genome, id.type_of()),
 			_ => {}
 		}
-		// dynamic dispatch
-		let entity = self.phenotype.develop(genome, id, initial_state, timer);
-		self.insert(entity)
+		self.rebuild(id, genome, initial_state, timer)
+//		let entity = self.phenotype.develop(genome, id, initial_state, timer);
+//		self.insert(entity)
 	}
 
 	pub fn rebuild(&mut self, id: Id, genome: &mut Genome, initial_state: agent::InitialState, timer: &Timer) -> Id {

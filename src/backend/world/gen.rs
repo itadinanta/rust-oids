@@ -300,7 +300,7 @@ impl Genome {
 			new_genes[i] = (mask & a) | (!mask & b);
 		}
 
-		info!(
+		debug!(
 			"crossover at {}/{}: {} * {} -> {}",
 			byte,
 			bit,
