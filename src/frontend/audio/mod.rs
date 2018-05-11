@@ -50,6 +50,7 @@ pub enum SoundEffect {
 	Fertilised,
 	Eat,
 	Eof,
+	MuteAllVoices,
 	None,
 }
 
@@ -117,6 +118,7 @@ impl AlertPlayer<Alert, self::Error> for SoundSystemAlertPlayer<ThreadedSoundSys
 			&Alert::DieMinion => SoundEffect::DieMinion,
 			&Alert::GrowMinion => SoundEffect::GrowMinion,
 			&Alert::NewBullet(id) => SoundEffect::Bullet(id),
+			&Alert::RestartFromCheckpoint => SoundEffect::MuteAllVoices,
 			_ => SoundEffect::None,
 		};
 		trace!("Playing alert: {:?}", alert);
@@ -148,7 +150,6 @@ impl AlertPlayer<app::Event, self::Error> for SoundSystemAlertPlayer<ThreadedSou
 			&Event::RandomizeMinion(_) => SoundEffect::NewMinion,
 
 			&Event::EndDrag(_, _, _) => SoundEffect::Release(0),
-
 			_ => SoundEffect::None,
 		};
 		trace!("Playing event: {:?}", event);
@@ -238,6 +239,10 @@ impl SoundSystem for ThreadedSoundSystem {
 					Ok(SoundEffect::Eof) => {
 						info!("Requested termination, exiting");
 						break 'sound_main;
+					}
+					Ok(SoundEffect::MuteAllVoices) => {
+						info!("Mute and restart");
+						dsp.lock().unwrap().mute_all_voices()
 					}
 					Ok(sound_effect) => {
 						if stream.is_active().unwrap_or(false) {

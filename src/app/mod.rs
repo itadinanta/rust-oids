@@ -351,7 +351,7 @@ impl App {
 
 	fn primary_fire(&mut self, bullet_speed: f32, rate: SecondsValue) {
 		// forwards the message to the bus
-		self.bus.post(Message::Event(Event::PrimaryFire(bullet_speed, rate)));
+		self.bus.post(Event::PrimaryFire(bullet_speed, rate).into());
 	}
 
 	pub fn set_player_intent(&mut self, intent: segment::Intent) {
@@ -443,8 +443,8 @@ impl App {
 				self.camera.velocity(vel);
 			}
 			Event::PickMinion(position) => {
-				self.pick_minion(position).map(|id|
-					self.select_minion(id));
+				self.pick_minion(position).map(
+					|id| self.select_minion(id));
 			}
 			Event::DeselectAll => self.deselect_all(),
 			Event::NewMinion(pos) => self.new_minion(pos),
@@ -465,7 +465,8 @@ impl App {
 		self.world.clear();
 		if let Some(ref world_file) = self.last_saved {
 			world::persist::Serializer::load(&world_file, &mut self.world).is_ok();
-		}
+		};
+		self.bus.post(world::alert::Alert::RestartFromCheckpoint.into())
 	}
 
 	pub fn is_running(&self) -> bool {
@@ -588,12 +589,11 @@ impl App {
 			(Seconds::new(quantum), speed_factor as usize)
 		};
 
-		if rounds > 1 {
-			// dead rounds
-			for _ in 0..rounds - 1 {
-				self.simulate(dt);
-			}
-		};
+		// dead rounds
+		for _ in 0..rounds - 1 {
+			self.simulate(dt);
+		}
+
 		let simulation_update = self.simulate(dt);
 		self.frame_count += 1;
 

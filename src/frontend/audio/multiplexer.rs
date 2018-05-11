@@ -508,8 +508,7 @@ impl Multiplexer {
 				if self.voices[voice_index].advance(len) {
 					// returns true on EOF
 					terminated_voices.insert(voice_index);
-				}
-				else {
+				} else {
 					trace!("Voice {} playing", voice_index);
 				}
 			}
@@ -520,13 +519,19 @@ impl Multiplexer {
 		}
 	}
 
+	pub fn mute_all_voices(&mut self) {
+		for voice_index in &self.playing_voice_index.clone() {
+			self.free_voice(voice_index);
+			trace!("Voice {} stopped", voice_index);
+		}
+	}
+
 	pub fn trigger(&mut self, effect: SoundEffect) {
 		if let Some(signal_index) = self.sample_map.get(&effect).map(|t| *t) {
 			let signal_length = self.wave_table[signal_index].len();
 			if let Some(index) = self.allocate_voice(Voice::new(signal_index, signal_length)) {
 				trace!("Voice {} playing, {:?}", index, effect);
-			}
-			else {
+			} else {
 				warn!("Not enough voices, skipped {:?}", effect);
 			}
 		}

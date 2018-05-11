@@ -2,6 +2,7 @@
 #[derive(Copy, Clone, Debug)]
 pub enum Alert {
 	BeginSimulation,
+	RestartFromCheckpoint,
 	NewMinion,
 	NewSpore,
 	NewResource,
