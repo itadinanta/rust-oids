@@ -241,7 +241,7 @@ impl SoundSystem for ThreadedSoundSystem {
 						break 'sound_main;
 					}
 					Ok(SoundEffect::MuteAllVoices) => {
-						info!("Mute and restart");
+						debug!("Mute and restart");
 						dsp.lock().unwrap().mute_all_voices()
 					}
 					Ok(sound_effect) => {
@@ -257,7 +257,7 @@ impl SoundSystem for ThreadedSoundSystem {
 			}
 			info!("Closing audio stream");
 			#[cfg(unix)] {
-				// push up thread priority
+				// push down thread priority
 				let thread_id = thread_native_id();
 				assert!(set_thread_priority(thread_id,
 											ThreadPriority::Specific(0),
