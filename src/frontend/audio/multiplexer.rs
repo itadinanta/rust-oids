@@ -292,7 +292,7 @@ impl<S> Default for Delay<S> where S: num::Float {
 pub struct SignalBuilder<T, S>
 	where T: num::Float, S: num::Float + sample::Sample {
 	oscillator: Oscillator<T, S>,
-	tone: Tone<T, S>,
+	tone: Vec<Tone<T, S>>,
 	envelope: Envelope<T, S>,
 	pan: S,
 	sample_rate: T,
@@ -305,7 +305,7 @@ impl<T, S> SignalBuilder<T, S>
 	fn new() -> Self {
 		SignalBuilder {
 			oscillator: Oscillator::sin(),
-			tone: Tone::default(),
+			tone: Vec::new(),
 			envelope: Envelope::default(),
 			sample_rate: NumCast::from(SAMPLE_HZ).unwrap(),
 			pan: NumCast::from(0.5).unwrap(),
@@ -313,10 +313,19 @@ impl<T, S> SignalBuilder<T, S>
 		}
 	}
 
+	fn tone_duration(&self) -> T {
+		NumCast::from(self.tone_seconds().get()).unwrap()
+	}
+
+	fn tone_seconds(&self) -> Seconds {
+		self.tone.iter().fold(Seconds::new(0.0),
+							  |a, t| a + t.duration)
+	}
+
 	fn from_oscillator(oscillator: Oscillator<T, S>) -> Self {
 		SignalBuilder {
 			oscillator,
-			tone: Tone::default(),
+			tone: Vec::new(),
 			envelope: Envelope::ramp_down(seconds(1.0)),
 			sample_rate: NumCast::from(SAMPLE_HZ).unwrap(),
 			pan: NumCast::from(0.5).unwrap(),
@@ -324,7 +333,9 @@ impl<T, S> SignalBuilder<T, S>
 		}
 	}
 
-	fn with_tone(&self, tone: Tone<T, S>) -> Self {
+	fn with_tone(&self, append_tone: Tone<T, S>) -> Self {
+		let mut tone = self.tone.clone();
+		tone.push(append_tone);
 		SignalBuilder {
 			tone,
 			..self.clone()
@@ -339,7 +350,7 @@ impl<T, S> SignalBuilder<T, S>
 	}
 
 	fn with_envelope_ramp_down(&self) -> Self {
-		self.with_envelope(Envelope::ramp_down(self.tone.duration))
+		self.with_envelope(Envelope::ramp_down(self.tone_seconds()))
 	}
 
 	fn with_oscillator(&self, oscillator: Oscillator<T, S>) -> Self {
@@ -373,11 +384,20 @@ impl<T, S> SignalBuilder<T, S>
 
 	fn build(&self) -> Signal<T, [S; CHANNELS]>
 		where T: FloatConst {
-		let f = self.oscillator.clone().signal_function(
-			self.tone.clone(),
-			self.envelope.clone(),
-			self.pan);
-		Signal::<T, [S; CHANNELS]>::new(self.sample_rate, self.tone.duration, f)
+		let signal_functions = self.tone.iter().map(
+			|tone| (tone.duration, self.oscillator.clone().signal_function(
+				tone.clone(),
+				self.envelope.clone(),
+				self.pan))).collect::<Vec<_>>();
+
+		let f = Box::new(move |t| {
+			//let mut acc_t: T = T::zero();
+			//while t < acc_t {
+			//	acc_t += signal_functions.0
+			//}
+			(signal_functions[0].1)(t)
+		});
+		Signal::<T, [S; CHANNELS]>::new(self.sample_rate, self.tone_seconds(), f)
 			.with_delay(self.delay.time, self.delay.tail, self.delay.wet_dry, self.delay.feedback)
 	}
 
@@ -541,7 +561,7 @@ impl Multiplexer {
 #[allow(unused)]
 impl<S, F> Signal<S, F> where S: num::Float {
 	fn new<V>(sample_rate: S, duration: Seconds, f: Box<V>) -> Signal<S, F>
-		where V: Fn(S) -> F + ? Sized {
+		where V: Fn(S) -> F + ?Sized {
 		let samples: usize = (duration.get() * sample_rate.to_f64().unwrap()).round() as usize;
 		let frames = (0..samples)
 			.map(|i| S::from(i).unwrap() / sample_rate)
