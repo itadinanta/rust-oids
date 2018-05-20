@@ -431,12 +431,14 @@ impl Multiplexer {
 
 			map_effect(SoundEffect::Startup, SignalBuilder::from_oscillator(
 				Oscillator::harmonics(&[0., 0.1, 0., 0.2], &[0.6]))
+				.with_tone(Tone::note_octave(Letter::G, 3, seconds(0.05), 0.3))
 				.with_tone(Tone::note_octave(Letter::A, 3, seconds(0.05), 0.3))
-				.with_tone(Tone::note_octave(Letter::D, 4, seconds(0.05), 0.3))
-				.with_tone(Tone::note_octave(Letter::A, 4, seconds(0.9), 0.3))
+				.with_tone(Tone::note_octave(Letter::D, 4, seconds(0.05), 0.2))
+				.with_tone(Tone::note_octave(Letter::E, 4, seconds(0.05), 0.2))
+				.with_tone(Tone::note_octave(Letter::A, 4, seconds(0.9), 0.2))
 				.with_envelope(Envelope::adsr(0.01, 0.5, 0.5, 0.5))
 				.with_pan(0.25)
-				.with_delay_time(seconds(1.0))
+				.with_delay_time(seconds(0.4))
 				.render(&mut wave_table));
 
 			map_effect(SoundEffect::SelectMinion, SignalBuilder::from_oscillator(Oscillator::square())
@@ -489,7 +491,9 @@ impl Multiplexer {
 				.render(&mut wave_table));
 
 			map_effect(SoundEffect::DieMinion, SignalBuilder::from_oscillator(Oscillator::sin())
-				.with_tone(Tone::note_octave(Letter::Eb, 3, seconds(0.5), 0.2))
+				.with_tone(Tone::note_octave(Letter::Eb, 3, seconds(0.15), 0.2))
+				.with_tone(Tone::note_octave(Letter::D, 3, seconds(0.15), 0.2))
+				.with_tone(Tone::note_octave(Letter::C, 3, seconds(0.30), 0.2))
 				.with_pan(1.)
 				.with_delay_time(seconds(0.3))
 				.render(&mut wave_table));
