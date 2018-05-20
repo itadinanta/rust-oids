@@ -384,20 +384,28 @@ impl<T, S> SignalBuilder<T, S>
 
 	fn build(&self) -> Signal<T, [S; CHANNELS]>
 		where T: FloatConst {
-		let signal_functions = self.tone.iter().map(
-			|tone| (tone.duration, self.oscillator.clone().signal_function(
-				tone.clone(),
-				self.envelope.clone(),
-				self.pan))).collect::<Vec<_>>();
-
+		let signal_functions =
+			self.tone.iter().map(
+				|tone| (tone.duration, self.oscillator.clone().signal_function(
+					tone.clone(),
+					self.envelope.clone(),
+					self.pan)))
+				.collect::<Vec<_>>();
+		let duration = self.tone_seconds();
 		let f = Box::new(move |t| {
-			//let mut acc_t: T = T::zero();
-			//while t < acc_t {
-			//	acc_t += signal_functions.0
-			//}
-			(signal_functions[0].1)(t)
+			let mut acc_0: T = T::zero();
+			let mut acc_1: T = T::zero();
+			// TODO: horrible O(n) search, need restructuring of the synth tone logic
+			for &(ref duration, ref interval_function) in &signal_functions {
+				acc_1 = acc_0 + NumCast::from(duration.get()).unwrap();
+				if acc_0 <= t && t < acc_1 {
+					return (*interval_function)(t - acc_0);
+				};
+				acc_0 = acc_1;
+			}
+			(signal_functions.iter().last().unwrap().1)(t - acc_0)
 		});
-		Signal::<T, [S; CHANNELS]>::new(self.sample_rate, self.tone_seconds(), f)
+		Signal::<T, [S; CHANNELS]>::new(self.sample_rate, duration, f)
 			.with_delay(self.delay.time, self.delay.tail, self.delay.wet_dry, self.delay.feedback)
 	}
 
@@ -423,7 +431,9 @@ impl Multiplexer {
 
 			map_effect(SoundEffect::Startup, SignalBuilder::from_oscillator(
 				Oscillator::harmonics(&[0., 0.1, 0., 0.2], &[0.6]))
-				.with_tone(Tone::note_octave(Letter::A, 3, seconds(2.), 0.3))
+				.with_tone(Tone::note_octave(Letter::A, 3, seconds(0.05), 0.3))
+				.with_tone(Tone::note_octave(Letter::D, 4, seconds(0.05), 0.3))
+				.with_tone(Tone::note_octave(Letter::A, 4, seconds(0.9), 0.3))
 				.with_envelope(Envelope::adsr(0.01, 0.5, 0.5, 0.5))
 				.with_pan(0.25)
 				.with_delay_time(seconds(1.0))
@@ -436,7 +446,8 @@ impl Multiplexer {
 				.render(&mut wave_table));
 
 			map_effect(SoundEffect::UserOption, SignalBuilder::from_oscillator(Oscillator::triangle(1.0))
-				.with_tone(Tone::note_octave(Letter::C, 6, seconds(0.1), 0.1))
+				.with_tone(Tone::note_octave(Letter::G, 5, seconds(0.05), 0.1))
+				.with_tone(Tone::note_octave(Letter::C, 6, seconds(0.05), 0.1))
 				.with_envelope(Envelope::adsr(0.01, 0.05, 0.9, 0.05))
 				.with_pan(0.6)
 				.with_delay_time(seconds(0.1))
@@ -450,21 +461,24 @@ impl Multiplexer {
 				.render(&mut wave_table));
 
 			map_effect(SoundEffect::GrowMinion, SignalBuilder::from_oscillator(Oscillator::sin())
-				.with_tone(Tone::note_octave(Letter::C, 3, seconds(0.05), 0.05))
+				.with_tone(Tone::note_octave(Letter::C, 2, seconds(0.01), 0.05))
+				.with_tone(Tone::note_octave(Letter::C, 3, seconds(0.04), 0.05))
 				.with_envelope(Envelope::adsr(0., 0.01, 0.8, 0.))
 				.with_pan(0.5)
 				.with_delay_time(seconds(0.05))
 				.render(&mut wave_table));
 
 			map_effect(SoundEffect::Fertilised, SignalBuilder::from_oscillator(Oscillator::sin())
-				.with_tone(Tone::note_octave(Letter::C, 4, seconds(0.3), 0.1))
+				.with_tone(Tone::note_octave(Letter::E, 4, seconds(0.1), 0.1))
+				.with_tone(Tone::note_octave(Letter::C, 4, seconds(0.2), 0.1))
 				.with_pan(0.6)
 				.with_delay_time(seconds(0.25))
 				.render(&mut wave_table));
 
 			map_effect(SoundEffect::NewSpore, SignalBuilder::from_oscillator(
 				Oscillator::harmonics(&[0., 0.3, 0., 0.1], &[0.6]))
-				.with_tone(Tone::note_octave(Letter::F, 5, seconds(0.3), 0.1))
+				.with_tone(Tone::note_octave(Letter::Bb, 4, seconds(0.05), 0.1))
+				.with_tone(Tone::note_octave(Letter::F, 5, seconds(0.25), 0.05))
 				.with_pan(0.3)
 				.with_delay_time(seconds(0.33))
 				.render(&mut wave_table));
