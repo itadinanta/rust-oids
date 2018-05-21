@@ -1,7 +1,7 @@
 use num;
 
-pub type Rgb<T> = [T; 3];
-pub type Rgba<T> = [T; 4];
+pub type Rgb<T=f32> = [T; 3];
+pub type Rgba<T=f32> = [T; 4];
 
 pub trait ToRgb<T: num::Float> {
 	fn to_rgb(&self) -> Rgb<T>;

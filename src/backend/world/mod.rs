@@ -21,6 +21,7 @@ use std::fs;
 
 use app::constants::*;
 use core::clock::*;
+use core::color::Rgba;
 use core::geometry::*;
 use core::geometry::Transform;
 use core::resource::ResourceLoader;
@@ -40,6 +41,7 @@ pub trait AgentState {
 
 pub struct World {
 	pub extent: Rect,
+	phase: Rgba,
 	swarms: HashMap<AgentType, Swarm>,
 	feeders: Vec<Feeder>,
 	registered: HashSet<Id>,
@@ -117,6 +119,7 @@ impl World {
 		}).collect::<Vec<_>>();
 		World {
 			extent: Rect::new(-WORLD_RADIUS, -WORLD_RADIUS, WORLD_RADIUS, WORLD_RADIUS),
+			phase: COLOR_TRANSPARENT,
 			swarms,
 			feeders,
 			minion_gene_pool: res.load(minion_gene_pool)
@@ -387,6 +390,10 @@ impl World {
 	pub fn swarms(&self) -> &SwarmMap {
 		&self.swarms
 	}
+
+	pub fn phase(&self) -> Rgba { self.phase }
+
+	pub fn phase_mut(&mut self) -> &mut Rgba { &mut self.phase }
 
 	pub fn particles(&self) -> &[Particle] {
 		&self.particles

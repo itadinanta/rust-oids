@@ -30,12 +30,13 @@ pub struct Appearance {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Style {
 	Ball = 0,
-	Flat = 1,
-	Particle = 2,
-	Wireframe = 3,
-	Lines = 4,
-	DebugLines = 5,
-	Count = 6,
+	Flat,
+	Stage,
+	Particle,
+	Wireframe,
+	Lines,
+	DebugLines,
+	Count,
 }
 
 impl Appearance {

@@ -93,10 +93,10 @@ impl App {
 			render::Appearance::rgba(self.lights.get()),
 		);
 		renderer.draw_quad(
-			None,
+			Some(Style::Stage),
 			Matrix4::from_scale(extent.max.x - extent.min.x),
 			1.,
-			render::Appearance::rgba(self.backgrounds.get()),
+			render::Appearance::new(self.backgrounds.get(), self.world.phase()),
 		);
 	}
 
