@@ -23,6 +23,11 @@ pub struct AiSystem {
 }
 
 impl System for AiSystem {
+	fn clear(&mut self) {
+		self.beacons = Box::new([]);
+		self.targets.clear();
+	}
+
 	fn import(&mut self, world: &world::World) {
 		self.beacons = world
 			.feeders()
@@ -44,11 +49,6 @@ impl System for AiSystem {
 			&self.beacons,
 			&mut world.agents_mut(agent::AgentType::Minion),
 		);
-	}
-
-	fn clear(&mut self) {
-		self.beacons = Box::new([]);
-		self.targets.clear();
 	}
 }
 

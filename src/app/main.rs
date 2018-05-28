@@ -111,6 +111,7 @@ pub fn main_loop(minion_gene_pool: &str, world_file: Option<String>, fullscreen:
 		});
 
 		if !app.is_running() {
+			app.save_world_to_file();
 			break 'main;
 		}
 

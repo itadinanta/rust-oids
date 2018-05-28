@@ -28,6 +28,12 @@ pub struct AlifeSystem {
 }
 
 impl System for AlifeSystem {
+	fn clear(&mut self) {
+		self.source = Box::new([]);
+		self.eaten.clear();
+		self.touched.clear();
+	}
+
 	fn import(&mut self, world: &world::World) {
 		self.source = world.feeders().to_vec().into_boxed_slice();
 		self.eaten = Self::find_eaten_resources(
@@ -88,12 +94,6 @@ impl System for AlifeSystem {
 		for _ in 0..fertilised {
 			outbox.post(alert::Alert::DieMinion.into());
 		}
-	}
-
-	fn clear(&mut self) {
-		self.source = Box::new([]);
-		self.eaten.clear();
-		self.touched.clear();
 	}
 }
 

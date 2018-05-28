@@ -414,6 +414,11 @@ impl System for ParticleSystem {
 			if let &Message::NewEmitter(_) = m { true } else { false })));
 	}
 
+	fn clear(&mut self) {
+		self.particles.clear();
+		self.emitters.clear();
+	}
+
 	fn import(&mut self, world: &world::World) {
 		let mut emitters = Vec::new();
 		if let Some(ref inbox) = self.inbox {
@@ -543,11 +548,6 @@ impl System for ParticleSystem {
 			self.emitters.remove(id);
 		}
 
-	}
-
-	fn clear(&mut self) {
-		self.particles.clear();
-		self.emitters.clear();
 	}
 
 	fn update(&mut self, _: &AgentState, dt: Seconds) {

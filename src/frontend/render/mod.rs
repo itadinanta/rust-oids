@@ -221,6 +221,33 @@ pub trait PrimitiveSequence {
 }
 
 impl<T> Draw for T where T: PrimitiveSequence {
+	fn draw_triangle(&mut self, style: Option<Style>, transform: M44, p: &[Position], appearance: Appearance) {
+		if p.len() >= 3 {
+			let v = vec![
+				Vertex::new([p[0].x, p[0].y, 0.0], [0.5 + p[0].x * 0.5, 0.5 + p[0].y * 0.5]),
+				Vertex::new([p[1].x, p[1].y, 0.0], [0.5 + p[1].x * 0.5, 0.5 + p[1].y * 0.5]),
+				Vertex::new([p[2].x, p[2].y, 0.0], [0.5 + p[2].x * 0.5, 0.5 + p[2].y * 0.5]),
+			];
+
+			let i = vec![0, 1, 2];
+
+			self.push_primitive(style.unwrap_or(Style::Wireframe), v, i, transform, appearance)
+				.expect("Unable to draw triangle");
+		}
+	}
+
+	fn draw_quad(&mut self, style: Option<Style>, transform: M44, ratio: f32, appearance: Appearance) {
+		let v = vec![
+			Vertex::new([-ratio, -1.0, 0.0], [0.5 - ratio * 0.5, 0.0]),
+			Vertex::new([ratio, -1.0, 0.0], [0.5 + ratio * 0.5, 0.0]),
+			Vertex::new([ratio, 1.0, 0.0], [0.5 + ratio * 0.5, 1.0]),
+			Vertex::new([-ratio, 1.0, 0.0], [0.5 - ratio * 0.5, 1.0]),
+		];
+
+		self.push_primitive(style.unwrap_or(Style::Flat), v, QUAD_INDICES.to_vec(), transform, appearance)
+			.expect("Unable to draw quad");
+	}
+
 	fn draw_star(&mut self, style: Option<Style>, transform: M44, vertices: &[Position], appearance: Appearance) {
 		let mut v: Vec<_> = vertices
 			.iter()
@@ -263,33 +290,6 @@ impl<T> Draw for T where T: PrimitiveSequence {
 	fn draw_ball(&mut self, style: Option<Style>, transform: M44, appearance: Appearance) {
 		self.push_primitive(style.unwrap_or(Style::Ball), TRI_VERTICES.to_vec(), TRI_INDICES.to_vec(), transform, appearance)
 			.expect("Unable to draw ball");
-	}
-
-	fn draw_quad(&mut self, style: Option<Style>, transform: M44, ratio: f32, appearance: Appearance) {
-		let v = vec![
-			Vertex::new([-ratio, -1.0, 0.0], [0.5 - ratio * 0.5, 0.0]),
-			Vertex::new([ratio, -1.0, 0.0], [0.5 + ratio * 0.5, 0.0]),
-			Vertex::new([ratio, 1.0, 0.0], [0.5 + ratio * 0.5, 1.0]),
-			Vertex::new([-ratio, 1.0, 0.0], [0.5 - ratio * 0.5, 1.0]),
-		];
-
-		self.push_primitive(style.unwrap_or(Style::Flat), v, QUAD_INDICES.to_vec(), transform, appearance)
-			.expect("Unable to draw quad");
-	}
-
-	fn draw_triangle(&mut self, style: Option<Style>, transform: M44, p: &[Position], appearance: Appearance) {
-		if p.len() >= 3 {
-			let v = vec![
-				Vertex::new([p[0].x, p[0].y, 0.0], [0.5 + p[0].x * 0.5, 0.5 + p[0].y * 0.5]),
-				Vertex::new([p[1].x, p[1].y, 0.0], [0.5 + p[1].x * 0.5, 0.5 + p[1].y * 0.5]),
-				Vertex::new([p[2].x, p[2].y, 0.0], [0.5 + p[2].x * 0.5, 0.5 + p[2].y * 0.5]),
-			];
-
-			let i = vec![0, 1, 2];
-
-			self.push_primitive(style.unwrap_or(Style::Wireframe), v, i, transform, appearance)
-				.expect("Unable to draw triangle");
-		}
 	}
 }
 

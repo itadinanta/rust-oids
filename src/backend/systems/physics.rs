@@ -72,6 +72,15 @@ impl System for PhysicsSystem {
 		self.init_extent();
 	}
 
+	fn clear(&mut self) {
+		for i in &self.inbox { i.drain(); }
+		self.touched.borrow_mut().clear();
+		self.handles.clear();
+		self.picked.clear();
+		self.world = Self::new_world(self.touched.clone());
+		self.init_extent();
+	}
+
 	fn register(&mut self, agent: &world::agent::Agent) {
 		// build fixtures
 		let joint_refs = PhysicsSystem::build_fixtures(&mut self.world, &agent);
@@ -224,15 +233,6 @@ impl System for PhysicsSystem {
 			outbox.post(Event::SelectMinion(*id).into());
 		}
 		self.touched.borrow_mut().clear();
-	}
-
-	fn clear(&mut self) {
-		for i in &self.inbox { i.drain(); }
-		self.touched.borrow_mut().clear();
-		self.handles.clear();
-		self.picked.clear();
-		self.world = Self::new_world(self.touched.clone());
-		self.init_extent();
 	}
 }
 

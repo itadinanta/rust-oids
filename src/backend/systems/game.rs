@@ -59,6 +59,11 @@ impl System for GameSystem {
 			if let &Message::Event(Event::PrimaryFire(_, _)) = ev { true } else { false })));
 	}
 
+	fn clear(&mut self) {
+		self.playerstate = PlayerState::default();
+		self.feeders = Vec::new();
+	}
+
 	fn import(&mut self, world: &world::World) {
 		let messages = match self.inbox {
 			Some(ref m) => m.drain(),
@@ -144,11 +149,6 @@ impl System for GameSystem {
 		if world.agents(agent::AgentType::Player).is_empty() {
 			world.init_players();
 		}
-	}
-
-	fn clear(&mut self) {
-		self.playerstate = PlayerState::default();
-		self.feeders = Vec::new();
 	}
 }
 
