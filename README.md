@@ -64,7 +64,7 @@ Aside from the full Rust toolchain, the following packages are required:
 
 For audio:
 
-- libportaudio19-dev
+- portaudio19-dev
 - libasound2-dev
 
 For gamepad:
