@@ -5,7 +5,8 @@
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
   </component>
   <component name="RustProjectSettings">
+    <option name="autoUpdateEnabled" value="false" />
     <option name="toolchainHomeDirectory" value="$USER_HOME$/.cargo/bin" />
-    <option name="useCargoCheckForBuild" value="false" />
+    <option name="useCargoCheckAnnotator" value="true" />
   </component>
 </project>
