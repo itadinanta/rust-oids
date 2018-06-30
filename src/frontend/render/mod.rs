@@ -34,6 +34,7 @@ pub enum Style {
 	Stage,
 	Particle,
 	Wireframe,
+	Lit,
 	Lines,
 	DebugLines,
 	Count,

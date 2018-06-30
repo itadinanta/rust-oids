@@ -26,6 +26,7 @@ out VertexData {
 	vec3 Normal;
 	mat3 TBN;
 	vec2 TexCoord;
+	vec3 BaryCoord;
 	flat int PrimIndex;
 }v_Out;
 
@@ -40,6 +41,7 @@ void main() {
 	vec3 bitangent = cross(normal, tangent);
 
 	v_Out.TBN = mat3(tangent, bitangent, normal);
+	v_Out.BaryCoord = vec3(1/3.,1/3.,1/3.);
 
 	v_Out.TexCoord = a_TexCoord;
 	v_Out.PrimIndex = a_PrimIndex;

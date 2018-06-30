@@ -34,6 +34,7 @@ in VertexData {
 	vec3 Normal;
 	mat3 TBN;
 	vec2 TexCoord;
+	vec3 BaryCoord;
 	flat int PrimIndex;
 } v_In;
 
@@ -85,5 +86,6 @@ void main() {
 		color += light[i].color * intensity * (kd * lambert + ks * specular);
 	}
 	// gl_FragDepth = bump;
-	o_Color = color;
+	o_Color.rgb = color.rgb * color.a;
+	o_Color.a = 0;
 }

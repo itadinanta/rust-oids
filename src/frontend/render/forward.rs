@@ -3,6 +3,7 @@ use cgmath;
 use gfx;
 use gfx::state::ColorMask;
 use gfx::traits::FactoryExt;
+use gfx::state::{Blend, BlendChannel, BlendValue, Equation, Factor};
 use frontend::render::Style;
 use frontend::render::Result;
 use frontend::render::RenderFactoryExt;
@@ -52,6 +53,19 @@ pub type M44 = cgmath::Matrix4<f32>;
 const MAX_NUM_TOTAL_LIGHTS: usize = 16;
 const MAX_NUM_TOTAL_TRANSFORM: usize = 256;
 
+pub const PREMULT: Blend = Blend {
+	color: BlendChannel {
+		equation: Equation::Add,
+		source: Factor::One,
+		destination: Factor::OneMinus(BlendValue::SourceAlpha),
+	},
+	alpha: BlendChannel {
+		equation: Equation::Add,
+		source: Factor::One,
+		destination: Factor::One,
+	},
+};
+
 gfx_defines!(
 	constant PointLight {
 		propagation: [f32; 4] = "propagation",
@@ -84,7 +98,7 @@ gfx_defines!(
 		fragment_args: gfx::ConstantBuffer <FragmentArgs > = "cb_FragmentArgs",
 		material_args: gfx::ConstantBuffer< MaterialArgs > = "cb_MaterialArgs",
 		lights: gfx::ConstantBuffer < PointLight > = "u_Lights",
-		color_target: gfx::BlendTarget <formats::RenderColorFormat> = ("o_Color", ColorMask::all(), gfx::preset::blend::ADD),
+		color_target: gfx::BlendTarget <formats::RenderColorFormat> = ("o_Color", ColorMask::all(), PREMULT),
 		depth_target: gfx::DepthTarget <formats::RenderDepthFormat> = gfx::preset::depth::LESS_EQUAL_WRITE,
 	}
 	/*
@@ -141,7 +155,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 		};
 
 		let flat_shaders = load_shaders!("lighting", "lighting_flat")?;
-		let solid_shaders = load_shaders!("lighting", "lighting_poly")?;
+		let wire_shaders = load_shaders!("lighting", "lighting_poly")?;
+		let solid_shaders = load_shaders!("triangle_edge", "lighting", "lighting_poly")?;
 		let stage_shaders = load_shaders!("lighting", "lighting_stage")?;
 		let particle_shaders = load_shaders!("lighting", "ripple_particle")?;
 		let ball_shaders = load_shaders!("point_ball", "lighting", "lighting_poly")?;
@@ -190,9 +205,16 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 		)?;
 		let wireframe_pso = Self::new_pso(
 			factory,
-			&solid_shaders,
+			&wire_shaders,
 			gfx::Primitive::TriangleList,
 			line_rasterizer,
+			init.clone(),
+		)?;
+		let lit_pso = Self::new_pso(
+			factory,
+			&solid_shaders,
+			gfx::Primitive::TriangleList,
+			solid_rasterizer,
 			init.clone(),
 		)?;
 		let lines_pso = Self::new_pso(
@@ -221,6 +243,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 				stage_pso,
 				particle_pso,
 				wireframe_pso,
+				lit_pso,
 				lines_pso,
 				debug_lines_pso,
 			],

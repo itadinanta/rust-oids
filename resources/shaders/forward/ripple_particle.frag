@@ -35,6 +35,7 @@ in VertexData {
 	vec3 Normal;
 	mat3 TBN;
 	vec2 TexCoord;
+	vec3 BaryCoord;
 	flat int PrimIndex;
 }v_In;
 
@@ -56,5 +57,8 @@ void main() {
 	float e = intensity; // or something
 	float w = cos((phase - r) * frequency);
 	float f = exp(-r) * w * w * (r < 1 ? 1 : 0);
-	o_Color = u_Emissive * e * f;
+
+	vec4 color = u_Emissive * e * f;
+	o_Color.rgb = color.rgb * color.a;
+	o_Color.a = 0;
 }

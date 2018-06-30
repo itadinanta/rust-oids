@@ -34,6 +34,7 @@ in VertexData {
 	vec3 Normal;
 	mat3 TBN;
 	vec2 TexCoord;
+	vec3 BaryCoord;
 	flat int PrimIndex;
 } v_In;
 
@@ -54,7 +55,8 @@ void main() {
 	float f = clamp(u_Effect.x * 2, 0, 1);
 	float e = clamp(abs(cos(r - u_Effect.y) + sin(dy - 2 * u_Effect.y)), 0, 1);
 
-	vec4 color = u_Emissive * e * f;
+	vec4 color = u_Emissive * 0.25;
+	vec4 highlight_color = u_Emissive * e * f * 4.0;
 
 	vec3 normal = v_In.TBN * vec3(dx, dy, sqrt(1 - r));
 
@@ -81,5 +83,10 @@ void main() {
 		color += light[i].color * intensity * (kd * lambert + ks * specular);
 	}
 	// gl_FragDepth = bump;
-	o_Color = color;
+	//	o_Color = color;
+	// gl_FragDepth = bump;
+	float r_mask = smoothstep(1, 0.999, r); // soft edge
+	float h_mask = smoothstep(0.3, 0, min(v_In.BaryCoord.y, v_In.BaryCoord.z) * 2.);
+	o_Color.rgb = (color.rgb + h_mask * highlight_color.rgb) * r_mask * color.a;
+	o_Color.a = clamp(r_mask * 0.9 * color.a, 0, 1);
 }

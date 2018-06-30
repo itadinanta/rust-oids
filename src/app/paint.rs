@@ -57,16 +57,16 @@ impl App {
 							batch_buffer.draw_ball(None, transform, appearance);
 						}
 						obj::Shape::Star { .. } => {
-							batch_buffer.draw_star(None, transform, &mesh.vertices[..], appearance);
+							batch_buffer.draw_star(Some(Style::Lit), transform, &mesh.vertices[..], appearance);
 						}
 						obj::Shape::Poly { .. } => {
-							batch_buffer.draw_star(None, transform, &mesh.vertices[..], appearance);
+							batch_buffer.draw_star(Some(Style::Lit), transform, &mesh.vertices[..], appearance);
 						}
 						obj::Shape::Box { ratio, .. } => {
-							batch_buffer.draw_quad(Some(Style::Wireframe), transform, ratio, appearance);
+							batch_buffer.draw_quad(Some(Style::Lit), transform, ratio, appearance);
 						}
 						obj::Shape::Triangle { .. } => {
-							batch_buffer.draw_triangle(None, transform, &mesh.vertices[0..3], appearance);
+							batch_buffer.draw_triangle(Some(Style::Lit), transform, &mesh.vertices[0..3], appearance);
 						}
 					}
 				}
@@ -100,14 +100,19 @@ impl App {
 		);
 	}
 
-	fn paint_hud<R>(&self, renderer: &mut R)
-		where R: render::DrawBuffer {
+	fn paint_feeders<R>(&self, renderer: &mut R) where R: render::DrawBuffer {
 		let mut batch_buffer = render::PrimitiveBuffer::new();
 		for e in self.world.feeders() {
 			let transform = Self::from_position(&e.transform().position);
 			batch_buffer.draw_ball(None, transform, render::Appearance::rgba(self.lights.get()));
 		}
+		renderer.draw_buffer(batch_buffer)
+	}
+
+	fn paint_hud<R>(&self, renderer: &mut R)
+		where R: render::DrawBuffer {
 		if self.debug_flags.contains(DebugFlags::DEBUG_TARGETS) {
+			let mut batch_buffer = render::PrimitiveBuffer::new();
 			use cgmath::*;
 			for (_, agent) in self.world.agents(world::agent::AgentType::Minion).iter() {
 				if agent.state.selected() {
@@ -176,14 +181,15 @@ impl App {
 					}
 				}
 			}
+			renderer.draw_buffer(batch_buffer)
 		};
-		renderer.draw_buffer(batch_buffer)
 	}
 
 	pub fn paint<R>(&self, renderer: &mut R)
 		where R: render::Draw + render::DrawBatch + render::DrawBuffer {
-		self.paint_minions(renderer);
 		self.paint_extent(renderer);
+		self.paint_feeders(renderer);
+		self.paint_minions(renderer);
 		self.paint_particles(renderer);
 		self.paint_particles_trails(renderer);
 		self.paint_hud(renderer);

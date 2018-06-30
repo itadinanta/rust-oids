@@ -35,6 +35,7 @@ in VertexData {
 	vec3 Normal;
 	mat3 TBN;
 	vec2 TexCoord;
+	vec3 BaryCoord;
 	flat int PrimIndex;
 }v_In;
 
@@ -54,5 +55,7 @@ void main() {
 
 	float f = clamp(u_Effect.x * 2, 0, 1);
 	float e = clamp(abs(cos(r - u_Effect.y) + sin(dy - 2 * u_Effect.y)), 0, 1);
-	o_Color = u_Emissive * e * f;
+	vec4 color = u_Emissive * e * f;
+	o_Color.rgb = color.rgb * color.a;
+	o_Color.a = 0;
 }
