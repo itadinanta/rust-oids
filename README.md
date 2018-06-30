@@ -35,24 +35,25 @@ Eventually I plan to plug in some sort of gameplay and release as a free game. S
 
 ### Interaction
 
-You can interact with the simulation by shooting Resources at the minions. **Gamepad** supported!
+You can interact with the simulation by shooting Resources at the minions. **Gamepad** supported.
 
 ## Feedback
 - feel free to post [issues on GitHub](https://github.com/itadinanta/rust-oids/issues)
-- also send me interesting gene pools (F6 to get snapshots, see instructions below)
+- also send me interesting gene pools (F6/F7 to get snapshots, see instructions below)
 
 ## Acknowledgements
 
 This project started as a test bed for the Rust language and toolchain, [GFX](https://github.com/gfx-rs/gfx) and [box2d wrapper](https://github.com/Bastacyclop/rust_box2d), and could have not existed without those.
 
-## Videos
+## Videos/Screenshots
 
 Some rust-oids competing for territory and resources, and the player messing up with them!
 
-[![Play 1](https://img.youtube.com/vi/wChKsu28st8/0.jpg)](https://www.youtube.com/watch?v=wChKsu28st8 "Click to watch video")
+[![Play 1](https://i.ytimg.com/vi/_854pBbodps/0.jpg)](https://youtu.be/_854pBbodps "Click to watch video")
 
+![image 1](img/capture_0551.png)
 
-[![Play 2](https://img.youtube.com/vi/2M84AUo_GX0/0.jpg)](https://www.youtube.com/watch?v=2M84AUo_GX0 "Click to watch video")
+![image 2](img/capture_1058.png)
 
 ## Prerequisites/platforms
 
@@ -94,7 +95,7 @@ Options:
 
 ## How to play
 
-*New!* Gamepad support (tested with DS4, in Windows via [DS4Windows](http://ds4windows.com/))
+Gamepad is supported (tested with DS4, in Windows via [DS4Windows](http://ds4windows.com/))
 
 - Left stick, WASD: move
 - Right stick, Q, E: aim
@@ -107,8 +108,10 @@ Options:
 - Ctrl + Middle mouse click: new random rustoid.
 - Ctrl + Left mouse clik: select minion for tracing
 - Z: deselect minion for tracing
+- F5: reload shaders (development)
 - F6: snapshot current gene pool into the **resources** folder
-- F5: reload shaders
+- F7: quick save
+- F8: reload last save
 - V,B: set background tone
 - K,L: change light intensity
 - 0, Home: reset camera pan
