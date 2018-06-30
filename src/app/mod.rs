@@ -51,8 +51,8 @@ pub fn run(args: &[OsString]) {
 	let mut opt = Options::new();
 	opt.optflag("t", "terminal", "Headless mode");
 	opt.optopt("f", "fullscreen", "Fullscreen mode on monitor X", "0");
-	opt.optopt("i", "infile", "Load world file", "resources/20180423_234300.json");
-	opt.optflag("r", "resume", "Resume from last snapshot");
+	opt.optopt("i", "initial", "Start from specific snapshot", "resources/20180423_234300.json");
+	opt.optflag("n", "new", "Ignore last snapshot, start from new population");
 	opt.optopt("w", "width", "Window width", "1024");
 	opt.optopt("h", "height", "Window height", "1024");
 	opt.optopt("a", "audio_device", "Audio device index (portaudio)", "0");
@@ -64,7 +64,7 @@ pub fn run(args: &[OsString]) {
 			let mut world_file = options.opt_str("i");
 
 			// TODO: tidy up
-			if options.opt_present("r") && world_file.is_none() {
+			if !options.opt_present("n") && world_file.is_none() {
 				let mut max_path = "".to_owned();
 				if let Ok(dir) = fs::read_dir("resources") {
 					for entry in dir {
