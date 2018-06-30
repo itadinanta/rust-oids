@@ -19,6 +19,7 @@ use std::sync::Arc;
 
 use app;
 use winit::{self, WindowEvent, VirtualKeyCode, KeyboardInput};
+use gl;
 use glutin;
 use glutin::GlContext;
 
@@ -52,6 +53,9 @@ pub fn main_loop(minion_gene_pool: &str, world_file: Option<String>, fullscreen:
 			&events_loop,
 		);
 
+	//use gl;
+	gl::ReadPixels::load_with(|s| { window.get_proc_address(s) as *const _ });
+
 	let (w, h, _, _) = frame_buffer.get_dimensions();
 
 	let mut encoder = factory.create_command_buffer().into();
@@ -63,7 +67,7 @@ pub fn main_loop(minion_gene_pool: &str, world_file: Option<String>, fullscreen:
 	let renderer = &mut render::ForwardRenderer::new(&mut factory, &mut encoder, &res, &frame_buffer).unwrap();
 	let mapper = app::WinitEventMapper::new();
 
-	// Create a new game and run it.
+	// Create a new game and run it
 	let mut app = app::App::new(w as u32, h as u32, 100.0, &res, minion_gene_pool, world_file);
 
 	let mut ui = ui::conrod_ui::Ui::new(&res,
@@ -156,7 +160,7 @@ pub fn main_loop(minion_gene_pool: &str, world_file: Option<String>, fullscreen:
 
 		// push the commands
 		renderer.end_frame(&mut device);
-
+		unsafe { gl::ReadPixels(0, 0, w as i32, h as i32, gl::GL_RGB, gl::GL_UNSIGNED_BYTE, 0); }
 		window.swap_buffers()
 			.expect("swap_buffers() failed");
 		renderer.cleanup(&mut device);
