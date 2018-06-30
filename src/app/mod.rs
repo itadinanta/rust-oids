@@ -602,6 +602,10 @@ impl App {
 	}
 
 	pub fn update(&mut self) -> FrameUpdate {
+		self.update_with_quantum(None)
+	}
+
+	pub fn update_with_quantum(&mut self, quantum_target: Option<f64>) -> FrameUpdate {
 		let frame_time = self.frame_stopwatch.restart(&self.wall_clock);
 		self.frame_elapsed.tick(frame_time);
 
@@ -614,7 +618,7 @@ impl App {
 		self.update_input::<DefaultController>(frame_time_smooth);
 		self.receive();
 		let speed_factor = if self.is_paused { 0.0 as SpeedFactor } else { self.speed_factors.get() };
-		let quantum = num::clamp(target_duration, MIN_FRAME_LENGTH, MAX_FRAME_LENGTH);
+		let quantum = quantum_target.unwrap_or(num::clamp(target_duration, MIN_FRAME_LENGTH, MAX_FRAME_LENGTH));
 		let (dt, rounds) = if speed_factor <= 1.0 {
 			(Seconds::new(speed_factor * quantum), 1)
 		} else {

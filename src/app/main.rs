@@ -8,6 +8,10 @@ use frontend::audio::{self, SoundSystem};
 use frontend::ui;
 use frontend::gfx_window_glutin;
 
+extern crate image;
+
+use self::image::{GenericImage, ImageBuffer};
+
 use conrod;
 
 use core::resource::filesystem::ResourceLoaderBuilder;
@@ -79,7 +83,7 @@ pub fn main_loop(minion_gene_pool: &str, world_file: Option<String>, fullscreen:
 		.expect("Failure in audio initialization");
 	let mut audio_alert_player = audio::ThreadedAlertPlayer::new(audio);
 	app.init(app::SystemMode::Interactive);
-
+	let mut images = Vec::new();
 	'main: loop {
 		gamepad.poll_events(|event| app.on_input_event(&event));
 
@@ -120,8 +124,8 @@ pub fn main_loop(minion_gene_pool: &str, world_file: Option<String>, fullscreen:
 		}
 
 		// update and measure, let the app determine the appropriate frame length
-		let frame_update = app.update();
-
+		let frame_update = app.update_with_quantum(Some(1.0 / 60.0));
+		let frame_number = frame_update.count;
 		let camera = render::Camera::ortho(
 			app.camera.position(),
 			app.viewport.scale,
@@ -157,14 +161,33 @@ pub fn main_loop(minion_gene_pool: &str, world_file: Option<String>, fullscreen:
 		}
 
 		app.play_alerts(&mut audio_alert_player);
-
 		// push the commands
 		renderer.end_frame(&mut device);
-		unsafe { gl::ReadPixels(0, 0, w as i32, h as i32, gl::GL_RGB, gl::GL_UNSIGNED_BYTE, 0); }
+//			let ref mut fout = File::create("test.png").unwrap();
 		window.swap_buffers()
 			.expect("swap_buffers() failed");
+		if frame_number >= 1000 {
+			let mut buf: Vec<u8> = vec![0u8; w as usize * h as usize * 3];
+			unsafe { gl::ReadPixels(0, 0, w as i32, h as i32, gl::RGB, gl::UNSIGNED_BYTE, buf.as_mut_ptr() as *mut _); }
+			let mut img = ImageBuffer::new(w as u32, h as u32);
+			for i in 0..h as u32 {
+				for j in 0..w as u32 {
+					let base: usize = 3 * (j + (h as u32 - i - 1) * w as u32) as usize;
+					let r = buf[base + 0];
+					let g = buf[base + 1];
+					let b = buf[base + 2];
+					img.put_pixel(j, i, image::Rgb([r, g, b]));
+				}
+			}
+			images.push(img);
+		}
 		renderer.cleanup(&mut device);
 	};
+	for (frame, img) in images.into_iter().enumerate() {
+		let filename = format!("capture/capture_{:04}.png", frame);
+		println!("Saving image {}", filename);
+		img.save(filename).expect("Could not write image");
+	}
 }
 
 pub fn main_loop_headless(minion_gene_pool: &str, world_file: Option<String>) {
