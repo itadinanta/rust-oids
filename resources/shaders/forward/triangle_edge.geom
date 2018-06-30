@@ -53,6 +53,8 @@ V read_vert(int i) {
 	return result;
 }
 
+const float SCALE = 1.2;
+
 void main() {
 	V o = read_vert(0);
 	V u = read_vert(1);
@@ -66,12 +68,11 @@ void main() {
 	bc.TexCoord = (o.TexCoord + u.TexCoord + v.TexCoord) / 3.0;
 	bc.PrimIndex = o.PrimIndex;
 
-	float scale = 1.1;
 	//o.GlPosition.xy = (o.GlPosition.xy - bc.GlPosition.xy) * scale + bc.GlPosition.xy;
-	u.GlPosition.xy = (u.GlPosition.xy - o.GlPosition.xy) * scale + o.GlPosition.xy;
-	u.TexCoord = (u.TexCoord - o.TexCoord) * scale + o.TexCoord;
-	v.GlPosition.xy = (v.GlPosition.xy - o.GlPosition.xy) * scale + o.GlPosition.xy;
-	v.TexCoord = (v.TexCoord - o.TexCoord) * scale + o.TexCoord;
+	u.GlPosition.xy = (u.GlPosition.xy - o.GlPosition.xy) * SCALE + o.GlPosition.xy;
+	u.TexCoord = (u.TexCoord - o.TexCoord) * SCALE + o.TexCoord;
+	v.GlPosition.xy = (v.GlPosition.xy - o.GlPosition.xy) * SCALE + o.GlPosition.xy;
+	v.TexCoord = (v.TexCoord - o.TexCoord) * SCALE + o.TexCoord;
 	o.BaryCoord = vec3(1,0,0);
 	u.BaryCoord = vec3(0,1,0);
 	v.BaryCoord = vec3(0,0,1);

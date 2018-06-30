@@ -40,6 +40,10 @@ in VertexData {
 
 out vec4 o_Color;
 
+const float EDGE_WIDTH = 0.25;
+const float SPOKE_WIDTH = 0.1;
+const float BASE_ALPHA = 0.0;
+
 void main() {
 	vec4 kd = vec4(0.2, 0.2, 0.2, 1.0);
     vec4 ks = vec4(1.0, 1.0, 1.0, 1.0);
@@ -49,16 +53,18 @@ void main() {
 	float dy = 2 * clamp(v_In.TexCoord.y, 0, 1) - 1;
 	float r = min(1, dx * dx + dy * dy);
 
-	float r_mask = smoothstep(1, 0.999, r); // soft edge
-	float h_mask = smoothstep(0.3, 0, min(v_In.BaryCoord.y, v_In.BaryCoord.z) * 2.); // insets highlight
-
 	vec4 u_Emissive = material[v_In.PrimIndex].u_Emissive;
 	vec4 u_Effect = material[v_In.PrimIndex].u_Effect;
 
 	float f = clamp(u_Effect.x * 2, 0, 1);
 	float e = clamp(abs(cos(r - u_Effect.y) + sin(dy - 2 * u_Effect.y)), 0, 1);
 
-	vec4 color = vec4(u_Emissive.rgb, clamp(f, 0, 1))  * 0.25;
+	float r_mask = smoothstep(1, 1 - EDGE_WIDTH, r); // soft edge
+	float h_mask = clamp(1 - r / f, 0, 1) * smoothstep(SPOKE_WIDTH, 0, pow(r, f) * min(v_In.BaryCoord.y, v_In.BaryCoord.z)); // insets highlight
+
+	vec4 color_diffuse = vec4(u_Emissive.rgb, clamp(f, 0, 1))  * 0.25;
+	vec4 color_lambert = vec4(0,0,0,1);
+	vec4 color_specular = vec4(0,0,0,1);
 	vec4 highlight_color = u_Emissive * e * f * 4.0;
 
 	vec3 normal = v_In.TBN * vec3(dx, dy, sqrt(1 - r));
@@ -83,9 +89,13 @@ void main() {
 		} else {
 			specular = vec4(0.0);
 		}
-		color += light[i].color * intensity * (kd * lambert + ks * specular);
+		vec4 light_intensity = light[i].color * intensity;
+		color_lambert += light_intensity * kd * lambert;
+		color_specular += light_intensity * ks * specular;
 	}
 
-	o_Color.rgb = (color.rgb * color.a + h_mask * highlight_color.rgb) * r_mask;
-	o_Color.a = clamp(r_mask * 0.9 * color.a, 0, 1);
+	vec4 solid_color = color_diffuse + color_lambert + color_specular;
+
+	o_Color.rgb = r_mask * (h_mask * highlight_color.rgb + solid_color.rgb); //(color.rgb * color.a + h_mask * highlight_color.rgb) * r_mask;
+	o_Color.a = r_mask * color_diffuse.a; // clamp(r_mask * BASE_ALPHA * color.a, 0, 1);
 }

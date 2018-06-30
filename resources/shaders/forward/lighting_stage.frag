@@ -40,10 +40,13 @@ in VertexData {
 
 out vec4 o_Color;
 
+const float FREQ_X = 25.0;
+const float FREQ_Y = 19.1;
+
 void main() {
-	vec4 kd = vec4(0.2, 0.2, 0.2, 1.0);
-    vec4 ks = vec4(1.0, 1.0, 1.0, 1.0);
-	vec4 kp = vec4(64.0, 32.0, 64.0, 1.0);
+	const vec4 kd = vec4(0.2, 0.2, 0.2, 1.0);
+    const vec4 ks = vec4(1.0, 1.0, 1.0, 1.0);
+	const vec4 kp = vec4(64.0, 32.0, 64.0, 1.0);
 
 
 	float dx = 2 * clamp(v_In.TexCoord.x, 0, 1) - 1;
@@ -58,8 +61,8 @@ void main() {
 
     vec4 color = u_Emissive;
 
-	dx += (1 - r) * cos(a * 25.0) * f;
-	dy += (1 - r) * sin(a * 19.1) * f;
+	dx += (1 - r) * cos(a * FREQ_X) * f;
+	dy += (1 - r) * sin(a * FREQ_Y) * f;
 	r = min(1, dx * dx + dy * dy);
 	vec3 normal = v_In.TBN * normalize(vec3(dx, dy, sqrt(1 - r)));
 
@@ -85,7 +88,7 @@ void main() {
 		}
 		color += light[i].color * intensity * (kd * lambert + ks * specular);
 	}
-	// gl_FragDepth = bump;
+
 	o_Color.rgb = color.rgb * color.a;
 	o_Color.a = 0;
 }

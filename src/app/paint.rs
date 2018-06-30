@@ -187,11 +187,11 @@ impl App {
 
 	pub fn paint<R>(&self, renderer: &mut R)
 		where R: render::Draw + render::DrawBatch + render::DrawBuffer {
-		self.paint_extent(renderer);
 		self.paint_feeders(renderer);
 		self.paint_minions(renderer);
 		self.paint_particles(renderer);
 		self.paint_particles_trails(renderer);
+		self.paint_extent(renderer);
 		self.paint_hud(renderer);
 	}
 }
