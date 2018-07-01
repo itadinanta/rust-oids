@@ -40,7 +40,7 @@ in VertexData {
 
 out vec4 o_Color;
 
-const float EDGE_WIDTH = 0.25;
+const float EDGE_WIDTH = 0.15;
 const float SPOKE_WIDTH = 0.1;
 const float BASE_ALPHA = 0.0;
 const float NORMAL_SLOPE = 0.6;
@@ -63,7 +63,7 @@ void main() {
 	float f = clamp(u_Effect.x * 2, 0, 1);
 	float e = clamp(abs(cos(r - u_Effect.y) + sin(dy - 2 * u_Effect.y)), 0, 1);
 
-	float r_mask = smoothstep(1, 1 - EDGE_WIDTH, r); // soft edge
+	float r_mask = smoothstep(1, 1 - EDGE_WIDTH, max(r, 1 - v_In.BaryCoord.x)); // soft edge
 	float h_mask = clamp(1 - r / f, 0, 1) * smoothstep(SPOKE_WIDTH * e, 0, pow(r, f) * min(v_In.BaryCoord.y, v_In.BaryCoord.z)); // insets highlight
 
 	vec4 color_diffuse = vec4(u_Emissive.rgb, clamp(f, 0, 1))  * DIFFUSE_GAIN;
@@ -78,13 +78,13 @@ void main() {
 		float dist = length(delta);
 		float inv_dist = 1. / dist;
 		vec4 light_to_point_normal = delta * inv_dist;
-		float intensity = dot(light[i].propagation.xyz,
-				vec3(1., inv_dist, inv_dist * inv_dist));
+		// attenuation, 2nd deg polynomial
+		float intensity = dot(light[i].propagation.xyz, vec3(1., inv_dist, inv_dist * inv_dist));
 		float lambert = max(0, dot(light_to_point_normal, vec4(normal, 0.0)));
 
 		vec4 specular;
 		if (lambert >= 0.0) {
-//			Blinn-Phong:
+			//	Blinn-Phong:
 			vec3 lightDir = light_to_point_normal.xyz;
 			vec3 viewDir = vec3(0.0, 0.0, 1.0); // ortho, normalize(-v_In.Position.xyz); perspective
 			vec3 halfDir = normalize(lightDir + viewDir); // can be done in vertex shader
@@ -100,6 +100,6 @@ void main() {
 
 	vec4 solid_color = color_diffuse + color_lambert + color_specular;
 
-	o_Color.rgb = r_mask * (h_mask * highlight_color.rgb + solid_color.rgb); //(color.rgb * color.a + h_mask * highlight_color.rgb) * r_mask;
-	o_Color.a = r_mask * color_diffuse.a; // clamp(r_mask * BASE_ALPHA * color.a, 0, 1);
+	o_Color.rgb = r_mask * (h_mask * highlight_color.rgb + solid_color.rgb);
+	o_Color.a = r_mask * color_diffuse.a;
 }

@@ -53,7 +53,8 @@ V read_vert(int i) {
 	return result;
 }
 
-const float SCALE = 1.2;
+const float SCALE = 1.1;
+const float SCALE_UV = 1.1;
 
 void main() {
 	V o = read_vert(0);
@@ -68,33 +69,15 @@ void main() {
 	bc.TexCoord = (o.TexCoord + u.TexCoord + v.TexCoord) / 3.0;
 	bc.PrimIndex = o.PrimIndex;
 
-	//o.GlPosition.xy = (o.GlPosition.xy - bc.GlPosition.xy) * scale + bc.GlPosition.xy;
 	u.GlPosition.xy = (u.GlPosition.xy - o.GlPosition.xy) * SCALE + o.GlPosition.xy;
-	u.TexCoord = (u.TexCoord - o.TexCoord) * SCALE + o.TexCoord;
 	v.GlPosition.xy = (v.GlPosition.xy - o.GlPosition.xy) * SCALE + o.GlPosition.xy;
-	v.TexCoord = (v.TexCoord - o.TexCoord) * SCALE + o.TexCoord;
+
+	u.TexCoord = (u.TexCoord - o.TexCoord) * SCALE_UV + o.TexCoord;
+	v.TexCoord = (v.TexCoord - o.TexCoord) * SCALE_UV + o.TexCoord;
+
 	o.BaryCoord = vec3(1,0,0);
 	u.BaryCoord = vec3(0,1,0);
 	v.BaryCoord = vec3(0,0,1);
-
-//	V u0 = u;
-//	u.GlPosition -= o.GlPosition;
-//	u.Position -= o.Position;
-//	u.TexCoord -= o.TexCoord;
-//
-//	v.GlPosition -= o.GlPosition;
-//	v.Position -= o.Position;
-//	v.TexCoord -= o.TexCoord;
-
-//	emit_vertex(bc);
-//	emit_vertex(o);
-//	emit_vertex(u);
-//	emit_vertex(bc);
-//	emit_vertex(u);
-//	emit_vertex(v);
-//	emit_vertex(bc);
-//	emit_vertex(v);
-//	emit_vertex(o);
 
 	emit_vertex(o);
 	emit_vertex(u);
