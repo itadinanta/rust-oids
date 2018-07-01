@@ -64,7 +64,7 @@ void main() {
 	dx += (1 - r) * cos(a * FREQ_X) * f;
 	dy += (1 - r) * sin(a * FREQ_Y) * f;
 	r = min(1, dx * dx + dy * dy);
-	vec3 normal = v_In.TBN * normalize(vec3(dx, dy, sqrt(1 - r)));
+	vec3 normal = v_In.TBN * normalize(vec3(dx, dy, sqrt(1-r)));
 
 	for (int i = 0; i < u_LightCount; i++) {
 		vec4 delta = light[i].center - v_In.Position;
