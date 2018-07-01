@@ -43,7 +43,7 @@ out vec4 o_Color;
 const float EDGE_WIDTH = 0.25;
 const float SPOKE_WIDTH = 0.1;
 const float BASE_ALPHA = 0.0;
-const float NORMAL_SLOPE = 0.75;
+const float NORMAL_SLOPE = 0.6;
 
 void main() {
 	vec4 kd = vec4(0.2, 0.2, 0.2, 1.0);
@@ -68,7 +68,7 @@ void main() {
 	vec4 color_specular = vec4(0,0,0,1);
 	vec4 highlight_color = u_Emissive * e * f * 4.0;
 
-	vec3 normal = normalize(v_In.TBN * vec3(dx, dy, NORMAL_SLOPE * sqrt(1 - r)));
+	vec3 normal = v_In.TBN * normalize(vec3(dx, dy, NORMAL_SLOPE * sqrt(1 - r)));
 
 	for (int i = 0; i < u_LightCount; i++) {
 		vec4 delta = light[i].center - v_In.Position;
