@@ -22,6 +22,7 @@ use core::view::WorldTransform;
 use frontend::input;
 use frontend::ui;
 use std::fs;
+use std::ffi::OsStr;
 use std::env;
 use std::path;
 use getopts::Options;
@@ -53,39 +54,38 @@ pub fn run(args: &[OsString]) {
 	let mut opt = Options::new();
 	opt.optflag("t", "terminal", "Headless mode");
 	opt.optopt("f", "fullscreen", "Fullscreen mode on monitor X", "0");
-	opt.optopt("i", "initial", "Start from specific snapshot", ".config/rust-oids/saved_state/20180423_234300.json");
+	opt.optopt("i", "initial", "Start from specific snapshot", "~/.config/rust-oids/saved_state/20180423_234300.json");
 	opt.optflag("n", "new", "Ignore last snapshot, start from new population");
 	opt.optopt("w", "width", "Window width", "1024");
 	opt.optopt("h", "height", "Window height", "1024");
 	opt.optopt("a", "audio_device", "Audio device index (portaudio)", "0");
 	match opt.parse(args) {
 		Ok(options) => {
-			let pool_file_name = options.free.get(1).map(|n| n.as_str()).unwrap_or(
-				"minion_gene_pool.csv",
-			);
-			let mut world_file = options.opt_str("i");
+			let pool_file_name = options.free.get(1).map(|n| n.as_str())
+				.unwrap_or(DEFAULT_MINION_GENE_POOL_FILE);
 
+			let mut world_file: Option<path::PathBuf> = options.opt_str("i").map(|s| path::Path::new(&s).to_owned());
+
+			// we look for the last save in ~/.config/rust-oids/saved_state
+			// but only if -n and -i are not specified
 			let user_home = env::home_dir().unwrap_or(path::PathBuf::from("."));
-			let config_home = user_home.join(".config/rust-oids");
-
-			// TODO: tidy up
+			let config_home = user_home.join(CONFIG_DIR_HOME);
 			if !options.opt_present("n") && world_file.is_none() {
-				let mut max_path = "".to_owned();
-				if let Ok(dir) = fs::read_dir(config_home.join("saved_state")) {
+				let mut max_path = None;
+				if let Ok(dir) = fs::read_dir(config_home.join(CONFIG_DIR_SAVED_STATE)) {
+					// get the highest file in lexicographical order
+					// or the first one, if any
 					for entry in dir {
-						let path_name = entry
-							.unwrap().path()
-							.to_str()
-							.unwrap_or("")
-							.to_owned();
-						if path_name.ends_with(".json") && path_name > max_path {
-							max_path = path_name;
+						let path_name = entry.unwrap().path().to_owned();
+						if path_name.extension().to_owned().and_then(OsStr::to_str) == Some("json")
+							&& max_path.as_ref().map(|m| path_name > *m).unwrap_or(true) {
+							max_path = Some(path_name.clone());
 						}
 					}
 				}
-				if !max_path.is_empty() {
-					info!("Resuming simulation from snapshot: {}", &max_path);
-					world_file = Some(max_path);
+				if max_path.is_some() {
+					world_file = max_path;
+					info!("Resuming simulation from snapshot: {:?}", world_file.as_ref().unwrap());
 				}
 			}
 
@@ -267,7 +267,9 @@ pub struct App {
 	alert_inbox: Inbox,
 	systems: Systems,
 	//
-	last_saved: Option<String>,
+	config_home: path::PathBuf,
+	saved_state_dir: path::PathBuf,
+	last_saved: Option<path::PathBuf>,
 	//
 	debug_flags: DebugFlags,
 	has_ui_overlay: bool,
@@ -302,7 +304,7 @@ pub struct FrameUpdate {
 }
 
 impl App {
-	pub fn new<R>(w: u32, h: u32, scale: f32, config_home: path::PathBuf, resource_loader: &R, minion_gene_pool: &str, world_file: Option<String>) -> Self
+	pub fn new<R>(w: u32, h: u32, scale: f32, config_home: path::PathBuf, resource_loader: &R, minion_gene_pool: &str, world_file: Option<path::PathBuf>) -> Self
 		where
 			R: ResourceLoader<u8>, {
 		let system_timer = SystemTimer::new();
@@ -320,7 +322,7 @@ impl App {
 		let mut new_world = world::World::new(resource_loader, minion_gene_pool);
 		let last_saved = world_file.map(|world_file| {
 			world::persist::Serializer::load(&world_file, &mut new_world)
-				.expect(&format!("Could not load {}", &world_file));
+				.expect(&format!("Could not load {:?}", &world_file));
 			world_file
 		});
 
@@ -349,6 +351,8 @@ impl App {
 			is_running: true,
 			is_paused: false,
 			// savegame
+			saved_state_dir: config_home.join(CONFIG_DIR_SAVED_STATE),
+			config_home,
 			last_saved,
 			// debug
 			debug_flags: DebugFlags::empty(),
@@ -456,24 +460,24 @@ impl App {
 	}
 
 	pub fn save_gene_pool_to_file(&self) {
-		match self.world.dump() {
+		match self.world.dump(&self.saved_state_dir) {
 			Err(_) => error!("Failed to save gene pool"),
-			Ok(name) => info!("Saved {}", name),
+			Ok(path) => info!("Saved {:?}", path),
 		}
 	}
 
 	pub fn save_world_to_file(&mut self) {
-		let result = self.world.serialize();
+		let result = self.world.serialize(&self.saved_state_dir);
 		match result {
 			Err(_) => error!("Failed to save world state"),
-			Ok(name) => {
-				info!("Saved {}", name);
-				self.set_last_saved(name);
+			Ok(path) => {
+				info!("Saved {:?}", path);
+				self.set_last_saved(path);
 			}
 		}
 	}
 
-	fn set_last_saved(&mut self, name: String) {
+	fn set_last_saved(&mut self, name: path::PathBuf) {
 		self.last_saved = Some(name)
 	}
 

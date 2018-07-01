@@ -17,6 +17,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::io;
 use std::io::Write;
+use std::path;
 use std::fs;
 
 use app::constants::*;
@@ -419,16 +420,18 @@ impl World {
 		v.into_boxed_slice()
 	}
 
-	pub fn serialize(&self) -> io::Result<String> {
+	pub fn serialize(&self, containing_dir: &path::Path) -> io::Result<path::PathBuf> {
 		let now: DateTime<Utc> = Utc::now();
-		let file_name = now.format(DUMP_FILE_PATTERN_JSON).to_string();
-		persist::Serializer::save(&file_name, self)?;
+		fs::create_dir_all(containing_dir).is_ok();
+		let file_name = containing_dir.join(now.format(DUMP_FILE_PATTERN_JSON).to_string());
+		persist::Serializer::save(file_name.as_path(), self)?;
 		Ok(file_name)
 	}
 
-	pub fn dump(&self) -> io::Result<String> {
+	pub fn dump(&self, containing_dir: &path::Path) -> io::Result<path::PathBuf> {
 		let now: DateTime<Utc> = Utc::now();
-		let file_name = now.format(DUMP_FILE_PATTERN_CSV).to_string();
+		let file_name = containing_dir.join(now.format(DUMP_FILE_PATTERN_CSV).to_string());
+		fs::create_dir_all(containing_dir).is_ok();
 		let mut f = fs::File::create(&file_name)?;
 		for (_, agent) in self.agents(agent::AgentType::Minion).iter() {
 			info!("{}", agent.dna().to_base64(base64::STANDARD));

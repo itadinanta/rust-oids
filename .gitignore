@@ -10,3 +10,5 @@ nohup.out
 .cargo/config
 *.trace
 *.profile
+capture/
+capture.ntp

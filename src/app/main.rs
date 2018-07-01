@@ -18,23 +18,24 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use app;
+use app::constants::*;
 use winit::{self, WindowEvent, VirtualKeyCode, KeyboardInput};
 use glutin;
 use glutin::GlContext;
 
 pub fn make_resource_loader(config_home: &path::Path) -> ResourceLoader {
 	let res = ResourceLoaderBuilder::new()
-		.add(path::Path::new("./resources"))
-		.add(config_home.join("resources").as_path())
-		.add(config_home.join("saved_state").as_path())
-		.add(path::Path::new("/usr/local/share/rust-oids/resources"))
-		.add(path::Path::new("/usr/share/rust-oids/resources"))
+		.add(path::Path::new(CONFIG_DIR_RESOURCES))
+		.add(config_home.join(CONFIG_DIR_RESOURCES).as_path())
+		.add(config_home.join(CONFIG_DIR_SAVED_STATE).as_path())
+		.add(path::Path::new("/usr/local/share/rust-oids").join(CONFIG_DIR_RESOURCES).as_path())
+		.add(path::Path::new("/usr/share/rust-oids").join(CONFIG_DIR_RESOURCES).as_path())
 		.build();
 
 	res
 }
 
-pub fn main_loop(minion_gene_pool: &str, config_home: path::PathBuf, world_file: Option<String>, fullscreen: Option<usize>, width: Option<u32>, height: Option<u32>, audio_device: Option<usize>) {
+pub fn main_loop(minion_gene_pool: &str, config_home: path::PathBuf, world_file: Option<path::PathBuf>, fullscreen: Option<usize>, width: Option<u32>, height: Option<u32>, audio_device: Option<usize>) {
 	const WIDTH: u32 = 1280;
 	const HEIGHT: u32 = 1024;
 
@@ -173,7 +174,7 @@ pub fn main_loop(minion_gene_pool: &str, config_home: path::PathBuf, world_file:
 	};
 }
 
-pub fn main_loop_headless(minion_gene_pool: &str, config_home: path::PathBuf, world_file: Option<String>) {
+pub fn main_loop_headless(minion_gene_pool: &str, config_home: path::PathBuf, world_file: Option<path::PathBuf>) {
 	const WIDTH: u32 = 1024;
 	const HEIGHT: u32 = 1024;
 	let res = make_resource_loader(&config_home);

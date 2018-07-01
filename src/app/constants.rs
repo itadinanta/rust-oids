@@ -48,6 +48,7 @@ pub const RESTITUTION_PLAYER: f32 = 0.1;
 pub const FRICTION_DEFAULT: f32 = 0.7;
 pub const FRICTION_PLAYER: f32 = 0.6;
 pub const B2_LINEAR_SLOP: f32 = 0.005;
+pub const DEFAULT_MINION_GENE_POOL_FILE: &'static str = "minion_gene_pool.csv";
 pub const DEFAULT_MINION_GENE_POOL: &'static [&'static str] = &[
 	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
@@ -66,8 +67,11 @@ pub const DEFAULT_RESOURCE_GENE_POOL: &'static [&'static str] = &[
 	"M00sWS0M"
 ];
 
-pub const DUMP_FILE_PATTERN_CSV: &'static str = "resources/%Y%m%d_%H%M%S.csv";
-pub const DUMP_FILE_PATTERN_JSON: &'static str = "resources/%Y%m%d_%H%M%S.json";
+pub const CONFIG_DIR_HOME: &'static str = ".config/rust-oids";
+pub const CONFIG_DIR_SAVED_STATE: &'static str = "saved_state";
+pub const CONFIG_DIR_RESOURCES: &'static str = "resources";
+pub const DUMP_FILE_PATTERN_CSV: &'static str = "%Y%m%d_%H%M%S.csv";
+pub const DUMP_FILE_PATTERN_JSON: &'static str = "%Y%m%d_%H%M%S.json";
 
 pub const AMBIENT_LIGHTS: &'static [[f32; 4]] = &[
 	[1.0, 1.0, 1.0, 1.0],
