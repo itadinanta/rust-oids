@@ -44,6 +44,9 @@ const float EDGE_WIDTH = 0.25;
 const float SPOKE_WIDTH = 0.1;
 const float BASE_ALPHA = 0.0;
 const float NORMAL_SLOPE = 0.6;
+const float EFFECT_BIAS = 0.5;
+const float EFFECT_GAIN = 4.0;
+const float DIFFUSE_GAIN = 0.25;
 
 void main() {
 	vec4 kd = vec4(0.2, 0.2, 0.2, 1.0);
@@ -61,12 +64,12 @@ void main() {
 	float e = clamp(abs(cos(r - u_Effect.y) + sin(dy - 2 * u_Effect.y)), 0, 1);
 
 	float r_mask = smoothstep(1, 1 - EDGE_WIDTH, r); // soft edge
-	float h_mask = clamp(1 - r / f, 0, 1) * smoothstep(SPOKE_WIDTH, 0, pow(r, f) * min(v_In.BaryCoord.y, v_In.BaryCoord.z)); // insets highlight
+	float h_mask = clamp(1 - r / f, 0, 1) * smoothstep(SPOKE_WIDTH * e, 0, pow(r, f) * min(v_In.BaryCoord.y, v_In.BaryCoord.z)); // insets highlight
 
-	vec4 color_diffuse = vec4(u_Emissive.rgb, clamp(f, 0, 1))  * 0.25;
+	vec4 color_diffuse = vec4(u_Emissive.rgb, clamp(f, 0, 1))  * DIFFUSE_GAIN;
 	vec4 color_lambert = vec4(0,0,0,1);
 	vec4 color_specular = vec4(0,0,0,1);
-	vec4 highlight_color = u_Emissive * e * f * 4.0;
+	vec4 highlight_color = u_Emissive * (e + EFFECT_BIAS) * f * EFFECT_GAIN;
 
 	vec3 normal = v_In.TBN * normalize(vec3(dx, dy, NORMAL_SLOPE * sqrt(1 - r)));
 
