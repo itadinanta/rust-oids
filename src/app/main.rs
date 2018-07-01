@@ -1,5 +1,4 @@
 use std::path;
-
 use frontend::render;
 use frontend::input::EventMapper;
 use frontend::input::GamepadEventLoop;
@@ -11,6 +10,7 @@ use frontend::gfx_window_glutin;
 use conrod;
 
 use core::resource::filesystem::ResourceLoaderBuilder;
+use core::resource::filesystem::ResourceLoader;
 use core::math::Directional;
 use core::clock::{seconds, SecondsValue, Hourglass, SystemTimer};
 use ctrlc;
@@ -22,7 +22,19 @@ use winit::{self, WindowEvent, VirtualKeyCode, KeyboardInput};
 use glutin;
 use glutin::GlContext;
 
-pub fn main_loop(minion_gene_pool: &str, world_file: Option<String>, fullscreen: Option<usize>, width: Option<u32>, height: Option<u32>, audio_device: Option<usize>) {
+pub fn make_resource_loader(config_home: &path::Path) -> ResourceLoader {
+	let res = ResourceLoaderBuilder::new()
+		.add(path::Path::new("./resources"))
+		.add(config_home.join("resources").as_path())
+		.add(config_home.join("saved_state").as_path())
+		.add(path::Path::new("/usr/local/share/rust-oids/resources"))
+		.add(path::Path::new("/usr/share/rust-oids/resources"))
+		.build();
+
+	res
+}
+
+pub fn main_loop(minion_gene_pool: &str, config_home: path::PathBuf, world_file: Option<String>, fullscreen: Option<usize>, width: Option<u32>, height: Option<u32>, audio_device: Option<usize>) {
 	const WIDTH: u32 = 1280;
 	const HEIGHT: u32 = 1024;
 
@@ -56,15 +68,13 @@ pub fn main_loop(minion_gene_pool: &str, world_file: Option<String>, fullscreen:
 
 	let mut encoder = factory.create_command_buffer().into();
 
-	let res = ResourceLoaderBuilder::new()
-		.add(path::Path::new("resources"))
-		.build();
+	let res = make_resource_loader(&config_home);
 
 	let renderer = &mut render::ForwardRenderer::new(&mut factory, &mut encoder, &res, &frame_buffer).unwrap();
 	let mapper = app::WinitEventMapper::new();
 
 	// Create a new game and run it.
-	let mut app = app::App::new(w as u32, h as u32, 100.0, &res, minion_gene_pool, world_file);
+	let mut app = app::App::new(w as u32, h as u32, 100.0, config_home, &res, minion_gene_pool, world_file);
 
 	let mut ui = ui::conrod_ui::Ui::new(&res,
 										&mut factory,
@@ -163,14 +173,12 @@ pub fn main_loop(minion_gene_pool: &str, world_file: Option<String>, fullscreen:
 	};
 }
 
-pub fn main_loop_headless(minion_gene_pool: &str, world_file: Option<String>) {
+pub fn main_loop_headless(minion_gene_pool: &str, config_home: path::PathBuf, world_file: Option<String>) {
 	const WIDTH: u32 = 1024;
 	const HEIGHT: u32 = 1024;
-	let res = ResourceLoaderBuilder::new()
-		.add(path::Path::new("resources"))
-		.build();
+	let res = make_resource_loader(&config_home);
 
-	let mut app = app::App::new(WIDTH, HEIGHT, 100.0, &res, minion_gene_pool, world_file);
+	let mut app = app::App::new(WIDTH, HEIGHT, 100.0, config_home, &res, minion_gene_pool, world_file);
 	let mut no_audio = ui::NullAlertPlayer::new();
 	app.init(app::SystemMode::Batch);
 

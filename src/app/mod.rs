@@ -22,6 +22,8 @@ use core::view::WorldTransform;
 use frontend::input;
 use frontend::ui;
 use std::fs;
+use std::env;
+use std::path;
 use getopts::Options;
 use num;
 use rayon::prelude::*;
@@ -51,7 +53,7 @@ pub fn run(args: &[OsString]) {
 	let mut opt = Options::new();
 	opt.optflag("t", "terminal", "Headless mode");
 	opt.optopt("f", "fullscreen", "Fullscreen mode on monitor X", "0");
-	opt.optopt("i", "initial", "Start from specific snapshot", "resources/20180423_234300.json");
+	opt.optopt("i", "initial", "Start from specific snapshot", ".config/rust-oids/saved_state/20180423_234300.json");
 	opt.optflag("n", "new", "Ignore last snapshot, start from new population");
 	opt.optopt("w", "width", "Window width", "1024");
 	opt.optopt("h", "height", "Window height", "1024");
@@ -63,10 +65,13 @@ pub fn run(args: &[OsString]) {
 			);
 			let mut world_file = options.opt_str("i");
 
+			let user_home = env::home_dir().unwrap_or(path::PathBuf::from("."));
+			let config_home = user_home.join(".config/rust-oids");
+
 			// TODO: tidy up
 			if !options.opt_present("n") && world_file.is_none() {
 				let mut max_path = "".to_owned();
-				if let Ok(dir) = fs::read_dir("resources") {
+				if let Ok(dir) = fs::read_dir(config_home.join("saved_state")) {
 					for entry in dir {
 						let path_name = entry
 							.unwrap().path()
@@ -85,14 +90,14 @@ pub fn run(args: &[OsString]) {
 			}
 
 			if options.opt_present("t") {
-				main::main_loop_headless(pool_file_name, world_file);
+				main::main_loop_headless(pool_file_name, config_home, world_file);
 			} else {
 				let fullscreen = options.opt_default("f", "0").and_then(|v| v.parse::<usize>().ok());
 				let width = options.opt_default("w", "1024").and_then(|v| v.parse::<u32>().ok());
 				let height = options.opt_default("h", "1024").and_then(|v| v.parse::<u32>().ok());
 				let audio_device = options.opt_default("a", "0").and_then(|v| v.parse::<usize>().ok());
 
-				main::main_loop(pool_file_name, world_file, fullscreen, width, height, audio_device);
+				main::main_loop(pool_file_name, config_home, world_file, fullscreen, width, height, audio_device);
 			}
 		}
 		Err(message) => {
@@ -297,7 +302,7 @@ pub struct FrameUpdate {
 }
 
 impl App {
-	pub fn new<R>(w: u32, h: u32, scale: f32, resource_loader: &R, minion_gene_pool: &str, world_file: Option<String>) -> Self
+	pub fn new<R>(w: u32, h: u32, scale: f32, config_home: path::PathBuf, resource_loader: &R, minion_gene_pool: &str, world_file: Option<String>) -> Self
 		where
 			R: ResourceLoader<u8>, {
 		let system_timer = SystemTimer::new();
