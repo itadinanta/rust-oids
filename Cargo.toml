@@ -1,8 +1,11 @@
 [package]
 name = "rust-oids"
 version = "0.10.0"
+readme = "README.md"
+description = "A Rust-based A-life playground"
+license = "Apache 2.0"
 authors = [
-	"norru <nigu.orru@gmail.com>"
+	"Nico Orru <nigu.orru@gmail.com>"
 ]
 
 [features]
@@ -54,9 +57,29 @@ glutin = "0.12.0"
 conrod = { features = ["winit"], version = "0.58.0" }
 #conrod = { features = ["winit"], git = "https://github.com/itadinanta/conrod", branch = "branch/winit_0.10.0" }
 
-#
+#controller
 gilrs = "*"
 
 #
 [target.'cfg(unix)'.dependencies]
 thread-priority = "*"
+
+[package.metadata.deb]
+maintainer = "Nico Orru <nigu.orru@gmail.com>"
+copyright = "2016-2018, Nico Orru <nigu.orru@gmail.com>"
+license-file = ["LICENSE", "4"]
+extended-description = """A Rust-based A-life playground. \
+https://github.com/itadinanta/rust-oids"""
+depends = "$auto,libbox2d2.3.0,libportaudio2,libasound2,libudev1"
+section = "games"
+priority = "optional"
+assets = [
+	["target/release/rust-oids", "usr/bin/", "755"],
+	["resources/minion_gene_pool.csv", "usr/share/rust-oids/resources/", "644"],
+	["resources/fonts/*", "usr/share/rust-oids/resources/fonts/", "644"],
+	["resources/shaders/effects/*", "usr/share/rust-oids/resources/shaders/effects/", "644"],
+	["resources/shaders/forward/*", "usr/share/rust-oids/resources/shaders/forward/", "644"],
+	["README.md", "usr/share/doc/rust-oids/", "644"],
+	["TODO.md", "usr/share/doc/rust-oids/", "644"],
+	["LICENSE", "usr/share/doc/rust-oids/", "644"],
+]
