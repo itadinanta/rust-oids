@@ -404,11 +404,12 @@ pub trait Overlay<R, F, C>
 	fn overlay<O>(&mut self, callback: O) where O: FnMut(&mut F, &mut gfx::Encoder<R, C>);
 }
 
+pub enum Light {
+	PointLight { position: Position, color: formats::Rgba, attenuation: formats::Rgba }
+}
+
 pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>>: Draw {
-	fn setup_frame(
-		&mut self, camera: &Camera, background_color: formats::Rgba, light_color: formats::Rgba,
-		light_position: &[Position],
-	);
+	fn setup_frame(&mut self, camera: &Camera, background_color: formats::Rgba, lights: &[Light]);
 	fn begin_frame(&mut self);
 	fn resolve_frame_buffer(&mut self);
 	fn end_frame<D: gfx::Device<Resources=R, CommandBuffer=C>>(&mut self, device: &mut D);
@@ -557,33 +558,34 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 
 impl<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> Renderer<R, C>
 for ForwardRenderer<'e, 'l, R, C, F, L> {
-	fn setup_frame(
-		&mut self, camera: &Camera, background_color: formats::Rgba, light_color: formats::Rgba,
-		light_position: &[Position],
-	) {
+	fn setup_frame(&mut self, camera: &Camera, background_color: formats::Rgba, lights: &[Light]) {
 		self.background_color = background_color;
 // 		self.light_color = light_color;
 // 		self.light_position = light_position;
-		let mut lights: Vec<forward::PointLight> = Vec::new();
+		let mut forward_lights: Vec<forward::PointLight> = Vec::new();
 
-		lights.push(forward::PointLight {
-			propagation: [0.3, 0.5, 0.4, 0.0],
-			center: [-15.0, -5.0, 1.0, 1.0],
-			color: [0.3, 0.0, 0.0, 1.0],
-		});
-		for p in light_position {
-			lights.push(forward::PointLight {
-				propagation: [0.2, 0.8, 0.1, 0.1],
-				center: [p.x, p.y, 2.0, 1.0],
-				color: light_color,
-			});
+//		lights.push(forward::PointLight {
+//			propagation: [0.3, 0.5, 0.4, 0.0],
+//			center: [-15.0, -5.0, 1.0, 1.0],
+//			color: [0.3, 0.0, 0.0, 1.0],
+//		});
+		for p in lights.into_iter() {
+			match p {
+				Light::PointLight { position, color, attenuation } => {
+					forward_lights.push(forward::PointLight {
+						propagation: *attenuation,
+						center: [position.x, position.y, 2.0, 1.0],
+						color: *color,
+					});
+				}
+			}
 		}
 
 		self.pass_forward_lighting.setup(
 			&mut self.encoder,
 			camera.projection,
 			camera.view,
-			&lights,
+			&forward_lights,
 		).expect("Unable to setup lighting");
 	}
 

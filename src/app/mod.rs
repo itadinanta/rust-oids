@@ -21,6 +21,7 @@ use core::view::Viewport;
 use core::view::WorldTransform;
 use frontend::input;
 use frontend::ui;
+use frontend::render;
 use std::fs;
 use std::ffi::OsStr;
 use std::env;
@@ -276,8 +277,7 @@ pub struct App {
 }
 
 pub struct Environment {
-	pub light_color: Rgba,
-	pub light_positions: Box<[Position]>,
+	pub lights: Box<[render::Light]>,
 	pub background_color: Rgba,
 }
 

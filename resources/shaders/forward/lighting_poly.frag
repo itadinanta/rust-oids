@@ -60,12 +60,16 @@ void main() {
 	vec4 u_Emissive = material[v_In.PrimIndex].u_Emissive;
 	vec4 u_Effect = material[v_In.PrimIndex].u_Effect;
 
+	// plasma-like animation effects
 	float f = clamp(u_Effect.x * 2, 0, 1);
 	float e = clamp(abs(cos(r - u_Effect.y) + sin(dy - 2 * u_Effect.y)), 0, 1);
 
-	float r_mask = smoothstep(1, 1 - EDGE_WIDTH, max(r, 1 - v_In.BaryCoord.x)); // soft edge
+ 	// soft edge
+	float r_mask = smoothstep(1, 1 - EDGE_WIDTH, max(r, 1 - v_In.BaryCoord.x));
+	// highlight, spokes
 	float h_mask = clamp(1 - r / f, 0, 1) * smoothstep(SPOKE_WIDTH * e, 0, pow(r, f) * min(v_In.BaryCoord.y, v_In.BaryCoord.z)); // insets highlight
 
+	// some lighting
 	vec4 color_diffuse = vec4(u_Emissive.rgb, clamp(f, 0, 1))  * DIFFUSE_GAIN;
 	vec4 color_lambert = vec4(0,0,0,1);
 	vec4 color_specular = vec4(0,0,0,1);

@@ -1,19 +1,32 @@
 use super::*;
+use app::constants::*;
 use frontend::render;
 use frontend::render::Style;
 use frontend::render::Draw;
 
 impl App {
 	pub fn environment(&self) -> Environment {
+		let light_color = self.lights.get();
+		let mut emitter_lights = self.world
+			.feeders()
+			.iter()
+			.map(|e| render::Light::PointLight {
+				position: e.transform().position,
+				color: light_color,
+				attenuation: [0.2, 0.8, 0.1, 0.1],
+			})
+			.collect::<Vec<_>>();
+		if let Some(player_position) = self.world.get_player_world_position() {
+			emitter_lights.push(render::Light::PointLight {
+				position: player_position,
+				color: [COLOR_SUNSHINE[0], COLOR_SUNSHINE[1], COLOR_SUNSHINE[2], 1.0],
+				attenuation: [0.0, 0.0, 0.1, 0.05],
+			});
+		}
+
 		Environment {
-			light_color: self.lights.get(),
 			background_color: self.backgrounds.get(),
-			light_positions: self.world
-				.feeders()
-				.iter()
-				.map(|e| e.transform().position)
-				.collect::<Vec<_>>()
-				.into_boxed_slice(),
+			lights: emitter_lights.into_boxed_slice(),
 		}
 	}
 

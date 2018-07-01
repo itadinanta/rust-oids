@@ -137,12 +137,10 @@ pub fn main_loop(minion_gene_pool: &str, config_home: path::PathBuf, world_file:
 
 		let environment = app.environment();
 
-		let light_positions = environment.light_positions.as_ref();
 		renderer.setup_frame(
 			&camera,
 			environment.background_color,
-			environment.light_color,
-			light_positions,
+			&environment.lights,
 		);
 		// draw a frame
 		renderer.begin_frame();
