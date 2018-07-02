@@ -42,6 +42,8 @@ out vec4 o_Color;
 
 const float EDGE_WIDTH = 0.15;
 const float SPOKE_WIDTH = 0.1;
+const float SPOKE_SCALE = 0.1;
+const float SPOKE_OFFSET = 1.0;
 const float BASE_ALPHA = 0.0;
 const float NORMAL_SLOPE = 0.6;
 const float EFFECT_BIAS = 0.5;
@@ -67,7 +69,7 @@ void main() {
  	// soft edge
 	float r_mask = smoothstep(1, 1 - EDGE_WIDTH, max(r, 1 - v_In.BaryCoord.x));
 	// highlight, spokes
-	float h_mask = smoothstep(0, SPOKE_WIDTH, r * e * (v_In.BaryCoord.y * v_In.BaryCoord.z) - 0.99 + f);
+	float h_mask = smoothstep(SPOKE_SCALE * f - SPOKE_WIDTH, SPOKE_SCALE * f + SPOKE_WIDTH, r * e * (v_In.BaryCoord.y * v_In.BaryCoord.z));
 	//clamp(1 - r / f, 0, 1) * smoothstep(SPOKE_WIDTH * e, 0, pow(r, f) * min(v_In.BaryCoord.y, v_In.BaryCoord.z)); // insets highlight
 
 	// some lighting
