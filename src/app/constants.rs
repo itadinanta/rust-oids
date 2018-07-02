@@ -33,6 +33,7 @@ pub const MATURITY_DEFAULT: f32 = 1.0;
 pub const WORLD_RADIUS: f32 = 80.;
 pub const EMITTER_DISTANCE: f32 = 30.;
 pub const EMITTER_PERIOD: SecondsValue = 0.4;
+#[allow(unused)]
 pub const EMITTER_SPREAD_ANGLE: f32 = consts::PI / 12.;
 pub const BULLET_SPEED_SCALE: f32 = 100.;
 pub const BULLET_FIRE_RATE_SCALE: SecondsValue = 0.5;

@@ -62,7 +62,9 @@ impl AgentState for World {
 
 #[derive(Clone)]
 pub enum Emission {
+	#[allow(unused)]
 	CW(Angle),
+	#[allow(unused)]
 	CCW(Angle),
 	Random,
 }

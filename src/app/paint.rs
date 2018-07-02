@@ -1,5 +1,4 @@
 use super::*;
-use app::constants::*;
 use frontend::render;
 use frontend::render::Style;
 use frontend::render::Draw;

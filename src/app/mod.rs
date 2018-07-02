@@ -268,6 +268,7 @@ pub struct App {
 	alert_inbox: Inbox,
 	systems: Systems,
 	//
+	#[allow(unused)]
 	config_home: path::PathBuf,
 	saved_state_dir: path::PathBuf,
 	last_saved: Option<path::PathBuf>,
