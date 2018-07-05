@@ -69,7 +69,7 @@ void main() {
  	// soft edge
 	float r_mask = smoothstep(1, 1 - EDGE_WIDTH, max(r, 1 - v_In.BaryCoord.x));
 	// highlight, spokes
-	float h_mask = smoothstep(SPOKE_SCALE * f - SPOKE_WIDTH, SPOKE_SCALE * f + SPOKE_WIDTH, r * e * (v_In.BaryCoord.y * v_In.BaryCoord.z));
+	float h_mask = smoothstep(-SPOKE_WIDTH, SPOKE_WIDTH, r * e * (v_In.BaryCoord.y * v_In.BaryCoord.z) - SPOKE_SCALE * f);
 	//clamp(1 - r / f, 0, 1) * smoothstep(SPOKE_WIDTH * e, 0, pow(r, f) * min(v_In.BaryCoord.y, v_In.BaryCoord.z)); // insets highlight
 
 	// some lighting
