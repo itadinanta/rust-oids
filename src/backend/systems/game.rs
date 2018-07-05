@@ -1,7 +1,9 @@
 use super::*;
 use std::f32::consts;
+use num;
 use rand;
 use rand::Rng;
+use cgmath::InnerSpace;
 use app::constants::*;
 use app::Event;
 use core::clock::*;
@@ -95,6 +97,7 @@ impl System for GameSystem {
 	}
 
 	fn update(&mut self, _: &world::AgentState, dt: Seconds) {
+		let rng = &mut rand::thread_rng();
 		self.timer.tick(dt);
 		for e in &mut self.feeders {
 			e.spawned = e.to_spawn;
@@ -104,6 +107,8 @@ impl System for GameSystem {
 				e.hourglass.flip(&self.timer);
 				e.to_spawn += 1;
 			}
+			let tangent = Position::new(-e.position.y, e.position.x).normalize();
+			e.position += tangent * rng.next_f32() * dt.get() as f32;
 		}
 		// Byzantine way of processing trigger presses without trigger releases
 		// I should think of something less convoluted
@@ -136,6 +141,10 @@ impl System for GameSystem {
 					Motion::new(Velocity::new(r.cos(), r.sin()) * e.velocity, e.spin),
 				);
 			}
+		}
+
+		for (i, d) in self.feeders.iter().enumerate() {
+			world.feeders_mut()[i].transform_to(Transform::from_position(d.position));
 		}
 
 		if self.playerstate.bullet_ready {

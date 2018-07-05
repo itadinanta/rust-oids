@@ -390,6 +390,10 @@ impl World {
 		self.feeders.as_slice()
 	}
 
+	pub fn feeders_mut(&mut self) -> &mut [Feeder] {
+		self.feeders.as_mut_slice()
+	}
+
 	pub fn swarms(&self) -> &SwarmMap {
 		&self.swarms
 	}
