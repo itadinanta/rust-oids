@@ -1,6 +1,5 @@
 use super::*;
 use std::f32::consts;
-use num;
 use rand;
 use rand::Rng;
 use cgmath::InnerSpace;
