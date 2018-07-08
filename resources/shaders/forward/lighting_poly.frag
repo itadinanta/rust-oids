@@ -43,7 +43,8 @@ out vec4 o_Color;
 const float EDGE_WIDTH = 0.15;
 const float SPOKE_WIDTH = 0.1;
 const float SPOKE_SCALE = 0.1;
-const float SPOKE_OFFSET = 1.0;
+const float SPOKE_OFFSET = 0.1;
+const float SPOKE_POWER = 6.0;
 const float BASE_ALPHA = 0.0;
 const float NORMAL_SLOPE = 0.6;
 const float EFFECT_BIAS = 0.5;
@@ -69,11 +70,12 @@ void main() {
 	// plasma-like animation effects
 	float f = clamp(u_Effect.x * 2, 0, 1);
 	float e = clamp(abs(cos(r - u_Effect.y) + sin(dy - 2 * u_Effect.y)), 0, 1);
-
+	float p = 1 - abs(cos(u_Effect.y));
  	// soft edge
 	float r_mask = smoothstep(1, 1 - EDGE_WIDTH, max(r, 1 - v_In.BaryCoord.x));
 	// highlight, spokes
-	float h_mask = smoothstep(-SPOKE_WIDTH, SPOKE_WIDTH, r * e * (v_In.BaryCoord.y * v_In.BaryCoord.z) - SPOKE_SCALE * f);
+	float h_mask = smoothstep(SPOKE_WIDTH, 0, abs(p - r * pow(1 - v_In.BaryCoord.y * v_In.BaryCoord.z, SPOKE_POWER)));
+	//float h_mask = smoothstep(p + SPOKE_WIDTH, p - SPOKE_WIDTH, r * e * (v_In.BaryCoord.y * v_In.BaryCoord.z) * f);
 	//clamp(1 - r / f, 0, 1) * smoothstep(SPOKE_WIDTH * e, 0, pow(r, f) * min(v_In.BaryCoord.y, v_In.BaryCoord.z)); // insets highlight
 
 	// some lighting
@@ -115,6 +117,6 @@ void main() {
 
 	//o_Color.rgb = color_lambert.rgb;
 	o_Color.rgb = r_mask * (h_mask * highlight_color.rgb + solid_color.rgb);
-	//o_Color.rgb = vec3(fresnel);
+	//o_Color.rgb = vec3(h_mask);
 	o_Color.a = r_mask * color_diffuse.a;
 }
