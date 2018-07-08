@@ -50,6 +50,10 @@ const float EFFECT_BIAS = 0.5;
 const float EFFECT_GAIN = 4.0;
 const float DIFFUSE_GAIN = 0.25;
 
+const float FRESNEL_BIAS = 0.0;
+const float FRESNEL_SCALE = 0.5;
+const float FRESNEL_POWER = 3.0;
+
 void main() {
 	vec4 kd = vec4(0.2, 0.2, 0.2, 1.0);
     vec4 ks = vec4(1.0, 1.0, 1.0, 1.0);
@@ -80,6 +84,9 @@ void main() {
 
 	vec3 normal = v_In.TBN * normalize(vec3(dx, dy, NORMAL_SLOPE * sqrt(1 - r)));
 
+	vec3 viewDir = vec3(0.0, 0.0, 1.0); // ortho, normalize(-v_In.Position.xyz); perspective
+	float fresnel = max(0, min(1, FRESNEL_BIAS + FRESNEL_SCALE * pow(1.0 + dot(-viewDir, normal), FRESNEL_POWER)));
+
 	for (int i = 0; i < u_LightCount; i++) {
 		vec4 delta = light[i].center - v_In.Position;
 		float dist = length(delta);
@@ -93,7 +100,6 @@ void main() {
 		if (lambert >= 0.0) {
 			//	Blinn-Phong:
 			vec3 lightDir = light_to_point_normal.xyz;
-			vec3 viewDir = vec3(0.0, 0.0, 1.0); // ortho, normalize(-v_In.Position.xyz); perspective
 			vec3 halfDir = normalize(lightDir + viewDir); // can be done in vertex shader
 			float specAngle = max(dot(halfDir, normal), 0.0);
 			specular = pow(vec4(specAngle), kp);
@@ -105,8 +111,10 @@ void main() {
 		color_specular += light_intensity * ks * specular;
 	}
 
-	vec4 solid_color = color_diffuse + color_lambert + color_specular;
+	vec4 solid_color = color_diffuse + color_lambert + color_specular + vec4(fresnel);
 
+	//o_Color.rgb = color_lambert.rgb;
 	o_Color.rgb = r_mask * (h_mask * highlight_color.rgb + solid_color.rgb);
+	//o_Color.rgb = vec3(fresnel);
 	o_Color.a = r_mask * color_diffuse.a;
 }
