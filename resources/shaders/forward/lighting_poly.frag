@@ -62,17 +62,18 @@ void main() {
 
 	float dx = 2 * clamp(v_In.TexCoord.x, 0, 1) - 1;
 	float dy = 2 * clamp(v_In.TexCoord.y, 0, 1) - 1;
-	float r = min(1, dx * dx + dy * dy);
 
 	vec4 u_Emissive = material[v_In.PrimIndex].u_Emissive;
 	vec4 u_Effect = material[v_In.PrimIndex].u_Effect;
 
 	// plasma-like animation effects
 	float f = clamp(u_Effect.x * 2, 0, 1);
+	float r = min(1, dx * dx + dy * dy);
 	float e = clamp(abs(cos(r - u_Effect.y) + sin(dy - 2 * u_Effect.y)), 0, 1);
 	float p = 1 - abs(cos(u_Effect.y));
+
  	// soft edge
-	float r_mask = smoothstep(1, 1 - EDGE_WIDTH, max(r, 1 - v_In.BaryCoord.x));
+	float r_mask = smoothstep(1, 1 - EDGE_WIDTH, max(r + p * 0.2, 1 - v_In.BaryCoord.x));
 	// highlight, spokes
 	float h_mask = smoothstep(SPOKE_WIDTH, 0, abs(p - r * pow(1 - v_In.BaryCoord.y * v_In.BaryCoord.z, SPOKE_POWER)));
 	//float h_mask = smoothstep(p + SPOKE_WIDTH, p - SPOKE_WIDTH, r * e * (v_In.BaryCoord.y * v_In.BaryCoord.z) * f);
@@ -84,7 +85,7 @@ void main() {
 	vec4 color_specular = vec4(0,0,0,1);
 	vec4 highlight_color = u_Emissive * (e + EFFECT_BIAS) * f * EFFECT_GAIN;
 
-	vec3 normal = v_In.TBN * normalize(vec3(dx, dy, NORMAL_SLOPE * sqrt(1 - r)));
+	vec3 normal = v_In.TBN * normalize(vec3(dx, dy, NORMAL_SLOPE * sqrt(1 - r - e * 0.2)));
 
 	vec3 viewDir = vec3(0.0, 0.0, 1.0); // ortho, normalize(-v_In.Position.xyz); perspective
 	float fresnel = max(0, min(1, FRESNEL_BIAS + FRESNEL_SCALE * pow(1.0 + dot(-viewDir, normal), FRESNEL_POWER)));

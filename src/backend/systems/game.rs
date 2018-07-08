@@ -149,6 +149,15 @@ impl System for GameSystem {
 		if self.playerstate.bullet_ready {
 			world.primary_fire(outbox, self.playerstate.bullet_speed);
 		}
+
+		world.get_player_agent_id().map(
+			|player_id| {
+				world.agent_mut(player_id).map(
+					|agent| {
+						agent.state.absorb(self.playerstate.bullet_charge as f32 * 100.0f32);
+					})
+			});
+
 		// if there are no minions, spawn some
 		if world.agents(agent::AgentType::Minion).is_empty() {
 			world.init_minions();

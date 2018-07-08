@@ -4,6 +4,7 @@ project(rust_oids)
 set(CMAKE_CXX_STANDARD 11)
 
 set(SOURCE_FILES
+        src/backend/systems/game.rs
         Cargo.toml)
 
 add_executable(rust_oids ${SOURCE_FILES})
