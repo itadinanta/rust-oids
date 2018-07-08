@@ -12,3 +12,4 @@ nohup.out
 *.profile
 capture/
 capture.ntp
+cmake-build-debug/
