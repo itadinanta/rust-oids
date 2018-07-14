@@ -64,6 +64,8 @@ void main() {
 	float dy = 2 * clamp(v_In.TexCoord.y, 0, 1) - 1;
 
 	vec4 u_Emissive = material[v_In.PrimIndex].u_Emissive;
+	// u_Effect.x: energy left
+	// u_Effect.y: anuimation phase (0-2PI)
 	vec4 u_Effect = material[v_In.PrimIndex].u_Effect;
 
 	// plasma-like animation effects
