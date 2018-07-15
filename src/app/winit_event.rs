@@ -1,6 +1,5 @@
 use winit;
-use winit::WindowEvent;
-use winit::KeyboardInput;
+use winit::{WindowEvent, KeyboardInput, MouseScrollDelta};
 use frontend::input;
 use frontend::input::Key;
 use core::geometry::Position;
@@ -89,9 +88,20 @@ impl input::EventMapper<winit::WindowEvent> for WinitEventMapper {
 				X -> X,
 				Y -> Y,
 				Z -> Z,
+				Equals -> Plus,
+				Subtract -> Minus,
 				Space -> Space,
 				Escape -> Esc
 			]
+		}
+		fn mousewheelmap(_: f32, dy: f32) -> Option<input::Key> {
+			if dy > 0. {
+				Some(input::Key::MouseScrollUp)
+			} else if dy < 0. {
+				Some(input::Key::MouseScrollDown)
+			} else {
+				None
+			}
 		}
 		fn mousemap(button: winit::MouseButton) -> Option<input::Key> {
 			match button {
@@ -122,6 +132,10 @@ impl input::EventMapper<winit::WindowEvent> for WinitEventMapper {
 					Some(input::Event::Key(state_map(element_state), key))
 				})
 			}
+			&WindowEvent::MouseWheel {
+				delta: MouseScrollDelta::LineDelta(dx, dy),
+				..
+			} => mousewheelmap(dx, dy).and_then(|key| Some(input::Event::Key(input::State::Down, key))),
 			&WindowEvent::MouseInput {
 				state: element_state,
 				button,

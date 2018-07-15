@@ -2,7 +2,15 @@ use frontend::input::AxisValue;
 use core::clock::{SpeedFactor, SecondsValue};
 use std::f32::consts;
 
+pub const VIEW_SCALE_BASE: f32 = 100.0;
+pub const VIEW_ZOOM_MAX: f32 = 8.0;
+pub const VIEW_ZOOM_MIN: f32 = 1. / 4.0;
+pub const VIEW_ZOOM_MULTIPLIER: f32 = consts::SQRT_2;
+pub const VIEW_ZOOM_DURATION: f32 = 0.25;
 pub const FRAME_SMOOTH_COUNT: usize = 120;
+pub const FRAME_TIME_TARGET: SecondsValue = 1. / 60.;
+pub const LOG_INTERVAL: SecondsValue = 5.0;
+pub const SAVE_INTERVAL: SecondsValue = 300.0;
 pub const DEAD_ZONE: AxisValue = 0.3f32;
 pub const TURN_SPEED: f32 = consts::PI * 200.;
 pub const DEBUG_DRAW_BRAKE_SCALE: f32 = 0.05;

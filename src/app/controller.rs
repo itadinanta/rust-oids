@@ -42,11 +42,7 @@ impl InputController for DefaultController {
 			W -> CamUp(1.),
 			S -> CamDown(1.),
 			A -> CamLeft(1.),
-			D -> CamRight(1.),
-			GamepadDPadUp -> CamUp(1.),
-			GamepadDPadDown -> CamDown(1.),
-			GamepadDPadLeft -> CamLeft(1.),
-			GamepadDPadRight -> CamRight(1.)
+			D -> CamRight(1.)
 		];
 
 		on_key_pressed_once![
@@ -56,6 +52,12 @@ impl InputController for DefaultController {
 			N0 -> CamReset,
 			Home -> CamReset,
 			KpHome -> CamReset,
+			GamepadDPadUp -> ZoomIn,
+			GamepadDPadDown -> ZoomOut,
+			GamepadR3 -> ZoomReset,
+			Plus -> ZoomIn,
+			Minus -> ZoomOut,
+			N1 -> ZoomReset,
 			F6 -> SaveGenePoolToFile,
 			F7 -> SaveWorldToFile,
 			F8 -> RestartFromCheckpoint,
@@ -71,7 +73,9 @@ impl InputController for DefaultController {
 			H -> NextSpeedFactor,
 			GamepadR1 -> NextSpeedFactor,
 			P -> TogglePause,
-			Esc -> AppQuit
+			Esc -> AppQuit,
+			MouseScrollUp -> ZoomIn,
+			MouseScrollDown -> ZoomOut
 		];
 
 		let mouse_window_pos = input_state.mouse_position();

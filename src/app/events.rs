@@ -17,6 +17,10 @@ pub enum Event {
 	CamLeft(f32),
 	CamRight(f32),
 
+	ZoomIn,
+	ZoomOut,
+	ZoomReset,
+
 	VectorThrust(Option<Position>, VectorDirection),
 	PrimaryTrigger(f32, SecondsValue),
 	PrimaryFire(f32, SecondsValue),

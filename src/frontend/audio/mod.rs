@@ -142,6 +142,7 @@ impl AlertPlayer<app::Event, self::Error> for SoundSystemAlertPlayer<ThreadedSou
 			&Event::SaveGenePoolToFile |
 			&Event::SaveWorldToFile |
 			&Event::DeselectAll |
+			&Event::ZoomReset |
 			&Event::ToggleDebug => SoundEffect::UserOption,
 
 			&Event::PickMinion(_) => SoundEffect::SelectMinion,
