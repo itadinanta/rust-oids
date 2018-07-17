@@ -1,8 +1,11 @@
 use super::*;
 use backend::world::AgentState;
-use backend::world::agent;
+use backend::world::agent::AgentType;
+use backend::obj::Motionable;
+use cgmath::InnerSpace;
 use core::clock::{seconds, Seconds, SimulationTimer, TimerStopwatch, SpeedFactor};
 use num_traits::clamp;
+use std::f32::consts;
 
 #[allow(unused)]
 pub struct AnimationSystem {
@@ -27,10 +30,17 @@ impl System for AnimationSystem {
 		let phase = world.phase_mut()[1] as f64 + self.dt.get() * self.speed * self.heartbeat_scale * self.background_animation_speed;
 		world.phase_mut()[0] = 0.5;
 		world.phase_mut()[1] = (phase % 1e+3) as f32;
-		for (_, agent) in &mut world.agents_mut(agent::AgentType::Minion).iter_mut() {
+		for (_, agent) in &mut world.agents_mut(AgentType::Minion).iter_mut() {
 			if agent.state.is_active() {
 				let energy = agent.state.energy();
 				agent.state.heartbeat((self.dt.get() * self.speed * self.heartbeat_scale) as f32 * clamp(energy, 50.0f32, 200.0f32))
+			}
+		}
+		for (_, agent) in &mut world.agents_mut(AgentType::Player).iter_mut() {
+			if agent.state.is_active() {
+				let speed = agent.motion().velocity.magnitude();
+				agent.state.reset_phase();
+				agent.state.heartbeat(clamp(speed / 100.0, 0.0, consts::PI));
 			}
 		}
 	}

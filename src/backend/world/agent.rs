@@ -405,6 +405,10 @@ impl State {
 		self.phase = (self.phase + d) % (2.0 * f32::consts::PI)
 	}
 
+	pub fn reset_phase(&mut self) {
+		self.phase = 0.;
+	}
+
 	pub fn track_position(&mut self, position: &Position) {
 		self.trajectory.push(position.clone())
 	}
@@ -494,7 +498,7 @@ impl Agent {
 		self.segments
 			.iter()
 			.find(|segment| segment.flags.contains(flags))
-			.map(|sensor| sensor.clone())
+			.map(|s| s.clone())
 	}
 
 	pub fn new(id: Id, gender: u8, brain: &Brain, dna: &Dna, segments: Box<[Segment]>, timer: &Timer) -> Self {
