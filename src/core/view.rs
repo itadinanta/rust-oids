@@ -24,6 +24,10 @@ impl Viewport {
 			scale,
 		}
 	}
+
+	pub fn scale(&mut self, scale: f32) {
+		self.scale = scale;
+	}
 }
 
 impl WorldTransform for Viewport {

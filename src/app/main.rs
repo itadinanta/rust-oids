@@ -75,7 +75,7 @@ pub fn main_loop(minion_gene_pool: &str, config_home: path::PathBuf, world_file:
 	let mapper = app::WinitEventMapper::new();
 
 	// Create a new game and run it.
-	let mut app = app::App::new(w as u32, h as u32, 100.0, config_home, &res, minion_gene_pool, world_file);
+	let mut app = app::App::new(w as u32, h as u32, VIEW_SCALE_BASE, config_home, &res, minion_gene_pool, world_file);
 
 	let mut ui = ui::conrod_ui::Ui::new(&res,
 										&mut factory,
@@ -96,7 +96,6 @@ pub fn main_loop(minion_gene_pool: &str, config_home: path::PathBuf, world_file:
 					ui.push_event(event);
 				}
 			}
-
 			match event {
 				winit::Event::WindowEvent { event, .. } => {
 					match event {
@@ -177,7 +176,7 @@ pub fn main_loop_headless(minion_gene_pool: &str, config_home: path::PathBuf, wo
 	const HEIGHT: u32 = 1024;
 	let res = make_resource_loader(&config_home);
 
-	let mut app = app::App::new(WIDTH, HEIGHT, 100.0, config_home, &res, minion_gene_pool, world_file);
+	let mut app = app::App::new(WIDTH, HEIGHT, VIEW_SCALE_BASE, config_home, &res, minion_gene_pool, world_file);
 	let mut no_audio = ui::NullAlertPlayer::new();
 	app.init(app::SystemMode::Batch);
 
@@ -189,10 +188,10 @@ pub fn main_loop_headless(minion_gene_pool: &str, config_home: path::PathBuf, wo
 	}).expect("Error setting Ctrl-C handler");
 
 	let wall_clock = SystemTimer::new();
-	let mut output_hourglass = Hourglass::new(seconds(5.0), &wall_clock);
-	let mut save_hourglass = Hourglass::new(seconds(300.0), &wall_clock);
+	let mut output_hourglass = Hourglass::new(seconds(LOG_INTERVAL), &wall_clock);
+	let mut save_hourglass = Hourglass::new(seconds(SAVE_INTERVAL), &wall_clock);
 
-	const FRAME_SIMULATION_LENGTH: SecondsValue = 1.0 / 60.0;
+	const FRAME_SIMULATION_LENGTH: SecondsValue = FRAME_TIME_TARGET;
 	'main: loop {
 		if !app.is_running() {
 			break 'main;

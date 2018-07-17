@@ -246,6 +246,8 @@ pub type SpeedFactor = f64;
 
 pub struct App {
 	pub viewport: Viewport,
+	pub zoom_target: f32,
+	zoom_smooth: math::Exponential<f32, f32>,
 	input_state: input::InputState,
 	wall_clock: SystemTimer,
 	simulations_count: usize,
@@ -329,6 +331,8 @@ impl App {
 
 		App {
 			viewport: Viewport::rect(w, h, scale),
+			zoom_smooth: math::Exponential::new(1., FRAME_TIME_TARGET as f32, VIEW_ZOOM_DURATION),
+			zoom_target: 1.,
 			input_state: input::InputState::default(),
 
 			camera: Self::init_camera(),
@@ -368,6 +372,10 @@ impl App {
 			Event::CamLeft(w) => self.camera.push(math::Direction::Left, w),
 			Event::CamRight(w) => self.camera.push(math::Direction::Right, w),
 			Event::CamReset => self.camera.reset(),
+
+			Event::ZoomIn => if self.zoom_target < VIEW_ZOOM_MAX { self.zoom_target *= VIEW_ZOOM_MULTIPLIER },
+			Event::ZoomOut => if self.zoom_target > VIEW_ZOOM_MIN { self.zoom_target /= VIEW_ZOOM_MULTIPLIER },
+			Event::ZoomReset => self.zoom_target = 1.,
 
 			Event::VectorThrust(None, VectorDirection::None) =>
 				self.world.set_player_intent(segment::Intent::Idle),
@@ -617,6 +625,8 @@ impl App {
 
 		let frame_time_smooth = self.frame_smooth.smooth(frame_time);
 		self.camera.follow(self.world.get_player_world_position());
+		self.zoom_smooth.dt(frame_time_smooth.get() as f32);
+		self.viewport.scale(VIEW_SCALE_BASE / self.zoom_smooth.smooth(self.zoom_target));
 		self.camera.update(frame_time_smooth);
 
 		let target_duration = frame_time_smooth.get();

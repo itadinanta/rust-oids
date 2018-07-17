@@ -364,6 +364,7 @@ impl InputState {
 	}
 
 	pub fn post_update(&mut self) {
+		self.update_mouse_scroll();
 		self.update_key_pressed();
 		self.update_gamepad_button_pressed();
 	}
@@ -400,6 +401,12 @@ impl InputState {
 
 	fn update_key_pressed(&mut self) {
 		self.key_pressed_last = self.key_pressed.clone();
+	}
+
+	fn update_mouse_scroll(&mut self) {
+		// Scroll events don't release keys, ever
+		self.key(State::Up, Key::MouseScrollUp);
+		self.key(State::Up, Key::MouseScrollDown);
 	}
 
 	fn update_gamepad_button_pressed(&mut self) {
