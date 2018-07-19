@@ -51,6 +51,7 @@ impl InputController for DefaultController {
 			GamepadL3 -> ToggleGui,
 			N0 -> CamReset,
 			Home -> CamReset,
+			GamepadStart -> TogglePause,
 			KpHome -> CamReset,
 			GamepadDPadUp -> ZoomIn,
 			GamepadDPadDown -> ZoomOut,
