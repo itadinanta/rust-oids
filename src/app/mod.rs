@@ -14,7 +14,7 @@ use core::geometry::Transform;
 use core::math;
 use core::math::Directional;
 use core::math::Relative;
-use core::math::Smooth;
+use core::math::{Smooth, IntervalSmooth};
 use core::resource::ResourceLoader;
 use core::util::Cycle;
 use core::view::Viewport;
@@ -331,7 +331,7 @@ impl App {
 
 		App {
 			viewport: Viewport::rect(w, h, scale),
-			zoom_smooth: math::Exponential::new(1., FRAME_TIME_TARGET as f32, VIEW_ZOOM_DURATION),
+			zoom_smooth: math::Exponential::new(1., VIEW_ZOOM_DURATION),
 			zoom_target: 1.,
 			input_state: input::InputState::default(),
 
@@ -625,8 +625,7 @@ impl App {
 
 		let frame_time_smooth = self.frame_smooth.smooth(frame_time);
 		self.camera.follow(self.world.get_player_world_position());
-		self.zoom_smooth.dt(frame_time_smooth.get() as f32);
-		self.viewport.scale(VIEW_SCALE_BASE / self.zoom_smooth.smooth(self.zoom_target));
+		self.viewport.scale(VIEW_SCALE_BASE / self.zoom_smooth.smooth(self.zoom_target, frame_time_smooth.get() as f32));
 		self.camera.update(frame_time_smooth);
 
 		let target_duration = frame_time_smooth.get();

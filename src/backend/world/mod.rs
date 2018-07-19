@@ -25,6 +25,7 @@ use core::clock::*;
 use core::color::Rgba;
 use core::geometry::*;
 use core::geometry::Transform;
+use core::math::{ExponentialFilter, exponential_filter};
 use core::resource::ResourceLoader;
 use serialize::base64::{self, ToBase64};
 use backend::messagebus::{Outbox, Message};
@@ -74,6 +75,7 @@ pub struct Feeder {
 	transform: Transform,
 	rate: Seconds,
 	emission: Emission,
+	fader: ExponentialFilter<f32>,
 }
 
 impl Feeder {
@@ -82,7 +84,14 @@ impl Feeder {
 			transform: Transform::from_position(Position::new(x, y)),
 			rate,
 			emission,
+			fader: exponential_filter(1.0, 1.0, 0.25),
 		}
+	}
+	pub fn fader(&self) -> &ExponentialFilter<f32> {
+		&self.fader
+	}
+	pub fn fader_mut(&mut self) -> &mut ExponentialFilter<f32> {
+		&mut self.fader
 	}
 	pub fn rate(&self) -> Seconds {
 		self.rate

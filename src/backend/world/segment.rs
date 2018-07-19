@@ -2,7 +2,7 @@ use backend::obj;
 use backend::obj::*;
 use backend::world::agent;
 use core::math;
-use core::math::Smooth;
+use core::math::IntervalSmooth;
 use core::geometry::*;
 use core::geometry::Transform;
 use core::clock::Seconds;
@@ -48,7 +48,7 @@ impl Default for State {
 			charge: 1.,
 			target_charge: 0.,
 			recharge: 1.,
-			smooth: math::Exponential::new(1., 1., 2.),
+			smooth: math::Exponential::new(1., 2.),
 			intent: Intent::Idle,
 			last_touched: None,
 		}
@@ -89,7 +89,7 @@ impl State {
 	pub fn update(&mut self, dt: Seconds) {
 		self.age_seconds += dt;
 		self.age_frames += 1;
-		self.charge = self.smooth.dt(dt.into()).smooth(self.target_charge);
+		self.charge = self.smooth.smooth(self.target_charge, dt.into());
 		if (self.charge - self.target_charge).abs() < 0.001 {
 			let reset = self.recharge;
 			self.set_charge(reset);
@@ -101,7 +101,7 @@ impl State {
 			charge: initial,
 			target_charge,
 			recharge,
-			smooth: math::Exponential::new(initial, 1., 2.),
+			smooth: math::Exponential::new(initial, 2.),
 			..Self::default()
 		}
 	}

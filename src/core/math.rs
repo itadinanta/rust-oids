@@ -2,6 +2,7 @@ use cgmath;
 use cgmath::InnerSpace;
 use num::Zero;
 use std::ops::*;
+use std::marker::PhantomData;
 use num;
 use num::NumCast;
 use num_traits::FloatConst;
@@ -10,6 +11,13 @@ pub trait Smooth<S> {
 	fn smooth(&mut self, value: S) -> S {
 		value
 	}
+}
+
+pub trait IntervalSmooth<S, T>
+	where S: Add<S, Output=S> + Mul<T, Output=S> {
+	fn smooth(&mut self, value: S, dt: T) -> S { value * dt }
+	fn reset(&mut self, _value: S) {}
+	fn last(&self) -> S;
 }
 
 #[allow(unused)]
@@ -33,7 +41,6 @@ pub struct MovingAverage<S> {
 #[derive(Copy, Clone)]
 pub struct Exponential<S, T> {
 	tau: T,
-	dt: T,
 	last: S,
 }
 
@@ -51,7 +58,7 @@ impl<S: Zero + Copy> MovingAverage<S> {
 
 impl<S> Smooth<S> for MovingAverage<S>
 	where
-		S: Zero + Sub + Copy + AddAssign + SubAssign + Div<usize, Output=S>,
+		S: Zero + Sub + Copy + AddAssign + SubAssign + Div<usize, Output=S>
 {
 	fn smooth(&mut self, value: S) -> S {
 		let len = self.values.len();
@@ -86,34 +93,68 @@ impl<S, T> Exponential<S, T>
 		S: Add<S, Output=S> + Mul<T, Output=S> + Copy,
 		T: cgmath::BaseFloat,
 {
-	pub fn new(value: S, dt: T, tau: T) -> Self {
+	pub fn new(value: S, tau: T) -> Self {
 		Exponential {
 			last: value,
-			dt,
 			tau,
 		}
 	}
-
-	pub fn reset(&mut self, value: S) {
-		self.last = value;
-	}
-
-	pub fn dt(&mut self, dt: T) -> &mut Self {
-		self.dt = dt;
-		self
-	}
 }
 
-impl<S, T> Smooth<S> for Exponential<S, T>
+impl<S, T> IntervalSmooth<S, T> for Exponential<S, T>
 	where
 		S: Add<S, Output=S> + Mul<T, Output=S> + Copy,
 		T: cgmath::BaseFloat,
 {
-	fn smooth(&mut self, value: S) -> S {
-		let alpha1 = T::exp(-self.dt / self.tau);
+	fn smooth(&mut self, value: S, dt: T) -> S {
+		let alpha1 = T::exp(-dt / self.tau);
 		self.last = value * (T::one() - alpha1) + self.last * alpha1;
 		self.last
 	}
+
+	fn reset(&mut self, value: S) {
+		self.last = value;
+	}
+
+	fn last(&self) -> S {
+		self.last
+	}
+}
+
+#[derive(Clone)]
+pub struct LPF<S, T, M> where
+	S: Add<S, Output=S> + Mul<T, Output=S> + Copy,
+	T: cgmath::BaseFloat,
+	M: IntervalSmooth<S, T> {
+	target: S,
+	smooth: M,
+	_interval: PhantomData<T>,
+}
+
+impl<S, T, M> LPF<S, T, M> where
+	S: Add<S, Output=S> + Mul<T, Output=S> + Copy,
+	T: cgmath::BaseFloat,
+	M: IntervalSmooth<S, T> {
+	pub fn new(initial_target: S, smooth: M) -> Self {
+		LPF {
+			target: initial_target,
+			smooth,
+			_interval: PhantomData,
+		}
+	}
+
+	pub fn input(&mut self, target: S) { self.target = target; }
+	pub fn target(&self) -> S { self.target }
+	pub fn reset(&mut self) { self.smooth.reset(self.target) }
+	pub fn output(&mut self, dt: T) -> S { self.smooth.smooth(self.target, dt) }
+	pub fn last_output(&self) -> S { self.smooth.last() }
+}
+
+pub type ExponentialFilter<T> = LPF<T, T, Exponential<T, T>>;
+
+pub fn exponential_filter<T>(initial_input: T, initial_output: T, decay: T) -> ExponentialFilter<T>
+	where T: cgmath::BaseFloat {
+	LPF::new(initial_input, Exponential::new(initial_output, decay))
 }
 
 pub enum Direction {

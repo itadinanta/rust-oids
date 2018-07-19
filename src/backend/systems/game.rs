@@ -163,6 +163,7 @@ impl System for GameSystem {
 			world.init_minions();
 		}
 
+		// if there are no players, spawn one
 		if world.agents(agent::AgentType::Player).is_empty() {
 			world.init_players();
 		}
