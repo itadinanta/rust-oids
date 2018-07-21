@@ -3,6 +3,7 @@ use std::fmt;
 use std::f32;
 use num::Float;
 use num::FromPrimitive;
+use app::constants::*;
 use core::geometry::*;
 use core::geometry::Transform;
 use core::clock::*;
@@ -502,7 +503,7 @@ impl Agent {
 	}
 
 	pub fn reset_body_charge(&mut self) {
-		self.segments[0].state.reset_charge(1., 0.)
+		self.segments[0].state.reset_charge(PLAYER_CHARGE_INITIAL_VALUE, PLAYER_CHARGE_REST_VALUE)
 	}
 
 	pub fn new(id: Id, gender: u8, brain: &Brain, dna: &Dna, segments: Box<[Segment]>, timer: &Timer) -> Self {

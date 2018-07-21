@@ -15,10 +15,16 @@ impl App {
 				attenuation: [0.2, 0.8, 0.1, 0.1],
 			})
 			.collect::<Vec<_>>();
-		if let Some(player_position) = self.world.get_player_world_position() {
+		if let Some(ref segment) = self.world.get_player_segment() {
+			let position = segment.transform.position;
+			let intensity = segment.state.charge();
 			emitter_lights.push(render::Light::PointLight {
-				position: player_position,
-				color: [COLOR_SUNSHINE[0], COLOR_SUNSHINE[1], COLOR_SUNSHINE[2], 1.0],
+				position,
+				color: [
+					COLOR_SUNSHINE[0] * intensity,
+					COLOR_SUNSHINE[1] * intensity,
+					COLOR_SUNSHINE[2] * intensity,
+					1.0],
 				attenuation: [0.0, 0.0, 0.1, 0.05],
 			});
 		}

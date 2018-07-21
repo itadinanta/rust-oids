@@ -40,7 +40,9 @@ pub const MATURITY_MINION_DEFAULT: f32 = 0.5;
 pub const MATURITY_DEFAULT: f32 = 1.0;
 pub const WORLD_RADIUS: f32 = 80.;
 pub const CHARGE_DECAY_TIME: SecondsValue = 2.;
-pub const PLAYER_CHARGE_DECAY_TIME: SecondsValue = 0.3;
+pub const PLAYER_CHARGE_DECAY_TIME: SecondsValue = 0.1;
+pub const PLAYER_CHARGE_INITIAL_VALUE: f32 = 50.0;
+pub const PLAYER_CHARGE_REST_VALUE: f32 = 0.05;
 pub const EMITTER_DISTANCE: f32 = 30.;
 pub const EMITTER_PERIOD: SecondsValue = 0.4;
 #[allow(unused)]

@@ -294,7 +294,7 @@ impl World {
 		self.registered_player_id
 	}
 
-	fn get_player_segment(&mut self) -> Option<&mut segment::Segment> {
+	fn get_player_segment_mut(&mut self) -> Option<&mut segment::Segment> {
 		self.registered_player_id.and_then(move |id|
 			self.agent_mut(id).and_then(|player_agent|
 				player_agent.segment_mut(0)
@@ -302,6 +302,14 @@ impl World {
 		)
 	}
 
+	pub fn get_player_segment(&self) -> Option<&segment::Segment> {
+		self.registered_player_id.and_then(move |id|
+			self.agent(id).and_then(|player_agent|
+				player_agent.segment(0)
+			)
+		)
+	}
+/*
 	pub fn get_player_world_position(&self) -> Option<Position> {
 		self.registered_player_id.and_then(move |id|
 			self.agent(id).and_then(move |player_agent|
@@ -311,9 +319,9 @@ impl World {
 			)
 		)
 	}
-
+*/
 	pub fn primary_fire(&mut self, outbox: &Outbox, bullet_speed: f32) {
-		self.get_player_segment().map(move |segment| {
+		self.get_player_segment_mut().map(move |segment| {
 			let angle = segment.transform.angle.clone();
 			let scale = segment.growing_radius() + 0.5;
 			let forward_dir = Position::unit_y();
@@ -328,7 +336,7 @@ impl World {
 	}
 
 	pub fn set_player_intent(&mut self, intent: segment::Intent) {
-		self.get_player_segment().map(|segment| {
+		self.get_player_segment_mut().map(|segment| {
 			segment.state.intent = intent;
 		});
 	}

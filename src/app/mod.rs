@@ -628,7 +628,7 @@ impl App {
 		self.frame_elapsed.tick(frame_time);
 
 		let frame_time_smooth = self.frame_smooth.smooth(frame_time);
-		self.camera.follow(self.world.get_player_world_position());
+		self.camera.follow(self.world.get_player_segment().map(|s| s.transform.position));
 		self.viewport.scale(VIEW_SCALE_BASE / self.zoom.update(frame_time_smooth.get() as f32));
 		self.camera.update(frame_time_smooth);
 
