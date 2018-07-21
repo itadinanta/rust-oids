@@ -40,6 +40,7 @@ impl System for AnimationSystem {
 			if agent.state.is_active() {
 				let speed = agent.motion().velocity.magnitude();
 				agent.state.reset_phase();
+				// TODO: consts here for magic numbers
 				agent.state.heartbeat(clamp(speed / 100.0, 0.0, consts::PI));
 			}
 		}

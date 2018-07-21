@@ -42,6 +42,7 @@ portaudio="*"
 
 #sys
 ctrlc = "*"
+dirs = "*"
 getopts = "*"
 cpuprofiler = "*"
 rayon = "*"

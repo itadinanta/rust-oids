@@ -14,7 +14,7 @@ use core::geometry::Transform;
 use core::math;
 use core::math::Directional;
 use core::math::Relative;
-use core::math::{Smooth, IntervalSmooth};
+use core::math::Smooth;
 use core::resource::ResourceLoader;
 use core::util::Cycle;
 use core::view::Viewport;
@@ -24,7 +24,7 @@ use frontend::ui;
 use frontend::render;
 use std::fs;
 use std::ffi::OsStr;
-use std::env;
+use dirs;
 use std::path;
 use getopts::Options;
 use num;
@@ -69,7 +69,7 @@ pub fn run(args: &[OsString]) {
 
 			// we look for the last save in ~/.config/rust-oids/saved_state
 			// but only if -n and -i are not specified
-			let user_home = env::home_dir().unwrap_or(path::PathBuf::from("."));
+			let user_home = dirs::home_dir().unwrap_or(path::PathBuf::from("."));
 			let config_home = user_home.join(CONFIG_DIR_HOME);
 			if !options.opt_present("n") && world_file.is_none() {
 				let mut max_path = None;
@@ -246,8 +246,7 @@ pub type SpeedFactor = f64;
 
 pub struct App {
 	pub viewport: Viewport,
-	pub zoom_target: f32,
-	zoom_smooth: math::Exponential<f32, f32>,
+	pub zoom: math::ExponentialFilter<f32>,
 	input_state: input::InputState,
 	wall_clock: SystemTimer,
 	simulations_count: usize,
@@ -331,8 +330,7 @@ impl App {
 
 		App {
 			viewport: Viewport::rect(w, h, scale),
-			zoom_smooth: math::Exponential::new(1., VIEW_ZOOM_DURATION),
-			zoom_target: 1.,
+			zoom: math::exponential_filter(1., 1., VIEW_ZOOM_DURATION),
 			input_state: input::InputState::default(),
 
 			camera: Self::init_camera(),
@@ -373,9 +371,15 @@ impl App {
 			Event::CamRight(w) => self.camera.push(math::Direction::Right, w),
 			Event::CamReset => self.camera.reset(),
 
-			Event::ZoomIn => if self.zoom_target < VIEW_ZOOM_MAX { self.zoom_target *= VIEW_ZOOM_MULTIPLIER },
-			Event::ZoomOut => if self.zoom_target > VIEW_ZOOM_MIN { self.zoom_target /= VIEW_ZOOM_MULTIPLIER },
-			Event::ZoomReset => self.zoom_target = 1.,
+			Event::ZoomIn => {
+				let target = self.zoom.last_input();
+				self.zoom.input(VIEW_ZOOM_MAX.min(target * VIEW_ZOOM_MULTIPLIER))
+			}
+			Event::ZoomOut => {
+				let target = self.zoom.last_input();
+				self.zoom.input(VIEW_ZOOM_MIN.max(target / VIEW_ZOOM_MULTIPLIER))
+			}
+			Event::ZoomReset => self.zoom.input(1.),
 
 			Event::VectorThrust(None, VectorDirection::None) =>
 				self.world.set_player_intent(segment::Intent::Idle),
@@ -625,7 +629,7 @@ impl App {
 
 		let frame_time_smooth = self.frame_smooth.smooth(frame_time);
 		self.camera.follow(self.world.get_player_world_position());
-		self.viewport.scale(VIEW_SCALE_BASE / self.zoom_smooth.smooth(self.zoom_target, frame_time_smooth.get() as f32));
+		self.viewport.scale(VIEW_SCALE_BASE / self.zoom.update(frame_time_smooth.get() as f32));
 		self.camera.update(frame_time_smooth);
 
 		let target_duration = frame_time_smooth.get();

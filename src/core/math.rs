@@ -112,13 +112,8 @@ impl<S, T> IntervalSmooth<S, T> for Exponential<S, T>
 		self.last
 	}
 
-	fn reset(&mut self, value: S) {
-		self.last = value;
-	}
-
-	fn last(&self) -> S {
-		self.last
-	}
+	fn reset(&mut self, value: S) { self.last = value; }
+	fn last(&self) -> S { self.last }
 }
 
 #[derive(Clone)]
@@ -126,27 +121,36 @@ pub struct LPF<S, T, M> where
 	S: Add<S, Output=S> + Mul<T, Output=S> + Copy,
 	T: cgmath::BaseFloat,
 	M: IntervalSmooth<S, T> {
-	target: S,
+	input: S,
 	smooth: M,
 	_interval: PhantomData<T>,
 }
 
 impl<S, T, M> LPF<S, T, M> where
-	S: Add<S, Output=S> + Mul<T, Output=S> + Copy,
+	S: Add<S, Output=S> + Mul<T, Output=S> + Sub<S, Output=S> + Copy,
 	T: cgmath::BaseFloat,
 	M: IntervalSmooth<S, T> {
-	pub fn new(initial_target: S, smooth: M) -> Self {
+	pub fn new(input: S, smooth: M) -> Self {
 		LPF {
-			target: initial_target,
+			input,
 			smooth,
 			_interval: PhantomData,
 		}
 	}
 
-	pub fn input(&mut self, target: S) { self.target = target; }
-	pub fn target(&self) -> S { self.target }
-	pub fn reset(&mut self) { self.smooth.reset(self.target) }
-	pub fn output(&mut self, dt: T) -> S { self.smooth.smooth(self.target, dt) }
+	pub fn input(&mut self, target: S) { self.input = target; }
+	pub fn last_input(&self) -> S { self.input }
+	pub fn reset(&mut self) { self.smooth.reset(self.input) }
+	pub fn reset_to(&mut self, input: S, output: S) {
+		self.input = input;
+		self.smooth.reset(output);
+	}
+	pub fn distance(&self) -> S { self.smooth.last() - self.input }
+	pub fn smooth(&mut self, target: S, dt: T) -> S {
+		self.input = target;
+		self.update(dt)
+	}
+	pub fn update(&mut self, dt: T) -> S { self.smooth.smooth(self.input, dt) }
 	pub fn last_output(&self) -> S { self.smooth.last() }
 }
 

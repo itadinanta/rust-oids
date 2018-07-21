@@ -2,7 +2,7 @@ use backend::obj;
 use backend::obj::*;
 use backend::world::agent;
 use core::math;
-use core::math::IntervalSmooth;
+use core::math::ExponentialFilter;
 use core::geometry::*;
 use core::geometry::Transform;
 use core::clock::Seconds;
@@ -31,10 +31,8 @@ pub struct State {
 	age_seconds: Seconds,
 	age_frames: usize,
 	maturity: f32,
-	charge: f32,
-	target_charge: f32,
+	charge: ExponentialFilter<f32>,
 	recharge: f32,
-	smooth: math::Exponential<f32, f32>,
 	pub intent: Intent,
 	pub last_touched: Option<agent::Key>,
 }
@@ -45,10 +43,8 @@ impl Default for State {
 			age_seconds: Seconds::zero(),
 			age_frames: 0,
 			maturity: 1.0,
-			charge: 1.,
-			target_charge: 0.,
 			recharge: 1.,
-			smooth: math::Exponential::new(1., 2.),
+			charge: math::exponential_filter(0., 1., 2.),
 			intent: Intent::Idle,
 			last_touched: None,
 		}
@@ -59,49 +55,39 @@ impl State {
 	pub fn age_seconds(&self) -> Seconds { self.age_seconds }
 	pub fn age_frames(&self) -> usize { self.age_frames }
 
-	pub fn get_charge(&self) -> f32 {
-		self.charge
-	}
-	pub fn set_charge(&mut self, charge: f32) {
-		self.charge = charge;
-		self.smooth.reset(self.charge);
-	}
+	pub fn get_charge(&self) -> f32 { self.charge.last_output() }
+	pub fn set_charge(&mut self, charge: f32) { self.charge.reset_to(charge, charge); }
 
-	pub fn target_charge(&self) -> f32 { self.target_charge }
+	pub fn target_charge(&self) -> f32 { self.charge.last_input() }
 
 	//pub fn recharge(&self) -> f32 { self.recharge }
 
 	pub fn maturity(&self) -> f32 { self.maturity }
 
-	pub fn set_maturity(&mut self, maturity: f32) {
-		self.maturity = maturity
-	}
+	pub fn set_maturity(&mut self, maturity: f32) { self.maturity = maturity }
 
 	pub fn set_target_charge(&mut self, target_charge: f32) {
-		self.target_charge = target_charge;
+		self.charge.input(target_charge);
 	}
 
 	pub fn restore(&mut self, charge: f32, target_charge: f32) {
-		self.target_charge = target_charge;
-		self.set_charge(charge);
+		self.charge.reset_to(target_charge, charge);
 	}
 
 	pub fn update(&mut self, dt: Seconds) {
 		self.age_seconds += dt;
 		self.age_frames += 1;
-		self.charge = self.smooth.smooth(self.target_charge, dt.into());
-		if (self.charge - self.target_charge).abs() < 0.001 {
+		self.charge.update(dt.into());
+		if self.charge.distance().abs() < 0.001 {
 			let reset = self.recharge;
-			self.set_charge(reset);
+			self.charge.reset_to(reset, reset);
 		}
 	}
 
 	pub fn with_charge(initial: f32, target_charge: f32, recharge: f32) -> Self {
 		State {
-			charge: initial,
-			target_charge,
 			recharge,
-			smooth: math::Exponential::new(initial, 2.),
+			charge: math::exponential_filter(target_charge, initial, 2.),
 			..Self::default()
 		}
 	}
@@ -170,7 +156,7 @@ impl Segment {
 impl obj::Drawable for Segment {
 	fn color(&self) -> Rgba {
 		let rgba = self.livery.albedo;
-		let c = 5. * ((self.state.charge * 0.99) + 0.01);
+		let c = 5. * ((self.state.charge.last_output() * 0.99) + 0.01);
 		[
 			rgba[0] * c,
 			rgba[1] * c,
