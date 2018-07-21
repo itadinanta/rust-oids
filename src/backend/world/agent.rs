@@ -501,6 +501,10 @@ impl Agent {
 			.map(|s| s.clone())
 	}
 
+	pub fn reset_body_charge(&mut self) {
+		self.segments[0].state.reset_charge(1., 0.)
+	}
+
 	pub fn new(id: Id, gender: u8, brain: &Brain, dna: &Dna, segments: Box<[Segment]>, timer: &Timer) -> Self {
 		const SCALE: f32 = 100.;
 		let max_energy = SCALE *

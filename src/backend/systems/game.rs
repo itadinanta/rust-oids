@@ -25,6 +25,7 @@ pub struct PlayerState {
 
 pub struct GameSystem {
 	timer: SimulationTimer,
+	dt: Seconds,
 	playerstate: PlayerState,
 	feeders: Vec<Feeder>,
 	inbox: Option<Inbox>,
@@ -97,6 +98,8 @@ impl System for GameSystem {
 
 	fn update(&mut self, _: &world::AgentState, dt: Seconds) {
 		let rng = &mut rand::thread_rng();
+		self.dt = dt;
+
 		self.timer.tick(dt);
 		for e in &mut self.feeders {
 			e.spawned = e.to_spawn;
@@ -122,7 +125,6 @@ impl System for GameSystem {
 			BULLET_FULL_CHARGE.min(self.playerstate.bullet_charge +
 				dt.get() * BULLET_FIRE_RATE * self.playerstate.firing_rate)
 		};
-
 		self.playerstate.trigger_held = false;
 	}
 
@@ -155,6 +157,9 @@ impl System for GameSystem {
 				world.agent_mut(player_id).map(
 					|agent| {
 						agent.state.absorb(self.playerstate.bullet_charge as f32 * 100.0f32);
+						if self.playerstate.bullet_ready {
+							agent.reset_body_charge()
+						}
 					})
 			});
 
@@ -167,6 +172,11 @@ impl System for GameSystem {
 		if world.agents(agent::AgentType::Player).is_empty() {
 			world.init_players();
 		}
+		for (_, agent) in world.agents_mut(agent::AgentType::Player).iter_mut() {
+			for segment in agent.segments.iter_mut() {
+				segment.state.update(self.dt);
+			}
+		}
 	}
 }
 
@@ -174,6 +184,7 @@ impl Default for GameSystem {
 	fn default() -> Self {
 		GameSystem {
 			timer: SimulationTimer::new(),
+			dt: seconds(0.),
 			playerstate: PlayerState::default(),
 			feeders: Vec::new(),
 			inbox: None,

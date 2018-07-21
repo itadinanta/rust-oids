@@ -13,16 +13,16 @@ pub trait Smooth<S> {
 	}
 }
 
-pub trait IntervalSmooth<S, T>
-	where S: Add<S, Output=S> + Mul<T, Output=S> {
+pub trait IntervalSmooth<S, T> where
+	S: Add<S, Output=S> + Mul<T, Output=S> {
 	fn smooth(&mut self, value: S, dt: T) -> S { value * dt }
 	fn reset(&mut self, _value: S) {}
 	fn last(&self) -> S;
 }
 
 #[allow(unused)]
-pub fn normalize_rad<S>(angle: S) -> S
-	where S: num::Float + FloatConst {
+pub fn normalize_rad<S>(angle: S) -> S where
+	S: num::Float + FloatConst {
 	let pi: S = S::PI();
 	(angle
 		+ <S as NumCast>::from(3.).unwrap() * pi)
@@ -56,9 +56,8 @@ impl<S: Zero + Copy> MovingAverage<S> {
 	}
 }
 
-impl<S> Smooth<S> for MovingAverage<S>
-	where
-		S: Zero + Sub + Copy + AddAssign + SubAssign + Div<usize, Output=S>
+impl<S> Smooth<S> for MovingAverage<S> where
+	S: Zero + Sub + Copy + AddAssign + SubAssign + Div<usize, Output=S>
 {
 	fn smooth(&mut self, value: S) -> S {
 		let len = self.values.len();
@@ -81,17 +80,17 @@ pub trait Mix<V> where V: num::Float {
 
 impl<T, V> Mix<V> for T where
 	T: num::Float,
-	V: num::Float + Mul<T, Output=V> {
+	V: num::Float + Mul<T, Output=V>
+{
 	fn mix(self, a: V, b: V) -> V {
 		let alpha = T::min(T::one(), T::max(T::zero(), self));
 		a * alpha + b * (T::one() - alpha)
 	}
 }
 
-impl<S, T> Exponential<S, T>
-	where
-		S: Add<S, Output=S> + Mul<T, Output=S> + Copy,
-		T: cgmath::BaseFloat,
+impl<S, T> Exponential<S, T> where
+	S: Add<S, Output=S> + Mul<T, Output=S> + Copy,
+	T: cgmath::BaseFloat
 {
 	pub fn new(value: S, tau: T) -> Self {
 		Exponential {
@@ -101,10 +100,9 @@ impl<S, T> Exponential<S, T>
 	}
 }
 
-impl<S, T> IntervalSmooth<S, T> for Exponential<S, T>
-	where
-		S: Add<S, Output=S> + Mul<T, Output=S> + Copy,
-		T: cgmath::BaseFloat,
+impl<S, T> IntervalSmooth<S, T> for Exponential<S, T> where
+	S: Add<S, Output=S> + Mul<T, Output=S> + Copy,
+	T: cgmath::BaseFloat
 {
 	fn smooth(&mut self, value: S, dt: T) -> S {
 		let alpha1 = T::exp(-dt / self.tau);
@@ -120,7 +118,8 @@ impl<S, T> IntervalSmooth<S, T> for Exponential<S, T>
 pub struct LPF<S, T, M> where
 	S: Add<S, Output=S> + Mul<T, Output=S> + Copy,
 	T: cgmath::BaseFloat,
-	M: IntervalSmooth<S, T> {
+	M: IntervalSmooth<S, T>,
+{
 	input: S,
 	smooth: M,
 	_interval: PhantomData<T>,
@@ -129,7 +128,8 @@ pub struct LPF<S, T, M> where
 impl<S, T, M> LPF<S, T, M> where
 	S: Add<S, Output=S> + Mul<T, Output=S> + Sub<S, Output=S> + Copy,
 	T: cgmath::BaseFloat,
-	M: IntervalSmooth<S, T> {
+	M: IntervalSmooth<S, T>,
+{
 	pub fn new(input: S, smooth: M) -> Self {
 		LPF {
 			input,
@@ -140,7 +140,8 @@ impl<S, T, M> LPF<S, T, M> where
 
 	pub fn input(&mut self, target: S) { self.input = target; }
 	pub fn last_input(&self) -> S { self.input }
-	pub fn reset(&mut self) { self.smooth.reset(self.input) }
+	pub fn catch_up(&mut self) { self.smooth.reset(self.input) }
+	pub fn force_to(&mut self, output: S) { self.smooth.reset(output) }
 	pub fn reset_to(&mut self, input: S, output: S) {
 		self.input = input;
 		self.smooth.reset(output);
@@ -151,14 +152,14 @@ impl<S, T, M> LPF<S, T, M> where
 		self.update(dt)
 	}
 	pub fn update(&mut self, dt: T) -> S { self.smooth.smooth(self.input, dt) }
-	pub fn last_output(&self) -> S { self.smooth.last() }
+	pub fn get(&self) -> S { self.smooth.last() }
 }
 
 pub type ExponentialFilter<T> = LPF<T, T, Exponential<T, T>>;
 
-pub fn exponential_filter<T>(initial_input: T, initial_output: T, decay: T) -> ExponentialFilter<T>
+pub fn exponential_filter<T>(initial_input: T, initial_output: T, decay_time: T) -> ExponentialFilter<T>
 	where T: cgmath::BaseFloat {
-	LPF::new(initial_input, Exponential::new(initial_output, decay))
+	LPF::new(initial_input, Exponential::new(initial_output, decay_time))
 }
 
 pub enum Direction {
@@ -197,9 +198,8 @@ pub struct Inertial<T: cgmath::BaseNum + Neg + Copy> {
 	velocity: cgmath::Vector2<T>,
 }
 
-impl<T> Default for Inertial<T>
-	where
-		T: cgmath::BaseFloat + cgmath::Zero + cgmath::One,
+impl<T> Default for Inertial<T> where
+	T: cgmath::BaseFloat + cgmath::Zero + cgmath::One,
 {
 	fn default() -> Self {
 		Inertial {
@@ -214,9 +214,8 @@ impl<T> Default for Inertial<T>
 	}
 }
 
-impl<T> Directional<T> for Inertial<T>
-	where
-		T: cgmath::BaseFloat,
+impl<T> Directional<T> for Inertial<T> where
+	T: cgmath::BaseFloat,
 {
 	fn push(&mut self, d: Direction, weight: T) {
 		let v = Self::unit(d) * weight;
@@ -230,9 +229,8 @@ impl<T> Directional<T> for Inertial<T>
 	}
 }
 
-impl<T> Relative<T> for Inertial<T>
-	where
-		T: cgmath::BaseFloat,
+impl<T> Relative<T> for Inertial<T> where
+	T: cgmath::BaseFloat,
 {
 	fn zero(&mut self) {
 		self.zero = self.position;
@@ -244,9 +242,8 @@ impl<T> Relative<T> for Inertial<T>
 }
 
 #[allow(dead_code)]
-impl<T> Inertial<T>
-	where
-		T: cgmath::BaseFloat,
+impl<T> Inertial<T> where
+	T: cgmath::BaseFloat,
 {
 	pub fn new(impulse: T, inertia: T, limit: T) -> Self {
 		Inertial {

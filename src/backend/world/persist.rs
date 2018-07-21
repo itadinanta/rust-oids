@@ -92,7 +92,7 @@ impl Serializer {
 
 		fn serialize_segment(src: &world::segment::Segment) -> Segment {
 			Segment {
-				charge: src.state.get_charge(),
+				charge: src.state.charge(),
 				target_charge: src.state.target_charge(),
 			}
 		}

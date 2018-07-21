@@ -6,6 +6,7 @@ use core::color::ToRgb;
 use core::geometry::*;
 use core::geometry::Transform;
 use core::clock::Timer;
+use core::clock::seconds;
 use backend::world::segment;
 use backend::world::segment::*;
 use backend::world::agent;
@@ -54,7 +55,7 @@ impl Phenotype for Resource {
 				..Default::default()
 			},
 			gen.dna(),
-			segment::State::with_charge(initial_state.charge, 0., initial_state.charge),
+			segment::State::with_charge(initial_state.charge, 0., seconds(CHARGE_DECAY_TIME)),
 		);
 		builder
 			.maturity(initial_state.maturity.unwrap_or(MATURITY_DEFAULT))
@@ -81,7 +82,7 @@ impl Phenotype for Player {
 				..Default::default()
 			},
 			gen.dna(),
-			segment::State::with_charge(charge, charge, charge),
+			segment::State::with_charge(charge, charge, seconds(PLAYER_CHARGE_DECAY_TIME)),
 		);
 		builder
 			.maturity(initial_state.maturity.unwrap_or(MATURITY_DEFAULT))
@@ -95,6 +96,7 @@ impl Phenotype for Minion {
 		let gender = gen.next_integer::<u8>(0, 3);
 		let tint = gen.next_float(0., 1.);
 		let albedo = color::Hsl::new(tint, 0.5, 0.5);
+		let charge = initial_state.charge;
 		let mut builder = AgentBuilder::new(
 			id,
 			Material {
@@ -106,7 +108,7 @@ impl Phenotype for Minion {
 				..Default::default()
 			},
 			gen.dna(),
-			segment::State::with_charge(0., initial_state.charge, initial_state.charge),
+			segment::State::with_charge(charge, charge, seconds(CHARGE_DECAY_TIME)),
 		);
 		builder
 			.maturity(initial_state.maturity.unwrap_or(MATURITY_MINION_DEFAULT))
@@ -240,7 +242,7 @@ impl Phenotype for Spore {
 		let gender = gen.next_integer::<u8>(0, 3);
 		let tint = gen.next_float(0., 1.);
 		let albedo = color::Hsl::new(tint, 0.5, 0.5);
-
+		let charge = initial_state.charge;
 		let mut builder = AgentBuilder::new(
 			id,
 			Material {
@@ -252,7 +254,7 @@ impl Phenotype for Spore {
 				..Default::default()
 			},
 			gen.dna(),
-			segment::State::with_charge(0., initial_state.charge, initial_state.charge),
+			segment::State::with_charge(charge, charge, seconds(CHARGE_DECAY_TIME)),
 		);
 		builder
 			.maturity(initial_state.maturity.unwrap_or(MATURITY_DEFAULT))

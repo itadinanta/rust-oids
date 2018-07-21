@@ -199,7 +199,7 @@ impl AlifeSystem {
 						}
 					}
 					agent.state.consume(
-						dt.get() as f32 * segment.state.get_charge() * segment.growing_radius(),
+						dt.get() as f32 * segment.state.charge() * segment.growing_radius(),
 					);
 					segment.state.update(dt);
 				}

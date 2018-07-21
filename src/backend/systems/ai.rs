@@ -128,7 +128,7 @@ impl AiSystem {
 				for segment in segments.iter_mut() {
 					let flags = &segment.flags;
 					if flags.contains(segment::Flags::ACTUATOR) {
-						let power = segment.state.get_charge() * segment.growing_radius().powi(2) * POWER_BOOST;
+						let power = segment.state.charge() * segment.growing_radius().powi(2) * POWER_BOOST;
 						let f = Matrix2::from_angle(Rad(segment.transform.angle)) * Position::unit_y() * power;
 						let intent = if let Some(refs) = segment.state.last_touched {
 							match refs.id().type_of() {
@@ -157,7 +157,7 @@ impl AiSystem {
 							Intent::Idle => segment.state.set_target_charge(brain.rest()),
 							Intent::Move(_) => segment.state.set_target_charge(brain.thrust()),
 							Intent::Brake(_) => segment.state.set_target_charge(brain.thrust()),
-							Intent::RunAway(_) => segment.state.set_charge(brain.thrust()),
+							Intent::RunAway(_) => segment.state.set_output_charge(brain.thrust()),
 							Intent::PilotTo(_, _) => {}
 						}
 						segment.state.intent = intent;

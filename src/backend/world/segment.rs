@@ -32,7 +32,6 @@ pub struct State {
 	age_frames: usize,
 	maturity: f32,
 	charge: ExponentialFilter<f32>,
-	recharge: f32,
 	pub intent: Intent,
 	pub last_touched: Option<agent::Key>,
 }
@@ -43,7 +42,6 @@ impl Default for State {
 			age_seconds: Seconds::zero(),
 			age_frames: 0,
 			maturity: 1.0,
-			recharge: 1.,
 			charge: math::exponential_filter(0., 1., 2.),
 			intent: Intent::Idle,
 			last_touched: None,
@@ -55,10 +53,11 @@ impl State {
 	pub fn age_seconds(&self) -> Seconds { self.age_seconds }
 	pub fn age_frames(&self) -> usize { self.age_frames }
 
-	pub fn get_charge(&self) -> f32 { self.charge.last_output() }
-	pub fn set_charge(&mut self, charge: f32) { self.charge.reset_to(charge, charge); }
-
+	pub fn charge(&self) -> f32 { self.charge.get() }
+	pub fn reset_charge(&mut self, current_charge: f32, target_charge: f32) { self.charge.reset_to(target_charge, current_charge); }
+	pub fn set_output_charge(&mut self, charge: f32) { self.charge.force_to(charge); }
 	pub fn target_charge(&self) -> f32 { self.charge.last_input() }
+	pub fn set_target_charge(&mut self, target_charge: f32) { self.charge.input(target_charge); }
 
 	//pub fn recharge(&self) -> f32 { self.recharge }
 
@@ -66,28 +65,19 @@ impl State {
 
 	pub fn set_maturity(&mut self, maturity: f32) { self.maturity = maturity }
 
-	pub fn set_target_charge(&mut self, target_charge: f32) {
-		self.charge.input(target_charge);
-	}
-
-	pub fn restore(&mut self, charge: f32, target_charge: f32) {
-		self.charge.reset_to(target_charge, charge);
+	pub fn restore(&mut self, current_charge: f32, target_charge: f32) {
+		self.charge.reset_to(target_charge, current_charge);
 	}
 
 	pub fn update(&mut self, dt: Seconds) {
 		self.age_seconds += dt;
 		self.age_frames += 1;
 		self.charge.update(dt.into());
-		if self.charge.distance().abs() < 0.001 {
-			let reset = self.recharge;
-			self.charge.reset_to(reset, reset);
-		}
 	}
 
-	pub fn with_charge(initial: f32, target_charge: f32, recharge: f32) -> Self {
+	pub fn with_charge(current_charge: f32, target_charge: f32, charge_decay_time: Seconds) -> Self {
 		State {
-			recharge,
-			charge: math::exponential_filter(target_charge, initial, 2.),
+			charge: math::exponential_filter(target_charge, current_charge, charge_decay_time.get() as f32),
 			..Self::default()
 		}
 	}
@@ -156,7 +146,7 @@ impl Segment {
 impl obj::Drawable for Segment {
 	fn color(&self) -> Rgba {
 		let rgba = self.livery.albedo;
-		let c = 5. * ((self.state.charge.last_output() * 0.99) + 0.01);
+		let c = 5. * ((self.state.charge.get() * 0.99) + 0.01);
 		[
 			rgba[0] * c,
 			rgba[1] * c,
