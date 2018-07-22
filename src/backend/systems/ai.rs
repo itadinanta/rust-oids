@@ -136,7 +136,7 @@ impl AiSystem {
 								agent::AgentType::Resource => Intent::Idle,
 								_ => {
 									let fear: f32 = brain.fear();
-									touch_accumulator += 1. / segment.state.maturity();
+									touch_accumulator += COLLISION_BASE_COST / segment.state.maturity();
 									Intent::RunAway(f * fear)
 								}
 							}
