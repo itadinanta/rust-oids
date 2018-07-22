@@ -125,6 +125,7 @@ impl AiSystem {
 				);
 
 				let segments = &mut agent.segments_mut();
+				let mut touch_accumulator = 0.0f32;
 				for segment in segments.iter_mut() {
 					let flags = &segment.flags;
 					if flags.contains(segment::Flags::ACTUATOR) {
@@ -135,6 +136,7 @@ impl AiSystem {
 								agent::AgentType::Resource => Intent::Idle,
 								_ => {
 									let fear: f32 = brain.fear();
+									touch_accumulator += 1. / segment.state.maturity();
 									Intent::RunAway(f * fear)
 								}
 							}
@@ -158,9 +160,17 @@ impl AiSystem {
 							Intent::Move(_) => segment.state.set_target_charge(brain.thrust()),
 							Intent::Brake(_) => segment.state.set_target_charge(brain.thrust()),
 							Intent::RunAway(_) => segment.state.set_output_charge(brain.thrust()),
-							Intent::PilotTo(_, _) => {}
+							_ => {}
 						}
 						segment.state.intent = intent;
+					}
+				}
+				// touching costs energy, main body charges up
+				if touch_accumulator > 0. {
+					if let Some(ref mut segment) = segments.get_mut(0) {
+						let thrust: f32 = brain.thrust();
+						segment.state.set_output_charge(1.0f32.max(thrust * touch_accumulator));
+						segment.state.set_target_charge(brain.rest());
 					}
 				}
 			}

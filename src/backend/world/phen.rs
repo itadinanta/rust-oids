@@ -82,7 +82,7 @@ impl Phenotype for Player {
 				..Default::default()
 			},
 			gen.dna(),
-			segment::State::with_charge(0., 0., seconds(PLAYER_CHARGE_DECAY_TIME)),
+			segment::State::with_charge(charge, charge, seconds(PLAYER_CHARGE_DECAY_TIME)),
 		);
 		builder
 			.maturity(initial_state.maturity.unwrap_or(MATURITY_DEFAULT))

@@ -1,4 +1,5 @@
 use super::*;
+use app::constants::*;
 use std::collections::HashMap;
 use rand;
 use core::geometry;
@@ -161,7 +162,7 @@ impl AlifeSystem {
 				let livery_color = segment.livery.albedo;
 				let transform = segment.transform().clone();
 				if maturity < 1. { // just grow a bit
-					let r = 0.1;
+					let r = GROWTH_COST_RATIO;
 					if agent.state.consume_ratio(1. - r, r) {
 						let growth = 1. + r;
 						agent.state.grow_by(growth);
@@ -178,7 +179,7 @@ impl AlifeSystem {
 						}
 					}
 				} else { // reproduce if enough energy
-					if agent.state.consume_ratio(0.95, 0.75) {
+					if agent.state.consume_ratio(SPAWN_COST_THRESHOLD, SPAWN_COST_RATIO) {
 						spawns.push((
 							agent.last_segment().transform().clone(),
 							agent.dna().clone(),
