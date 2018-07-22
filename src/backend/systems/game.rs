@@ -137,11 +137,13 @@ impl System for GameSystem {
 		let rng = &mut rand::thread_rng();
 		for e in &self.feeders {
 			for i in e.spawned..e.to_spawn {
-				let r = match e.emission {
-					Emission::Random => rng.next_f32() * 2. * consts::PI,
-					Emission::CCW(angle) => angle * i as f32,
-					Emission::CW(angle) => -angle * i as f32,
-				};
+				let r = e.angle;
+//				let r = match e.emission {
+//					Emission::Random => rng.next_f32() * 2. * consts::PI,
+//					Emission::CCW(angle) => angle * i as f32,
+//					Emission::CW(angle) => -angle * i as f32,
+//				};
+
 				world.new_resource(
 					Transform::new(e.position, r),
 					Motion::new(Velocity::new(r.cos(), r.sin()) * e.emitted_velocity, e.emitted_spin),
@@ -150,7 +152,7 @@ impl System for GameSystem {
 		}
 
 		for (i, d) in self.feeders.iter().enumerate() {
-			world.feeders_mut()[i].transform_to(Transform::from_position(d.position));
+			world.feeders_mut()[i].transform_to(Transform::new(d.position, d.angle));
 		}
 
 		if self.playerstate.bullet_ready {

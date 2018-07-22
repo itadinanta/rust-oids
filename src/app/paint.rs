@@ -121,7 +121,7 @@ impl App {
 	fn paint_feeders<R>(&self, renderer: &mut R) where R: render::DrawBuffer {
 		let mut batch_buffer = render::PrimitiveBuffer::new();
 		for e in self.world.feeders() {
-			let transform = Self::from_position(&e.transform().position);
+			let transform = Self::from_transform(&e.transform());
 			batch_buffer.draw_ball(None, transform, render::Appearance::rgba(self.lights.get()));
 		}
 		renderer.draw_buffer(batch_buffer)
