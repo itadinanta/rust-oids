@@ -32,25 +32,29 @@ pub struct GameSystem {
 }
 
 struct Feeder {
+	angle: Angle,
 	position: Position,
 	hourglass: Hourglass,
 	to_spawn: usize,
 	spawned: usize,
 	emission: Emission,
 	spin: Spin,
-	velocity: f32,
+	emitted_spin: Spin,
+	emitted_velocity: f32,
 }
 
 impl Feeder where {
 	fn new<T>(position: Position, rate: Seconds, emission: Emission, timer: &T) -> Self where T: Timer {
 		Feeder {
+			angle: 0.,
 			position,
 			hourglass: Hourglass::new(rate, timer),
 			to_spawn: 0,
 			spawned: 0,
 			emission,
-			spin: consts::PI,
-			velocity: 5.,
+			spin: consts::PI * 0.25,
+			emitted_spin: consts::PI,
+			emitted_velocity: 5.,
 		}
 	}
 }
@@ -110,7 +114,8 @@ impl System for GameSystem {
 				e.to_spawn += 1;
 			}
 			let tangent = Position::new(-e.position.y, e.position.x).normalize();
-			e.position += tangent * rng.next_f32() * dt.get() as f32;
+			e.angle += dt * e.spin;
+			e.position += tangent * (dt * rng.next_f32());
 		}
 		// Byzantine way of processing trigger presses without trigger releases
 		// I should think of something less convoluted
@@ -139,7 +144,7 @@ impl System for GameSystem {
 				};
 				world.new_resource(
 					Transform::new(e.position, r),
-					Motion::new(Velocity::new(r.cos(), r.sin()) * e.velocity, e.spin),
+					Motion::new(Velocity::new(r.cos(), r.sin()) * e.emitted_velocity, e.emitted_spin),
 				);
 			}
 		}

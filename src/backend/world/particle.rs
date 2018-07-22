@@ -172,6 +172,6 @@ impl Particle {
 	pub fn effect(&self) -> Rgba<f32> {
 		let effect = self.effect.0.fade(self.effect.1, self.faders[Fader::Effect as usize]);
 		let frequency = self.faders[Fader::Frequency as usize];
-		[effect[0], effect[1] * self.age.get() as f32, effect[2] * frequency, effect[3]]
+		[effect[0], self.age * effect[1], frequency * effect[2], effect[3]]
 	}
 }

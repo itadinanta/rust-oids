@@ -2,7 +2,9 @@ use std::time;
 use std::fmt;
 use std::fmt::Display;
 use std::ops::*;
+use num;
 use num::Zero;
+use num::NumCast;
 
 pub type SecondsValue = f64;
 pub type SpeedFactor = SecondsValue;
@@ -29,6 +31,9 @@ pub fn seconds(value: SecondsValue) -> Seconds {
 impl Seconds {
 	pub fn new(value: SecondsValue) -> Seconds { Seconds(value) }
 	pub fn get(&self) -> SecondsValue { self.0 }
+	pub fn times<F>(&self, other: F) -> Seconds where F: num::Float {
+		seconds(<f64 as NumCast>::from(other).unwrap() * self.0)
+	}
 }
 
 impl Zero for Seconds {
@@ -60,10 +65,11 @@ impl SubAssign for Seconds {
 	}
 }
 
-impl Mul<SecondsValue> for Seconds {
-	type Output = Seconds;
-	fn mul(self, other: SecondsValue) -> Seconds {
-		Seconds(self.0 * other)
+impl <F> Mul<F> for Seconds where
+	F: num::Float {
+	type Output = F;
+	fn mul(self, other: F) -> F {
+		other * <F as NumCast>::from(self.0).unwrap()
 	}
 }
 

@@ -55,7 +55,7 @@ impl Phenotype for Resource {
 				..Default::default()
 			},
 			gen.dna(),
-			segment::State::with_charge(initial_state.charge, 0., seconds(CHARGE_DECAY_TIME)),
+			segment::State::with_charge(initial_state.charge, 0., seconds(DEFAULT_CHARGE_DECAY_TIME)),
 		);
 		builder
 			.maturity(initial_state.maturity.unwrap_or(MATURITY_DEFAULT))
@@ -108,7 +108,7 @@ impl Phenotype for Minion {
 				..Default::default()
 			},
 			gen.dna(),
-			segment::State::with_charge(charge, charge, seconds(CHARGE_DECAY_TIME)),
+			segment::State::with_charge(charge, charge, seconds(MINION_CHARGE_DECAY_TIME)),
 		);
 		builder
 			.maturity(initial_state.maturity.unwrap_or(MATURITY_MINION_DEFAULT))
@@ -254,7 +254,7 @@ impl Phenotype for Spore {
 				..Default::default()
 			},
 			gen.dna(),
-			segment::State::with_charge(charge, charge, seconds(CHARGE_DECAY_TIME)),
+			segment::State::with_charge(charge, charge, seconds(DEFAULT_CHARGE_DECAY_TIME)),
 		);
 		builder
 			.maturity(initial_state.maturity.unwrap_or(MATURITY_DEFAULT))

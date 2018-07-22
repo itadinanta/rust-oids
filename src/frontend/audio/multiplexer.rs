@@ -277,7 +277,7 @@ impl<S> Delay<S> where S: num::Float {
 	fn with_time(time: Seconds) -> Self {
 		Delay::<S> {
 			time,
-			tail: time * 8.0,
+			tail: time.times(8.0),
 			wet_dry: S::one(),
 			feedback: NumCast::from(0.5).unwrap(),
 		}
@@ -377,7 +377,7 @@ impl<T, S> SignalBuilder<T, S>
 	fn with_delay_time(&self, time: Seconds) -> Self {
 		self.with_delay(Delay {
 			time,
-			tail: time * 8.0f64,
+			tail: time.times(8.0),
 			..self.delay.clone()
 		})
 	}
@@ -580,7 +580,7 @@ impl Multiplexer {
 impl<S, F> Signal<S, F> where S: num::Float {
 	fn new<V>(sample_rate: S, duration: Seconds, f: Box<V>) -> Signal<S, F>
 		where V: Fn(S) -> F + ?Sized {
-		let samples: usize = (duration.get() * sample_rate.to_f64().unwrap()).round() as usize;
+		let samples: usize = (duration * sample_rate.to_f64().unwrap()).round() as usize;
 		let frames = (0..samples)
 			.map(|i| S::from(i).unwrap() / sample_rate)
 			.map(|t| f(t)).collect::<Vec<F>>();
@@ -607,8 +607,8 @@ impl<S, T> Signal<S, [T; CHANNELS]>
 		let dry_ratio: T = T::one() - wet_dry;
 		let source_length = self.frames.len();
 		let sample_rate = self.sample_rate.to_f64().unwrap();
-		let delay_length = (time.get() * sample_rate).round() as usize;
-		let tail_length = (tail.get() * sample_rate).round() as usize;
+		let delay_length = (time * sample_rate).round() as usize;
+		let tail_length = (tail * sample_rate).round() as usize;
 		let dest_length = source_length + tail_length;
 		let mut delay_buffer: Vec<[T; CHANNELS]> = sample::signal::equilibrium().take(delay_length).collect();
 		let mut dest_buffer: Vec<[T; CHANNELS]> = Vec::with_capacity(source_length + tail_length);

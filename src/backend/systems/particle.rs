@@ -340,8 +340,8 @@ impl Emitter for SimpleEmitter {
 		if self.active {
 			let pulse = self.pulse;
 			let phase = self.phase;
-			self.phase = (self.phase + dt.get() as f32 * self.phase_rate * jitter(0.1)) % 1.;
-			self.pulse = (self.pulse + dt.get() as f32 * self.pulse_rate * jitter(0.1)) % 1.;
+			self.phase = (self.phase + dt * self.phase_rate * jitter(0.1)) % 1.;
+			self.pulse = (self.pulse + dt * self.pulse_rate * jitter(0.1)) % 1.;
 			if self.pulse < pulse {
 				let particles = (0..self.cluster_size).map(|i| {
 					let spread = self.cluster_spread / self.cluster_size as f32 *
