@@ -5,6 +5,7 @@ use rand::Rng;
 use cgmath::InnerSpace;
 use app::constants::*;
 use app::Event;
+use core::math::{exponential_filter, ExponentialFilter};
 use core::clock::*;
 use core::geometry::*;
 use core::geometry::Transform;
@@ -35,6 +36,7 @@ struct Feeder {
 	angle: Angle,
 	position: Position,
 	hourglass: Hourglass,
+	light_intensity: ExponentialFilter<f32>,
 	to_spawn: usize,
 	spawned: usize,
 	emission: Emission,
@@ -48,6 +50,7 @@ impl Feeder where {
 		Feeder {
 			angle: 0.,
 			position,
+			light_intensity: exponential_filter(0., 0., EMITTER_INTENSITY_DECAY),
 			hourglass: Hourglass::new(rate, timer),
 			to_spawn: 0,
 			spawned: 0,
@@ -111,8 +114,11 @@ impl System for GameSystem {
 		for e in &mut self.feeders {
 			if e.hourglass.is_expired(&self.timer) {
 				e.hourglass.flip(&self.timer);
+				//e.light_intensity.set_input(1.0);
+				let jitter = rng.next_f32() * EMITTER_SPREAD_JITTER;
 				e.to_spawn += 1;
 			}
+			e.light_intensity.update(dt.get() as f32);
 			let tangent = Position::new(-e.position.y, e.position.x).normalize();
 			e.angle += dt * e.spin;
 			e.position += tangent * (dt * rng.next_f32());

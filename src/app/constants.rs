@@ -52,6 +52,8 @@ pub const EMITTER_DISTANCE: f32 = 30.;
 pub const EMITTER_PERIOD: SecondsValue = 0.4;
 #[allow(unused)]
 pub const EMITTER_SPREAD_ANGLE: f32 = consts::PI / 12.;
+pub const EMITTER_SPREAD_JITTER: f32 = 1.0;
+pub const EMITTER_INTENSITY_DECAY: f32 = 1.0;
 pub const BULLET_SPEED_SCALE: f32 = 100.;
 pub const BULLET_FIRE_RATE_SCALE: SecondsValue = 0.5;
 pub const BULLET_FULL_CHARGE: SecondsValue = 1.0;
