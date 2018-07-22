@@ -550,10 +550,6 @@ impl App {
 		trans * rot
 	}
 
-	fn from_position(position: &Position) -> Matrix4<f32> {
-		Matrix4::from_translation(cgmath::Vector3::new(position.x, position.y, 0.0))
-	}
-
 	pub fn init(&mut self, mode: SystemMode) {
 		self.init_systems(mode);
 		self.register_all();

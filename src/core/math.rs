@@ -140,16 +140,10 @@ impl<S, T, M> LPF<S, T, M> where
 
 	pub fn input(&mut self, target: S) { self.input = target; }
 	pub fn last_input(&self) -> S { self.input }
-	pub fn catch_up(&mut self) { self.smooth.reset(self.input) }
 	pub fn force_to(&mut self, output: S) { self.smooth.reset(output) }
 	pub fn reset_to(&mut self, input: S, output: S) {
 		self.input = input;
 		self.smooth.reset(output);
-	}
-	pub fn distance(&self) -> S { self.smooth.last() - self.input }
-	pub fn smooth(&mut self, target: S, dt: T) -> S {
-		self.input = target;
-		self.update(dt)
 	}
 	pub fn update(&mut self, dt: T) -> S { self.smooth.smooth(self.input, dt) }
 	pub fn get(&self) -> S { self.smooth.last() }

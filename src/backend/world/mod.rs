@@ -25,7 +25,6 @@ use core::clock::*;
 use core::color::Rgba;
 use core::geometry::*;
 use core::geometry::Transform;
-use core::math::{ExponentialFilter, exponential_filter};
 use core::resource::ResourceLoader;
 use serialize::base64::{self, ToBase64};
 use backend::messagebus::{Outbox, Message};
@@ -62,43 +61,23 @@ impl AgentState for World {
 }
 
 #[derive(Clone)]
-pub enum Emission {
-	#[allow(unused)]
-	CW(Angle),
-	#[allow(unused)]
-	CCW(Angle),
-	Random,
-}
-
-#[derive(Clone)]
 pub struct Feeder {
 	transform: Transform,
 	rate: Seconds,
-	emission: Emission,
-	fader: ExponentialFilter<f32>,
+	intensity: f32,
 }
 
 impl Feeder {
-	pub fn new(x: f32, y: f32, rate: Seconds, emission: Emission) -> Self {
+	pub fn new(x: f32, y: f32, rate: Seconds) -> Self {
 		Feeder {
 			transform: Transform::from_position(Position::new(x, y)),
 			rate,
-			emission,
-			fader: exponential_filter(1.0, 1.0, 0.25),
+			intensity: 1.0,
 		}
 	}
-	pub fn fader(&self) -> &ExponentialFilter<f32> {
-		&self.fader
-	}
-	pub fn fader_mut(&mut self) -> &mut ExponentialFilter<f32> {
-		&mut self.fader
-	}
-	pub fn rate(&self) -> Seconds {
-		self.rate
-	}
-	pub fn emission(&self) -> Emission {
-		self.emission.clone()
-	}
+	pub fn rate(&self) -> Seconds { self.rate }
+	pub fn intensity(&self) -> f32 { self.intensity }
+	pub fn set_intensity(&mut self, intensity: f32) { self.intensity = intensity }
 }
 
 impl Transformable for Feeder {
@@ -127,7 +106,7 @@ impl World {
 		let num_emitters: usize = 7;
 		let feeders = (0..num_emitters).map(|i| {
 			let (s, c) = (consts::PI * 2. * (i as f32 / num_emitters as f32)).sin_cos();
-			Feeder::new(c * EMITTER_DISTANCE, s * EMITTER_DISTANCE, emitter_rate, Emission::Random)
+			Feeder::new(c * EMITTER_DISTANCE, s * EMITTER_DISTANCE, emitter_rate)
 		}).collect::<Vec<_>>();
 		World {
 			extent: Rect::new(-WORLD_RADIUS, -WORLD_RADIUS, WORLD_RADIUS, WORLD_RADIUS),
@@ -309,17 +288,17 @@ impl World {
 			)
 		)
 	}
-/*
-	pub fn get_player_world_position(&self) -> Option<Position> {
-		self.registered_player_id.and_then(move |id|
-			self.agent(id).and_then(move |player_agent|
-				player_agent.segment(0).map(move |segment|
-					segment.transform.position
+	/*
+		pub fn get_player_world_position(&self) -> Option<Position> {
+			self.registered_player_id.and_then(move |id|
+				self.agent(id).and_then(move |player_agent|
+					player_agent.segment(0).map(move |segment|
+						segment.transform.position
+					)
 				)
 			)
-		)
-	}
-*/
+		}
+	*/
 	pub fn primary_fire(&mut self, outbox: &Outbox, bullet_speed: f32) {
 		self.get_player_segment_mut().map(move |segment| {
 			let angle = segment.transform.angle.clone();

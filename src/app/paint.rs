@@ -6,13 +6,21 @@ use frontend::render::Draw;
 impl App {
 	pub fn environment(&self) -> Environment {
 		let light_color = self.lights.get();
+
 		let mut emitter_lights = self.world
 			.feeders()
 			.iter()
-			.map(|e| render::Light::PointLight {
-				position: e.transform().position,
-				color: light_color,
-				attenuation: [0.2, 0.8, 0.1, 0.1],
+			.map(|e| {
+				let intensity = e.intensity();
+				render::Light::PointLight {
+					position: e.transform().position,
+					color: [
+						light_color[0] * intensity,
+						light_color[1] * intensity,
+						light_color[2] * intensity,
+						light_color[3]],
+					attenuation: [0.2, 0.8, 0.1, 0.1],
+				}
 			})
 			.collect::<Vec<_>>();
 		if let Some(ref segment) = self.world.get_player_segment() {

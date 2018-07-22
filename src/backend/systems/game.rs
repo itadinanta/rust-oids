@@ -12,7 +12,6 @@ use core::geometry::Transform;
 use backend::obj::Transformable;
 use backend::world;
 use backend::world::agent;
-use backend::world::Emission;
 use backend::messagebus::{PubSub, Inbox, Whiteboard, ReceiveDrain, Message};
 
 #[derive(Default)]
@@ -39,14 +38,13 @@ struct Feeder {
 	light_intensity: ExponentialFilter<f32>,
 	to_spawn: usize,
 	spawned: usize,
-	emission: Emission,
 	spin: Spin,
 	emitted_spin: Spin,
 	emitted_velocity: f32,
 }
 
 impl Feeder where {
-	fn new<T>(position: Position, rate: Seconds, emission: Emission, timer: &T) -> Self where T: Timer {
+	fn new<T>(position: Position, rate: Seconds, timer: &T) -> Self where T: Timer {
 		Feeder {
 			angle: 0.,
 			position,
@@ -54,7 +52,6 @@ impl Feeder where {
 			hourglass: Hourglass::new(rate, timer),
 			to_spawn: 0,
 			spawned: 0,
-			emission,
 			spin: consts::PI * 0.25,
 			emitted_spin: consts::PI,
 			emitted_velocity: 5.,
@@ -94,7 +91,6 @@ impl System for GameSystem {
 			self.feeders.push(Feeder::new(
 				s.transform().position,
 				s.rate(),
-				s.emission(),
 				&self.timer,
 			));
 		}
@@ -114,8 +110,8 @@ impl System for GameSystem {
 		for e in &mut self.feeders {
 			if e.hourglass.is_expired(&self.timer) {
 				e.hourglass.flip(&self.timer);
-				//e.light_intensity.set_input(1.0);
-				let jitter = rng.next_f32() * EMITTER_SPREAD_JITTER;
+				e.hourglass.delay(seconds(rng.next_f32() * EMITTER_SPREAD_JITTER));
+				e.light_intensity.force_to(1.0);
 				e.to_spawn += 1;
 			}
 			e.light_intensity.update(dt.get() as f32);
@@ -140,15 +136,9 @@ impl System for GameSystem {
 	}
 
 	fn export(&self, world: &mut world::World, outbox: &Outbox) {
-		let rng = &mut rand::thread_rng();
 		for e in &self.feeders {
-			for i in e.spawned..e.to_spawn {
+			for _ in e.spawned..e.to_spawn {
 				let r = e.angle;
-//				let r = match e.emission {
-//					Emission::Random => rng.next_f32() * 2. * consts::PI,
-//					Emission::CCW(angle) => angle * i as f32,
-//					Emission::CW(angle) => -angle * i as f32,
-//				};
 
 				world.new_resource(
 					Transform::new(e.position, r),
@@ -159,6 +149,7 @@ impl System for GameSystem {
 
 		for (i, d) in self.feeders.iter().enumerate() {
 			world.feeders_mut()[i].transform_to(Transform::new(d.position, d.angle));
+			world.feeders_mut()[i].set_intensity(d.light_intensity.get());
 		}
 
 		if self.playerstate.bullet_ready {

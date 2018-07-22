@@ -24,8 +24,9 @@ impl Display for Seconds {
 	}
 }
 
-pub fn seconds(value: SecondsValue) -> Seconds {
-	Seconds::new(value)
+pub fn seconds<T>(value: T) -> Seconds where
+	T: Into<SecondsValue> {
+	Seconds::new(value.into())
 }
 
 impl Seconds {
@@ -65,7 +66,7 @@ impl SubAssign for Seconds {
 	}
 }
 
-impl <F> Mul<F> for Seconds where
+impl<F> Mul<F> for Seconds where
 	F: num::Float {
 	type Output = F;
 	fn mul(self, other: F) -> F {
@@ -212,6 +213,10 @@ impl Hourglass {
 		self.timeout = self.capacity - left;
 		self.stopwatch.reset(timer);
 		left
+	}
+
+	pub fn delay(&mut self, delay_seconds: Seconds) {
+		self.timeout = self.timeout + delay_seconds;
 	}
 
 	#[allow(unused)]
