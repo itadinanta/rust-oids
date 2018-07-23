@@ -147,9 +147,9 @@ impl System for GameSystem {
 			}
 		}
 
-		for (i, d) in self.feeders.iter().enumerate() {
-			world.feeders_mut()[i].transform_to(Transform::new(d.position, d.angle));
-			world.feeders_mut()[i].set_intensity(d.light_intensity.get());
+		for (src, dest) in self.feeders.iter().zip(world.feeders_mut().iter_mut()) {
+			dest.transform_to(Transform::new(src.position, src.angle));
+			dest.set_intensity(src.light_intensity.get());
 		}
 
 		if self.playerstate.bullet_ready {
