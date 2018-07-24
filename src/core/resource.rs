@@ -5,9 +5,9 @@ pub trait ResourceLoader<T> {
 }
 
 pub mod filesystem {
+	use std::fs;
 	use std::io;
 	use std::io::Read;
-	use std::fs;
 	use std::path;
 
 	#[derive(Clone)]
@@ -20,9 +20,7 @@ pub mod filesystem {
 	}
 
 	impl ResourceLoaderBuilder {
-		pub fn new() -> Self {
-			ResourceLoaderBuilder { roots: Vec::new() }
-		}
+		pub fn new() -> Self { ResourceLoaderBuilder { roots: Vec::new() } }
 
 		pub fn add(&mut self, root: &path::Path) -> &mut Self {
 			self.roots.push(root.to_owned());
@@ -30,7 +28,9 @@ pub mod filesystem {
 		}
 
 		pub fn build(&self) -> ResourceLoader {
-			ResourceLoader { roots: self.roots.clone().into_boxed_slice() }
+			ResourceLoader {
+				roots: self.roots.clone().into_boxed_slice(),
+			}
 		}
 	}
 
@@ -50,7 +50,8 @@ pub mod filesystem {
 			}
 
 			// look for the first file which exists
-			match &self.roots
+			match &self
+				.roots
 				.iter()
 				.map(|ref r| {
 					// try all roots in order, if some has it
@@ -58,7 +59,8 @@ pub mod filesystem {
 					path.push(key);
 					path
 				})
-				.find(|path| path.exists() && path.is_file()) {
+				.find(|path| path.exists() && path.is_file())
+			{
 				// and then either read it
 				&Some(ref p) => load_from_path(p.as_path()),
 				// or give up

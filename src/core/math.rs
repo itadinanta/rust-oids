@@ -1,33 +1,29 @@
 use cgmath;
 use cgmath::InnerSpace;
-use num::Zero;
-use std::ops::*;
-use std::marker::PhantomData;
 use num;
 use num::NumCast;
+use num::Zero;
 use num_traits::FloatConst;
+use std::marker::PhantomData;
+use std::ops::*;
 
 pub trait Smooth<S> {
-	fn smooth(&mut self, value: S) -> S {
-		value
-	}
+	fn smooth(&mut self, value: S) -> S { value }
 }
 
-pub trait IntervalSmooth<S, T> where
-	S: Add<S, Output=S> + Mul<T, Output=S> {
+pub trait IntervalSmooth<S, T>
+where S: Add<S, Output = S> + Mul<T, Output = S>
+{
 	fn smooth(&mut self, value: S, dt: T) -> S { value * dt }
 	fn reset(&mut self, _value: S) {}
 	fn last(&self) -> S;
 }
 
 #[allow(unused)]
-pub fn normalize_rad<S>(angle: S) -> S where
-	S: num::Float + FloatConst {
+pub fn normalize_rad<S>(angle: S) -> S
+where S: num::Float + FloatConst {
 	let pi: S = S::PI();
-	(angle
-		+ <S as NumCast>::from(3.).unwrap() * pi)
-		% (<S as NumCast>::from(2.).unwrap() * pi)
-		- pi
+	(angle + <S as NumCast>::from(3.).unwrap() * pi) % (<S as NumCast>::from(2.).unwrap() * pi) - pi
 }
 
 pub struct MovingAverage<S> {
@@ -56,8 +52,8 @@ impl<S: Zero + Copy> MovingAverage<S> {
 	}
 }
 
-impl<S> Smooth<S> for MovingAverage<S> where
-	S: Zero + Sub + Copy + AddAssign + SubAssign + Div<usize, Output=S>
+impl<S> Smooth<S> for MovingAverage<S>
+where S: Zero + Sub + Copy + AddAssign + SubAssign + Div<usize, Output = S>
 {
 	fn smooth(&mut self, value: S) -> S {
 		let len = self.values.len();
@@ -74,13 +70,16 @@ impl<S> Smooth<S> for MovingAverage<S> where
 	}
 }
 
-pub trait Mix<V> where V: num::Float {
+pub trait Mix<V>
+where V: num::Float
+{
 	fn mix(self, a: V, b: V) -> V;
 }
 
-impl<T, V> Mix<V> for T where
+impl<T, V> Mix<V> for T
+where
 	T: num::Float,
-	V: num::Float + Mul<T, Output=V>
+	V: num::Float + Mul<T, Output = V>,
 {
 	fn mix(self, a: V, b: V) -> V {
 		let alpha = T::min(T::one(), T::max(T::zero(), self));
@@ -88,21 +87,18 @@ impl<T, V> Mix<V> for T where
 	}
 }
 
-impl<S, T> Exponential<S, T> where
-	S: Add<S, Output=S> + Mul<T, Output=S> + Copy,
-	T: cgmath::BaseFloat
+impl<S, T> Exponential<S, T>
+where
+	S: Add<S, Output = S> + Mul<T, Output = S> + Copy,
+	T: cgmath::BaseFloat,
 {
-	pub fn new(value: S, tau: T) -> Self {
-		Exponential {
-			last: value,
-			tau,
-		}
-	}
+	pub fn new(value: S, tau: T) -> Self { Exponential { last: value, tau } }
 }
 
-impl<S, T> IntervalSmooth<S, T> for Exponential<S, T> where
-	S: Add<S, Output=S> + Mul<T, Output=S> + Copy,
-	T: cgmath::BaseFloat
+impl<S, T> IntervalSmooth<S, T> for Exponential<S, T>
+where
+	S: Add<S, Output = S> + Mul<T, Output = S> + Copy,
+	T: cgmath::BaseFloat,
 {
 	fn smooth(&mut self, value: S, dt: T) -> S {
 		let alpha1 = T::exp(-dt / self.tau);
@@ -115,8 +111,9 @@ impl<S, T> IntervalSmooth<S, T> for Exponential<S, T> where
 }
 
 #[derive(Clone)]
-pub struct LPF<S, T, M> where
-	S: Add<S, Output=S> + Mul<T, Output=S> + Copy,
+pub struct LPF<S, T, M>
+where
+	S: Add<S, Output = S> + Mul<T, Output = S> + Copy,
 	T: cgmath::BaseFloat,
 	M: IntervalSmooth<S, T>,
 {
@@ -125,8 +122,9 @@ pub struct LPF<S, T, M> where
 	_interval: PhantomData<T>,
 }
 
-impl<S, T, M> LPF<S, T, M> where
-	S: Add<S, Output=S> + Mul<T, Output=S> + Sub<S, Output=S> + Copy,
+impl<S, T, M> LPF<S, T, M>
+where
+	S: Add<S, Output = S> + Mul<T, Output = S> + Sub<S, Output = S> + Copy,
 	T: cgmath::BaseFloat,
 	M: IntervalSmooth<S, T>,
 {
@@ -152,7 +150,7 @@ impl<S, T, M> LPF<S, T, M> where
 pub type ExponentialFilter<T> = LPF<T, T, Exponential<T, T>>;
 
 pub fn exponential_filter<T>(initial_input: T, initial_output: T, decay_time: T) -> ExponentialFilter<T>
-	where T: cgmath::BaseFloat {
+where T: cgmath::BaseFloat {
 	LPF::new(initial_input, Exponential::new(initial_output, decay_time))
 }
 
@@ -192,8 +190,8 @@ pub struct Inertial<T: cgmath::BaseNum + Neg + Copy> {
 	velocity: cgmath::Vector2<T>,
 }
 
-impl<T> Default for Inertial<T> where
-	T: cgmath::BaseFloat + cgmath::Zero + cgmath::One,
+impl<T> Default for Inertial<T>
+where T: cgmath::BaseFloat + cgmath::Zero + cgmath::One
 {
 	fn default() -> Self {
 		Inertial {
@@ -208,8 +206,8 @@ impl<T> Default for Inertial<T> where
 	}
 }
 
-impl<T> Directional<T> for Inertial<T> where
-	T: cgmath::BaseFloat,
+impl<T> Directional<T> for Inertial<T>
+where T: cgmath::BaseFloat
 {
 	fn push(&mut self, d: Direction, weight: T) {
 		let v = Self::unit(d) * weight;
@@ -218,17 +216,13 @@ impl<T> Directional<T> for Inertial<T> where
 			self.velocity.normalize_to(self.limit);
 		}
 	}
-	fn position(&self) -> cgmath::Vector2<T> {
-		self.position
-	}
+	fn position(&self) -> cgmath::Vector2<T> { self.position }
 }
 
-impl<T> Relative<T> for Inertial<T> where
-	T: cgmath::BaseFloat,
+impl<T> Relative<T> for Inertial<T>
+where T: cgmath::BaseFloat
 {
-	fn zero(&mut self) {
-		self.zero = self.position;
-	}
+	fn zero(&mut self) { self.zero = self.position; }
 	fn set_relative(&mut self, p: cgmath::Vector2<T>) {
 		let zero = self.zero;
 		self.set(zero + p);
@@ -236,8 +230,8 @@ impl<T> Relative<T> for Inertial<T> where
 }
 
 #[allow(dead_code)]
-impl<T> Inertial<T> where
-	T: cgmath::BaseFloat,
+impl<T> Inertial<T>
+where T: cgmath::BaseFloat
 {
 	pub fn new(impulse: T, inertia: T, limit: T) -> Self {
 		Inertial {
@@ -248,26 +242,18 @@ impl<T> Inertial<T> where
 		}
 	}
 
-	pub fn follow(&mut self, target: Option<cgmath::Vector2<T>>) {
-		self.target = target;
-	}
+	pub fn follow(&mut self, target: Option<cgmath::Vector2<T>>) { self.target = target; }
 
 	pub fn reset(&mut self) {
 		self.position = cgmath::Zero::zero();
 		self.velocity = cgmath::Zero::zero();
 	}
 
-	pub fn set(&mut self, position: cgmath::Vector2<T>) {
-		self.position = position;
-	}
+	pub fn set(&mut self, position: cgmath::Vector2<T>) { self.position = position; }
 
-	pub fn velocity(&mut self, velocity: cgmath::Vector2<T>) {
-		self.velocity = velocity;
-	}
+	pub fn velocity(&mut self, velocity: cgmath::Vector2<T>) { self.velocity = velocity; }
 
-	pub fn stop(&mut self) {
-		self.velocity = cgmath::Zero::zero();
-	}
+	pub fn stop(&mut self) { self.velocity = cgmath::Zero::zero(); }
 
 	pub fn update<D: Into<T>>(&mut self, dt: D) {
 		let dt: T = dt.into();
