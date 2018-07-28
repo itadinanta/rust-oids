@@ -59,9 +59,11 @@ Some rust-oids competing for territory and resources, and the player messing up 
 
 I've built on Ubuntu GNU/Linux, Devuan Ceres GNU/Linux and Windows 10.
 
-Aside from the full Rust toolchain, the following packages are required:
+On Linux, aside from the full Rust toolchain, the following packages are required (I use `apt install`, adjust for your own distro):
 
-- libbox2d-dev
+For Box2D:
+
+- cmake
 
 For audio:
 
@@ -74,24 +76,39 @@ For gamepad:
 
 ### Windows
 
+`cmake` can be installed via https://scoop.sh/ typing `scoop install cmake`
+
 Building Windows dependencies is a tedious yak shaving exercise. For convenience, I am redistributing parts of open source projects in the form of headers and prebuilt x64 static libs for Windows 10.
 Links to the source code are provided below as for licences:
 
-- `Box2D` https://github.com/erincatto/Box2D, https://github.com/erincatto/Box2D/blob/master/LICENSE
 - `portaudio` http://www.portaudio.com/, http://www.portaudio.com/license.html
 
 ## Build/run
 
 - Clone this repo and ```cd``` into its root
-- ```cargo run --release [options]``` to run starting with the default gene pool
-- ```cargo run --release -- <gene_pool_file.csv> [options]``` to run starting with a snapshotted gene pool (DDDDMMYYY_hhmmss.csv).
+- ```cargo run --release``` run with defaults
+- ```cargo run --release -- [<gene_pool_file.csv>] [options]``` to run starting with a snapshotted gene pool (DDDDMMYYY_hhmmss.csv).
 
 Options:
-- `-t` text mode, headless. Simulates as fast as possible, dumps gene pool every 5 minutes. 
-- `-f I` runs in fullscreen on given monitor index I (0..)
-- `-w W`, `-h H`, optional window size
 
-`cargo_wrapper.bat` can be used in place of `cargo` to automatically sets the env var required to build the Box2D wrapper on Windows.
+`-t`
+:  text mode, headless. Simulates as fast as possible, dumps gene pool every 5 minutes. 
+
+`-f I`
+:  runs in fullscreen on given monitor index I (0..) (`-f 0`)
+
+`-w W`, `-h H`
+:  optional window size (`-w 1280 -h 900`)
+
+`-i <snapshot file>`
+Load from specific snapshot (`-i ~/.config/rust-oids/saved_state/20180423_234300.json`)
+
+`-n`
+:  Ignore last snapshot, start from new population");
+
+`-a <device index>`
+:  Audio device index (portaudio)", "0" (`-a 0`)
+
 
 ## How to play
 
@@ -105,9 +122,11 @@ Gamepad is supported (tested with DS4, in Windows via [DS4Windows](http://ds4win
 - L3, F1: toggle HUD
 - Left mouse click: aim and shoot
 - Middle mouse click: new rustoid from current gene pool.
+- 1, R3: zoom reset
 - Ctrl + Middle mouse click: new random rustoid.
 - Ctrl + Left mouse clik: select minion for tracing
 - Z: deselect minion for tracing
+- F1,L3: toggle HUD
 - F5: reload shaders (development)
 - F6: snapshot current gene pool into the **resources** folder
 - F7: quick save
