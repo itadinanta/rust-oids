@@ -12,13 +12,14 @@
     <stringAttribute key="org.eclipse.cdt.dsf.gdb.TRACEPOINT_MODE" value="TP_NORMAL_ONLY"/>
     <booleanAttribute key="org.eclipse.cdt.dsf.gdb.UPDATE_THREADLIST_ON_SUSPEND" value="false"/>
     <booleanAttribute key="org.eclipse.cdt.dsf.gdb.internal.ui.launching.LocalApplicationCDebuggerTab.DEFAULTS_SET" value="true"/>
+    <stringAttribute key="org.eclipse.cdt.launch.ATTR_LOCATION" value="/home/nico/Projects/itadinanta/rust-oids"/>
     <stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_ID" value="gdb"/>
     <stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_START_MODE" value="run"/>
     <booleanAttribute key="org.eclipse.cdt.launch.DEBUGGER_STOP_AT_MAIN" value="false"/>
     <stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_STOP_AT_MAIN_SYMBOL" value="main"/>
-    <stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="/u01/home/nico/Projects/itadinanta/rust-oids/target/debug/rust-oids"/>
+    <stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="/home/nico/Projects/itadinanta/rust-oids/target/debug/rust-oids"/>
     <stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="rust-oids"/>
-    <stringAttribute key="org.eclipse.cdt.launch.WORKING_DIRECTORY" value="/u01/home/nico/Projects/itadinanta/rust-oids"/>
+    <stringAttribute key="org.eclipse.cdt.launch.WORKING_DIRECTORY" value="."/>
     <stringAttribute key="org.eclipse.corrosionBUILD_COMMAND" value="build"/>
     <mapAttribute key="org.eclipse.debug.core.environmentVariables">
         <mapEntry key="DISPLAY" value=":0.0"/>

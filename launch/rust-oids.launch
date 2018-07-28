@@ -2,7 +2,8 @@
 <launchConfiguration type="org.eclipse.corrosion.run.CargoRunDelegate">
     <stringAttribute key="PROJECT" value="rust-oids"/>
     <stringAttribute key="RUN_ARGUMENTS" value=""/>
-    <stringAttribute key="RUN_OPTIONS" value=""/>
+    <stringAttribute key="RUN_OPTIONS" value="--release"/>
+    <stringAttribute key="WORKING_DIRECTORY" value="/home/nico/Projects/itadinanta/rust-oids"/>
     <listAttribute key="org.eclipse.debug.ui.favoriteGroups">
         <listEntry value="org.eclipse.debug.ui.launchGroup.run"/>
     </listAttribute>
