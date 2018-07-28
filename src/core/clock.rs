@@ -1,10 +1,10 @@
-use std::time;
+use num;
+use num::NumCast;
+use num::Zero;
 use std::fmt;
 use std::fmt::Display;
 use std::ops::*;
-use num;
-use num::Zero;
-use num::NumCast;
+use std::time;
 
 pub type SecondsValue = f64;
 pub type SpeedFactor = SecondsValue;
@@ -24,15 +24,16 @@ impl Display for Seconds {
 	}
 }
 
-pub fn seconds<T>(value: T) -> Seconds where
-	T: Into<SecondsValue> {
+pub fn seconds<T>(value: T) -> Seconds
+where T: Into<SecondsValue> {
 	Seconds::new(value.into())
 }
 
 impl Seconds {
 	pub fn new(value: SecondsValue) -> Seconds { Seconds(value) }
 	pub fn get(&self) -> SecondsValue { self.0 }
-	pub fn times<F>(&self, other: F) -> Seconds where F: num::Float {
+	pub fn times<F>(&self, other: F) -> Seconds
+	where F: num::Float {
 		seconds(<f64 as NumCast>::from(other).unwrap() * self.0)
 	}
 }
@@ -49,43 +50,32 @@ impl Default for Seconds {
 
 impl Add for Seconds {
 	type Output = Seconds;
-	fn add(self, other: Seconds) -> Seconds {
-		Seconds(self.0 + other.0)
-	}
+	fn add(self, other: Seconds) -> Seconds { Seconds(self.0 + other.0) }
 }
 
 impl AddAssign for Seconds {
-	fn add_assign(&mut self, other: Seconds) {
-		self.0 += other.0;
-	}
+	fn add_assign(&mut self, other: Seconds) { self.0 += other.0; }
 }
 
 impl SubAssign for Seconds {
-	fn sub_assign(&mut self, other: Seconds) {
-		self.0 -= other.0;
-	}
+	fn sub_assign(&mut self, other: Seconds) { self.0 -= other.0; }
 }
 
-impl<F> Mul<F> for Seconds where
-	F: num::Float {
+impl<F> Mul<F> for Seconds
+where F: num::Float
+{
 	type Output = F;
-	fn mul(self, other: F) -> F {
-		other * <F as NumCast>::from(self.0).unwrap()
-	}
+	fn mul(self, other: F) -> F { other * <F as NumCast>::from(self.0).unwrap() }
 }
 
 impl Div<usize> for Seconds {
 	type Output = Seconds;
-	fn div(self, other: usize) -> Seconds {
-		Seconds(self.0 / other as SecondsValue)
-	}
+	fn div(self, other: usize) -> Seconds { Seconds(self.0 / other as SecondsValue) }
 }
 
 impl Sub for Seconds {
 	type Output = Seconds;
-	fn sub(self, other: Seconds) -> Seconds {
-		Seconds(self.0 - other.0)
-	}
+	fn sub(self, other: Seconds) -> Seconds { Seconds(self.0 - other.0) }
 }
 
 impl Into<SecondsValue> for Seconds {
@@ -108,7 +98,11 @@ pub struct SystemTimer {
 }
 
 impl SystemTimer {
-	pub fn new() -> Self { SystemTimer { t0: time::SystemTime::now() } }
+	pub fn new() -> Self {
+		SystemTimer {
+			t0: time::SystemTime::now(),
+		}
+	}
 }
 
 impl Timer for SystemTimer {
@@ -123,7 +117,7 @@ impl Timer for SystemTimer {
 /// SimulationTimer
 #[derive(Clone)]
 pub struct SimulationTimer {
-	seconds: Seconds
+	seconds: Seconds,
 }
 
 impl From<Seconds> for SimulationTimer {
@@ -131,26 +125,30 @@ impl From<Seconds> for SimulationTimer {
 }
 
 impl Timer for SimulationTimer {
-	fn seconds(&self) -> Seconds {
-		self.seconds
-	}
+	fn seconds(&self) -> Seconds { self.seconds }
 }
 
 impl SimulationTimer {
-	pub fn new() -> Self { SimulationTimer { seconds: Seconds::zero() } }
-	pub fn tick(&mut self, dt: Seconds) {
-		self.seconds += dt
+	pub fn new() -> Self {
+		SimulationTimer {
+			seconds: Seconds::zero(),
+		}
 	}
-//	pub fn from<T>(source: T) -> Self where T: Timer { SimulationTimer { seconds: source.seconds() } }
+	pub fn tick(&mut self, dt: Seconds) { self.seconds += dt }
+	//pub fn from<T>(source: T) -> Self where T: Timer { SimulationTimer {
+	// seconds: source.seconds() } }
 }
 
 /// Stopwatch
 pub trait Stopwatch {
-	fn reset<T>(&mut self, timer: &T) where T: Timer;
+	fn reset<T>(&mut self, timer: &T)
+	where T: Timer;
 
-	fn elapsed<T>(&self, timer: &T) -> Seconds where T: Timer;
+	fn elapsed<T>(&self, timer: &T) -> Seconds
+	where T: Timer;
 
-	fn restart<T>(&mut self, timer: &T) -> Seconds where T: Timer {
+	fn restart<T>(&mut self, timer: &T) -> Seconds
+	where T: Timer {
 		let elapsed = self.elapsed(timer);
 		self.reset(timer);
 		elapsed
@@ -170,11 +168,13 @@ impl TimerStopwatch {
 }
 
 impl Stopwatch for TimerStopwatch {
-	fn reset<T>(&mut self, timer: &T) where T: Timer {
+	fn reset<T>(&mut self, timer: &T)
+	where T: Timer {
 		self.t0 = timer.seconds();
 	}
 
-	fn elapsed<T>(&self, timer: &T) -> Seconds where T: Timer {
+	fn elapsed<T>(&self, timer: &T) -> Seconds
+	where T: Timer {
 		timer.seconds() - self.t0
 	}
 }
@@ -188,9 +188,7 @@ pub struct Hourglass {
 }
 
 impl fmt::Debug for Hourglass {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "({}, {})", self.timeout, self.capacity)
-	}
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "({}, {})", self.timeout, self.capacity) }
 }
 
 #[allow(unused)]
@@ -203,39 +201,45 @@ impl Hourglass {
 		}
 	}
 
-	pub fn renew<T>(&mut self, timer: &T) where T: Timer {
+	pub fn renew<T>(&mut self, timer: &T)
+	where T: Timer {
 		self.timeout = self.capacity;
 		self.stopwatch.reset(timer)
 	}
 
-	pub fn flip<T>(&mut self, timer: &T) -> Seconds where T: Timer {
+	pub fn flip<T>(&mut self, timer: &T) -> Seconds
+	where T: Timer {
 		let left = self.left(timer);
 		self.timeout = self.capacity - left;
 		self.stopwatch.reset(timer);
 		left
 	}
 
-	pub fn delay(&mut self, delay_seconds: Seconds) {
-		self.timeout = self.timeout + delay_seconds;
-	}
+	pub fn delay(&mut self, delay_seconds: Seconds) { self.timeout = self.timeout + delay_seconds; }
 
 	#[allow(unused)]
-	pub fn elapsed<T>(&self, timer: &T) -> Seconds where T: Timer {
+	pub fn elapsed<T>(&self, timer: &T) -> Seconds
+	where T: Timer {
 		self.stopwatch.elapsed(timer)
 	}
 
-	pub fn left<T>(&self, timer: &T) -> Seconds where T: Timer {
+	pub fn left<T>(&self, timer: &T) -> Seconds
+	where T: Timer {
 		let dt = self.timeout - self.stopwatch.elapsed(timer);
 		Seconds(SecondsValue::max(0., dt.into()))
 	}
 
-	pub fn is_expired<T>(&self, timer: &T) -> bool where T: Timer {
+	pub fn is_expired<T>(&self, timer: &T) -> bool
+	where T: Timer {
 		self.left(timer).get() <= Seconds::zero().0
 	}
 
-	pub fn flip_if_expired<T>(&mut self, timer: &T) -> bool where T: Timer {
+	pub fn flip_if_expired<T>(&mut self, timer: &T) -> bool
+	where T: Timer {
 		let expired = self.is_expired(timer);
-		if expired { self.flip(timer); };
+		if expired {
+			self.flip(timer);
+		};
 		expired
 	}
 }

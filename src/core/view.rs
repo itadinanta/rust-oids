@@ -25,9 +25,7 @@ impl Viewport {
 		}
 	}
 
-	pub fn scale(&mut self, scale: f32) {
-		self.scale = scale;
-	}
+	pub fn scale(&mut self, scale: f32) { self.scale = scale; }
 }
 
 impl WorldTransform for Viewport {
@@ -40,7 +38,5 @@ impl WorldTransform for Viewport {
 }
 
 impl ViewTransform for Viewport {
-	fn to_view(&self, screen_position: Position) -> Position {
-		self.to_world(screen_position)
-	}
+	fn to_view(&self, screen_position: Position) -> Position { self.to_world(screen_position) }
 }

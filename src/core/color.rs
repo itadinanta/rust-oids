@@ -1,7 +1,7 @@
 use num;
 
-pub type Rgb<T=f32> = [T; 3];
-pub type Rgba<T=f32> = [T; 4];
+pub type Rgb<T = f32> = [T; 3];
+pub type Rgba<T = f32> = [T; 4];
 
 pub trait ToRgb<T: num::Float> {
 	fn to_rgb(&self) -> Rgb<T>;
@@ -15,22 +15,25 @@ pub trait ToRgb<T: num::Float> {
 pub trait FromRgb<T: num::Float>: Sized {
 	fn from_rgb(c: &Rgb<T>) -> Self;
 
-	fn from_rgba(c: &Rgba<T>) -> Self {
-		Self::from_rgb(&[c[0], c[1], c[2]])
-	}
+	fn from_rgba(c: &Rgba<T>) -> Self { Self::from_rgb(&[c[0], c[1], c[2]]) }
 }
 
-pub trait Fade<F, T> where T: num::Float {
+pub trait Fade<F, T>
+where T: num::Float {
 	fn fade(&self, other: F, alpha: T) -> F;
 }
 
-impl<T> Fade<Rgba<T>, T> for Rgba<T> where T: num::Float {
+impl<T> Fade<Rgba<T>, T> for Rgba<T>
+where T: num::Float
+{
 	fn fade(&self, other: Rgba<T>, alpha: T) -> Rgba<T> {
 		let alpha1 = T::one() - alpha;
-		[self[0] * alpha1 + other[0] * alpha,
+		[
+			self[0] * alpha1 + other[0] * alpha,
 			self[1] * alpha1 + other[1] * alpha,
 			self[2] * alpha1 + other[2] * alpha,
-			self[3] * alpha1 + other[3] * alpha]
+			self[3] * alpha1 + other[3] * alpha,
+		]
 	}
 }
 
@@ -61,12 +64,9 @@ impl FromRgb<f32> for YPbPr<f32> {
 }
 
 impl<T> YPbPr<T>
-	where
-		T: num::Float,
+where T: num::Float
 {
-	pub fn new(y: T, pb: T, pr: T) -> Self {
-		YPbPr { y, pb, pr }
-	}
+	pub fn new(y: T, pb: T, pr: T) -> Self { YPbPr { y, pb, pr } }
 }
 
 impl ToRgb<f32> for YPbPr<f32> {
@@ -79,12 +79,9 @@ impl ToRgb<f32> for YPbPr<f32> {
 }
 
 impl<T> Hsl<T>
-	where
-		T: num::Float,
+where T: num::Float
 {
-	pub fn new(h: T, s: T, l: T) -> Self {
-		Hsl { h, s, l }
-	}
+	pub fn new(h: T, s: T, l: T) -> Self { Hsl { h, s, l } }
 }
 
 impl FromRgb<f32> for Hsl<f32> {

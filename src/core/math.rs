@@ -12,8 +12,7 @@ pub trait Smooth<S> {
 }
 
 pub trait IntervalSmooth<S, T>
-where S: Add<S, Output = S> + Mul<T, Output = S>
-{
+where S: Add<S, Output = S> + Mul<T, Output = S> {
 	fn smooth(&mut self, value: S, dt: T) -> S { value * dt }
 	fn reset(&mut self, _value: S) {}
 	fn last(&self) -> S;
@@ -71,8 +70,7 @@ where S: Zero + Sub + Copy + AddAssign + SubAssign + Div<usize, Output = S>
 }
 
 pub trait Mix<V>
-where V: num::Float
-{
+where V: num::Float {
 	fn mix(self, a: V, b: V) -> V;
 }
 
@@ -115,8 +113,7 @@ pub struct LPF<S, T, M>
 where
 	S: Add<S, Output = S> + Mul<T, Output = S> + Copy,
 	T: cgmath::BaseFloat,
-	M: IntervalSmooth<S, T>,
-{
+	M: IntervalSmooth<S, T>, {
 	input: S,
 	smooth: M,
 	_interval: PhantomData<T>,

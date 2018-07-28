@@ -47,20 +47,12 @@ impl Rect {
 		}
 	}
 
-	pub fn bottom_left(&self) -> Position {
-		self.min
-	}
-	pub fn top_right(&self) -> Position {
-		self.max
-	}
+	pub fn bottom_left(&self) -> Position { self.min }
+	pub fn top_right(&self) -> Position { self.max }
 
-	pub fn bottom_right(&self) -> Position {
-		Position::new(self.max.x, self.min.y)
-	}
+	pub fn bottom_right(&self) -> Position { Position::new(self.max.x, self.min.y) }
 
-	pub fn top_left(&self) -> Position {
-		Position::new(self.min.x, self.max.y)
-	}
+	pub fn top_left(&self) -> Position { Position::new(self.min.x, self.max.y) }
 }
 
 impl Default for Rect {
@@ -91,20 +83,22 @@ impl Default for Motion {
 
 #[allow(unused)]
 impl Transform {
-	pub fn new(position: Position, angle: f32) -> Self {
-		Transform { position, angle }
-	}
+	pub fn new(position: Position, angle: f32) -> Self { Transform { position, angle } }
 
-	pub fn from_components(x: f32, y: f32, angle: f32) -> Self {
-		Self::new(Position::new(x, y), angle)
-	}
+	pub fn from_components(x: f32, y: f32, angle: f32) -> Self { Self::new(Position::new(x, y), angle) }
 
 	pub fn from_position(position: Position) -> Self {
-		Transform { position, ..Transform::default() }
+		Transform {
+			position,
+			..Transform::default()
+		}
 	}
 
 	pub fn from_angle(angle: Angle) -> Self {
-		Transform { angle, ..Transform::default() }
+		Transform {
+			angle,
+			..Transform::default()
+		}
 	}
 
 	pub fn apply_rotation(&self, position: Position) -> Position {
@@ -112,24 +106,20 @@ impl Transform {
 			let ca = self.angle.cos();
 			let sa = self.angle.sin();
 
-			Position::new(ca * position.x - sa * position.y,
-						  sa * position.x + ca * position.y)
+			Position::new(ca * position.x - sa * position.y, sa * position.x + ca * position.y)
 		} else {
 			position
 		}
 	}
 
-	pub fn apply_translation(&self, position: Position) -> Position {
-		self.position + position
-	}
+	pub fn apply_translation(&self, position: Position) -> Position { self.position + position }
 
 	pub fn apply(&self, position: Position) -> Position {
 		if self.angle != 0. {
 			let ca = self.angle.cos();
 			let sa = self.angle.sin();
 
-			self.position + Position::new(ca * position.x - sa * position.y,
-										  sa * position.x + ca * position.y)
+			self.position + Position::new(ca * position.x - sa * position.y, sa * position.x + ca * position.y)
 		} else {
 			self.position + position
 		}
@@ -140,28 +130,17 @@ impl Transform {
 		let sa = self.angle.sin();
 		let tx = self.position.x;
 		let ty = self.position.y;
-		Matrix3::new(ca, sa, 0.,
-					 -sa, ca, 0.,
-					 tx, ty, 1.)
+		Matrix3::new(ca, sa, 0., -sa, ca, 0., tx, ty, 1.)
 	}
 }
 
 impl Motion {
-	pub fn new(velocity: Position, spin: f32) -> Self {
-		Motion {
-			velocity,
-			spin,
-		}
-	}
+	pub fn new(velocity: Position, spin: f32) -> Self { Motion { velocity, spin } }
 
-	pub fn from_components(vx: f32, vy: f32, spin: f32) -> Self {
-		Self::new(Velocity::new(vx, vy), spin)
-	}
+	pub fn from_components(vx: f32, vy: f32, spin: f32) -> Self { Self::new(Velocity::new(vx, vy), spin) }
 }
 
-pub fn origin() -> Position {
-	Position::new(0., 0.)
-}
+pub fn origin() -> Position { Position::new(0., 0.) }
 
 #[derive(Clone, PartialEq)]
 enum VertexType {
@@ -208,7 +187,5 @@ impl PolygonType {
 	}
 
 	#[allow(dead_code)]
-	pub fn has_flat_vertices(&self) -> bool {
-		self.count[VertexType::Flat as usize] > 0
-	}
+	pub fn has_flat_vertices(&self) -> bool { self.count[VertexType::Flat as usize] > 0 }
 }

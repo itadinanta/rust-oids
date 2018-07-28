@@ -1,4 +1,4 @@
-fn_brace_style = "PreferSameLine"
+brace_style = "PreferSameLine"
 unstable_features = true
 hard_tabs = true
 tab_spaces = 4
@@ -13,3 +13,5 @@ where_single_line = true
 fn_single_line = true
 format_macro_matches = true
 format_macro_bodies = true
+empty_item_single_line = true
+edition = "Edition2018"
