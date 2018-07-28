@@ -87,24 +87,27 @@ Links to the source code are provided below as for licences:
 
 - Clone this repo and ```cd``` into its root
 - ```cargo run --release``` run with defaults
-- ```cargo run --release -- [<gene_pool_file.csv>] [options]``` to run starting with a snapshotted gene pool (DDDDMMYYY_hhmmss.csv).
+- ```cargo run --release -- [<gene_pool_file.csv>] [options]``` 
 
 Options:
 
+`<gene_pool_file.csv>`
+:  use the specified gene pool (`DDDDMMYYY_hhmmss.csv`).
+
 `-t`
-:  text mode, headless. Simulates as fast as possible, dumps gene pool every 5 minutes. 
+:  text mode, headless. Simulates as fast as possible, saves every 5 minutes. 
 
 `-f I`
-:  runs in fullscreen on given monitor index I (0..) (`-f 0`)
+:  runs in fullscreen on given monitor index I (`-f 0`)
 
 `-w W`, `-h H`
 :  optional window size (`-w 1280 -h 900`)
 
 `-i <snapshot file>`
-Load from specific snapshot (`-i ~/.config/rust-oids/saved_state/20180423_234300.json`)
+:  Load from specific snapshot (`-i ~/.config/rust-oids/saved_state/20180423_234300.json`)
 
 `-n`
-:  Ignore last snapshot, start from new population");
+:  Ignore last snapshot, start from new population"
 
 `-a <device index>`
 :  Audio device index (portaudio)", "0" (`-a 0`)
