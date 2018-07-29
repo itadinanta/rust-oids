@@ -12,7 +12,7 @@ These are spawned at a fixed rate by Emitters. Their lifespan is very short and 
 
 ### Minions. 
 These are the little rustoid critters.
-- Each Minion shape and behaviour is determined by its, practically unique, **genotype**, which is basically just a string of bits.
+- Each Minion shape and behaviour are determined by its, practically unique, **genotype**, which is just a string of bits.
 - Body plan, limb geometry and mass distribution are fully simulated via the box2d **physics** engine.
 - Body plan, gender, appearance, and brain aspects of the **phenotype** of each Minion are fully determined by its genetic code.
 - Each Minion's **brain** is implemented via a simple 3 layer neural network. Brain has no learning capabilities, all behaviour is hardcoded at birth by genotype alone.
@@ -49,11 +49,11 @@ This project started as a test bed for the Rust language and toolchain, [GFX](ht
 
 Some rust-oids competing for territory and resources, and the player messing up with them!
 
-[![Play 1](https://i.ytimg.com/vi/_854pBbodps/0.jpg)](https://youtu.be/_854pBbodps "Click to watch video")
+[![Play 1](https://i.ytimg.com/vi/pXLk-0ZZCEQ/0.jpg)](https://youtu.be/pXLk-0ZZCEQ "Click to watch video")
 
-![image 1](img/capture_0551.png)
+![image 1](img/capture_00003350.png)
 
-![image 2](img/capture_1058.png)
+![image 2](img/capture_00003787.png)
 
 ## Prerequisites/platforms
 
@@ -110,7 +110,7 @@ Options:
 :  Ignore last snapshot, start from new population"
 
 `-a <device index>`
-:  Audio device index (portaudio)", "0" (`-a 0`)
+:  Audio device index (portaudio) (`-a 0`)
 
 
 ## How to play
@@ -121,21 +121,26 @@ Gamepad is supported (tested with DS4, in Windows via [DS4Windows](http://ds4win
 - Right stick, Q, E: aim
 - L2: fire rate
 - R2, Spacebar: shoot
-- L1, G/R1, H: slow down/fast forward
+- L1, G: slow down
+- R1, H: fast forward
 - L3, F1: toggle HUD
-- Left mouse click: aim and shoot
-- Middle mouse click: new rustoid from current gene pool.
-- 1, R3: zoom reset
-- Ctrl + Middle mouse click: new random rustoid.
-- Ctrl + Left mouse clik: select minion for tracing
+- LMB: aim and shoot
+- Ctrl + MMB: new random rustoid.
+- Ctrl + LMB: select minion for tracing
+- MMB: new rustoid from current gene pool.
+- RMB drag: camera pan
 - Z: deselect minion for tracing
-- F1,L3: toggle HUD
+- F1, L3: toggle HUD
 - F5: reload shaders (development)
 - F6: snapshot current gene pool into the **resources** folder
 - F7: quick save
 - F8: reload last save
+- F12, Gamepad select/share: toggle screen sequence capture (EXPERIMENTAL)
 - V,B: set background tone
 - K,L: change light intensity
+- Scroll wheel up, +, Gamepad Up: zoom in
+- Scroll wheel down, -, Gamepad Down: zoom out
+- 1, R3: zoom reset
 - 0, Home: reset camera pan
 
 ### Other licences
