@@ -1,64 +1,78 @@
-use std::path;
-use frontend::render;
+use frontend::audio::{self, SoundSystem};
+use frontend::gfx_window_glutin;
 use frontend::input::EventMapper;
 use frontend::input::GamepadEventLoop;
-use frontend::render::{formats, Renderer, Overlay};
-use frontend::audio::{self, SoundSystem};
+use frontend::render;
+use frontend::render::{formats, Overlay, Renderer};
 use frontend::ui;
-use frontend::gfx_window_glutin;
+use std::path;
 
 use conrod;
 
-use core::resource::filesystem::ResourceLoaderBuilder;
-use core::resource::filesystem::ResourceLoader;
+use core::clock::{seconds, Hourglass, SecondsValue, SystemTimer};
 use core::math::Directional;
-use core::clock::{seconds, SecondsValue, Hourglass, SystemTimer};
+use core::resource::filesystem::ResourceLoader;
+use core::resource::filesystem::ResourceLoaderBuilder;
 use ctrlc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use app;
 use app::constants::*;
-use winit::{self, WindowEvent, VirtualKeyCode, KeyboardInput};
 use glutin;
 use glutin::GlContext;
+use winit::{self, KeyboardInput, VirtualKeyCode, WindowEvent};
 
 pub fn make_resource_loader(config_home: &path::Path) -> ResourceLoader {
 	let res = ResourceLoaderBuilder::new()
 		.add(path::Path::new(CONFIG_DIR_RESOURCES))
 		.add(config_home.join(CONFIG_DIR_RESOURCES).as_path())
 		.add(config_home.join(CONFIG_DIR_SAVED_STATE).as_path())
-		.add(path::Path::new("/usr/local/share/rust-oids").join(CONFIG_DIR_RESOURCES).as_path())
-		.add(path::Path::new("/usr/share/rust-oids").join(CONFIG_DIR_RESOURCES).as_path())
+		.add(
+			path::Path::new("/usr/local/share/rust-oids")
+				.join(CONFIG_DIR_RESOURCES)
+				.as_path(),
+		)
+		.add(
+			path::Path::new("/usr/share/rust-oids")
+				.join(CONFIG_DIR_RESOURCES)
+				.as_path(),
+		)
 		.build();
 
 	res
 }
 
-pub fn main_loop(minion_gene_pool: &str, config_home: path::PathBuf, world_file: Option<path::PathBuf>, fullscreen: Option<usize>, width: Option<u32>, height: Option<u32>, audio_device: Option<usize>) {
+pub fn main_loop(
+	minion_gene_pool: &str,
+	config_home: path::PathBuf,
+	world_file: Option<path::PathBuf>,
+	fullscreen: Option<usize>,
+	width: Option<u32>,
+	height: Option<u32>,
+	audio_device: Option<usize>,
+)
+{
 	const WIDTH: u32 = 1280;
 	const HEIGHT: u32 = 1024;
 
 	let mut events_loop = winit::EventsLoop::new();
 	let mut gamepad = GamepadEventLoop::new();
 
-	let builder = winit::WindowBuilder::new()
-		.with_title("Rust-oids".to_string());
+	let builder = winit::WindowBuilder::new().with_title("Rust-oids".to_string());
 	let builder = if let Some(monitor_index) = fullscreen {
-		let monitor = events_loop.get_available_monitors().nth(monitor_index).expect("Please enter a valid monitor ID");
+		let monitor = events_loop
+			.get_available_monitors()
+			.nth(monitor_index)
+			.expect("Please enter a valid monitor ID");
 		println!("Using {:?}", monitor.get_name());
 		builder.with_fullscreen(Some(monitor))
 	} else {
 		builder.with_dimensions(width.unwrap_or(WIDTH), height.unwrap_or(HEIGHT))
 	};
-	let context_builder = glutin::ContextBuilder::new()
-		.with_vsync(true);
+	let context_builder = glutin::ContextBuilder::new().with_vsync(true);
 
-	let (window,
-		mut device,
-		mut factory,
-		mut frame_buffer,
-		mut depth_buffer) =
+	let (window, mut device, mut factory, mut frame_buffer, mut depth_buffer) =
 		gfx_window_glutin::init::<formats::ScreenColorFormat, formats::ScreenDepthFormat>(
 			builder,
 			context_builder,
@@ -75,15 +89,20 @@ pub fn main_loop(minion_gene_pool: &str, config_home: path::PathBuf, world_file:
 	let mapper = app::WinitEventMapper::new();
 
 	// Create a new game and run it.
-	let mut app = app::App::new(w as u32, h as u32, VIEW_SCALE_BASE, config_home, &res, minion_gene_pool, world_file);
+	let mut app = app::App::new(
+		w as u32,
+		h as u32,
+		VIEW_SCALE_BASE,
+		config_home,
+		&res,
+		minion_gene_pool,
+		world_file,
+	);
 
-	let mut ui = ui::conrod_ui::Ui::new(&res,
-										&mut factory,
-										&frame_buffer, window.hidpi_factor() as f64)
+	let mut ui = ui::conrod_ui::Ui::new(&res, &mut factory, &frame_buffer, window.hidpi_factor() as f64)
 		.expect("Unable to create UI");
 
-	let audio = audio::ThreadedSoundSystem::new(audio_device)
-		.expect("Failure in audio initialization");
+	let audio = audio::ThreadedSoundSystem::new(audio_device).expect("Failure in audio initialization");
 	let mut audio_alert_player = audio::ThreadedAlertPlayer::new(audio);
 	app.init(app::SystemMode::Interactive);
 
@@ -97,25 +116,25 @@ pub fn main_loop(minion_gene_pool: &str, config_home: path::PathBuf, world_file:
 				}
 			}
 			match event {
-				winit::Event::WindowEvent { event, .. } => {
-					match event {
-						WindowEvent::Resized(new_width, new_height) => {
-							gfx_window_glutin::update_views(&window, &mut frame_buffer, &mut depth_buffer);
-							renderer.resize_to(&frame_buffer)
-								.expect("Unable to resize window");
-							ui.resize_to(&frame_buffer)
-								.expect("Unable to resize window");
-							app.on_resize(new_width, new_height);
-						}
-						WindowEvent::Closed => app.quit(),
-						WindowEvent::KeyboardInput {
-							input: KeyboardInput { virtual_keycode: Some(VirtualKeyCode::F5), .. }, ..
-						} => renderer.rebuild().unwrap(),
-						e => {
-							mapper.translate(&e).map(|i| app.on_input_event(&i));
-						}
+				winit::Event::WindowEvent { event, .. } => match event {
+					WindowEvent::Resized(new_width, new_height) => {
+						gfx_window_glutin::update_views(&window, &mut frame_buffer, &mut depth_buffer);
+						renderer.resize_to(&frame_buffer).expect("Unable to resize window");
+						ui.resize_to(&frame_buffer).expect("Unable to resize window");
+						app.on_resize(new_width, new_height);
 					}
-				}
+					WindowEvent::Closed => app.quit(),
+					WindowEvent::KeyboardInput {
+						input: KeyboardInput {
+							virtual_keycode: Some(VirtualKeyCode::F5),
+							..
+						},
+						..
+					} => renderer.rebuild().unwrap(),
+					e => {
+						mapper.translate(&e).map(|i| app.on_input_event(&i));
+					}
+				},
 				_ => {}
 			}
 		});
@@ -128,19 +147,11 @@ pub fn main_loop(minion_gene_pool: &str, config_home: path::PathBuf, world_file:
 		// update and measure, let the app determine the appropriate frame length
 		let frame_update = app.update();
 
-		let camera = render::Camera::ortho(
-			app.camera.position(),
-			app.viewport.scale,
-			app.viewport.ratio,
-		);
+		let camera = render::Camera::ortho(app.camera.position(), app.viewport.scale, app.viewport.ratio);
 
 		let environment = app.environment();
 
-		renderer.setup_frame(
-			&camera,
-			environment.background_color,
-			&environment.lights,
-		);
+		renderer.setup_frame(&camera, environment.background_color, &environment.lights);
 		// draw a frame
 		renderer.begin_frame();
 		// draw the scene
@@ -165,10 +176,9 @@ pub fn main_loop(minion_gene_pool: &str, config_home: path::PathBuf, world_file:
 		// push the commands
 		renderer.end_frame(&mut device);
 
-		window.swap_buffers()
-			.expect("swap_buffers() failed");
+		window.swap_buffers().expect("swap_buffers() failed");
 		renderer.cleanup(&mut device);
-	};
+	}
 }
 
 pub fn main_loop_headless(minion_gene_pool: &str, config_home: path::PathBuf, world_file: Option<path::PathBuf>) {
@@ -176,7 +186,15 @@ pub fn main_loop_headless(minion_gene_pool: &str, config_home: path::PathBuf, wo
 	const HEIGHT: u32 = 1024;
 	let res = make_resource_loader(&config_home);
 
-	let mut app = app::App::new(WIDTH, HEIGHT, VIEW_SCALE_BASE, config_home, &res, minion_gene_pool, world_file);
+	let mut app = app::App::new(
+		WIDTH,
+		HEIGHT,
+		VIEW_SCALE_BASE,
+		config_home,
+		&res,
+		minion_gene_pool,
+		world_file,
+	);
 	let mut no_audio = ui::NullAlertPlayer::new();
 	app.init(app::SystemMode::Batch);
 
@@ -202,7 +220,7 @@ pub fn main_loop_headless(minion_gene_pool: &str, config_home: path::PathBuf, wo
 			app.save_world_to_file();
 			break 'main;
 		}
-// update and measure
+		// update and measure
 		let simulation_update = app.simulate(seconds(FRAME_SIMULATION_LENGTH));
 		if save_hourglass.flip_if_expired(&wall_clock) {
 			app.save_world_to_file();
