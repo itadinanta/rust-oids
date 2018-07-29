@@ -273,6 +273,7 @@ pub struct App {
 	frame_smooth: math::MovingAverage<Seconds>,
 	is_running: bool,
 	is_paused: bool,
+	is_capturing: bool,
 	// interactions: Vec<Event>,
 	//
 	camera: math::Inertial<f32>,
@@ -379,6 +380,7 @@ impl App {
 			frame_smooth: math::MovingAverage::new(FRAME_SMOOTH_COUNT),
 			is_running: true,
 			is_paused: false,
+			is_capturing: false,
 			// savegame
 			saved_state_dir: config_home.join(CONFIG_DIR_SAVED_STATE),
 			config_home,
@@ -451,6 +453,7 @@ impl App {
 			Event::AppQuit => self.quit(),
 			Event::TogglePause => self.is_paused = !self.is_paused,
 			Event::ToggleGui => self.has_ui_overlay = !self.has_ui_overlay,
+			Event::ToggleCapture => self.is_capturing = !self.is_capturing,
 			Event::SaveGenePoolToFile => self.save_gene_pool_to_file(),
 			Event::SaveWorldToFile => self.save_world_to_file(),
 			Event::BeginDrag(_, _) => {
@@ -538,6 +541,8 @@ impl App {
 	}
 
 	pub fn is_running(&self) -> bool { self.is_running }
+	
+	pub fn is_capturing(&self) -> bool { self.is_capturing }
 
 	pub fn on_input_event(&mut self, e: &input::Event) { self.input_state.event(e); }
 

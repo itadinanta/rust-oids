@@ -1,3 +1,6 @@
+use app::constants::*;
+use chrono::DateTime;
+use chrono::Utc;
 use gl;
 use glutin;
 use glutin::GlContext;
@@ -23,10 +26,11 @@ impl Capture {
 		//use gl;
 		gl::ReadPixels::load_with(|s| window.get_proc_address(s) as *const _);
 		let (w, h) = window.get_inner_size().unwrap();
+		let now: DateTime<Utc> = Utc::now();
 		Capture {
 			seq: 0,
-			capture_path: PathBuf::from("capture"),
-			capture_prefix: String::from("capture_"),
+			capture_path: PathBuf::from(CAPTURE_FOLDER).join(now.format(CAPTURE_FOLDER_TIMESTAMP_PATTERN).to_string()),
+			capture_prefix: String::from(CAPTURE_FILENAME_PREFIX),
 			enabled: false,
 			batch_size: 600,
 			w,
@@ -88,15 +92,23 @@ impl Capture {
 		self.images.clear()
 	}
 
+	// Remote control, detects state changes
+	pub fn enable(&mut self, enabled: bool) {
+		if enabled != self.enabled {
+			self.toggle()
+		}
+	}
+
+	// Starts/restarts recording
+	pub fn start(&mut self) { self.enabled = true }
+
+	// Stops recording and flushes
 	pub fn stop(&mut self) {
 		if self.enabled {
 			self.flush();
 		}
 		self.enabled = false;
 	}
-
-	// Starts/restarts recording
-	pub fn start(&mut self) { self.enabled = true }
 
 	pub fn enabled(&self) -> bool { self.enabled }
 

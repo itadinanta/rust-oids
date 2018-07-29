@@ -132,13 +132,6 @@ pub fn main_loop(
 						},
 						..
 					} => renderer.rebuild().unwrap(),
-					WindowEvent::KeyboardInput {
-						input: KeyboardInput {
-							virtual_keycode: Some(VirtualKeyCode::F12),
-							..
-						},
-						..
-					} => capture.toggle(),	
 					e => {
 						mapper.translate(&e).map(|i| app.on_input_event(&i));
 					}
@@ -146,6 +139,8 @@ pub fn main_loop(
 				_ => {}
 			}
 		});
+
+		capture.enable(app.is_capturing());
 
 		if !app.is_running() {
 			capture.stop();

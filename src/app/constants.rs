@@ -93,6 +93,10 @@ pub const CONFIG_DIR_RESOURCES: &'static str = "resources";
 pub const DUMP_FILE_PATTERN_CSV: &'static str = "%Y%m%d_%H%M%S.csv";
 pub const DUMP_FILE_PATTERN_JSON: &'static str = "%Y%m%d_%H%M%S.json";
 
+pub const CAPTURE_FOLDER_TIMESTAMP_PATTERN: &'static str = "%Y%m%d_%H%M%S";
+pub const CAPTURE_FOLDER: &'static str = "capture";
+pub const CAPTURE_FILENAME_PREFIX: &'static str = "capture_";
+
 pub const AMBIENT_LIGHTS: &'static [[f32; 4]] = &[
 	[1.0, 1.0, 1.0, 1.0],
 	[3.1, 3.1, 3.1, 1.0],

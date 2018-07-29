@@ -44,6 +44,7 @@ pub enum Event {
 
 	TogglePause,
 	ToggleGui,
+	ToggleCapture,
 
 	AppQuit,
 
