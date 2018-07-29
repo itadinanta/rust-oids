@@ -127,7 +127,7 @@ dependencies = [
 
 [[package]]
 name = "chrono"
-version = "0.4.4"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "num-integer 0.1.39 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -735,7 +735,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "antidote 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "chrono 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "chrono 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "crossbeam 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "flate2 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1172,12 +1172,12 @@ dependencies = [
 
 [[package]]
 name = "rust-oids"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "bit-set 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "cgmath 0.16.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "chrono 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "chrono 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "conrod 0.58.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cpuprofiler 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "csv 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1606,7 +1606,7 @@ dependencies = [
 "checksum cfg-if 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "efe5c877e17a9c717a0bf3613b2709f723202c4e4675cc8f12926ded29bcb17e"
 "checksum cgl 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "55e7ec0b74fe5897894cbc207092c577e87c52f8a59e8ca8d97ef37551f60a49"
 "checksum cgmath 0.16.1 (registry+https://github.com/rust-lang/crates.io-index)" = "64a4b57c8f4e3a2e9ac07e0f6abc9c24b6fc9e1b54c3478cfb598f3d0023e51c"
-"checksum chrono 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)" = "6962c635d530328acc53ac6a955e83093fedc91c5809dfac1fa60fa470830a37"
+"checksum chrono 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)" = "e48d85528df61dc964aa43c5f6ca681a19cfa74939b2348d204bd08a981f2fb0"
 "checksum cloudabi 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "ddfc5b9aa5d4507acaf872de71051dfd0e309860e88966e1051e462a077aac4f"
 "checksum cmake 0.1.31 (registry+https://github.com/rust-lang/crates.io-index)" = "95470235c31c726d72bf2e1f421adc1e65b9d561bf5529612cbe1a72da1467b3"
 "checksum cocoa 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ac0d785ff4faf0ff23d7b5561346bb50dc7ef9a11cb0e65e07ef776b7752938f"

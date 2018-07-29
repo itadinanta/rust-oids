@@ -32,9 +32,8 @@ impl input::EventMapper<gilrs::Event> for GamepadEventLoop {
 				gilrs::Button::LeftThumb => Some(GamepadL3),
 				gilrs::Button::RightThumb => Some(GamepadR3),
 				// D-Pad
-				// Workaround: DPad buttons are swapped around in GilRs
-				gilrs::Button::DPadDown => Some(GamepadDPadUp),
-				gilrs::Button::DPadUp => Some(GamepadDPadDown),
+				gilrs::Button::DPadDown => Some(GamepadDPadDown),
+				gilrs::Button::DPadUp => Some(GamepadDPadUp),
 				gilrs::Button::DPadLeft => Some(GamepadDPadLeft),
 				gilrs::Button::DPadRight => Some(GamepadDPadRight),
 
