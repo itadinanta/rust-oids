@@ -18,6 +18,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use app;
+use app::capture::Capture;
 use app::constants::*;
 use glutin;
 use glutin::GlContext;
@@ -78,8 +79,8 @@ pub fn main_loop(
 			context_builder,
 			&events_loop,
 		);
-
 	let (w, h, _, _) = frame_buffer.get_dimensions();
+	let mut capture = Capture::init(&window);
 
 	let mut encoder = factory.create_command_buffer().into();
 
@@ -131,6 +132,13 @@ pub fn main_loop(
 						},
 						..
 					} => renderer.rebuild().unwrap(),
+					WindowEvent::KeyboardInput {
+						input: KeyboardInput {
+							virtual_keycode: Some(VirtualKeyCode::F12),
+							..
+						},
+						..
+					} => capture.toggle(),	
 					e => {
 						mapper.translate(&e).map(|i| app.on_input_event(&i));
 					}
@@ -140,12 +148,18 @@ pub fn main_loop(
 		});
 
 		if !app.is_running() {
+			capture.stop();
 			app.save_world_to_file();
 			break 'main;
 		}
 
-		// update and measure, let the app determine the appropriate frame length
-		let frame_update = app.update();
+		let frame_update = if capture.enabled() {
+			// forces 60Hz simulation for frame capture
+			app.update_with_quantum(Some(FRAME_TIME_TARGET))
+		} else {
+			// update and measure, let the app determine the appropriate frame length
+			app.update()
+		};
 
 		let camera = render::Camera::ortho(app.camera.position(), app.viewport.scale, app.viewport.ratio);
 
@@ -175,6 +189,7 @@ pub fn main_loop(
 
 		// push the commands
 		renderer.end_frame(&mut device);
+		capture.screen_grab();
 
 		window.swap_buffers().expect("swap_buffers() failed");
 		renderer.cleanup(&mut device);

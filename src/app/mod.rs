@@ -1,16 +1,16 @@
 use app::constants::*;
+use backend::messagebus::{Inbox, Message, Outbox, PubSub, ReceiveDrain, Whiteboard};
 use backend::obj;
 use backend::obj::*;
 use backend::systems;
 use backend::world;
 use backend::world::agent;
 use backend::world::segment;
-use backend::messagebus::{Inbox, ReceiveDrain, Outbox, PubSub, Whiteboard, Message};
 use cgmath;
 use cgmath::Matrix4;
 use core::clock::*;
-use core::geometry::*;
 use core::geometry::Transform;
+use core::geometry::*;
 use core::math;
 use core::math::Directional;
 use core::math::Relative;
@@ -19,16 +19,16 @@ use core::resource::ResourceLoader;
 use core::util::Cycle;
 use core::view::Viewport;
 use core::view::WorldTransform;
-use frontend::input;
-use frontend::ui;
-use frontend::render;
-use std::fs;
-use std::ffi::OsStr;
 use dirs;
-use std::path;
+use frontend::input;
+use frontend::render;
+use frontend::ui;
 use getopts::Options;
 use num;
 use rayon::prelude::*;
+use std::ffi::OsStr;
+use std::fs;
+use std::path;
 
 pub use self::controller::DefaultController;
 pub use self::controller::InputController;
@@ -43,11 +43,14 @@ use std::process;
 use std::sync::Arc;
 use std::sync::RwLock;
 
-mod main;
-mod winit_event;
+//#[cfg(feature="capture")]
+mod capture;
+
 mod controller;
 mod events;
+mod main;
 mod paint;
+mod winit_event;
 
 pub mod constants;
 
@@ -55,14 +58,22 @@ pub fn run(args: &[OsString]) {
 	let mut opt = Options::new();
 	opt.optflag("t", "terminal", "Headless mode");
 	opt.optopt("f", "fullscreen", "Fullscreen mode on monitor X", "0");
-	opt.optopt("i", "initial", "Start from specific snapshot", "~/.config/rust-oids/saved_state/20180423_234300.json");
+	opt.optopt(
+		"i",
+		"initial",
+		"Start from specific snapshot",
+		"~/.config/rust-oids/saved_state/20180423_234300.json",
+	);
 	opt.optflag("n", "new", "Ignore last snapshot, start from new population");
 	opt.optopt("w", "width", "Window width", "1024");
 	opt.optopt("h", "height", "Window height", "1024");
 	opt.optopt("a", "audio_device", "Audio device index (portaudio)", "0");
 	match opt.parse(args) {
 		Ok(options) => {
-			let pool_file_name = options.free.get(1).map(|n| n.as_str())
+			let pool_file_name = options
+				.free
+				.get(1)
+				.map(|n| n.as_str())
 				.unwrap_or(DEFAULT_MINION_GENE_POOL_FILE);
 
 			let mut world_file: Option<path::PathBuf> = options.opt_str("i").map(|s| path::Path::new(&s).to_owned());
@@ -79,7 +90,8 @@ pub fn run(args: &[OsString]) {
 					for entry in dir {
 						let path_name = entry.unwrap().path().to_owned();
 						if path_name.extension().to_owned().and_then(OsStr::to_str) == Some("json")
-							&& max_path.as_ref().map(|m| path_name > *m).unwrap_or(true) {
+							&& max_path.as_ref().map(|m| path_name > *m).unwrap_or(true)
+						{
 							max_path = Some(path_name.clone());
 						}
 					}
@@ -98,7 +110,15 @@ pub fn run(args: &[OsString]) {
 				let height = options.opt_default("h", "1024").and_then(|v| v.parse::<u32>().ok());
 				let audio_device = options.opt_default("a", "0").and_then(|v| v.parse::<usize>().ok());
 
-				main::main_loop(pool_file_name, config_home, world_file, fullscreen, width, height, audio_device);
+				main::main_loop(
+					pool_file_name,
+					config_home,
+					world_file,
+					fullscreen,
+					width,
+					height,
+					audio_device,
+				);
 			}
 		}
 		Err(message) => {
@@ -110,17 +130,20 @@ pub fn run(args: &[OsString]) {
 }
 
 #[derive(Default)]
-struct SendSystem<T> where T: systems::System {
-	ptr: Arc<RwLock<T>>
+struct SendSystem<T>
+where T: systems::System {
+	ptr: Arc<RwLock<T>>,
 }
 
-impl<T> SendSystem<T> where T: systems::System {
-	fn boxed(ptr: Arc<RwLock<T>>) -> Box<Self> {
-		Box::new(SendSystem { ptr })
-	}
+impl<T> SendSystem<T>
+where T: systems::System
+{
+	fn boxed(ptr: Arc<RwLock<T>>) -> Box<Self> { Box::new(SendSystem { ptr }) }
 }
 
-impl<T> systems::System for SendSystem<T> where T: systems::System {
+impl<T> systems::System for SendSystem<T>
+where T: systems::System
+{
 	fn attach(&mut self, bus: &mut PubSub) { self.ptr.write().unwrap().attach(bus) }
 	fn init(&mut self, world: &world::World) { self.ptr.write().unwrap().init(world) }
 	fn clear(&mut self) { self.ptr.write().unwrap().clear() }
@@ -141,9 +164,7 @@ pub enum SystemMode {
 }
 
 impl Default for SystemMode {
-	fn default() -> Self {
-		SystemMode::Interactive
-	}
+	fn default() -> Self { SystemMode::Interactive }
 }
 
 #[derive(Default)]
@@ -158,50 +179,44 @@ pub struct Systems {
 }
 
 impl Systems {
-	fn set_mode(&mut self, mode: SystemMode) {
-		self.mode = mode;
-	}
+	fn set_mode(&mut self, mode: SystemMode) { self.mode = mode; }
 
 	fn systems(&mut self) -> Vec<Box<(systems::System + Send)>> {
 		match self.mode {
-			SystemMode::Interactive =>
-				vec![
-					SendSystem::boxed(self.physics.clone()),
-					SendSystem::boxed(self.animation.clone()),
-					SendSystem::boxed(self.particle.clone()),
-					SendSystem::boxed(self.game.clone()),
-					SendSystem::boxed(self.ai.clone()),
-					SendSystem::boxed(self.alife.clone()),
-				],
-			SystemMode::Batch =>
-				vec![
-					SendSystem::boxed(self.physics.clone()),
-					SendSystem::boxed(self.game.clone()),
-					SendSystem::boxed(self.ai.clone()),
-					SendSystem::boxed(self.alife.clone()),
-				]
+			SystemMode::Interactive => vec![
+				SendSystem::boxed(self.physics.clone()),
+				SendSystem::boxed(self.animation.clone()),
+				SendSystem::boxed(self.particle.clone()),
+				SendSystem::boxed(self.game.clone()),
+				SendSystem::boxed(self.ai.clone()),
+				SendSystem::boxed(self.alife.clone()),
+			],
+			SystemMode::Batch => vec![
+				SendSystem::boxed(self.physics.clone()),
+				SendSystem::boxed(self.game.clone()),
+				SendSystem::boxed(self.ai.clone()),
+				SendSystem::boxed(self.alife.clone()),
+			],
 		}
 	}
 
 	pub fn unregister(&mut self, agents: &[world::agent::Agent]) {
 		if !agents.is_empty() {
-			self.systems().par_iter_mut().for_each(
-				|system| {
-					for agent in agents {
-						system.unregister(agent)
-					}
+			self.systems().par_iter_mut().for_each(|system| {
+				for agent in agents {
+					system.unregister(agent)
 				}
-			)
+			})
 		}
 	}
 
 	pub fn register(&mut self, agents: &[world::agent::Agent]) {
 		if !agents.is_empty() {
-			self.systems().par_iter_mut().for_each(
-				|system| for agent in agents {
+			self.systems().par_iter_mut().for_each(|system| {
+				for agent in agents {
 					system.register(&agent)
 				}
-			)
+			})
 		}
 	}
 
@@ -223,16 +238,18 @@ impl Systems {
 		}
 	}
 
-	fn for_each_read(&mut self, world: &mut world::World, outbox: &Outbox, apply: &(Fn(&mut systems::System, &mut world::World, &Outbox) + Sync)) {
-		self.systems().iter_mut().for_each(
-			|r| apply(&mut (**r), world, outbox)
-		)
+	fn for_each_read(
+		&mut self,
+		world: &mut world::World,
+		outbox: &Outbox,
+		apply: &(Fn(&mut systems::System, &mut world::World, &Outbox) + Sync),
+	)
+	{
+		self.systems().iter_mut().for_each(|r| apply(&mut (**r), world, outbox))
 	}
 
 	fn for_each_par_write(&mut self, world: &world::World, apply: &(Fn(&mut systems::System, &world::World) + Sync)) {
-		self.systems().par_iter_mut().for_each(
-			|r| apply(&mut (**r), world)
-		)
+		self.systems().par_iter_mut().for_each(|r| apply(&mut (**r), world))
 	}
 }
 
@@ -306,19 +323,28 @@ pub struct FrameUpdate {
 }
 
 impl App {
-	pub fn new<R>(w: u32, h: u32, scale: f32, config_home: path::PathBuf, resource_loader: &R, minion_gene_pool: &str, world_file: Option<path::PathBuf>) -> Self
-		where
-			R: ResourceLoader<u8>, {
+	pub fn new<R>(
+		w: u32,
+		h: u32,
+		scale: f32,
+		config_home: path::PathBuf,
+		resource_loader: &R,
+		minion_gene_pool: &str,
+		world_file: Option<path::PathBuf>,
+	) -> Self
+	where
+		R: ResourceLoader<u8>,
+	{
 		let system_timer = SystemTimer::new();
 		let mut bus = PubSub::new();
 		let alert_inbox = bus.subscribe(Box::new(|e| match e {
 			&Message::Alert(_) => true,
 			&Message::Event(_) => true,
-			_ => false
+			_ => false,
 		}));
 		let reply_inbox = bus.subscribe(Box::new(|e| match e {
 			&Message::Event(Event::SelectMinion(_)) => true,
-			_ => false
+			_ => false,
 		}));
 
 		let mut new_world = world::World::new(resource_loader, minion_gene_pool);
@@ -381,8 +407,7 @@ impl App {
 			}
 			Event::ZoomReset => self.zoom.input(1.),
 
-			Event::VectorThrust(None, VectorDirection::None) =>
-				self.world.set_player_intent(segment::Intent::Idle),
+			Event::VectorThrust(None, VectorDirection::None) => self.world.set_player_intent(segment::Intent::Idle),
 
 			Event::VectorThrust(thrust, rotation) => {
 				let pilot_rotation = match rotation {
@@ -392,18 +417,34 @@ impl App {
 					VectorDirection::Turn(angle) => segment::PilotRotation::Turn(angle),
 					VectorDirection::FromVelocity => segment::PilotRotation::FromVelocity,
 				};
-				self.set_player_intent(segment::Intent::PilotTo(thrust.map(|v| v * THRUST_POWER), pilot_rotation));
+				self.set_player_intent(segment::Intent::PilotTo(
+					thrust.map(|v| v * THRUST_POWER),
+					pilot_rotation,
+				));
 			}
-			Event::PrimaryTrigger(speed, rate) =>
-				self.primary_fire(BULLET_SPEED_SCALE * speed,
-								  BULLET_FIRE_RATE_SCALE * rate + (1. - BULLET_FIRE_RATE_SCALE)),
+			Event::PrimaryTrigger(speed, rate) => self.primary_fire(
+				BULLET_SPEED_SCALE * speed,
+				BULLET_FIRE_RATE_SCALE * rate + (1. - BULLET_FIRE_RATE_SCALE),
+			),
 
-			Event::NextLight => { self.lights.next(); }
-			Event::PrevLight => { self.lights.prev(); }
-			Event::NextBackground => { self.backgrounds.next(); }
-			Event::PrevBackground => { self.backgrounds.prev(); }
-			Event::NextSpeedFactor => { self.speed_factors.next(); }
-			Event::PrevSpeedFactor => { self.speed_factors.prev(); }
+			Event::NextLight => {
+				self.lights.next();
+			}
+			Event::PrevLight => {
+				self.lights.prev();
+			}
+			Event::NextBackground => {
+				self.backgrounds.next();
+			}
+			Event::PrevBackground => {
+				self.backgrounds.prev();
+			}
+			Event::NextSpeedFactor => {
+				self.speed_factors.next();
+			}
+			Event::PrevSpeedFactor => {
+				self.speed_factors.prev();
+			}
 			Event::ToggleDebug => self.debug_flags.toggle(DebugFlags::DEBUG_TARGETS),
 			Event::RestartFromCheckpoint => self.restart_from_checkpoint(),
 
@@ -412,8 +453,12 @@ impl App {
 			Event::ToggleGui => self.has_ui_overlay = !self.has_ui_overlay,
 			Event::SaveGenePoolToFile => self.save_gene_pool_to_file(),
 			Event::SaveWorldToFile => self.save_world_to_file(),
-			Event::BeginDrag(_, _) => { self.camera.zero(); }
-			Event::Drag(start, end) => { self.camera.set_relative(start - end); }
+			Event::BeginDrag(_, _) => {
+				self.camera.zero();
+			}
+			Event::Drag(start, end) => {
+				self.camera.set_relative(start - end);
+			}
 			Event::EndDrag(start, end, vel) => {
 				self.camera.set_relative(start - end);
 				self.camera.velocity(vel);
@@ -428,44 +473,26 @@ impl App {
 		}
 	}
 
-	fn init_camera() -> math::Inertial<f32> {
-		math::Inertial::new(5.0, 1.0, 0.5)
-	}
+	fn init_camera() -> math::Inertial<f32> { math::Inertial::new(5.0, 1.0, 0.5) }
 
-	fn init_lights() -> Cycle<[f32; 4]> {
-		Cycle::new(constants::AMBIENT_LIGHTS)
-	}
+	fn init_lights() -> Cycle<[f32; 4]> { Cycle::new(constants::AMBIENT_LIGHTS) }
 
-	fn init_speed_factors() -> Cycle<SpeedFactor> {
-		Cycle::new(constants::SPEED_FACTORS)
-	}
+	fn init_speed_factors() -> Cycle<SpeedFactor> { Cycle::new(constants::SPEED_FACTORS) }
 
-	fn init_backgrounds() -> Cycle<[f32; 4]> {
-		Cycle::new(constants::BACKGROUNDS)
-	}
+	fn init_backgrounds() -> Cycle<[f32; 4]> { Cycle::new(constants::BACKGROUNDS) }
 
-	fn randomize_minion(&mut self, pos: Position) {
-		self.world.randomize_minion(pos, Motion::default());
-	}
+	fn randomize_minion(&mut self, pos: Position) { self.world.randomize_minion(pos, Motion::default()); }
 
-	fn new_minion(&mut self, pos: Position) {
-		self.world.new_minion(pos, Motion::default());
-	}
+	fn new_minion(&mut self, pos: Position) { self.world.new_minion(pos, Motion::default()); }
 
 	fn primary_fire(&mut self, bullet_speed: f32, rate: SecondsValue) {
 		// forwards the message to the bus
 		self.bus.post(Event::PrimaryFire(bullet_speed, rate).into());
 	}
 
-	fn set_player_intent(&mut self, intent: segment::Intent) {
-		self.world.set_player_intent(intent)
-	}
+	fn set_player_intent(&mut self, intent: segment::Intent) { self.world.set_player_intent(intent) }
 
-	fn deselect_all_minions(&mut self) {
-		self.world.for_all_agents(
-			&mut |agent| agent.state.deselect(),
-		);
-	}
+	fn deselect_all_minions(&mut self) { self.world.for_all_agents(&mut |agent| agent.state.deselect()); }
 
 	fn select_minion(&mut self, id: Id) {
 		self.debug_flags |= DebugFlags::DEBUG_TARGETS;
@@ -490,22 +517,16 @@ impl App {
 		}
 	}
 
-	fn set_last_saved(&mut self, name: path::PathBuf) {
-		self.last_saved = Some(name)
-	}
+	fn set_last_saved(&mut self, name: path::PathBuf) { self.last_saved = Some(name) }
 
 	pub fn interact(&mut self, e: Event) {
 		self.bus.post(e.into());
 		self.on_app_event(e)
 	}
 
-	pub fn has_ui_overlay(&self) -> bool {
-		self.has_ui_overlay
-	}
+	pub fn has_ui_overlay(&self) -> bool { self.has_ui_overlay }
 
-	pub fn quit(&mut self) {
-		self.is_running = false;
-	}
+	pub fn quit(&mut self) { self.is_running = false; }
 
 	fn restart_from_checkpoint(&mut self) {
 		self.systems.clear();
@@ -516,15 +537,12 @@ impl App {
 		self.bus.post(world::alert::Alert::RestartFromCheckpoint.into())
 	}
 
-	pub fn is_running(&self) -> bool {
-		self.is_running
-	}
+	pub fn is_running(&self) -> bool { self.is_running }
 
-	pub fn on_input_event(&mut self, e: &input::Event) {
-		self.input_state.event(e);
-	}
+	pub fn on_input_event(&mut self, e: &input::Event) { self.input_state.event(e); }
 
-	fn update_input<C>(&mut self, dt: Seconds) where C: InputController {
+	fn update_input<C>(&mut self, dt: Seconds)
+	where C: InputController {
 		self.input_state.pre_update(&self.viewport);
 
 		for e in C::update(&self.input_state, &self.viewport, &self.camera, dt) {
@@ -558,7 +576,9 @@ impl App {
 
 	fn register_all(&mut self) {
 		// registered() drains the list, so this can be called only once per frame
-		let found: Vec<agent::Agent> = self.world.registered()
+		let found: Vec<agent::Agent> = self
+			.world
+			.registered()
 			.into_iter()
 			.filter_map(|id| self.world.agent(*id))
 			.map(|a| a.clone())
@@ -578,17 +598,17 @@ impl App {
 	}
 
 	fn update_systems(&mut self, dt: Seconds) {
-		self.systems.for_each_par_write(&self.world, &|s, world| s.step(&world, dt));
-		self.systems.for_each_read(&mut self.world, &self.bus, &|s, mut world, outbox| s.apply(&mut world, outbox));
+		self.systems
+			.for_each_par_write(&self.world, &|s, world| s.step(&world, dt));
+		self.systems
+			.for_each_read(&mut self.world, &self.bus, &|s, mut world, outbox| {
+				s.apply(&mut world, outbox)
+			});
 	}
 
-	fn cleanup_after(&mut self) {
-		self.register_all();
-	}
+	fn cleanup_after(&mut self) { self.register_all(); }
 
-	fn tick(&mut self, dt: Seconds) {
-		self.world.tick(dt);
-	}
+	fn tick(&mut self, dt: Seconds) { self.world.tick(dt); }
 
 	pub fn receive(&mut self) {
 		for event in self.reply_inbox.drain().into_iter() {
@@ -600,40 +620,47 @@ impl App {
 	}
 
 	pub fn play_alerts<P, E>(&mut self, alert_player: &mut P)
-		where P: ui::AlertPlayer<world::alert::Alert, E> + ui::AlertPlayer<Event, E>,
-			  E: Debug {
+	where
+		P: ui::AlertPlayer<world::alert::Alert, E> + ui::AlertPlayer<Event, E>,
+		E: Debug, {
 		for alert in self.alert_inbox.drain().into_iter() {
 			match alert {
-				Message::Event(ref alert) =>
-					match alert_player.play(alert) {
-						Err(e) => error!("Unable to play alert {:?}", e),
-						Ok(_) => ()
-					}
-				Message::Alert(ref alert) =>
-					match alert_player.play(alert) {
-						Err(e) => error!("Unable to play interaction {:?}", e),
-						Ok(_) => ()
-					}
+				Message::Event(ref alert) => match alert_player.play(alert) {
+					Err(e) => error!("Unable to play alert {:?}", e),
+					Ok(_) => (),
+				},
+				Message::Alert(ref alert) => match alert_player.play(alert) {
+					Err(e) => error!("Unable to play interaction {:?}", e),
+					Ok(_) => (),
+				},
 				_ => {}
 			}
 		}
 	}
 
-	pub fn update(&mut self) -> FrameUpdate {
+	pub fn update(&mut self) -> FrameUpdate { self.update_with_quantum(None) }
+
+	pub fn update_with_quantum(&mut self, quantum_target: Option<f64>) -> FrameUpdate {
 		let frame_time = self.frame_stopwatch.restart(&self.wall_clock);
 		self.frame_elapsed.tick(frame_time);
 
 		let frame_time_smooth = self.frame_smooth.smooth(frame_time);
-		self.camera.follow(self.world.get_player_segment().map(|s| s.transform.position));
-		self.viewport.scale(VIEW_SCALE_BASE / self.zoom.update(frame_time_smooth.get() as f32));
+		self.camera
+			.follow(self.world.get_player_segment().map(|s| s.transform.position));
+		self.viewport
+			.scale(VIEW_SCALE_BASE / self.zoom.update(frame_time_smooth.get() as f32));
 		self.camera.update(frame_time_smooth);
 
 		let target_duration = frame_time_smooth.get();
 
 		self.update_input::<DefaultController>(frame_time_smooth);
 		self.receive();
-		let speed_factor = if self.is_paused { 0.0 as SpeedFactor } else { self.speed_factors.get() };
-		let quantum = num::clamp(target_duration, MIN_FRAME_LENGTH, MAX_FRAME_LENGTH);
+		let speed_factor = if self.is_paused {
+			0.0 as SpeedFactor
+		} else {
+			self.speed_factors.get()
+		};
+		let quantum = quantum_target.unwrap_or(num::clamp(target_duration, MIN_FRAME_LENGTH, MAX_FRAME_LENGTH));
 		let (dt, rounds) = if speed_factor <= 1.0 {
 			(Seconds::new(speed_factor * quantum), 1)
 		} else {
@@ -680,8 +707,5 @@ impl App {
 }
 
 impl WorldTransform for math::Inertial<f32> {
-	fn to_world(&self, view_position: Position) -> Position {
-		view_position + self.position()
-	}
+	fn to_world(&self, view_position: Position) -> Position { view_position + self.position() }
 }
-

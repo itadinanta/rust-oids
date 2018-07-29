@@ -11,6 +11,7 @@ authors = [
 [features]
 default = []
 profiler = []
+capture = []
 
 [[bin]]
 name = "rust-oids"
@@ -53,6 +54,7 @@ serde_derive = "*"
 serde_json = "*"
 
 #gui
+gl = "*"
 winit = "0.10"
 glutin = "0.12"
 conrod = { features = ["winit"], version = "0.58" }

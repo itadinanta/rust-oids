@@ -24,6 +24,8 @@ extern crate wrapped2d;
 
 #[macro_use]
 extern crate gfx;
+extern crate gl;
+extern crate image;
 extern crate gfx_device_gl;
 extern crate glutin;
 extern crate winit;
@@ -39,6 +41,7 @@ extern crate rand;
 
 #[cfg(feature = "profiler")]
 extern crate cpuprofiler;
+
 
 #[macro_use]
 extern crate enum_primitive;
