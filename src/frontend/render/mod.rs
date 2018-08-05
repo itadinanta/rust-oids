@@ -1,25 +1,25 @@
-pub mod formats;
 mod effects;
+pub mod formats;
 #[macro_use]
 mod forward;
 
-use std::clone::Clone;
-use core::resource::ResourceLoader;
 use core::geometry::M44;
 use core::geometry::Position;
+use core::resource::ResourceLoader;
+use std::clone::Clone;
 
 use cgmath;
-use frontend::render::forward::VertexIndex;
 use frontend::render::forward::PrimitiveIndex;
 use frontend::render::forward::Vertex;
+use frontend::render::forward::VertexIndex;
 
 use std::convert;
 use std::fmt;
 use std::result;
 
 use gfx;
-use gfx::Factory;
 use gfx::traits::FactoryExt;
+use gfx::Factory;
 
 #[derive(Clone, PartialEq)]
 pub struct Appearance {
@@ -41,12 +41,7 @@ pub enum Style {
 }
 
 impl Appearance {
-	pub fn new(color: formats::Rgba, effect: formats::Float4) -> Self {
-		Appearance {
-			color,
-			effect,
-		}
-	}
+	pub fn new(color: formats::Rgba, effect: formats::Float4) -> Self { Appearance { color, effect } }
 
 	pub fn rgba(color: formats::Rgba) -> Self {
 		Appearance {
@@ -111,33 +106,41 @@ pub enum RenderError {
 pub type Result<T> = result::Result<T, RenderError>;
 
 impl<T: fmt::Display> convert::From<T> for RenderError {
-	fn from(e: T) -> Self {
-		RenderError::Shader(e.to_string())
-	}
+	fn from(e: T) -> Self { RenderError::Shader(e.to_string()) }
 }
 
 trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
-	fn create_shader_set_with_geometry(&mut self, gs_code: &[u8], vs_code: &[u8], ps_code: &[u8])
-									   -> Result<gfx::ShaderSet<R>> {
+	fn create_shader_set_with_geometry(
+		&mut self,
+		gs_code: &[u8],
+		vs_code: &[u8],
+		ps_code: &[u8],
+	) -> Result<gfx::ShaderSet<R>>
+	{
 		let gs = self.create_shader_geometry(gs_code)?;
 		let vs = self.create_shader_vertex(vs_code)?;
 		let ps = self.create_shader_pixel(ps_code)?;
 		Ok(gfx::ShaderSet::Geometry(vs, gs, ps))
 	}
 
-	fn create_msaa_surfaces(&mut self, width: gfx::texture::Size, height: gfx::texture::Size)
-							-> Result<formats::RenderSurfaceWithDepth<R>> {
-		let (_, color_resource, color_target) = self.create_msaa_render_target(
-			formats::MSAA_MODE,
-			width,
-			height,
-		)?;
+	fn create_msaa_surfaces(
+		&mut self,
+		width: gfx::texture::Size,
+		height: gfx::texture::Size,
+	) -> Result<formats::RenderSurfaceWithDepth<R>>
+	{
+		let (_, color_resource, color_target) = self.create_msaa_render_target(formats::MSAA_MODE, width, height)?;
 		let (_, _, depth_target) = self.create_msaa_depth(formats::MSAA_MODE, width, height)?;
 		Ok((color_resource, color_target, depth_target))
 	}
 
-	fn create_msaa_depth(&mut self, aa: gfx::texture::AaMode, width: gfx::texture::Size, height: gfx::texture::Size)
-						 -> Result<formats::DepthSurface<R>> {
+	fn create_msaa_depth(
+		&mut self,
+		aa: gfx::texture::AaMode,
+		width: gfx::texture::Size,
+		height: gfx::texture::Size,
+	) -> Result<formats::DepthSurface<R>>
+	{
 		let kind = gfx::texture::Kind::D2(width, height, aa);
 		let tex = self.create_texture(
 			kind,
@@ -155,8 +158,13 @@ trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 		Ok((tex, resource, target))
 	}
 
-	fn create_msaa_render_target(&mut self, aa: gfx::texture::AaMode, width: gfx::texture::Size, height: gfx::texture::Size)
-								 -> Result<formats::RenderSurface<R>> {
+	fn create_msaa_render_target(
+		&mut self,
+		aa: gfx::texture::AaMode,
+		width: gfx::texture::Size,
+		height: gfx::texture::Size,
+	) -> Result<formats::RenderSurface<R>>
+	{
 		let kind = gfx::texture::Kind::D2(width, height, aa);
 		let tex = self.create_texture(
 			kind,
@@ -213,15 +221,19 @@ pub trait PrimitiveSequence {
 	fn push_batch(&mut self, batch: PrimitiveBatch) -> Result<()>;
 	// Single entry.
 	// TODO: do I want to maintain both?
-	fn push_primitive(&mut self,
-					  shader: Style,
-					  vertices: Vec<Vertex>,
-					  indices: Vec<VertexIndex>,
-					  transform: M44,
-					  appearance: Appearance) -> Result<()>;
+	fn push_primitive(
+		&mut self,
+		shader: Style,
+		vertices: Vec<Vertex>,
+		indices: Vec<VertexIndex>,
+		transform: M44,
+		appearance: Appearance,
+	) -> Result<()>;
 }
 
-impl<T> Draw for T where T: PrimitiveSequence {
+impl<T> Draw for T
+where T: PrimitiveSequence
+{
 	fn draw_triangle(&mut self, style: Option<Style>, transform: M44, p: &[Position], appearance: Appearance) {
 		if p.len() >= 3 {
 			let v = vec![
@@ -245,8 +257,13 @@ impl<T> Draw for T where T: PrimitiveSequence {
 			Vertex::new([-ratio, 1.0, 0.0], [0.5 - ratio * 0.5, 1.0]),
 		];
 
-		self.push_primitive(style.unwrap_or(Style::Flat), v, QUAD_INDICES.to_vec(), transform, appearance)
-			.expect("Unable to draw quad");
+		self.push_primitive(
+			style.unwrap_or(Style::Flat),
+			v,
+			QUAD_INDICES.to_vec(),
+			transform,
+			appearance,
+		).expect("Unable to draw quad");
 	}
 
 	fn draw_star(&mut self, style: Option<Style>, transform: M44, vertices: &[Position], appearance: Appearance) {
@@ -289,8 +306,13 @@ impl<T> Draw for T where T: PrimitiveSequence {
 	}
 
 	fn draw_ball(&mut self, style: Option<Style>, transform: M44, appearance: Appearance) {
-		self.push_primitive(style.unwrap_or(Style::Ball), TRI_VERTICES.to_vec(), TRI_INDICES.to_vec(), transform, appearance)
-			.expect("Unable to draw ball");
+		self.push_primitive(
+			style.unwrap_or(Style::Ball),
+			TRI_VERTICES.to_vec(),
+			TRI_INDICES.to_vec(),
+			transform,
+			appearance,
+		).expect("Unable to draw ball");
 	}
 }
 
@@ -306,9 +328,7 @@ impl PrimitiveBatch {
 		}
 	}
 
-	pub fn len(&self) -> usize {
-		self.transforms.len()
-	}
+	pub fn len(&self) -> usize { self.transforms.len() }
 }
 
 impl PrimitiveSequence for PrimitiveBatch {
@@ -319,12 +339,14 @@ impl PrimitiveSequence for PrimitiveBatch {
 		Ok(())
 	}
 
-	fn push_primitive(&mut self,
-					  shader: Style,
-					  vertices: Vec<Vertex>,
-					  indices: Vec<VertexIndex>,
-					  transform: M44,
-					  appearance: Appearance) -> Result<()>
+	fn push_primitive(
+		&mut self,
+		shader: Style,
+		vertices: Vec<Vertex>,
+		indices: Vec<VertexIndex>,
+		transform: M44,
+		appearance: Appearance,
+	) -> Result<()>
 	{
 		self.push_primitive_buffers(shader, vertices, indices)?;
 		self.transforms.push(transform);
@@ -334,10 +356,12 @@ impl PrimitiveSequence for PrimitiveBatch {
 }
 
 impl PrimitiveBatch {
-	fn push_primitive_buffers(&mut self,
-							  shader: Style,
-							  mut vertices: Vec<Vertex>,
-							  mut indices: Vec<VertexIndex>) -> Result<()>
+	fn push_primitive_buffers(
+		&mut self,
+		shader: Style,
+		mut vertices: Vec<Vertex>,
+		mut indices: Vec<VertexIndex>,
+	) -> Result<()>
 	{
 		self.style = shader;
 		let primitive_offset = self.transforms.len();
@@ -371,23 +395,23 @@ impl PrimitiveSequence for PrimitiveBuffer {
 	fn push_batch(&mut self, batch: PrimitiveBatch) -> Result<()> {
 		let batch_list = &mut self.batches[batch.style as usize];
 		let is_empty = batch_list.is_empty();
-		let last_len = batch_list.last_mut().map(|l| l.len())
-			.unwrap_or(0);
+		let last_len = batch_list.last_mut().map(|l| l.len()).unwrap_or(0);
 		if is_empty || last_len + batch.len() > self.max_batch_len {
 			batch_list.push(batch);
 			Ok(())
 		} else {
-			batch_list.last_mut().map(|l| l.push_batch(batch))
-				.unwrap_or(Ok(()))
+			batch_list.last_mut().map(|l| l.push_batch(batch)).unwrap_or(Ok(()))
 		}
 	}
 
-	fn push_primitive(&mut self,
-					  style: Style,
-					  vertices: Vec<Vertex>,
-					  indices: Vec<VertexIndex>,
-					  transform: M44,
-					  appearance: Appearance) -> Result<()>
+	fn push_primitive(
+		&mut self,
+		style: Style,
+		vertices: Vec<Vertex>,
+		indices: Vec<VertexIndex>,
+		transform: M44,
+		appearance: Appearance,
+	) -> Result<()>
 	{
 		self.push_batch(PrimitiveBatch {
 			style,
@@ -400,23 +424,38 @@ impl PrimitiveSequence for PrimitiveBuffer {
 }
 
 pub trait Overlay<R, F, C>
-	where R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> {
-	fn overlay<O>(&mut self, callback: O) where O: FnMut(&mut F, &mut gfx::Encoder<R, C>);
+where
+	R: gfx::Resources,
+	C: gfx::CommandBuffer<R>,
+	F: Factory<R>, {
+	fn overlay<O>(&mut self, callback: O)
+	where O: FnMut(&mut F, &mut gfx::Encoder<R, C>);
 }
 
 pub enum Light {
-	PointLight { position: Position, color: formats::Rgba, attenuation: formats::Rgba }
+	PointLight {
+		position: Position,
+		color: formats::Rgba,
+		attenuation: formats::Rgba,
+	},
 }
 
 pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>>: Draw {
 	fn setup_frame(&mut self, camera: &Camera, background_color: formats::Rgba, lights: &[Light]);
 	fn begin_frame(&mut self);
 	fn resolve_frame_buffer(&mut self);
-	fn end_frame<D: gfx::Device<Resources=R, CommandBuffer=C>>(&mut self, device: &mut D);
-	fn cleanup<D: gfx::Device<Resources=R, CommandBuffer=C>>(&mut self, device: &mut D);
+	fn end_frame<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D);
+	fn cleanup<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D);
 }
 
-pub struct ForwardRenderer<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: gfx::Factory<R>, L: 'l + ResourceLoader<u8>> {
+pub struct ForwardRenderer<
+	'e,
+	'l,
+	R: gfx::Resources,
+	C: 'e + gfx::CommandBuffer<R>,
+	F: gfx::Factory<R>,
+	L: 'l + ResourceLoader<u8>,
+> {
 	factory: F,
 	pub encoder: &'e mut gfx::Encoder<R, C>,
 	res: &'l L,
@@ -430,11 +469,15 @@ pub struct ForwardRenderer<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer
 }
 
 impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone, L: ResourceLoader<u8>>
-ForwardRenderer<'e, 'l, R, C, F, L> {
+	ForwardRenderer<'e, 'l, R, C, F, L>
+{
 	pub fn new(
-		factory: &mut F, encoder: &'e mut gfx::Encoder<R, C>, res: &'l L,
+		factory: &mut F,
+		encoder: &'e mut gfx::Encoder<R, C>,
+		res: &'l L,
 		frame_buffer: &gfx::handle::RenderTargetView<R, formats::ScreenColorFormat>,
-	) -> Result<ForwardRenderer<'e, 'l, R, C, F, L>> {
+	) -> Result<ForwardRenderer<'e, 'l, R, C, F, L>>
+	{
 		let my_factory = factory.clone();
 
 		let (w, h, _, _) = frame_buffer.get_dimensions();
@@ -468,9 +511,12 @@ ForwardRenderer<'e, 'l, R, C, F, L> {
 		Ok(())
 	}
 
-	pub fn resize_to(&mut self, frame_buffer: &gfx::handle::RenderTargetView<R, formats::ScreenColorFormat>)
-					 -> Result<()> {
-// TODO: this thing leaks?
+	pub fn resize_to(
+		&mut self,
+		frame_buffer: &gfx::handle::RenderTargetView<R, formats::ScreenColorFormat>,
+	) -> Result<()>
+	{
+		// TODO: this thing leaks?
 		let (w, h, _, _) = frame_buffer.get_dimensions();
 		let (hdr_srv, hdr_color_buffer, depth_buffer) = self.factory.create_msaa_surfaces(w, h)?;
 		self.hdr_srv = hdr_srv;
@@ -483,38 +529,43 @@ ForwardRenderer<'e, 'l, R, C, F, L> {
 }
 
 impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> DrawBatch
-for ForwardRenderer<'e, 'l, R, C, F, L> {
-	fn draw_batch(&mut self, batch: PrimitiveBatch) {
-		self.push_batch(batch)
-			.expect("Could not draw batch");
-	}
+	for ForwardRenderer<'e, 'l, R, C, F, L>
+{
+	fn draw_batch(&mut self, batch: PrimitiveBatch) { self.push_batch(batch).expect("Could not draw batch"); }
 }
 
 impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> DrawBuffer
-for ForwardRenderer<'e, 'l, R, C, F, L> {
+	for ForwardRenderer<'e, 'l, R, C, F, L>
+{
 	fn draw_buffer(&mut self, mut buffer: PrimitiveBuffer) {
 		for batch_list in buffer.batches.drain(..) {
 			for batch in batch_list {
-				self.push_batch(batch)
-					.expect("Could not draw batch");
+				self.push_batch(batch).expect("Could not draw batch");
 			}
 		}
 	}
 }
 
 impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> PrimitiveSequence
-for ForwardRenderer<'e, 'l, R, C, F, L> {
+	for ForwardRenderer<'e, 'l, R, C, F, L>
+{
 	fn push_batch(&mut self, batch: PrimitiveBatch) -> Result<()> {
-		let models: Vec<forward::ModelArgs> = batch.transforms.iter()
-			.map(|transform| forward::ModelArgs { transform: (*transform).into() })
-			.collect();
-		let materials: Vec<forward::MaterialArgs> = batch.appearances.iter()
-			.map(|appearance| forward::MaterialArgs { emissive: appearance.color, effect: appearance.effect })
-			.collect();
-		let (vertex_buffer, index_buffer) = self.factory.create_vertex_buffer_with_slice(
-			batch.vertices.as_slice(),
-			batch.indices.as_slice(),
-		);
+		let models: Vec<forward::ModelArgs> = batch
+			.transforms
+			.iter()
+			.map(|transform| forward::ModelArgs {
+				transform: (*transform).into(),
+			}).collect();
+		let materials: Vec<forward::MaterialArgs> = batch
+			.appearances
+			.iter()
+			.map(|appearance| forward::MaterialArgs {
+				emissive: appearance.color,
+				effect: appearance.effect,
+			}).collect();
+		let (vertex_buffer, index_buffer) = self
+			.factory
+			.create_vertex_buffer_with_slice(batch.vertices.as_slice(), batch.indices.as_slice());
 		self.pass_forward_lighting.draw_primitives(
 			batch.style,
 			&mut self.encoder,
@@ -529,18 +580,25 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 		Ok(())
 	}
 
-	fn push_primitive(&mut self,
-					  shader: Style,
-					  vertices: Vec<Vertex>,
-					  indices: Vec<VertexIndex>,
-					  transform: M44,
-					  appearance: Appearance) -> Result<()> {
-		let models = vec![forward::ModelArgs { transform: transform.into() }];
-		let materials = vec![forward::MaterialArgs { emissive: appearance.color, effect: appearance.effect }];
-		let (vertex_buffer, index_buffer) = self.factory.create_vertex_buffer_with_slice(
-			vertices.as_slice(),
-			indices.as_slice(),
-		);
+	fn push_primitive(
+		&mut self,
+		shader: Style,
+		vertices: Vec<Vertex>,
+		indices: Vec<VertexIndex>,
+		transform: M44,
+		appearance: Appearance,
+	) -> Result<()>
+	{
+		let models = vec![forward::ModelArgs {
+			transform: transform.into(),
+		}];
+		let materials = vec![forward::MaterialArgs {
+			emissive: appearance.color,
+			effect: appearance.effect,
+		}];
+		let (vertex_buffer, index_buffer) = self
+			.factory
+			.create_vertex_buffer_with_slice(vertices.as_slice(), indices.as_slice());
 		self.pass_forward_lighting.draw_primitives(
 			shader,
 			&mut self.encoder,
@@ -557,21 +615,18 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 }
 
 impl<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> Renderer<R, C>
-for ForwardRenderer<'e, 'l, R, C, F, L> {
+	for ForwardRenderer<'e, 'l, R, C, F, L>
+{
 	fn setup_frame(&mut self, camera: &Camera, background_color: formats::Rgba, lights: &[Light]) {
 		self.background_color = background_color;
-// 		self.light_color = light_color;
-// 		self.light_position = light_position;
 		let mut forward_lights: Vec<forward::PointLight> = Vec::new();
-
-//		lights.push(forward::PointLight {
-//			propagation: [0.3, 0.5, 0.4, 0.0],
-//			center: [-15.0, -5.0, 1.0, 1.0],
-//			color: [0.3, 0.0, 0.0, 1.0],
-//		});
 		for p in lights.into_iter() {
 			match p {
-				Light::PointLight { position, color, attenuation } => {
+				Light::PointLight {
+					position,
+					color,
+					attenuation,
+				} => {
 					forward_lights.push(forward::PointLight {
 						propagation: *attenuation,
 						center: [position.x, position.y, 2.0, 1.0],
@@ -581,45 +636,36 @@ for ForwardRenderer<'e, 'l, R, C, F, L> {
 			}
 		}
 
-		self.pass_forward_lighting.setup(
-			&mut self.encoder,
-			camera.projection,
-			camera.view,
-			&forward_lights,
-		).expect("Unable to setup lighting");
+		self.pass_forward_lighting
+			.setup(&mut self.encoder, camera.projection, camera.view, &forward_lights)
+			.expect("Unable to setup lighting");
 	}
 
 	fn begin_frame(&mut self) {
 		self.encoder.clear(&self.hdr_color, self.background_color);
 		self.encoder.clear_depth(&self.depth, 1.0f32);
-		self.encoder.clear(
-			&self.frame_buffer,
-			self.background_color,
-		);
+		self.encoder.clear(&self.frame_buffer, self.background_color);
 	}
 
 	fn resolve_frame_buffer(&mut self) {
-		self.pass_effects.apply_all(
-			&mut self.encoder,
-			self.hdr_srv.clone(),
-			self.frame_buffer.clone(),
-		);
+		self.pass_effects
+			.apply_all(&mut self.encoder, self.hdr_srv.clone(), self.frame_buffer.clone());
 	}
 
-	fn end_frame<D: gfx::Device<Resources=R, CommandBuffer=C>>(&mut self, device: &mut D) {
+	fn end_frame<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D) {
 		self.encoder.flush(device);
 	}
 
-	fn cleanup<D: gfx::Device<Resources=R, CommandBuffer=C>>(&mut self, device: &mut D) {
-		device.cleanup();
-	}
+	fn cleanup<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D) { device.cleanup(); }
 }
 
 impl<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>, L: ResourceLoader<u8>> Overlay<R, F, C>
-for ForwardRenderer<'e, 'l, R, C, F, L> {
+	for ForwardRenderer<'e, 'l, R, C, F, L>
+{
 	fn overlay<O>(&mut self, mut callback: O)
-		where O: FnMut(&mut F, &mut gfx::Encoder<R, C>),
-			  F: Factory<R> {
+	where
+		O: FnMut(&mut F, &mut gfx::Encoder<R, C>),
+		F: Factory<R>, {
 		callback(&mut self.factory, &mut self.encoder)
 	}
 }
