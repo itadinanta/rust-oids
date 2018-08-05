@@ -6,6 +6,7 @@ use glutin;
 use glutin::GlContext;
 use image;
 use image::ImageBuffer;
+use rayon;
 use std::fs::create_dir_all;
 use std::path::PathBuf;
 
@@ -13,7 +14,6 @@ pub struct Capture {
 	seq: usize,
 	capture_path: PathBuf,
 	capture_prefix: String,
-	batch_size: usize,
 	enabled: bool,
 	w: u32,
 	h: u32,
@@ -32,7 +32,6 @@ impl Capture {
 			capture_path: PathBuf::from(CAPTURE_FOLDER).join(now.format(CAPTURE_FOLDER_TIMESTAMP_PATTERN).to_string()),
 			capture_prefix: String::from(CAPTURE_FILENAME_PREFIX),
 			enabled: false,
-			batch_size: 600,
 			w,
 			h,
 			images: Vec::new(),
@@ -54,21 +53,25 @@ impl Capture {
 					buf.as_mut_ptr() as *mut _,
 				);
 			}
-			let mut img = ImageBuffer::new(self.w as u32, self.h);
-			for i in 0..self.h {
-				for j in 0..self.w {
-					let base: usize = 3 * (j + (self.h - i - 1) * self.w) as usize;
-					let r = buf[base + 0];
-					let g = buf[base + 1];
-					let b = buf[base + 2];
-					img.put_pixel(j, i, image::Rgb([r, g, b]));
+			self.seq += 1;
+			let filename = self.capture_prefix.clone() + &format!("{:08}.png", self.seq);
+			let full_path = self.capture_path.join(filename);
+			let w = self.w;
+			let h = self.h;
+			rayon::spawn(move || {
+				let mut img = ImageBuffer::new(w, h);
+				for i in 0..h {
+					for j in 0..w {
+						let base: usize = 3 * (j + (h - i - 1) * w) as usize;
+						let r = buf[base + 0];
+						let g = buf[base + 1];
+						let b = buf[base + 2];
+						img.put_pixel(j, i, image::Rgb([r, g, b]));
+					}
 				}
-			}
-			self.images.push(img);
-
-			if self.images.len() >= self.batch_size {
-				self.flush();
-			}
+				println!("Saving image {}", full_path.to_str().unwrap());
+				img.save(full_path).expect("Could not write image");
+			});
 		}
 	}
 
