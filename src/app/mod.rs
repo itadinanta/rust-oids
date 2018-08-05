@@ -277,6 +277,7 @@ pub struct App {
 	// interactions: Vec<Event>,
 	//
 	camera: math::Inertial<f32>,
+	is_camera_tracking: bool,
 	lights: Cycle<Rgba>,
 	backgrounds: Cycle<Rgba>,
 	speed_factors: Cycle<SpeedFactor>,
@@ -361,6 +362,7 @@ impl App {
 			input_state: input::InputState::default(),
 
 			camera: Self::init_camera(),
+			is_camera_tracking: true,
 			lights: Self::init_lights(),
 			backgrounds: Self::init_backgrounds(),
 			speed_factors: Self::init_speed_factors(),
@@ -409,7 +411,7 @@ impl App {
 			}
 			Event::ZoomReset => self.zoom.input(1.),
 
-			Event::VectorThrust(None, VectorDirection::None) => self.world.set_player_intent(segment::Intent::Idle),
+			Event::VectorThrust(None, VectorDirection::None) => self.set_player_intent(segment::Intent::Idle),
 
 			Event::VectorThrust(thrust, rotation) => {
 				let pilot_rotation = match rotation {
@@ -419,6 +421,7 @@ impl App {
 					VectorDirection::Turn(angle) => segment::PilotRotation::Turn(angle),
 					VectorDirection::FromVelocity => segment::PilotRotation::FromVelocity,
 				};
+				self.is_camera_tracking = true;
 				self.set_player_intent(segment::Intent::PilotTo(
 					thrust.map(|v| v * THRUST_POWER),
 					pilot_rotation,
@@ -458,6 +461,7 @@ impl App {
 			Event::SaveWorldToFile => self.save_world_to_file(),
 			Event::BeginDrag(_, _) => {
 				self.camera.zero();
+				self.is_camera_tracking = false;
 			}
 			Event::Drag(start, end) => {
 				self.camera.set_relative(start - end);
@@ -541,7 +545,7 @@ impl App {
 	}
 
 	pub fn is_running(&self) -> bool { self.is_running }
-	
+
 	pub fn is_capturing(&self) -> bool { self.is_capturing }
 
 	pub fn on_input_event(&mut self, e: &input::Event) { self.input_state.event(e); }
@@ -650,8 +654,14 @@ impl App {
 		self.frame_elapsed.tick(frame_time);
 
 		let frame_time_smooth = self.frame_smooth.smooth(frame_time);
-		self.camera
-			.follow(self.world.get_player_segment().map(|s| s.transform.position));
+
+		let player_follow = if self.is_camera_tracking {
+			self.world.get_player_segment().map(|s| s.transform.position)
+		} else {
+			None
+		};
+
+		self.camera.follow(player_follow);
 		self.viewport
 			.scale(VIEW_SCALE_BASE / self.zoom.update(frame_time_smooth.get() as f32));
 		self.camera.update(frame_time_smooth);
