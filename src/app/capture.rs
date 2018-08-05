@@ -6,6 +6,7 @@ use glutin;
 use glutin::GlContext;
 use image;
 use image::ImageBuffer;
+use num::Integer;
 use rayon;
 use std::fs::create_dir_all;
 use std::path::PathBuf;
@@ -17,7 +18,6 @@ pub struct Capture {
 	enabled: bool,
 	w: u32,
 	h: u32,
-	images: Vec<ImageBuffer<image::Rgb<u8>, Vec<u8>>>,
 }
 
 impl Capture {
@@ -34,20 +34,21 @@ impl Capture {
 			enabled: false,
 			w,
 			h,
-			images: Vec::new(),
 		}
 	}
 
 	// Capture current framebuffer if recording is enabled
 	pub fn screen_grab(&mut self) {
 		if self.enabled {
-			let mut buf: Vec<u8> = vec![0u8; self.w as usize * self.h as usize * 3];
+			let w = self.w;
+			let h = self.h;
+			let mut buf: Vec<[u8; 3]> = vec![[0u8; 3]; (w * h) as usize];
 			unsafe {
 				gl::ReadPixels(
 					0,
 					0,
-					self.w as i32,
-					self.h as i32,
+					w as i32,
+					h as i32,
 					gl::RGB,
 					gl::UNSIGNED_BYTE,
 					buf.as_mut_ptr() as *mut _,
@@ -56,43 +57,19 @@ impl Capture {
 			self.seq += 1;
 			let filename = self.capture_prefix.clone() + &format!("{:08}.png", self.seq);
 			let full_path = self.capture_path.join(filename);
-			let w = self.w;
-			let h = self.h;
 			rayon::spawn(move || {
+				// throws it into the background
 				let mut img = ImageBuffer::new(w, h);
-				for i in 0..h {
-					for j in 0..w {
-						let base: usize = 3 * (j + (h - i - 1) * w) as usize;
-						let r = buf[base + 0];
-						let g = buf[base + 1];
-						let b = buf[base + 2];
-						img.put_pixel(j, i, image::Rgb([r, g, b]));
-					}
+				for (idx, rgb) in (0u32..).zip(buf) {
+					let (i, j) = idx.div_mod_floor(&w);
+					img.put_pixel(j, h - i - 1, image::Rgb(rgb));
 				}
-				println!("Saving image {}", full_path.to_str().unwrap());
-				img.save(full_path).expect("Could not write image");
+				match img.save(full_path.clone()) {
+					Ok(_) => println!("Saved image {}", full_path.to_str().unwrap()),
+					Err(_) => println!("Could not save image {}", full_path.to_str().unwrap()),
+				}
 			});
 		}
-	}
-
-	fn flush(&mut self) {
-		match create_dir_all(self.capture_path.clone()) {
-			Ok(_) => {
-				for img in &self.images {
-					self.seq += 1;
-					let filename = self.capture_prefix.clone() + &format!("{:08}.png", self.seq);
-					let full_path = self.capture_path.join(filename);
-					println!("Saving image {}", full_path.to_str().unwrap());
-					img.save(full_path).expect("Could not write image");
-				}
-			}
-			Err(msg) => error!(
-				"Could not create capture directory {}: {}",
-				self.capture_path.to_str().unwrap(),
-				msg
-			),
-		}
-		self.images.clear()
 	}
 
 	// Remote control, detects state changes
@@ -103,15 +80,19 @@ impl Capture {
 	}
 
 	// Starts/restarts recording
-	pub fn start(&mut self) { self.enabled = true }
+	pub fn start(&mut self) {
+		match create_dir_all(self.capture_path.clone()) {
+			Ok(_) => self.enabled = true,
+			Err(msg) => error!(
+				"Could not create capture directory {}: {}",
+				self.capture_path.to_str().unwrap(),
+				msg
+			),
+		}
+	}
 
 	// Stops recording and flushes
-	pub fn stop(&mut self) {
-		if self.enabled {
-			self.flush();
-		}
-		self.enabled = false;
-	}
+	pub fn stop(&mut self) { self.enabled = false; }
 
 	pub fn enabled(&self) -> bool { self.enabled }
 

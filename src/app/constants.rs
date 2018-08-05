@@ -2,6 +2,8 @@ use frontend::input::AxisValue;
 use core::clock::{SpeedFactor, SecondsValue};
 use std::f32::consts;
 
+pub const DEFAULT_WINDOW_WIDTH: u32 = 1280;
+pub const DEFAULT_WINDOW_HEIGHT: u32 = 720;
 pub const VIEW_SCALE_BASE: f32 = 100.0;
 pub const VIEW_ZOOM_MAX: f32 = 8.0;
 pub const VIEW_ZOOM_MIN: f32 = 1. / 4.0;

@@ -52,9 +52,6 @@ pub fn main_loop(
 	audio_device: Option<usize>,
 )
 {
-	const WIDTH: u32 = 1280;
-	const HEIGHT: u32 = 1024;
-
 	let mut events_loop = winit::EventsLoop::new();
 	let mut gamepad = GamepadEventLoop::new();
 
@@ -67,7 +64,7 @@ pub fn main_loop(
 		println!("Using {:?}", monitor.get_name());
 		builder.with_fullscreen(Some(monitor))
 	} else {
-		builder.with_dimensions(width.unwrap_or(WIDTH), height.unwrap_or(HEIGHT))
+		builder.with_dimensions(width.unwrap_or(DEFAULT_WINDOW_WIDTH), height.unwrap_or(DEFAULT_WINDOW_HEIGHT))
 	};
 	let context_builder = glutin::ContextBuilder::new().with_vsync(true);
 
