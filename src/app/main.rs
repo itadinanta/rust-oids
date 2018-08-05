@@ -33,13 +33,11 @@ pub fn make_resource_loader(config_home: &path::Path) -> ResourceLoader {
 			path::Path::new("/usr/local/share/rust-oids")
 				.join(CONFIG_DIR_RESOURCES)
 				.as_path(),
-		)
-		.add(
+		).add(
 			path::Path::new("/usr/share/rust-oids")
 				.join(CONFIG_DIR_RESOURCES)
 				.as_path(),
-		)
-		.build();
+		).build();
 
 	res
 }
