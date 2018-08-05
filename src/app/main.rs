@@ -64,7 +64,10 @@ pub fn main_loop(
 		println!("Using {:?}", monitor.get_name());
 		builder.with_fullscreen(Some(monitor))
 	} else {
-		builder.with_dimensions(width.unwrap_or(DEFAULT_WINDOW_WIDTH), height.unwrap_or(DEFAULT_WINDOW_HEIGHT))
+		builder.with_dimensions(
+			width.unwrap_or(DEFAULT_WINDOW_WIDTH),
+			height.unwrap_or(DEFAULT_WINDOW_HEIGHT),
+		)
 	};
 	let context_builder = glutin::ContextBuilder::new().with_vsync(true);
 
@@ -99,6 +102,7 @@ pub fn main_loop(
 		.expect("Unable to create UI");
 
 	let audio = audio::ThreadedSoundSystem::new(audio_device).expect("Failure in audio initialization");
+	let mut no_audio = ui::NullAlertPlayer::new();
 	let mut audio_alert_player = audio::ThreadedAlertPlayer::new(audio);
 	app.init(app::SystemMode::Interactive);
 
@@ -143,8 +147,9 @@ pub fn main_loop(
 			break 'main;
 		}
 
-		let frame_update = if capture.enabled() {
-			// forces 60Hz simulation for frame capture
+		let speed_factor = app.speed_factors.get();
+		let frame_update = if capture.enabled() || speed_factor > 5.0 {
+			// forces 60Hz simulation for frame capture and fast forward
 			app.update_with_quantum(Some(FRAME_TIME_TARGET))
 		} else {
 			// update and measure, let the app determine the appropriate frame length
@@ -175,7 +180,11 @@ pub fn main_loop(
 			}
 		}
 
-		app.play_alerts(&mut audio_alert_player);
+		if speed_factor < 10.0 {
+			app.play_alerts(&mut audio_alert_player);
+		} else {
+			app.play_alerts(&mut no_audio);
+		};
 
 		// push the commands
 		renderer.end_frame(&mut device);
