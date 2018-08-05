@@ -480,7 +480,7 @@ impl App {
 		}
 	}
 
-	fn init_camera() -> math::Inertial<f32> { math::Inertial::new(5.0, 1.0, 0.5) }
+	fn init_camera() -> math::Inertial<f32> { math::Inertial::new(CAMERA_IMPULSE, CAMERA_INERTIA, CAMERA_LIMIT) }
 
 	fn init_lights() -> Cycle<[f32; 4]> { Cycle::new(constants::AMBIENT_LIGHTS) }
 
@@ -660,10 +660,10 @@ impl App {
 		} else {
 			None
 		};
-
-		self.camera.follow(player_follow);
 		self.viewport
 			.scale(VIEW_SCALE_BASE / self.zoom.update(frame_time_smooth.get() as f32));
+		self.camera.set_inertia(CAMERA_INERTIA * self.zoom.get());
+		self.camera.follow(player_follow);
 		self.camera.update(frame_time_smooth);
 
 		let target_duration = frame_time_smooth.get();

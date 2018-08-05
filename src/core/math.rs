@@ -246,6 +246,8 @@ where T: cgmath::BaseFloat
 		self.velocity = cgmath::Zero::zero();
 	}
 
+	pub fn set_inertia(&mut self, inertia: T) { self.inertia = inertia; }
+
 	pub fn set(&mut self, position: cgmath::Vector2<T>) { self.position = position; }
 
 	pub fn velocity(&mut self, velocity: cgmath::Vector2<T>) { self.velocity = velocity; }

@@ -1,5 +1,5 @@
+use core::clock::{SecondsValue, SpeedFactor};
 use frontend::input::AxisValue;
-use core::clock::{SpeedFactor, SecondsValue};
 use std::f32::consts;
 
 pub const DEFAULT_WINDOW_WIDTH: u32 = 1280;
@@ -9,6 +9,9 @@ pub const VIEW_ZOOM_MAX: f32 = 8.0;
 pub const VIEW_ZOOM_MIN: f32 = 1. / 4.0;
 pub const VIEW_ZOOM_MULTIPLIER: f32 = consts::SQRT_2;
 pub const VIEW_ZOOM_DURATION: f32 = 0.25;
+pub const CAMERA_IMPULSE: f32 = 5.0;
+pub const CAMERA_INERTIA: f32 = 4.0;
+pub const CAMERA_LIMIT: f32 = 0.5;
 pub const FRAME_SMOOTH_COUNT: usize = 120;
 pub const FRAME_TIME_TARGET: SecondsValue = 1. / 60.;
 pub const LOG_INTERVAL: SecondsValue = 5.0;
@@ -84,10 +87,7 @@ pub const COLOR_WHITE: [f32; 4] = [1.; 4];
 #[allow(unused)]
 pub const COLOR_BLACK: [f32; 4] = [0., 0., 0., 1.];
 
-pub const DEFAULT_RESOURCE_GENE_POOL: &'static [&'static str] = &[
-	"GyA21QoQ",
-	"M00sWS0M"
-];
+pub const DEFAULT_RESOURCE_GENE_POOL: &'static [&'static str] = &["GyA21QoQ", "M00sWS0M"];
 
 pub const CONFIG_DIR_HOME: &'static str = ".config/rust-oids";
 pub const CONFIG_DIR_SAVED_STATE: &'static str = "saved_state";
@@ -111,16 +111,7 @@ pub const AMBIENT_LIGHTS: &'static [[f32; 4]] = &[
 	[0.31, 0.31, 0.31, 0.5],
 ];
 
-pub const SPEED_FACTORS: &'static [SpeedFactor] = &[
-	1.0,
-	0.5,
-	0.2,
-	0.1,
-	1.0,
-	2.0,
-	5.0,
-	10.0,
-];
+pub const SPEED_FACTORS: &'static [SpeedFactor] = &[1.0, 0.5, 0.2, 0.1, 1.0, 2.0, 5.0, 10.0];
 
 pub const BACKGROUNDS: &'static [[f32; 4]] = &[
 	[0.05, 0.07, 0.1, 1.0],
