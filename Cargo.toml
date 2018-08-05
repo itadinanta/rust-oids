@@ -73,7 +73,7 @@ copyright = "2016-2018, Nico Orru <nigu.orru@gmail.com>"
 license-file = ["LICENSE", "4"]
 extended-description = """A Rust-based A-life playground. \
 https://github.com/itadinanta/rust-oids"""
-depends = "$auto,libbox2d2.3.0,libportaudio2,libasound2,libudev1"
+depends = "$auto,libportaudio2,libasound2,libudev1"
 section = "games"
 priority = "optional"
 assets = [
