@@ -53,8 +53,8 @@ pub const MINION_CHARGE_DECAY_TIME: SecondsValue = 0.25;
 pub const PLAYER_CHARGE_DECAY_TIME: SecondsValue = 0.1;
 pub const PLAYER_CHARGE_INITIAL_VALUE: f32 = 25.0;
 pub const PLAYER_CHARGE_REST_VALUE: f32 = 0.05;
-pub const EMITTER_DISTANCE: f32 = 30.;
-pub const EMITTER_PERIOD: SecondsValue = 0.4;
+pub const EMITTER_DISTANCE: f32 = 40.;
+pub const EMITTER_PERIOD: SecondsValue = 0.2;
 #[allow(unused)]
 pub const EMITTER_SPREAD_ANGLE: f32 = consts::PI / 12.;
 pub const EMITTER_SPREAD_JITTER: f32 = 0.1;
