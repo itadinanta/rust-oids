@@ -158,7 +158,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 		let wire_shaders = load_shaders!("lighting", "lighting_poly")?;
 		let solid_shaders = load_shaders!("triangle_edge", "lighting", "lighting_poly")?;
 		let stage_shaders = load_shaders!("lighting", "lighting_stage")?;
-		let particle_shaders = load_shaders!("lighting", "ripple_particle")?;
+		let particle_shaders = load_shaders!("unlit", "ripple_particle")?;
 		let ball_shaders = load_shaders!("point_ball", "lighting", "lighting_poly")?;
 
 		let solid_rasterizer = gfx::state::Rasterizer {

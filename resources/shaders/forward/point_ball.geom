@@ -1,3 +1,4 @@
+// point_ball.geom
 #version 150 core
 
 layout(triangles) in;

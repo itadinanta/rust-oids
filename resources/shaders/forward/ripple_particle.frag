@@ -1,3 +1,4 @@
+// ripple_particle.frag
 #version 150 core
 
 #define MAX_NUM_TOTAL_LIGHTS 16
@@ -32,8 +33,8 @@ layout (std140) uniform u_Lights {
 
 in VertexData {
 	vec4 Position;
-	vec3 Normal;
-	mat3 TBN;
+	vec3 Normal; // unused
+	mat3 TBN; // unused
 	vec2 TexCoord;
 	vec3 BaryCoord;
 	flat int PrimIndex;
@@ -56,7 +57,7 @@ void main() {
 
 	float e = intensity; // or something
 	float w = cos((phase - r) * frequency);
-	float f = exp(-r) * w * w * (r < 1 ? 1 : 0);
+	float f = exp(-r) * w * w * step(1, r));
 
 	vec4 color = u_Emissive * e * f;
 	o_Color.rgb = color.rgb * color.a;

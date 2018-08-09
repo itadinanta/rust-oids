@@ -1,3 +1,4 @@
+// lighting_flat.frag
 #version 150 core
 
 #define MAX_NUM_TOTAL_LIGHTS 16
