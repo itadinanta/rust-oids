@@ -35,12 +35,11 @@ void main() {
 	mat4 model4 = u_Model[a_PrimIndex].transform;
 	v_Out.Position = model4 * vec4(a_Pos, 1.0);
 
-	v_Out.Normal = vec4(1,0,0,1);
-	v_Out.TBN =  mat3(1)
+	v_Out.Normal = vec3(1,0,0);
+	v_Out.TBN =  mat3(1);
 	v_Out.BaryCoord = vec3(1/3.,1/3.,1/3.);
 	v_Out.TexCoord = a_TexCoord;
 	v_Out.PrimIndex = a_PrimIndex;
 
 	gl_Position = u_Proj * u_View * v_Out.Position;
 }
-

@@ -57,7 +57,7 @@ void main() {
 
 	float e = intensity; // or something
 	float w = cos((phase - r) * frequency);
-	float f = exp(-r) * w * w * step(1, r));
+	float f = exp(-r) * w * w * (1 - step(1, r)); //(r < 1 ? 1 : 0);
 
 	vec4 color = u_Emissive * e * f;
 	o_Color.rgb = color.rgb * color.a;
