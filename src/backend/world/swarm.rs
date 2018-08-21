@@ -53,7 +53,7 @@ impl Swarm {
 	}
 
 	pub fn next_id(&mut self) -> Id {
-		self.seq = self.seq + 1;
+		self.seq += 1;
 		self.seq << 8 | (self.agent_type as usize)
 	}
 

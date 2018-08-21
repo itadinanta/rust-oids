@@ -1,21 +1,21 @@
 use super::*;
 use app::constants::*;
-use std::collections::HashMap;
-use rand;
-use core::geometry;
-use core::clock::SimulationTimer;
-use backend::obj;
-use backend::obj::Transformable;
-use backend::obj::Identified;
-use backend::world;
-use backend::world::gen;
-use backend::world::agent;
-use backend::world::segment;
-use backend::world::particle;
-use backend::world::AgentState;
-use backend::world::alert;
 use backend::messagebus::Outbox;
+use backend::obj;
+use backend::obj::Identified;
+use backend::obj::Transformable;
+use backend::world;
+use backend::world::agent;
+use backend::world::alert;
+use backend::world::gen;
+use backend::world::particle;
+use backend::world::segment;
+use backend::world::AgentState;
+use core::clock::SimulationTimer;
+use core::geometry;
+use rand;
 use serialize::base64::{self, ToBase64};
+use std::collections::HashMap;
 
 type StateMap = HashMap<obj::Id, agent::State>;
 type GeneMap = HashMap<obj::Id, gen::Dna>;
@@ -114,43 +114,51 @@ impl AlifeSystem {
 	fn find_eaten_resources(minions: &agent::AgentMap, resources: &agent::AgentMap) -> StateMap {
 		let mut eaten = HashMap::new();
 		for (_, agent) in minions.iter().filter(|&(_, a)| a.state.is_active()) {
-			for segment in agent.segments.iter().filter(|&s| {
-				s.flags.contains(segment::Flags::MOUTH)
-			})
-				{
-					if let Some(key) = segment.state.last_touched {
-						if let Some(&agent::Agent { ref state, .. }) = resources.get(&key.id()) {
-							eaten.insert(key.id(), (*state).clone());
-						}
+			for segment in agent
+				.segments
+				.iter()
+				.filter(|&s| s.flags.contains(segment::Flags::MOUTH))
+			{
+				if let Some(key) = segment.state.last_touched {
+					if let Some(&agent::Agent { ref state, .. }) = resources.get(&key.id()) {
+						eaten.insert(key.id(), (*state).clone());
 					}
 				}
+			}
 		}
 		eaten
 	}
 
 	fn find_touched_spores(minions: &agent::AgentMap, spores: &agent::AgentMap) -> GeneMap {
 		let mut touched = HashMap::new();
-		for (_, spore) in spores.iter().filter(|&(_, a)| {
-			a.state.is_active() && !a.state.is_fertilised()
-		})
-			{
-				for segment in spore.segments.iter() {
-					if let Some(key) = segment.state.last_touched {
-						if let Some(ref agent) = minions.get(&key.id()) {
-							if agent.gender() != spore.gender() {
-								touched.insert(key.id(), agent.dna().clone());
-							}
+		for (_, spore) in spores
+			.iter()
+			.filter(|&(_, a)| a.state.is_active() && !a.state.is_fertilised())
+		{
+			for segment in spore.segments.iter() {
+				if let Some(key) = segment.state.last_touched {
+					if let Some(ref agent) = minions.get(&key.id()) {
+						if agent.gender() != spore.gender() {
+							touched.insert(key.id(), agent.dna().clone());
 						}
 					}
 				}
 			}
+		}
 		touched
 	}
 
-	fn update_minions(outbox: &Outbox, dt: Seconds, extent: geometry::Rect, minions: &mut agent::AgentMap, eaten: &StateMap)
-					  -> (Box<[(geometry::Transform, gen::Dna)]>,
-						  Box<[(Box<[geometry::Transform]>, gen::Dna)]>,
-					  ) {
+	fn update_minions(
+		outbox: &Outbox,
+		dt: Seconds,
+		extent: geometry::Rect,
+		minions: &mut agent::AgentMap,
+		eaten: &StateMap,
+	) -> (
+		Box<[(geometry::Transform, gen::Dna)]>,
+		Box<[(Box<[geometry::Transform]>, gen::Dna)]>,
+	)
+	{
 		let mut spawns = Vec::new();
 		let mut corpses = Vec::new();
 		for (_, agent) in minions.iter_mut() {
@@ -161,16 +169,14 @@ impl AlifeSystem {
 				let maturity = segment.state.maturity();
 				let livery_color = segment.livery.albedo;
 				let transform = segment.transform().clone();
-				if maturity < 1. { // just grow a bit
+				if maturity < 1. {
+					// just grow a bit
 					let r = GROWTH_COST_RATIO;
 					if agent.state.consume_ratio(1. - r, r) {
 						let growth = 1. + r;
 						agent.state.grow_by(growth);
 						outbox.post(alert::Alert::GrowMinion.into());
-						outbox.post(particle::Emitter::for_new_spore(
-							transform,
-							livery_color,
-							id).into());
+						outbox.post(particle::Emitter::for_new_spore(transform, livery_color, id).into());
 						let zero = agent.segment(0).unwrap().transform.position;
 						for segment in agent.segments.iter_mut() {
 							let maturity = segment.state.maturity();
@@ -178,14 +184,10 @@ impl AlifeSystem {
 							segment.transform.position = zero + (segment.transform.position - zero) * growth;
 						}
 					}
-				} else { // reproduce if enough energy
-					if agent.state.consume_ratio(SPAWN_COST_THRESHOLD, SPAWN_COST_RATIO) {
-						spawns.push((
-							agent.last_segment().transform().clone(),
-							agent.dna().clone(),
-						));
-					}
+				} else if agent.state.consume_ratio(SPAWN_COST_THRESHOLD, SPAWN_COST_RATIO) {
+					spawns.push((agent.last_segment().transform().clone(), agent.dna().clone()));
 				}
+
 				for segment in agent.segments.iter_mut() {
 					let p = segment.transform().position;
 					if p.x < extent.min.x || p.x > extent.max.x || p.y < extent.min.y || p.y > extent.max.y {
@@ -199,14 +201,16 @@ impl AlifeSystem {
 							}
 						}
 					}
-					agent.state.consume(
-						dt * segment.state.charge() * segment.growing_radius(),
-					);
+					agent
+						.state
+						.consume(dt * segment.state.charge() * segment.growing_radius());
 					segment.state.update(dt);
 				}
 
 				if agent.state.energy() < 1. {
-					let transforms = agent.segments.into_iter()
+					let transforms = agent
+						.segments
+						.into_iter()
 						.map(|segment| segment.transform.clone())
 						.collect::<Vec<_>>();
 					corpses.push((transforms.into_boxed_slice(), agent.dna().clone()));
@@ -214,7 +218,7 @@ impl AlifeSystem {
 				}
 
 				if let Some(segment) = agent.first_segment(segment::Flags::TRACKER) {
-					agent.state.track_position(&segment.transform.position);
+					agent.state.track_position(segment.transform.position);
 				}
 			}
 		}
@@ -223,11 +227,10 @@ impl AlifeSystem {
 
 	fn update_resources(dt: Seconds, timer: &SimulationTimer, resources: &mut agent::AgentMap, eaten: &StateMap) {
 		for (_, agent) in resources.iter_mut() {
-			if eaten.get(&agent.id()).is_some() {
-				agent.state.die();
-			} else if agent.state.energy() <= 0. {
-				agent.state.die();
-			} else if agent.state.lifecycle().is_expired(timer) {
+			if eaten.get(&agent.id()).is_some()
+				|| agent.state.energy() <= 0.
+				|| agent.state.lifecycle().is_expired(timer)
+			{
 				agent.state.die();
 			} else if agent.state.is_active() {
 				for segment in agent.segments.iter_mut() {
@@ -239,18 +242,21 @@ impl AlifeSystem {
 
 	fn crossover(dna: &gen::Dna, foreign_dna: &Option<gen::Dna>) -> gen::Dna {
 		match foreign_dna {
-			&Some(ref foreign) => {
-				gen::Genome::copy_from(&foreign)
-					.crossover(&mut rand::thread_rng(), dna)
-					.dna()
-					.clone()
-			}
+			&Some(ref foreign) => gen::Genome::copy_from(&foreign)
+				.crossover(&mut rand::thread_rng(), dna)
+				.dna()
+				.clone(),
 			&None => dna.clone(),
 		}
 	}
 
-	fn update_spores(dt: Seconds, timer: &SimulationTimer, spores: &mut agent::AgentMap, touched: &GeneMap)
-					 -> (Box<[(geometry::Transform, gen::Dna)]>, usize) {
+	fn update_spores(
+		dt: Seconds,
+		timer: &SimulationTimer,
+		spores: &mut agent::AgentMap,
+		touched: &GeneMap,
+	) -> (Box<[(geometry::Transform, gen::Dna)]>, usize)
+	{
 		let mut spawns = Vec::new();
 		let mut fertilise_count = 0usize;
 		for (spore_id, spore) in spores.iter_mut() {

@@ -17,9 +17,9 @@
     <stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_START_MODE" value="run"/>
     <booleanAttribute key="org.eclipse.cdt.launch.DEBUGGER_STOP_AT_MAIN" value="false"/>
     <stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_STOP_AT_MAIN_SYMBOL" value="main"/>
-    <stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="/home/nico/Projects/itadinanta/rust-oids/target/debug/rust-oids"/>
+    <stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="${project_loc}/target/debug/rust-oids"/>
     <stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="rust-oids"/>
-    <stringAttribute key="org.eclipse.cdt.launch.WORKING_DIRECTORY" value="/home/nico/Projects/itadinanta/rust-oids"/>
+    <stringAttribute key="org.eclipse.cdt.launch.WORKING_DIRECTORY" value="${project_loc}"/>
     <stringAttribute key="org.eclipse.corrosionBUILD_COMMAND" value="build"/>
     <mapAttribute key="org.eclipse.debug.core.environmentVariables">
         <mapEntry key="DISPLAY" value=":0.0"/>

@@ -503,7 +503,7 @@ impl App {
 
 	fn select_minion(&mut self, id: Id) {
 		self.debug_flags |= DebugFlags::DEBUG_TARGETS;
-		self.world.agent_mut(id).map(|a| a.state.toggle_selection());
+		self.world.agent_mut(id).iter_mut().for_each(|a| a.state.toggle_selection());
 	}
 
 	pub fn save_gene_pool_to_file(&self) {

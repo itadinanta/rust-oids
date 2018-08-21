@@ -22,11 +22,11 @@ pub trait Phenotype: Send + Sync {
 	fn develop(&self, gen: &mut Genome, id: Id, initial_state: agent::InitialState, timer: &Timer) -> agent::Agent;
 }
 
-pub fn phenotype_of(agent_type: &agent::AgentType) -> Box<Phenotype> {
+pub fn phenotype_of(agent_type: agent::AgentType) -> Box<Phenotype> {
 	match agent_type {
-		&agent::AgentType::Minion => Box::new(Minion {}),
-		&agent::AgentType::Spore => Box::new(Spore {}),
-		&agent::AgentType::Player => Box::new(Player {}),
+		agent::AgentType::Minion => Box::new(Minion {}),
+		agent::AgentType::Spore => Box::new(Spore {}),
+		agent::AgentType::Player => Box::new(Player {}),
 		_ => Box::new(Resource {}),
 	}
 }

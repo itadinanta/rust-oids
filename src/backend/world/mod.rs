@@ -97,7 +97,7 @@ impl World {
 		let types = AgentType::all();
 		let clock = SimulationTimer::new();
 		for t in types {
-			swarms.insert(*t, Swarm::new(*t, phen::phenotype_of(t)));
+			swarms.insert(*t, Swarm::new(*t, phen::phenotype_of(*t)));
 		}
 		fn default_gene_pool(_: io::Error) -> gen::GenePool {
 			gen::GenePool::parse_from_base64(DEFAULT_MINION_GENE_POOL)
@@ -371,7 +371,7 @@ impl World {
 	}
 
 	pub fn agents(&self, agent_type: AgentType) -> &agent::AgentMap {
-		self.swarms.get(&agent_type).unwrap().agents()
+		self.swarms[&agent_type].agents()
 	}
 
 	pub fn agents_mut(&mut self, agent_type: AgentType) -> &mut agent::AgentMap {

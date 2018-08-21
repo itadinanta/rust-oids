@@ -259,8 +259,8 @@ where T: cgmath::BaseFloat
 		if let Some(destination) = self.target {
 			self.position += (destination - self.position) * self.inertia * dt;
 		} else {
-			self.position = self.position + self.velocity * dt;
-			self.velocity = self.velocity * T::exp(-dt / self.inertia);
+			self.position += self.velocity * dt;
+			self.velocity *= T::exp(-dt / self.inertia);
 		}
 	}
 }

@@ -31,7 +31,7 @@ impl Identified for Key {
 impl Default for Key {
 	fn default() -> Key {
 		Key {
-			agent_id: 0xdeadbeef,
+			agent_id: 0xdead_beef,
 			segment_index: 0,
 			bone_index: 0,
 		}
@@ -177,11 +177,11 @@ pub trait Layer<S, T>
 
 	fn layer(inputs: &[S], weights: &[WeightVector<T>]) -> OutputVector<S> {
 		let mut outputs = [S::zero(); N_WEIGHTS];
-		for i in 0..outputs.len() {
-			for j in 0..inputs.len() {
-				outputs[i] = outputs[i] + inputs[j] * weights[i][j].into();
+		for (i, output) in outputs.iter_mut().enumerate() {
+			for (j, input) in inputs.iter().enumerate() {
+				*output = *output + *input * weights[i][j].into();
 			}
-			outputs[i] = Self::activation(outputs[i])
+			*output = Self::activation(*output)
 		}
 		outputs
 	}
@@ -410,7 +410,7 @@ impl State {
 		self.phase = 0.;
 	}
 
-	pub fn track_position(&mut self, position: &Position) {
+	pub fn track_position(&mut self, position: Position) {
 		self.trajectory.push(position.clone())
 	}
 

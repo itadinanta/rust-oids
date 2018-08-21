@@ -1,23 +1,29 @@
-use frontend::input;
+use super::events::Event;
+use super::events::VectorDirection;
+use app::constants::DEAD_ZONE;
 use app::constants::*;
-use core::geometry::*;
 use core::clock::Seconds;
+use core::geometry::*;
 use core::view::ViewTransform;
 use core::view::WorldTransform;
-use app::constants::DEAD_ZONE;
-use super::events::VectorDirection;
-use super::events::Event;
+use frontend::input;
 
 pub struct DefaultController {}
 
 pub trait InputController {
 	fn update<V, W, I>(input_state: &I, view_transform: &V, world_transform: &W, dt: Seconds) -> Vec<Event>
-		where V: ViewTransform, W: WorldTransform, I: input::InputRead;
+	where
+		V: ViewTransform,
+		W: WorldTransform,
+		I: input::InputRead;
 }
 
 impl InputController for DefaultController {
 	fn update<V, W, I>(input_state: &I, view_transform: &V, world_transform: &W, dt: Seconds) -> Vec<Event>
-		where V: ViewTransform, W: WorldTransform, I: input::InputRead {
+	where
+		V: ViewTransform,
+		W: WorldTransform,
+		I: input::InputRead, {
 		let mut events = Vec::new();
 
 		macro_rules! on_key_held {
@@ -94,11 +100,8 @@ impl InputController for DefaultController {
 		let firepower = input_state.gamepad_axis(0, input::Axis::R2);
 		if firepower >= DEAD_ZONE {
 			events.push(Event::PrimaryTrigger(firepower, firerate as f64));
-		} else {
-			if input_state.key_pressed(input::Key::Space) ||
-				mouse_left_pressed {
-				events.push(Event::PrimaryTrigger(1.0, 1.0));
-			}
+		} else if input_state.key_pressed(input::Key::Space) || mouse_left_pressed {
+			events.push(Event::PrimaryTrigger(1.0, 1.0));
 		}
 		let thrust = Position {
 			x: if input_state.key_pressed(input::Key::Right) {
@@ -143,7 +146,8 @@ impl InputController for DefaultController {
 				VectorDirection::FromVelocity
 			} else {
 				VectorDirection::None
-			}));
+			},
+		));
 		if input_state.key_once(input::Key::MouseMiddle) {
 			if input_state.any_ctrl_pressed() {
 				events.push(Event::RandomizeMinion(mouse_world_pos));
@@ -158,7 +162,10 @@ impl InputController for DefaultController {
 				events.push(Event::BeginDrag(from, from));
 			}
 			input::Dragging::Dragging(_, from, to) => {
-				events.push(Event::Drag(world_transform.to_world(from), world_transform.to_world(to)));
+				events.push(Event::Drag(
+					world_transform.to_world(from),
+					world_transform.to_world(to),
+				));
 			}
 			input::Dragging::End(_, from, to, prev) => {
 				let mouse_vel = (view_transform.to_view(prev) - to) / dt.into();

@@ -56,9 +56,9 @@ impl FromRgb<f32> for YPbPr<f32> {
 	fn from_rgb(c: &Rgb<f32>) -> Self {
 		let (r, g, b) = (c[0], c[1], c[2]);
 		YPbPr {
-			y: 0.299000 * r + 0.587000 * g + 0.114000 * b,
-			pb: -0.168736 * r - 0.331264 * g + 0.500000 * b,
-			pr: 0.500000 * r - 0.418688 * g - 0.081312 * b,
+			y: 0.299_000 * r + 0.587_000 * g + 0.114_000 * b,
+			pb: -0.168_736 * r - 0.331_264 * g + 0.500_000 * b,
+			pr: 0.500_000 * r - 0.418_688 * g - 0.081_312 * b,
 		}
 	}
 }
@@ -71,9 +71,9 @@ where T: num::Float
 
 impl ToRgb<f32> for YPbPr<f32> {
 	fn to_rgb(&self) -> Rgb<f32> {
-		let r = self.y + 1.402000 * self.pr;
-		let g = self.y - 0.344136 * self.pb - 0.714136 * self.pr;
-		let b = self.y + 1.772000 * self.pb;
+		let r = self.y + 1.402 * self.pr;
+		let g = self.y - 0.344_136 * self.pb - 0.714_136 * self.pr;
+		let b = self.y + 1.772 * self.pb;
 		[r.max(0.).min(1.), g.max(0.).min(1.), b.max(0.).min(1.)]
 	}
 }

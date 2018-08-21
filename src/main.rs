@@ -1,3 +1,6 @@
+#![allow(unknown_lints)]
+#![warn(clippy)] 
+
 mod app;
 mod backend;
 mod core;

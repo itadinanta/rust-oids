@@ -215,7 +215,7 @@ impl Hourglass {
 		left
 	}
 
-	pub fn delay(&mut self, delay_seconds: Seconds) { self.timeout = self.timeout + delay_seconds; }
+	pub fn delay(&mut self, delay_seconds: Seconds) { self.timeout += delay_seconds; }
 
 	#[allow(unused)]
 	pub fn elapsed<T>(&self, timer: &T) -> Seconds

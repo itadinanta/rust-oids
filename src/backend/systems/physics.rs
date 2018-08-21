@@ -134,10 +134,10 @@ impl System for PhysicsSystem {
 		#[inline]
 		fn to_vec2(v: Position) -> b2::Vec2 { PhysicsSystem::p2v(&v) };
 		#[inline]
-		fn from_vec2(v: &b2::Vec2) -> Position { PhysicsSystem::v2p(v) };
+		fn from_vec2(v: b2::Vec2) -> Position { PhysicsSystem::v2p(&v) };
 		for (h, b) in self.world.bodies() {
 			let body = b.borrow();
-			let center = (*body).world_center().clone();
+			let center = *(*body).world_center();
 			let key = (*body).user_data();
 			if let Some(segment) = state.agent(key.agent_id)
 				.and_then(|c| c.segment(key.segment_index)) {
@@ -145,7 +145,7 @@ impl System for PhysicsSystem {
 					Intent::Move(force) =>
 						dynamic_updates.push((h, Force(center, to_vec2(force)))),
 					Intent::Brake(force) => {
-						let linear_velocity = from_vec2((*body).linear_velocity());
+						let linear_velocity = from_vec2(*(*body).linear_velocity());
 						let comp = force.dot(linear_velocity);
 						if comp < 0. {
 							dynamic_updates.push((h, Force(center, to_vec2(force))));
@@ -153,30 +153,30 @@ impl System for PhysicsSystem {
 					}
 					Intent::PilotTo(force, ref target_angle) => {
 						if let Some(force) = force {
-							let linear_velocity = from_vec2((*body).linear_velocity());
+							let linear_velocity = from_vec2(*(*body).linear_velocity());
 							let speed2 = linear_velocity.magnitude2();
 							let drag_factor = (1. - speed2 * DRAG_COEFFICIENT).min(1.).max(0.);
 							dynamic_updates.push((h, Force(center, to_vec2(force * drag_factor))));
 						}
-						match target_angle {
-							&PilotRotation::LookAt(target) => {
-								let look_at_vector = target - from_vec2(&center);
+						match *target_angle {
+							PilotRotation::LookAt(target) => {
+								let look_at_vector = target - from_vec2(center);
 								let target_angle = f32::atan2(-look_at_vector.x, look_at_vector.y);
 								dynamic_updates.push((h, Transform(*(*body).position(), target_angle)));
 							}
-							&PilotRotation::Orientation(direction) => {
+							PilotRotation::Orientation(direction) => {
 								let target_angle = f32::atan2(-direction.x, direction.y);
 								dynamic_updates.push((h, Transform(*(*body).position(), target_angle)));
 							}
-							&PilotRotation::Turn(angle) => {
+							PilotRotation::Turn(angle) => {
 								dynamic_updates.push((h, Torque(angle)));
 							}
-							&PilotRotation::FromVelocity => {
-								let linear_velocity = from_vec2((*body).linear_velocity());
+							PilotRotation::FromVelocity => {
+								let linear_velocity = from_vec2(*(*body).linear_velocity());
 								let target_angle = f32::atan2(-linear_velocity.x, linear_velocity.y);
 								dynamic_updates.push((h, Transform(*(*body).position(), target_angle)));
 							}
-							&PilotRotation::None => {}
+							PilotRotation::None => {}
 							//TODO: try physics!
 							//let angle = (*body).angle();
 							//let norm_diff = math::normalize_rad(target_angle - angle);
@@ -222,7 +222,7 @@ impl System for PhysicsSystem {
 				if let Some(segment) = agent.segment_mut(key.segment_index) {
 					segment.transform_to(Transform::from_components(position.x, position.y, angle));
 					segment.motion_to(Motion::from_components(velocity.x, velocity.y, spin));
-					segment.state.last_touched = self.touched.borrow().get(key).map(|r| *r);
+					segment.state.last_touched = self.touched.borrow().get(key).cloned();
 				}
 			}
 		}

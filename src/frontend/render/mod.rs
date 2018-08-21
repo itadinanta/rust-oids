@@ -87,12 +87,12 @@ impl Camera {
 				let near = 10.0;
 				let far = -near;
 				cgmath::ortho(-hw, hw, -hh, hh, near, far)
-			}.into(),
+			},
 			view: cgmath::Matrix4::look_at(
 				cgmath::Point3::new(center.x, center.y, 1.0),
 				cgmath::Point3::new(center.x, center.y, 0.0),
 				cgmath::Vector3::unit_y(),
-			).into(),
+			),
 		}
 	}
 }
@@ -573,8 +573,8 @@ impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: Reso
 			&index_buffer,
 			&models,
 			&materials,
-			&mut self.hdr_color,
-			&mut self.depth,
+			&self.hdr_color,
+			&self.depth,
 		)?;
 
 		Ok(())
@@ -606,8 +606,8 @@ impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: Reso
 			&index_buffer,
 			&models,
 			&materials,
-			&mut self.hdr_color,
-			&mut self.depth,
+			&self.hdr_color,
+			&self.depth,
 		)?;
 
 		Ok(())
