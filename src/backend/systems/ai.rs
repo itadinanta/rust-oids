@@ -1,19 +1,19 @@
 use super::*;
-use std::f32::consts;
-use std::collections::HashMap;
+use app::constants::*;
 use backend::obj;
-use backend::obj::Identified;
 use backend::obj::Transformable;
+use backend::obj::Identified;
 use backend::world;
 use backend::world::agent;
-use backend::world::agent::Personality;
 use backend::world::agent::TypedAgent;
+use backend::world::agent::Personality;
 use backend::world::segment;
 use backend::world::segment::Intent;
 use cgmath::*;
 use core::geometry::Position;
 use itertools::Itertools;
-use app::constants::*;
+use std::collections::HashMap;
+use std::f32::consts;
 
 type IdPositionMap = HashMap<obj::Id, Position>;
 
@@ -66,12 +66,13 @@ impl AiSystem {
 		fn nearest_beacon<'a>(beacons: &'a [Position], p: &'a Position) -> &'a Position {
 			beacons
 				.iter()
-				.fold1(|n, b| if (p - n).magnitude2() < (p - b).magnitude2() {
-					n
-				} else {
-					b
-				})
-				.unwrap_or(p)
+				.fold1(|n, b| {
+					if (p - n).magnitude2() < (p - b).magnitude2() {
+						n
+					} else {
+						b
+					}
+				}).unwrap_or(p)
 		}
 
 		for (_, agent) in minions.iter_mut() {
@@ -85,25 +86,17 @@ impl AiSystem {
 				let current_target_position = agent.state.target_position().clone();
 				// if our original target is dead then we need to find another one
 				let new_target: Option<(obj::Id, Position)> = match current_target {
-					None => {
-						targets
-							.iter()
-							.find(|&(_, &p)| (p - p0).magnitude() < radar_range)
-							.map(|(&id, &position)| (id, position))
-					}
+					None => targets
+						.iter()
+						.find(|&(_, &p)| (p - p0).magnitude() < radar_range)
+						.map(|(&id, &position)| (id, position)),
 					Some(id) => targets.get(&id).map(|&position| (id, position)),
 				};
 				// and failing that again, we target
 				match new_target {
-					None => {
-						agent.state.retarget(
-							None,
-							*nearest_beacon(
-								beacons,
-								&current_target_position,
-							),
-						)
-					}
+					None => agent
+						.state
+						.retarget(None, *nearest_beacon(beacons, &current_target_position)),
 					Some((id, position)) => agent.state.retarget(Some(id), position),
 				};
 				// find where our target is in the world
@@ -113,16 +106,14 @@ impl AiSystem {
 				let t = t0.normalize_to(t0.magnitude().min(radar_range));
 				// direction in which the head is pointing, normalized
 				let s = Matrix2::from_angle(Rad(sensor.transform.angle)) * (-Position::unit_y());
-				// some proprioception, feeding back the angle betweent the neck and the first torso
-				let neck_angle = consts::PI + sensor.transform.angle -
-					core.map(|t| t.transform.angle).unwrap_or(
-						sensor.transform.angle,
-					);
-				// we pass the relative position of the target decomposed in our frame of reference to the neural network
-				// expecting four components we can use as thresholds
-				let r = agent.brain().response(
-					&[neck_angle, t.dot(s), t.perp_dot(s), 0.],
-				);
+				// some proprioception, feeding back the angle betweent the neck and the first
+				// torso
+				let neck_angle = consts::PI + sensor.transform.angle
+					- core.map(|t| t.transform.angle).unwrap_or(sensor.transform.angle);
+				// we pass the relative position of the target decomposed in our frame of
+				// reference to the neural network expecting four components we can use as
+				// thresholds
+				let r = agent.brain().response(&[neck_angle, t.dot(s), t.perp_dot(s), 0.]);
 
 				let segments = &mut agent.segments_mut();
 				let mut touch_accumulator = 0.0f32;
@@ -140,15 +131,12 @@ impl AiSystem {
 									Intent::RunAway(f * fear)
 								}
 							}
-						} else if flags.contains(segment::Flags::RUDDER | segment::Flags::LEFT) &&
-							r[0] > brain.hunger()
-							{
-								Intent::Move(-f)
-							} else if flags.contains(segment::Flags::RUDDER | segment::Flags::RIGHT) &&
-							r[1] > brain.hunger()
-							{
-								Intent::Move(-f)
-							} else if flags.contains(segment::Flags::THRUSTER) && r[2] > brain.haste() {
+						} else if (flags.contains(segment::Flags::RUDDER | segment::Flags::LEFT)
+							&& r[0] > brain.hunger())
+							|| (flags.contains(segment::Flags::RUDDER | segment::Flags::RIGHT) && r[1] > brain.hunger())
+						{
+							Intent::Move(-f)
+						} else if flags.contains(segment::Flags::THRUSTER) && r[2] > brain.haste() {
 							Intent::Move(f)
 						} else if flags.contains(segment::Flags::BRAKE) && r[3] > brain.prudence() {
 							Intent::Brake(-f)

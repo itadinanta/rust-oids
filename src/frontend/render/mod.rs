@@ -649,7 +649,7 @@ impl<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>, L:
 
 	fn resolve_frame_buffer(&mut self) {
 		self.pass_effects
-			.apply_all(&mut self.encoder, self.hdr_srv.clone(), self.frame_buffer.clone());
+			.apply_all(&mut self.encoder, self.hdr_srv.clone(), &self.frame_buffer);
 	}
 
 	fn end_frame<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D) {

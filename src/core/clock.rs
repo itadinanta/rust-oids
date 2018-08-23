@@ -31,8 +31,8 @@ where T: Into<SecondsValue> {
 
 impl Seconds {
 	pub fn new(value: SecondsValue) -> Seconds { Seconds(value) }
-	pub fn get(&self) -> SecondsValue { self.0 }
-	pub fn times<F>(&self, other: F) -> Seconds
+	pub fn get(self) -> SecondsValue { self.0 }
+	pub fn times<F>(self, other: F) -> Seconds
 	where F: num::Float {
 		seconds(<f64 as NumCast>::from(other).unwrap() * self.0)
 	}

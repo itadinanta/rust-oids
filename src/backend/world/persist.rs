@@ -123,7 +123,7 @@ impl Serializer {
 		}
 	}
 
-	pub fn restore_snapshot(src: World, world: &mut world::World) {
+	pub fn restore_snapshot(src: &World, world: &mut world::World) {
 		let timer = world.clock.clone();
 		world.extent.min.x = src.left;
 		world.extent.min.y = src.bottom;
@@ -173,7 +173,7 @@ impl Serializer {
 		let result: Result<World, _> = serde_json::from_str(source);
 		match result {
 			Ok(src) => {
-				Self::restore_snapshot(src, dest);
+				Self::restore_snapshot(&src, dest);
 				Ok(())
 			}
 			Err(e) => Err(e)
@@ -196,7 +196,7 @@ impl Serializer {
 	pub fn load(file_path: &path::Path, world: &mut world::World) -> io::Result<()> {
 		let in_file = fs::File::open(file_path)?;
 		let src = serde_json::from_reader(in_file)?;
-		Self::restore_snapshot(src, world);
+		Self::restore_snapshot(&src, world);
 		Ok(())
 	}
 }

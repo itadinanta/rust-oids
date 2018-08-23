@@ -216,7 +216,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 
 	pub fn apply_all(
 		&mut self, encoder: &mut gfx::Encoder<R, C>, raw_hdr_src: gfx::handle::ShaderResourceView<R, [f32; 4]>,
-		color_target: gfx::handle::RenderTargetView<R, ScreenColorFormat>
+		color_target: &gfx::handle::RenderTargetView<R, ScreenColorFormat>
 	) {
 		let ping_pong_full = &self.ping_pong_full[..];
 		let ping_pong_half = &self.ping_pong_half[..];

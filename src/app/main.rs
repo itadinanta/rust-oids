@@ -25,7 +25,7 @@ use glutin::GlContext;
 use winit::{self, KeyboardInput, VirtualKeyCode, WindowEvent};
 
 pub fn make_resource_loader(config_home: &path::Path) -> ResourceLoader {
-	let res = ResourceLoaderBuilder::new()
+	ResourceLoaderBuilder::new()
 		.add(path::Path::new(CONFIG_DIR_RESOURCES))
 		.add(config_home.join(CONFIG_DIR_RESOURCES).as_path())
 		.add(config_home.join(CONFIG_DIR_SAVED_STATE).as_path())
@@ -37,9 +37,7 @@ pub fn make_resource_loader(config_home: &path::Path) -> ResourceLoader {
 			path::Path::new("/usr/share/rust-oids")
 				.join(CONFIG_DIR_RESOURCES)
 				.as_path(),
-		).build();
-
-	res
+		).build()
 }
 
 pub fn main_loop(

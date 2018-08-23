@@ -132,9 +132,9 @@ impl System for PhysicsSystem {
 		let mut dynamic_updates = Vec::new();
 		let dt: f32 = dt_sec.into();
 		#[inline]
-		fn to_vec2(v: Position) -> b2::Vec2 { PhysicsSystem::p2v(&v) };
+		fn to_vec2(v: Position) -> b2::Vec2 { PhysicsSystem::p2v(v) };
 		#[inline]
-		fn from_vec2(v: b2::Vec2) -> Position { PhysicsSystem::v2p(&v) };
+		fn from_vec2(v: b2::Vec2) -> Position { PhysicsSystem::v2p(v) };
 		for (h, b) in self.world.bodies() {
 			let body = b.borrow();
 			let center = *(*body).world_center();
@@ -251,18 +251,18 @@ impl Default for PhysicsSystem {
 }
 
 impl PhysicsSystem {
-	fn p2v(p: &Position) -> b2::Vec2 {
+	fn p2v(p: Position) -> b2::Vec2 {
 		b2::Vec2 { x: p.x, y: p.y }
 	}
 
-	fn pr2v(p: &Position, radius: f32) -> b2::Vec2 {
+	fn pr2v(p: Position, radius: f32) -> b2::Vec2 {
 		b2::Vec2 {
 			x: p.x * radius,
 			y: p.y * radius,
 		}
 	}
 
-	fn v2p(p: &b2::Vec2) -> Position {
+	fn v2p(p: b2::Vec2) -> Position {
 		Position::new(p.x, p.y)
 	}
 
@@ -278,10 +278,10 @@ impl PhysicsSystem {
 		let mut rect = b2::ChainShape::new();
 		rect.create_loop(
 			&[
-				Self::p2v(&extent.bottom_left()),
-				Self::p2v(&extent.bottom_right()),
-				Self::p2v(&extent.top_right()),
-				Self::p2v(&extent.top_left()),
+				Self::p2v(extent.bottom_left()),
+				Self::p2v(extent.bottom_right()),
+				Self::p2v(extent.top_right()),
+				Self::p2v(extent.top_left()),
 			],
 		);
 
@@ -358,13 +358,13 @@ impl PhysicsSystem {
 				let offset = if n < 0 { 1 } else { 0 };
 				let mut vertices = Vec::new();
 				for i in 0..n.abs() {
-					vertices.push(Self::pr2v(&p[2 * i as usize + offset], grown_radius));
+					vertices.push(Self::pr2v(p[2 * i as usize + offset], grown_radius));
 				}
 				make_safe_poly_shape(world, handle, grown_radius, vertices.as_slice(), f_def, refs);
 			}
 			obj::Shape::Star { radius, n, .. } => {
 				let grown_radius = radius * maturity;
-				if grown_radius < 0.05 * n as f32 {
+				if grown_radius < 0.05 * f32::from(n) {
 					make_circle_shape(world, handle, grown_radius, f_def, refs);
 				} else {
 					let p = &mesh.vertices;
@@ -373,14 +373,14 @@ impl PhysicsSystem {
 						let i2 = (i * 2) as usize;
 						let i3 = ((i * 2 + (n * 2) - 1) % (n * 2)) as usize;
 						let (p1, p2, p3) = match mesh.winding() {
-							obj::Winding::CW => (&p[i1], &p[i2], &p[i3]),
-							obj::Winding::CCW => (&p[i1], &p[i3], &p[i2]),
+							obj::Winding::CW => (p[i1], p[i2], p[i3]),
+							obj::Winding::CCW => (p[i1], p[i3], p[i2]),
 						};
 						let quad_vertices = &[
 							b2::Vec2 { x: 0., y: 0. },
-							Self::pr2v(&p1, grown_radius),
-							Self::pr2v(&p2, grown_radius),
-							Self::pr2v(&p3, grown_radius),
+							Self::pr2v(p1, grown_radius),
+							Self::pr2v(p2, grown_radius),
+							Self::pr2v(p3, grown_radius),
 						];
 						let refs = agent::Key::with_bone(object_id, segment_index as u8, i as u8);
 						make_safe_poly_shape(world, handle, grown_radius, quad_vertices, f_def, refs);
@@ -391,8 +391,8 @@ impl PhysicsSystem {
 				let grown_radius = radius * maturity;
 				let p = &mesh.vertices;
 				let (p1, p2, p3) = match mesh.winding() {
-					obj::Winding::CW => (&p[0], &p[2], &p[1]),
-					obj::Winding::CCW => (&p[0], &p[1], &p[2]),
+					obj::Winding::CW => (p[0], p[2], p[1]),
+					obj::Winding::CCW => (p[0], p[1], p[2]),
 				};
 				let tri_vertices = &[
 					Self::pr2v(p1, grown_radius),
@@ -424,8 +424,8 @@ impl PhysicsSystem {
 				b_def.linear_damping = material.linear_damping;
 				b_def.angular_damping = material.angular_damping;
 				b_def.angle = transform.angle;
-				b_def.position = Self::pr2v(&transform.position, 1.);
-				b_def.linear_velocity = Self::pr2v(&segment.motion.velocity, 1.);
+				b_def.position = Self::pr2v(transform.position, 1.);
+				b_def.linear_velocity = Self::pr2v(segment.motion.velocity, 1.);
 				b_def.angular_velocity = segment.motion.spin;
 				let refs = agent::Key::with_segment(object_id, segment_index as u8);
 				let handle = world.create_body_with(&b_def, refs);
@@ -498,7 +498,7 @@ impl PhysicsSystem {
 	}
 
 	pub fn pick(&self, pos: Position) -> Option<Id> {
-		let point = Self::p2v(&pos);
+		let point = Self::p2v(pos);
 		let eps = PICK_EPS;
 		let aabb = b2::AABB {
 			lower: b2::Vec2 {

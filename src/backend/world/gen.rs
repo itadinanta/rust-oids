@@ -170,7 +170,7 @@ pub trait Generator {
 
 	fn npoly(&mut self, n: AttachmentIndex, upside_down: bool) -> Shape {
 		let radius: f32 = self.next_float(1.0, 2.0);
-		let ratio1 = f32::cos(consts::PI / n as f32);
+		let ratio1 = f32::cos(consts::PI / f32::from(n));
 		let corrected_radius = if upside_down { radius * ratio1 } else { radius };
 
 		if n <= MAX_POLY_SIDES {
@@ -278,7 +278,7 @@ impl Genome {
 		if diff <= 0 {
 			min
 		} else {
-			return (self.next_bits(Self::count_bits(diff as u64)) % diff + min as i64) as i32;
+			(self.next_bits(Self::count_bits(diff as u64)) % diff + i64::from(min)) as i32
 		}
 	}
 
