@@ -256,6 +256,7 @@ impl<'font, R: Resources> Renderer<'font, R> {
 	}
 
 	/// Fill the inner vertex and command buffers by translating the given `primitives`.
+	#[allow(many_single_char_names)]
 	pub fn fill<P, C>(&mut self,
 					  encoder: &mut gfx::Encoder<R, C>,
 					  dims: (f32, f32),

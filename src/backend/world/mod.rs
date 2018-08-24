@@ -254,13 +254,14 @@ impl World {
 		self.registered_player_id = Some(self.spawn_player(Position::new(0., 0.), Motion::default()))
 	}
 
-	pub fn spawn_player(&mut self, pos: Position, _motion: Motion) -> obj::Id {
+	pub fn spawn_player(&mut self, pos: Position, motion: Motion) -> obj::Id {
 		let mut gen = gen::Genome::copy_from(&[0, 0, 0, 0]);
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Player).spawn(
 			&mut gen,
 			agent::InitialState {
 				transform: Transform::new(pos, 0.),
+				motion,
 				charge: DEFAULT_MINION_CHARGE,
 				..Default::default()
 			},

@@ -387,7 +387,7 @@ impl InputState {
 	fn gamepad_mut(&mut self, gamepad_id: usize) -> &mut GamepadState {
 		self.gamepad
 			.entry(gamepad_id)
-			.or_insert(GamepadState::default())
+			.or_insert_with(GamepadState::default)
 	}
 
 	fn gamepad_button(&mut self, gamepad_id: usize, state: State, button: Key) {
