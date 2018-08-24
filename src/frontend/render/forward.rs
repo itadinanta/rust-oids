@@ -229,7 +229,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 			&flat_shaders,
 			gfx::Primitive::LineList,
 			debug_line_rasterizer,
-			init.clone(),
+			init,
 		)?;
 		Ok(ForwardLighting {
 			camera,

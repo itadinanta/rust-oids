@@ -54,7 +54,7 @@ impl Phenotype for Resource {
 				albedo: albedo.to_rgba(),
 				..Default::default()
 			},
-			gen.dna(),
+			gen.dna_cloned(),
 			segment::State::with_charge(initial_state.charge, 0., seconds(DEFAULT_CHARGE_DECAY_TIME)),
 		);
 		builder
@@ -81,7 +81,7 @@ impl Phenotype for Player {
 				albedo: albedo.to_rgba(),
 				..Default::default()
 			},
-			gen.dna(),
+			gen.dna_cloned(),
 			segment::State::with_charge(charge, charge, seconds(PLAYER_CHARGE_DECAY_TIME)),
 		);
 		builder
@@ -107,7 +107,7 @@ impl Phenotype for Minion {
 				albedo: albedo.to_rgba(),
 				..Default::default()
 			},
-			gen.dna(),
+			gen.dna_cloned(),
 			segment::State::with_charge(charge, charge, seconds(MINION_CHARGE_DECAY_TIME)),
 		);
 		builder
@@ -253,7 +253,7 @@ impl Phenotype for Spore {
 				albedo: albedo.to_rgba(),
 				..Default::default()
 			},
-			gen.dna(),
+			gen.dna_cloned(),
 			segment::State::with_charge(charge, charge, seconds(DEFAULT_CHARGE_DECAY_TIME)),
 		);
 		builder
@@ -276,7 +276,7 @@ pub struct AgentBuilder {
 }
 
 impl AgentBuilder {
-	pub fn new(id: Id, material: Material, livery: Livery, dna: &Dna, state: segment::State) -> Self {
+	pub fn new(id: Id, material: Material, livery: Livery, dna: Dna, state: segment::State) -> Self {
 		AgentBuilder {
 			id,
 			material,
@@ -284,7 +284,7 @@ impl AgentBuilder {
 			state,
 			gender: 0u8,
 			brain: Brain::default(),
-			dna: dna.clone(),
+			dna,
 			segments: Vec::new(),
 		}
 	}

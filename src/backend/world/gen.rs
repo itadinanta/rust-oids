@@ -81,13 +81,13 @@ impl GenePool {
 
 	pub fn randomize(&mut self) {
 		let mut rnd = Randomizer::new();
-		self.gene_pool[self.round_robin] = rnd.seed().dna().clone();
+		self.gene_pool[self.round_robin] = rnd.seed().dna_cloned();
 	}
 
 	pub fn next(&mut self) -> Genome {
 		let gen = Genome::copy_from(&self.gene_pool[self.round_robin].clone());
 		let mutated = gen.mutate(&mut rand::thread_rng());
-		self.gene_pool[self.round_robin] = mutated.dna().clone();
+		self.gene_pool[self.round_robin] = mutated.dna_cloned();
 		self.round_robin = (self.round_robin + 1) % self.gene_pool.len();
 		gen
 	}
@@ -323,8 +323,8 @@ impl Genome {
 		Genome::new(new_genes)
 	}
 
-	pub fn dna(&self) -> &Box<[u8]> {
-		&self.dna
+	pub fn dna_cloned(&self) -> Box<[u8]> {
+		self.dna.clone()
 	}
 }
 

@@ -113,7 +113,7 @@ impl Default for AlifeSystem {
 impl AlifeSystem {
 	fn find_eaten_resources(minions: &agent::AgentMap, resources: &agent::AgentMap) -> StateMap {
 		let mut eaten = HashMap::new();
-		for (_, agent) in minions.iter().filter(|&(_, a)| a.state.is_active()) {
+		for agent in minions.values().filter(|&a| a.state.is_active()) {
 			for segment in agent
 				.segments
 				.iter()
@@ -131,9 +131,9 @@ impl AlifeSystem {
 
 	fn find_touched_spores(minions: &agent::AgentMap, spores: &agent::AgentMap) -> GeneMap {
 		let mut touched = HashMap::new();
-		for (_, spore) in spores
-			.iter()
-			.filter(|&(_, a)| a.state.is_active() && !a.state.is_fertilised())
+		for spore in spores
+			.values()
+			.filter(|&a| a.state.is_active() && !a.state.is_fertilised())
 		{
 			for segment in spore.segments.iter() {
 				if let Some(key) = segment.state.last_touched {
@@ -161,7 +161,7 @@ impl AlifeSystem {
 	{
 		let mut spawns = Vec::new();
 		let mut corpses = Vec::new();
-		for (_, agent) in minions.iter_mut() {
+		for agent in minions.values_mut() {
 			if agent.state.is_active() {
 				agent.state.reset_growth();
 				let segment = agent.segment(0).unwrap().clone();
@@ -226,14 +226,14 @@ impl AlifeSystem {
 	}
 
 	fn update_resources(dt: Seconds, timer: &SimulationTimer, resources: &mut agent::AgentMap, eaten: &StateMap) {
-		for (_, agent) in resources.iter_mut() {
-			if eaten.get(&agent.id()).is_some()
-				|| agent.state.energy() <= 0.
-				|| agent.state.lifecycle().is_expired(timer)
+		for resource in resources.values_mut() {
+			if eaten.get(&resource.id()).is_some()
+				|| resource.state.energy() <= 0.
+				|| resource.state.lifecycle().is_expired(timer)
 			{
-				agent.state.die();
-			} else if agent.state.is_active() {
-				for segment in agent.segments.iter_mut() {
+				resource.state.die();
+			} else if resource.state.is_active() {
+				for segment in resource.segments.iter_mut() {
 					segment.state.update(dt)
 				}
 			}
@@ -244,8 +244,7 @@ impl AlifeSystem {
 		match *foreign_dna {
 			Some(ref foreign) => gen::Genome::copy_from(&foreign)
 				.crossover(&mut rand::thread_rng(), dna)
-				.dna()
-				.clone(),
+				.dna_cloned(),
 			None => dna.clone(),
 		}
 	}
