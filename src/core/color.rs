@@ -56,9 +56,9 @@ impl FromRgb<f32> for YPbPr<f32> {
 	fn from_rgb(c: &Rgb<f32>) -> Self {
 		let (r, g, b) = (c[0], c[1], c[2]);
 		YPbPr {
-			y: 0.299_000 * r + 0.587_000 * g + 0.114_000 * b,
-			pb: -0.168_736 * r - 0.331_264 * g + 0.500_000 * b,
-			pr: 0.500_000 * r - 0.418_688 * g - 0.081_312 * b,
+			y: 0.299 * r + 0.587 * g + 0.114 * b,
+			pb: -0.168_736 * r - 0.331_264 * g + 0.500 * b,
+			pr: 0.500 * r - 0.418_688 * g - 0.081_312 * b,
 		}
 	}
 }
@@ -160,11 +160,11 @@ impl ToRgb<f32> for Hsl<f32> {
 			Hsl { h, s, l } => {
 				let q = if l < 0.5 { l * (1. + s) } else { l + s - l * s };
 				let p = 2. * l - q;
-				let r = hue2rgb(p, q, h + 1. / 3.);
-				let g = hue2rgb(p, q, h);
-				let b = hue2rgb(p, q, h - 1. / 3.);
+				let red = hue2rgb(p, q, h + 1. / 3.);
+				let green = hue2rgb(p, q, h);
+				let blue = hue2rgb(p, q, h - 1. / 3.);
 
-				[r, g, b]
+				[red, green, blue]
 			}
 		}
 	}

@@ -221,19 +221,19 @@ impl Systems {
 	}
 
 	fn init(&mut self, world: &world::World) {
-		for system in self.systems().iter_mut() {
+		for system in &mut self.systems() {
 			system.init(world);
 		}
 	}
 
 	fn clear(&mut self) {
-		for system in self.systems().iter_mut() {
+		for system in &mut self.systems() {
 			system.clear();
 		}
 	}
 
 	fn attach(&mut self, bus: &mut PubSub) {
-		for system in self.systems().iter_mut() {
+		for system in &mut self.systems() {
 			system.attach(bus);
 		}
 	}

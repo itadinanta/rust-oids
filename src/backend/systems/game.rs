@@ -1,18 +1,18 @@
 use super::*;
-use std::f32::consts;
-use rand;
-use rand::Rng;
-use cgmath::InnerSpace;
 use app::constants::*;
 use app::Event;
-use core::math::{exponential_filter, ExponentialFilter};
-use core::clock::*;
-use core::geometry::*;
-use core::geometry::Transform;
+use backend::messagebus::{Inbox, Message, PubSub, ReceiveDrain, Whiteboard};
 use backend::obj::Transformable;
 use backend::world;
 use backend::world::agent;
-use backend::messagebus::{PubSub, Inbox, Whiteboard, ReceiveDrain, Message};
+use cgmath::InnerSpace;
+use core::clock::*;
+use core::geometry::Transform;
+use core::geometry::*;
+use core::math::{exponential_filter, ExponentialFilter};
+use rand;
+use rand::Rng;
+use std::f32::consts;
 
 #[derive(Default)]
 pub struct PlayerState {
@@ -44,7 +44,8 @@ struct Feeder {
 }
 
 impl Feeder where {
-	fn new<T>(position: Position, rate: Seconds, timer: &T) -> Self where T: Timer {
+	fn new<T>(position: Position, rate: Seconds, timer: &T) -> Self
+	where T: Timer {
 		Feeder {
 			angle: 0.,
 			position,
@@ -61,8 +62,13 @@ impl Feeder where {
 
 impl System for GameSystem {
 	fn attach(&mut self, bus: &mut PubSub) {
-		self.inbox = Some(bus.subscribe(Box::new(|ev|
-			if let &Message::Event(Event::PrimaryFire(_, _)) = ev { true } else { false })));
+		self.inbox = Some(bus.subscribe(Box::new(|ev| {
+			if let Message::Event(Event::PrimaryFire(_, _)) = *ev {
+				true
+			} else {
+				false
+			}
+		})));
 	}
 
 	fn clear(&mut self) {
@@ -75,24 +81,19 @@ impl System for GameSystem {
 			Some(ref m) => m.drain(),
 			None => Vec::new(),
 		};
+
 		for message in messages {
-			match message {
-				Message::Event(Event::PrimaryFire(bullet_speed, rate)) => {
-					self.primary_fire(bullet_speed, rate);
-				}
-				_ => {}
+			if let Message::Event(Event::PrimaryFire(bullet_speed, rate)) = message {
+				self.primary_fire(bullet_speed, rate);
 			}
 		}
 
 		let source = world.feeders();
 		// Add missing emitters - deletion not supported
-		for i in self.feeders.len()..source.len() {
-			let s = &source[i];
-			self.feeders.push(Feeder::new(
-				s.transform().position,
-				s.rate(),
-				&self.timer,
-			));
+		for s in &source[self.feeders.len()..] {
+			//			let s = &source[i];
+			self.feeders
+				.push(Feeder::new(s.transform().position, s.rate(), &self.timer));
 		}
 		for (i, d) in self.feeders.iter_mut().enumerate() {
 			d.position = source[i].transform().position;
@@ -124,13 +125,13 @@ impl System for GameSystem {
 		if !self.playerstate.trigger_held {
 			self.playerstate.bullet_charge = BULLET_FULL_CHARGE;
 		}
-		self.playerstate.bullet_ready = self.playerstate.trigger_held &&
-			self.playerstate.bullet_charge >= BULLET_FULL_CHARGE;
+		self.playerstate.bullet_ready =
+			self.playerstate.trigger_held && self.playerstate.bullet_charge >= BULLET_FULL_CHARGE;
 		self.playerstate.bullet_charge = if self.playerstate.bullet_ready {
 			0.
 		} else {
-			BULLET_FULL_CHARGE.min(self.playerstate.bullet_charge +
-				dt.get() * BULLET_FIRE_RATE * self.playerstate.firing_rate)
+			BULLET_FULL_CHARGE
+				.min(self.playerstate.bullet_charge + dt.get() * BULLET_FIRE_RATE * self.playerstate.firing_rate)
 		};
 		self.playerstate.trigger_held = false;
 	}
@@ -156,16 +157,14 @@ impl System for GameSystem {
 			world.primary_fire(outbox, self.playerstate.bullet_speed);
 		}
 
-		world.get_player_agent_id().map(
-			|player_id| {
-				world.agent_mut(player_id).map(
-					|agent| {
-						agent.state.absorb(self.playerstate.bullet_charge as f32 * 100.0f32);
-						if self.playerstate.bullet_ready {
-							agent.reset_body_charge()
-						}
-					})
-			});
+		world.get_player_agent_id().map(|player_id| {
+			world.agent_mut(player_id).map(|agent| {
+				agent.state.absorb(self.playerstate.bullet_charge as f32 * 100.0f32);
+				if self.playerstate.bullet_ready {
+					agent.reset_body_charge()
+				}
+			})
+		});
 
 		// if there are no minions, spawn some
 		if world.agents(agent::AgentType::Minion).is_empty() {

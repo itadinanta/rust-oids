@@ -99,9 +99,9 @@ where
 	fn sample(&self, phase: T) -> S
 	where T: FloatConst {
 		let phi = <S as NumCast>::from((phase + phase) * T::PI()).unwrap();
-		match self {
-			&Waveform::Sin => phi.sin(),
-			&Waveform::Harmonics(ref hcos, ref hsin) => {
+		match *self {
+			Waveform::Sin => phi.sin(),
+			Waveform::Harmonics(ref hcos, ref hsin) => {
 				let cos_comp = hcos.iter().enumerate().fold(S::zero(), |sum, (i, f)| {
 					sum + *f * (phi * NumCast::from(i + 1).unwrap()).cos()
 				});
@@ -110,14 +110,14 @@ where
 				});
 				cos_comp + sin_comp
 			}
-			&Waveform::Triangle(slant) => {
+			Waveform::Triangle(slant) => {
 				if phase < slant {
 					lerp_clip(T::zero(), slant, -S::one(), S::one(), phase)
 				} else {
 					lerp_clip(slant, T::one(), S::one(), -S::one(), phase)
 				}
 			}
-			&Waveform::Square(duty_cycle) => {
+			Waveform::Square(duty_cycle) => {
 				let s: T = (phase - duty_cycle).signum();
 				NumCast::from(s).unwrap()
 			}
@@ -425,7 +425,7 @@ where
 			}
 			(signal_functions.iter().last().unwrap().1)(t - acc_0)
 		});
-		Signal::<T, [S; CHANNELS]>::new(self.sample_rate, duration, f).with_delay(
+		Signal::<T, [S; CHANNELS]>::new(self.sample_rate, duration, &*f).with_delay(
 			self.delay.time,
 			self.delay.tail,
 			self.delay.wet_dry,
@@ -630,12 +630,12 @@ impl Multiplexer {
 impl<S, F> Signal<S, F>
 where S: num::Float
 {
-	fn new<V>(sample_rate: S, duration: Seconds, f: Box<V>) -> Signal<S, F>
+	fn new<V>(sample_rate: S, duration: Seconds, f: &V) -> Signal<S, F>
 	where V: Fn(S) -> F + ?Sized {
 		let samples: usize = (duration * sample_rate.to_f64().unwrap()).round() as usize;
 		let frames = (0..samples)
 			.map(|i| S::from(i).unwrap() / sample_rate)
-			.map(|t| f(t))
+			.map(f)
 			.collect::<Vec<F>>();
 		Signal {
 			sample_rate,

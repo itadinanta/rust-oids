@@ -121,7 +121,7 @@ impl World {
 	}
 
 	pub fn clear(&mut self) {
-		for (_, swarm) in self.swarms.iter_mut() {
+		for swarm in self.swarms.values_mut() {
 			swarm.clear();
 		}
 		self.registered.clear();
@@ -379,8 +379,8 @@ impl World {
 
 	pub fn sweep(&mut self) -> Box<[Agent]> {
 		let mut v = Vec::new();
-		for (_, agents) in self.swarms.iter_mut() {
-			agents.free_resources(&mut v);
+		for swarm in self.swarms.values_mut() {
+			swarm.free_resources(&mut v);
 		}
 		v.into_boxed_slice()
 	}

@@ -44,7 +44,7 @@ pub mod filesystem {
 			}
 
 			// look for the first file which exists
-			match &self
+			match self
 				.roots
 				.iter()
 				.map(|ref r| {
@@ -55,9 +55,9 @@ pub mod filesystem {
 				}).find(|path| path.exists() && path.is_file())
 			{
 				// and then either read it
-				&Some(ref p) => load_from_path(p.as_path()),
+				Some(ref p) => load_from_path(p.as_path()),
 				// or give up
-				&None => {
+				None => {
 					let mut err = String::from("Resource not found in path: ");
 					err.push_str(key);
 					Err(io::Error::new(io::ErrorKind::Other, err))

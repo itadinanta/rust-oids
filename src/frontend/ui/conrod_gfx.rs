@@ -23,7 +23,7 @@
 //LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
-
+#![allow(clippy)]
 
 use gfx::{self, Resources, Factory, texture, PipelineState};
 use gfx::handle::RenderTargetView;
@@ -78,7 +78,7 @@ pub const MODE_IMAGE: u32 = 1;
 /// Ignore `tex` and draw simple, colored 2D geometry.
 pub const MODE_GEOMETRY: u32 = 2;
 
-const FRAGMENT_SHADER: &'static [u8] = b"
+const FRAGMENT_SHADER: &[u8] = b"
     #version 140
     uniform sampler2D t_Color;
 
@@ -104,7 +104,7 @@ const FRAGMENT_SHADER: &'static [u8] = b"
     }
 ";
 
-const VERTEX_SHADER: &'static [u8] = b"
+const VERTEX_SHADER: &[u8] = b"
     #version 140
 
     in vec2 a_Pos;
@@ -217,8 +217,8 @@ impl<'font, R: Resources> Renderer<'font, R> {
 			//let width = (width as f64 * dpi_factor) as u32;
 			//let height = (height as f64 * dpi_factor) as u32;
 
-			let width = width as u32;
-			let height = height as u32;
+			let width = u32::from(width);
+			let height = u32::from(height);
 
 			const SCALE_TOLERANCE: f32 = 0.1;
 			const POSITION_TOLERANCE: f32 = 0.1;

@@ -119,8 +119,8 @@ impl input::EventMapper<winit::WindowEvent> for WinitEventMapper {
 				winit::ElementState::Released => input::State::Up,
 			}
 		}
-		match e {
-			&WindowEvent::KeyboardInput {
+		match *e {
+			WindowEvent::KeyboardInput {
 				input: KeyboardInput {
 					state: element_state,
 					virtual_keycode: vk,
@@ -128,20 +128,20 @@ impl input::EventMapper<winit::WindowEvent> for WinitEventMapper {
 				},
 				..
 			} => {
-				vk.and_then(|vk| keymap(vk)).and_then(|key| {
+				vk.and_then(keymap).and_then(|key| {
 					Some(input::Event::Key(state_map(element_state), key))
 				})
 			}
-			&WindowEvent::MouseWheel {
+			WindowEvent::MouseWheel {
 				delta: MouseScrollDelta::LineDelta(dx, dy),
 				..
 			} => mousewheelmap(dx, dy).and_then(|key| Some(input::Event::Key(input::State::Down, key))),
-			&WindowEvent::MouseInput {
+			WindowEvent::MouseInput {
 				state: element_state,
 				button,
 				..
 			} => mousemap(button).and_then(|key| Some(input::Event::Key(state_map(element_state), key))),
-			&WindowEvent::CursorMoved { position: (x, y), .. } => Some(
+			WindowEvent::CursorMoved { position: (x, y), .. } => Some(
 				input::Event::Mouse(Position::new(x as f32, y as f32)),
 			),
 			_ => None,

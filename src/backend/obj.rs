@@ -32,32 +32,32 @@ pub enum Shape {
 
 impl Shape {
 	pub fn radius(&self) -> f32 {
-		match self {
-			&Shape::Ball { radius } => radius,
-			&Shape::Box { radius, .. } => radius,
-			&Shape::Star { radius, .. } => radius,
-			&Shape::Poly { radius, .. } => radius,
-			&Shape::Triangle { radius, .. } => radius,
+		match *self {
+			Shape::Ball { radius } => radius,
+			Shape::Box { radius, .. } => radius,
+			Shape::Star { radius, .. } => radius,
+			Shape::Poly { radius, .. } => radius,
+			Shape::Triangle { radius, .. } => radius,
 		}
 	}
 
 	pub fn length(&self) -> usize {
-		match self {
-			&Shape::Ball { .. } => 12,
-			&Shape::Box { .. } => 8,
-			&Shape::Poly { n, .. } => n.abs() as usize * 2,
-			&Shape::Star { n, .. } => n as usize * 2,
-			&Shape::Triangle { .. } => 3,
+		match *self {
+			Shape::Ball { .. } => 12,
+			Shape::Box { .. } => 8,
+			Shape::Poly { n, .. } => n.abs() as usize * 2,
+			Shape::Star { n, .. } => n as usize * 2,
+			Shape::Triangle { .. } => 3,
 		}
 	}
 
 	pub fn is_convex(&self) -> bool {
-		match self {
-			&Shape::Ball { .. } => true,
-			&Shape::Box { .. } => true,
-			&Shape::Poly { .. } => true,
-			&Shape::Star { .. } => false,
-			&Shape::Triangle { .. } => true,
+		match *self {
+			Shape::Ball { .. } => true,
+			Shape::Box { .. } => true,
+			Shape::Poly { .. } => true,
+			Shape::Star { .. } => false,
+			Shape::Triangle { .. } => true,
 		}
 	}
 
@@ -73,8 +73,8 @@ pub enum Winding {
 }
 
 impl Winding {
-	pub fn xunit(&self) -> f32 {
-		*self as i16 as f32
+	pub fn xunit(self) -> f32 {
+		f32::from(self as i16)
 	}
 }
 
@@ -110,9 +110,9 @@ impl Shape {
 
 	pub fn vertices(&self, winding: Winding) -> Box<[Position]> {
 		let xunit = winding.xunit();
-		match self {
+		match *self {
 			// first point is always unit y
-			&Shape::Ball { .. } => {
+			Shape::Ball { .. } => {
 				let n = 12usize;
 				(0..n)
 					.map(|i| {
@@ -122,7 +122,7 @@ impl Shape {
 					})
 					.collect()
 			}
-			&Shape::Box { ratio, .. } => {
+			Shape::Box { ratio, .. } => {
 				let w2 = xunit * ratio;
 				vec![
 					Position::new(0., 1.),
@@ -135,20 +135,20 @@ impl Shape {
 					Position::new(-w2, 1.),
 				]
 			}
-			&Shape::Poly { n, .. } => {
-				let phi = PI / n.abs() as f32;
+			Shape::Poly { n, .. } => {
+				let phi = PI / f32::from(n.abs());
 				let ratio1 = f32::cos(phi);
-				let ratio = &[1., ratio1.powi(n.signum() as i32)];
+				let ratio = &[1., ratio1.powi(i32::from(n.signum()))];
 				(0..(2 * n.abs()))
 					.map(|i| {
-						let p = i as f32 * phi;
+						let p = f32::from(i) * phi;
 						let r = ratio[i as usize % 2];
 						let (sp, cp) = p.sin_cos();
 						Position::new(xunit * r * sp, r * cp)
 					})
 					.collect()
 			}
-			&Shape::Star { n, ratio1, ratio2, .. } => {
+			Shape::Star { n, ratio1, ratio2, .. } => {
 				let mut damp = 1.;
 				let ratio = &[ratio1, ratio2];
 				(0..(2 * n))
@@ -161,7 +161,7 @@ impl Shape {
 					})
 					.collect()
 			}
-			&Shape::Triangle { angle1, angle2, .. } => {
+			Shape::Triangle { angle1, angle2, .. } => {
 				let (sa1, ca1) = angle1.sin_cos();
 				let (sa2, ca2) = angle2.sin_cos();
 				vec![

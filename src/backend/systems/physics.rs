@@ -60,8 +60,8 @@ struct JointRef<'a> {
 
 impl System for PhysicsSystem {
 	fn attach(&mut self, bus: &mut PubSub) {
-		self.inbox = Some(bus.subscribe(Box::new(|m| match m {
-			&Message::Event(Event::PickMinion(_)) => true,
+		self.inbox = Some(bus.subscribe(Box::new(|m| match *m {
+			Message::Event(Event::PickMinion(_)) => true,
 			_ => false,
 		})));
 	}

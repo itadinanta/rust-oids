@@ -3,8 +3,8 @@ pub mod formats;
 #[macro_use]
 mod forward;
 
-use core::geometry::M44;
 use core::geometry::Position;
+use core::geometry::M44;
 use core::resource::ResourceLoader;
 use std::clone::Clone;
 
@@ -620,7 +620,7 @@ impl<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>, L:
 	fn setup_frame(&mut self, camera: &Camera, background_color: formats::Rgba, lights: &[Light]) {
 		self.background_color = background_color;
 		let mut forward_lights: Vec<forward::PointLight> = Vec::new();
-		for p in lights.into_iter() {
+		for p in lights {
 			match p {
 				Light::PointLight {
 					position,

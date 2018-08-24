@@ -350,7 +350,7 @@ impl Generator for Genome {
 			T: rand::Rand + num::Integer + num::ToPrimitive + num::FromPrimitive + Copy, {
 		num::NumCast::from(min)
 			.and_then(|a| num::NumCast::from(max).map(|b| self.next_i32(a, b)))
-			.and_then(|value| num::FromPrimitive::from_i32(value))
+			.and_then(num::FromPrimitive::from_i32)
 			.unwrap_or(min)
 	}
 }
