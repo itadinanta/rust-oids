@@ -135,7 +135,7 @@ impl Serializer {
 		world.resource_gene_pool.populate_from_base64(&src.resource_gene_pool, src.resource_gene_pool_index);
 
 		let mut registered = Vec::new();
-		for src_swarm in src.swarms.iter() {
+		for src_swarm in &src.swarms {
 			if let Some(agent_type) = agent::AgentType::from_usize(src_swarm.agent_type) {
 				let swarm = world.swarm_mut(&agent_type);
 				swarm.reset(src_swarm.seq);

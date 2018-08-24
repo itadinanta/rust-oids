@@ -293,7 +293,7 @@ impl<'font, R: Resources> Renderer<'font, R> {
 
 		// Framebuffer dimensions and the "dots per inch" factor.
 		let (screen_w, screen_h) = dims;
-		let (win_w, win_h) = (screen_w as Scalar, screen_h as Scalar);
+		let (win_w, win_h) = (Scalar::from(screen_w), Scalar::from(screen_h));
 		let half_win_w = win_w / 2.0;
 		let half_win_h = win_h / 2.0;
 

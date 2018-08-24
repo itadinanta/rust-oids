@@ -296,7 +296,7 @@ impl SimpleEmitter {
 	}
 
 	pub fn with_fader(self, index: world::particle::Fader, value: Option<Fader<f32>>) -> Self {
-		let mut faders = self.faders.clone();
+		let mut faders = self.faders;
 		faders[index as usize] = value;
 		SimpleEmitter {
 			faders,
@@ -334,6 +334,7 @@ impl SimpleEmitter {
 
 impl Emitter for SimpleEmitter {
 	fn emit(&mut self, dt: Seconds, id_counter: &mut usize, destination: &mut HashMap<obj::Id, ParticleBatch>) -> bool {
+		use std::convert;
 		let mut rng = rand::thread_rng();
 		let jitter_value = self.jitter;
 		let mut jitter = move |w| (rng.next_f32() * 2. * w - w) * jitter_value + 1.;
@@ -345,7 +346,7 @@ impl Emitter for SimpleEmitter {
 			if self.pulse < pulse {
 				let particles = (0..self.cluster_size).map(|i| {
 					let spread = self.cluster_spread / self.cluster_size as f32 *
-						(i as f32 - (self.cluster_size as f32 - 1.) / 2.);
+						(<f32 as convert::From<_>>::from(i) - (<f32 as convert::From<_>>::from(self.cluster_size) - 1.) / 2.);
 					let alpha = consts::PI * 2. * (phase + spread);
 					let velocity =
 						Transform::from_angle(self.transform.angle + alpha + jitter(0.1) - 1.)
@@ -411,7 +412,7 @@ pub struct ParticleSystem {
 impl System for ParticleSystem {
 	fn attach(&mut self, bus: &mut PubSub) {
 		self.inbox = Some(bus.subscribe(Box::new(|m|
-			if let &Message::NewEmitter(_) = m { true } else { false })));
+			if let Message::NewEmitter(_) = *m { true } else { false })));
 	}
 
 	fn clear(&mut self) {
@@ -423,10 +424,7 @@ impl System for ParticleSystem {
 		let mut emitters = Vec::new();
 		if let Some(ref inbox) = self.inbox {
 			for message in inbox.drain() {
-				match message {
-					Message::NewEmitter(emitter) => { emitters.push(emitter); }
-					_ => {}
-				}
+				if let	Message::NewEmitter(emitter) = message { emitters.push(emitter); }
 			}
 		}
 		for source in emitters.into_iter() {
@@ -541,7 +539,7 @@ impl System for ParticleSystem {
 			}
 		})
 			.filter_map(|i| i)
-			.map(|i| *i)
+			.cloned()
 			.collect();
 
 		for id in &orphan {
@@ -559,7 +557,7 @@ impl System for ParticleSystem {
 	}
 
 	fn export(&self, world: &mut world::World, _outbox: &Outbox) {
-		for (_, particle_batch) in &self.particles {
+		for particle_batch in self.particles.values() {
 			for particle in &*particle_batch.particles {
 				let mut faders = [1.; MAX_FADER];
 				for (src, dest) in particle_batch.faders.iter().zip(faders.iter_mut()) {
@@ -571,8 +569,9 @@ impl System for ParticleSystem {
 					particle_batch.tag,
 					particle.trail
 						.iter()
-						.map(|t| *t)
-						.collect::<Vec<_>>().into_boxed_slice(),
+						.cloned()
+						.collect::<Vec<_>>()
+						.into_boxed_slice(),
 					faders,
 					particle_batch.color,
 					particle_batch.effect,
@@ -662,7 +661,7 @@ impl ParticleSystem {
 			}
 		}).filter_map(|i| i).collect();
 
-		for id in expired.into_iter() {
+		for id in expired {
 			self.particles.remove(&id);
 		}
 	}

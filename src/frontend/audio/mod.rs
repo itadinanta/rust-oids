@@ -110,15 +110,15 @@ pub type ThreadedAlertPlayer = SoundSystemAlertPlayer<ThreadedSoundSystem>;
 
 impl AlertPlayer<Alert, self::Error> for SoundSystemAlertPlayer<ThreadedSoundSystem> {
 	fn play(&mut self, alert: &Alert) -> Result<(), self::Error> {
-		let note = match alert {
-			&Alert::BeginSimulation => SoundEffect::Startup,
-			&Alert::NewMinion => SoundEffect::NewMinion,
-			&Alert::NewSpore => SoundEffect::NewSpore,
-			&Alert::Fertilised => SoundEffect::Fertilised,
-			&Alert::DieMinion => SoundEffect::DieMinion,
-			&Alert::GrowMinion => SoundEffect::GrowMinion,
-			&Alert::NewBullet(id) => SoundEffect::Bullet(id),
-			&Alert::RestartFromCheckpoint => SoundEffect::MuteAllVoices,
+		let note = match *alert {
+			Alert::BeginSimulation => SoundEffect::Startup,
+			Alert::NewMinion => SoundEffect::NewMinion,
+			Alert::NewSpore => SoundEffect::NewSpore,
+			Alert::Fertilised => SoundEffect::Fertilised,
+			Alert::DieMinion => SoundEffect::DieMinion,
+			Alert::GrowMinion => SoundEffect::GrowMinion,
+			Alert::NewBullet(id) => SoundEffect::Bullet(id),
+			Alert::RestartFromCheckpoint => SoundEffect::MuteAllVoices,
 			_ => SoundEffect::None,
 		};
 		trace!("Playing alert: {:?}", alert);
@@ -130,27 +130,27 @@ impl AlertPlayer<Alert, self::Error> for SoundSystemAlertPlayer<ThreadedSoundSys
 impl AlertPlayer<app::Event, self::Error> for SoundSystemAlertPlayer<ThreadedSoundSystem> {
 	fn play(&mut self, event: &app::Event) -> Result<(), self::Error> {
 		use app::Event;
-		let sound_effect = match event {
-			&Event::CamReset |
-			&Event::NextLight |
-			&Event::PrevLight |
-			&Event::NextBackground |
-			&Event::PrevBackground |
-			&Event::NextSpeedFactor |
-			&Event::PrevSpeedFactor |
-			&Event::Reload |
-			&Event::SaveGenePoolToFile |
-			&Event::SaveWorldToFile |
-			&Event::DeselectAll |
-			&Event::ZoomReset |
-			&Event::ToggleDebug => SoundEffect::UserOption,
+		let sound_effect = match *event {
+			Event::CamReset |
+			Event::NextLight |
+			Event::PrevLight |
+			Event::NextBackground |
+			Event::PrevBackground |
+			Event::NextSpeedFactor |
+			Event::PrevSpeedFactor |
+			Event::Reload |
+			Event::SaveGenePoolToFile |
+			Event::SaveWorldToFile |
+			Event::DeselectAll |
+			Event::ZoomReset |
+			Event::ToggleDebug => SoundEffect::UserOption,
 
-			&Event::PickMinion(_) => SoundEffect::SelectMinion,
+			Event::PickMinion(_) => SoundEffect::SelectMinion,
 
-			&Event::NewMinion(_) |
-			&Event::RandomizeMinion(_) => SoundEffect::NewMinion,
+			Event::NewMinion(_) |
+			Event::RandomizeMinion(_) => SoundEffect::NewMinion,
 
-			&Event::EndDrag(_, _, _) => SoundEffect::Release(0),
+			Event::EndDrag(_, _, _) => SoundEffect::Release(0),
 			_ => SoundEffect::None,
 		};
 		trace!("Playing event: {:?}", event);

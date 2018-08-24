@@ -1,18 +1,18 @@
-use std::collections::HashMap;
-use std::fmt;
-use std::f32;
-use num::Float;
-use num::FromPrimitive;
 use app::constants::*;
-use core::geometry::*;
-use core::geometry::Transform;
-use core::clock::*;
-use core::util;
 use backend::obj;
 use backend::obj::*;
 use backend::world::gen::Dna;
 use backend::world::segment;
 use backend::world::segment::Segment;
+use core::clock::*;
+use core::geometry::Transform;
+use core::geometry::*;
+use core::util;
+use num::Float;
+use num::FromPrimitive;
+use std::collections::HashMap;
+use std::f32;
+use std::fmt;
 
 #[repr(packed)]
 #[derive(Eq, Hash, PartialEq, Clone, Copy, Debug)]
@@ -23,9 +23,7 @@ pub struct Key {
 }
 
 impl Identified for Key {
-	fn id(&self) -> obj::Id {
-		self.agent_id
-	}
+	fn id(&self) -> obj::Id { self.agent_id }
 }
 
 impl Default for Key {
@@ -55,15 +53,14 @@ impl Key {
 	}
 
 	pub fn with_bone(agent_id: obj::Id, segment_index: obj::SegmentIndex, bone_index: obj::BoneIndex) -> Key {
-		Key { agent_id, segment_index, bone_index }
-	}
-
-	pub fn no_bone(&self) -> Key {
 		Key {
-			bone_index: 0,
-			..*self
+			agent_id,
+			segment_index,
+			bone_index,
 		}
 	}
+
+	pub fn no_bone(&self) -> Key { Key { bone_index: 0, ..*self } }
 }
 
 pub trait TypedAgent {
@@ -71,9 +68,7 @@ pub trait TypedAgent {
 }
 
 impl TypedAgent for Id {
-	fn type_of(&self) -> AgentType {
-		AgentType::from_usize(*self & 0xff).unwrap_or(AgentType::Prop)
-	}
+	fn type_of(&self) -> AgentType { AgentType::from_usize(*self & 0xff).unwrap_or(AgentType::Prop) }
 }
 
 enum_from_primitive! {
@@ -93,22 +88,22 @@ enum_from_primitive! {
 // TODO: sure there must be a better way?
 impl fmt::Display for AgentType {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		let text = match self {
-			&AgentType::Minion => "Minion",
-			&AgentType::Spore => "Spore",
-			&AgentType::Player => "Player",
-			&AgentType::FriendlyBullet => "FriendlyBullet",
-			&AgentType::Enemy => "Enemy",
-			&AgentType::EnemyBullet => "EnemyBullet",
-			&AgentType::Resource => "Resource",
-			&AgentType::Prop => "Prop",
+		let text = match *self {
+			AgentType::Minion => "Minion",
+			AgentType::Spore => "Spore",
+			AgentType::Player => "Player",
+			AgentType::FriendlyBullet => "FriendlyBullet",
+			AgentType::Enemy => "Enemy",
+			AgentType::EnemyBullet => "EnemyBullet",
+			AgentType::Resource => "Resource",
+			AgentType::Prop => "Prop",
 		};
 		f.write_str(text)
 	}
 }
 
 // TODO: is there a better way to derive this?
-const AGENT_TYPES: &'static [AgentType] = &[
+const AGENT_TYPES: &[AgentType] = &[
 	AgentType::Minion,
 	AgentType::Spore,
 	AgentType::Player,
@@ -120,9 +115,7 @@ const AGENT_TYPES: &'static [AgentType] = &[
 ];
 
 impl AgentType {
-	pub fn all() -> &'static [AgentType] {
-		AGENT_TYPES
-	}
+	pub fn all() -> &'static [AgentType] { AGENT_TYPES }
 }
 
 // for simplicity, inputs = intermediate = output
@@ -154,9 +147,7 @@ pub trait TypedBrain {
 }
 
 pub trait Personality<S>
-	where
-		S: Copy + Float,
-{
+where S: Copy + Float {
 	fn hunger(&self) -> S;
 	fn haste(&self) -> S;
 	fn prudence(&self) -> S;
@@ -167,13 +158,10 @@ pub trait Personality<S>
 }
 
 pub trait Layer<S, T>
-	where
-		T: Copy,
-		S: Float + From<T>,
-{
-	fn activation(x: S) -> S {
-		x / (S::one() + x.abs())
-	}
+where
+	T: Copy,
+	S: Float + From<T>, {
+	fn activation(x: S) -> S { x / (S::one() + x.abs()) }
 
 	fn layer(inputs: &[S], weights: &[WeightVector<T>]) -> OutputVector<S> {
 		let mut outputs = [S::zero(); N_WEIGHTS];
@@ -188,35 +176,25 @@ pub trait Layer<S, T>
 }
 
 impl<S, T> Layer<S, T> for GBrain<T>
-	where
-		T: Copy + Default,
-		S: Float + From<T>,
-{}
+where
+	T: Copy + Default,
+	S: Float + From<T>,
+{
+}
 
 impl<T, S> Personality<S> for GBrain<T>
-	where
-		T: Copy + Default,
-		S: Copy + Float + From<T>,
+where
+	T: Copy + Default,
+	S: Copy + Float + From<T>,
 {
-	fn hunger(&self) -> S {
-		self.hunger.into()
-	}
-	fn haste(&self) -> S {
-		self.haste.into()
-	}
-	fn prudence(&self) -> S {
-		self.prudence.into()
-	}
-	fn fear(&self) -> S {
-		self.fear.into()
-	}
-	fn rest(&self) -> S {
-		self.rest.into()
-	}
-	fn thrust(&self) -> S {
-		self.thrust.into()
-	}
+	fn hunger(&self) -> S { self.hunger.into() }
+	fn haste(&self) -> S { self.haste.into() }
+	fn prudence(&self) -> S { self.prudence.into() }
+	fn fear(&self) -> S { self.fear.into() }
+	fn rest(&self) -> S { self.rest.into() }
+	fn thrust(&self) -> S { self.thrust.into() }
 
+	#[allow(let_and_return)]
 	fn response(&self, input: &InputVector<S>) -> OutputVector<S> {
 		let output_in = Self::layer(input, &self.weights_in);
 		let output_hidden = Self::layer(&output_in, &self.weights_hidden);
@@ -226,8 +204,7 @@ impl<T, S> Personality<S> for GBrain<T>
 }
 
 impl<T> TypedBrain for GBrain<T>
-	where
-		T: Default + Copy + Float,
+where T: Default + Copy + Float
 {
 	type Parameter = T;
 	type WeightVector = WeightVector<Self::Parameter>;
@@ -235,7 +212,6 @@ impl<T> TypedBrain for GBrain<T>
 }
 
 pub type Brain = GBrain<f32>;
-
 
 bitflags! {
 	pub struct Flags: u32 {
@@ -288,21 +264,13 @@ pub struct State {
 
 impl State {
 	#[inline]
-	pub fn lifecycle(&self) -> &Hourglass {
-		&self.lifecycle
-	}
+	pub fn lifecycle(&self) -> &Hourglass { &self.lifecycle }
 
-	pub fn energy(&self) -> f32 {
-		self.energy
-	}
+	pub fn energy(&self) -> f32 { self.energy }
 
-	pub fn energy_ratio(&self) -> f32 {
-		self.energy / self.limits.max_energy
-	}
+	pub fn energy_ratio(&self) -> f32 { self.energy / self.limits.max_energy }
 
-	pub fn phase(&self) -> f32 {
-		self.phase
-	}
+	pub fn phase(&self) -> f32 { self.phase }
 
 	pub fn flags(&self) -> Flags { self.flags }
 
@@ -330,49 +298,29 @@ impl State {
 		}
 	}
 
-	pub fn absorb(&mut self, q: f32) {
-		self.energy = self.limits.max_energy.min(self.energy + q);
-	}
+	pub fn absorb(&mut self, q: f32) { self.energy = self.limits.max_energy.min(self.energy + q); }
 
 	pub fn grow_by(&mut self, q: f32) {
-		self.growth += q;//dummy value
+		self.growth += q; //dummy value
 	}
 
-	pub fn reset_growth(&mut self) {
-		self.growth = 0.;
-	}
+	pub fn reset_growth(&mut self) { self.growth = 0.; }
 
-	pub fn growth(&self) -> f32 {
-		self.growth
-	}
+	pub fn growth(&self) -> f32 { self.growth }
 
-	pub fn is_fertilised(&self) -> bool {
-		self.foreign_dna.is_some()
-	}
+	pub fn is_fertilised(&self) -> bool { self.foreign_dna.is_some() }
 
-	pub fn fertilise(&mut self, dna: &Dna) {
-		self.foreign_dna = Some(dna.clone());
-	}
+	pub fn fertilise(&mut self, dna: &Dna) { self.foreign_dna = Some(dna.clone()); }
 
-	pub fn foreign_dna(&self) -> &Option<Dna> {
-		&self.foreign_dna
-	}
+	pub fn foreign_dna(&self) -> &Option<Dna> { &self.foreign_dna }
 
-	pub fn toggle_selection(&mut self) {
-		self.flags ^= Flags::SELECTED;
-	}
+	pub fn toggle_selection(&mut self) { self.flags ^= Flags::SELECTED; }
 	#[allow(unused)]
-	pub fn select(&mut self) {
-		self.flags |= Flags::SELECTED;
-	}
+	pub fn select(&mut self) { self.flags |= Flags::SELECTED; }
 
-	pub fn deselect(&mut self) {
-		self.flags -= Flags::SELECTED;
-	}
+	pub fn deselect(&mut self) { self.flags -= Flags::SELECTED; }
 
-	pub fn selected(&self) -> bool {
-		self.flags.contains(Flags::SELECTED)
-	}
+	pub fn selected(&self) -> bool { self.flags.contains(Flags::SELECTED) }
 
 	pub fn die(&mut self) {
 		self.flags |= Flags::DEAD;
@@ -380,46 +328,27 @@ impl State {
 	}
 
 	#[inline]
-	pub fn is_alive(&self) -> bool {
-		!self.flags.contains(Flags::DEAD)
-	}
+	pub fn is_alive(&self) -> bool { !self.flags.contains(Flags::DEAD) }
 
 	#[inline]
-	pub fn is_active(&self) -> bool {
-		self.flags.contains(Flags::ACTIVE)
-	}
+	pub fn is_active(&self) -> bool { self.flags.contains(Flags::ACTIVE) }
 
-	pub fn target_position(&self) -> &Position {
-		&self.target_position
-	}
+	pub fn target_position(&self) -> Position { self.target_position }
 
-	pub fn target(&self) -> &Option<Id> {
-		&self.target
-	}
+	pub fn target(&self) -> &Option<Id> { &self.target }
 
 	pub fn retarget(&mut self, target: Option<Id>, position: Position) {
 		self.target = target;
 		self.target_position = position;
 	}
 
-	pub fn heartbeat(&mut self, d: f32) {
-		self.phase = (self.phase + d) % (2.0 * f32::consts::PI)
-	}
+	pub fn heartbeat(&mut self, d: f32) { self.phase = (self.phase + d) % (2.0 * f32::consts::PI) }
 
-	pub fn reset_phase(&mut self) {
-		self.phase = 0.;
-	}
+	pub fn reset_phase(&mut self) { self.phase = 0.; }
 
-	pub fn track_position(&mut self, position: Position) {
-		self.trajectory.push(position.clone())
-	}
+	pub fn track_position(&mut self, position: Position) { self.trajectory.push(position.clone()) }
 
-	pub fn trajectory(&self) -> Box<[Position]> {
-		self.trajectory
-			.into_iter()
-			.collect::<Vec<_>>()
-			.into_boxed_slice()
-	}
+	pub fn trajectory(&self) -> Box<[Position]> { self.trajectory.into_iter().collect::<Vec<_>>().into_boxed_slice() }
 }
 
 #[derive(Clone)]
@@ -433,86 +362,61 @@ pub struct Agent {
 }
 
 impl Identified for Agent {
-	fn id(&self) -> Id {
-		self.id
-	}
+	fn id(&self) -> Id { self.id }
 }
 
 impl Transformable for Agent {
-	fn transform(&self) -> &Transform {
-		self.segments.first().unwrap().transform()
-	}
-	fn transform_to(&mut self, t: Transform) {
-		self.segments.first_mut().unwrap().transform_to(t);
-	}
+	fn transform(&self) -> &Transform { self.segments.first().unwrap().transform() }
+	fn transform_to(&mut self, t: Transform) { self.segments.first_mut().unwrap().transform_to(t); }
 }
 
 impl Motionable for Agent {
-	fn motion(&self) -> &Motion {
-		self.segments.first().unwrap().motion()
-	}
-	fn motion_to(&mut self, m: Motion) {
-		self.segments.first_mut().unwrap().motion_to(m);
-	}
+	fn motion(&self) -> &Motion { self.segments.first().unwrap().motion() }
+	fn motion_to(&mut self, m: Motion) { self.segments.first_mut().unwrap().motion_to(m); }
 }
 
 impl Agent {
 	#[inline]
-	pub fn dna(&self) -> &Dna {
-		&self.dna
-	}
+	pub fn dna(&self) -> &Dna { &self.dna }
 
 	pub fn id(&self) -> Id { self.id }
 
 	#[inline]
-	pub fn gender(&self) -> u8 {
-		self.gender
-	}
+	pub fn gender(&self) -> u8 { self.gender }
 
 	#[inline]
-	pub fn segments(&self) -> &[Segment] {
-		&self.segments
-	}
+	pub fn segments(&self) -> &[Segment] { &self.segments }
 
 	#[inline]
-	pub fn segments_mut(&mut self) -> &mut [Segment] {
-		&mut self.segments
-	}
+	pub fn segments_mut(&mut self) -> &mut [Segment] { &mut self.segments }
 
-	pub fn segment(&self, index: SegmentIndex) -> Option<&Segment> {
-		self.segments.get(index as usize)
-	}
+	pub fn segment(&self, index: SegmentIndex) -> Option<&Segment> { self.segments.get(index as usize) }
 
-	pub fn last_segment(&self) -> &Segment {
-		self.segments.last().unwrap()
-	}
+	pub fn last_segment(&self) -> &Segment { self.segments.last().unwrap() }
 
-	pub fn segment_mut(&mut self, index: SegmentIndex) -> Option<&mut Segment> {
-		self.segments.get_mut(index as usize)
-	}
+	pub fn segment_mut(&mut self, index: SegmentIndex) -> Option<&mut Segment> { self.segments.get_mut(index as usize) }
 
-	pub fn brain(&self) -> &Brain {
-		&self.brain
-	}
+	pub fn brain(&self) -> &Brain { &self.brain }
 
 	pub fn first_segment(&self, flags: segment::Flags) -> Option<Segment> {
 		self.segments
 			.iter()
 			.find(|segment| segment.flags.contains(flags))
-			.map(|s| s.clone())
+			.cloned()
 	}
 
 	pub fn reset_body_charge(&mut self) {
-		self.segments[0].state.reset_charge(PLAYER_CHARGE_INITIAL_VALUE, PLAYER_CHARGE_REST_VALUE)
+		self.segments[0]
+			.state
+			.reset_charge(PLAYER_CHARGE_INITIAL_VALUE, PLAYER_CHARGE_REST_VALUE)
 	}
 
 	pub fn new(id: Id, gender: u8, brain: &Brain, dna: &Dna, segments: Box<[Segment]>, timer: &Timer) -> Self {
 		const SCALE: f32 = 100.;
-		let max_energy = SCALE *
-			segments
-				.iter()
-				.filter(|s| s.flags.contains(segment::Flags::STORAGE))
-				.fold(0., |a, s| a + s.mesh.shape.radius().powi(2));
+		let max_energy = SCALE * segments
+			.iter()
+			.filter(|s| s.flags.contains(segment::Flags::STORAGE))
+			.fold(0., |a, s| a + s.mesh.shape.radius().powi(2));
 		Agent {
 			id,
 			state: State {

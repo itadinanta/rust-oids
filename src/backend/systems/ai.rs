@@ -82,8 +82,8 @@ impl AiSystem {
 			if let Some(sensor) = head {
 				let p0 = sensor.transform.position;
 				let radar_range = sensor.growing_radius() * 10.;
-				let current_target = agent.state.target().clone();
-				let current_target_position = agent.state.target_position().clone();
+				let current_target = *agent.state.target();
+				let current_target_position = agent.state.target_position();
 				// if our original target is dead then we need to find another one
 				let new_target: Option<(obj::Id, Position)> = match current_target {
 					None => targets
@@ -100,7 +100,7 @@ impl AiSystem {
 					Some((id, position)) => agent.state.retarget(Some(id), position),
 				};
 				// find where our target is in the world
-				let target_position = agent.state.target_position().clone();
+				let target_position = agent.state.target_position();
 				// and transform the world position into the head's frame
 				let t0 = target_position - sensor.transform.position;
 				let t = t0.normalize_to(t0.magnitude().min(radar_range));

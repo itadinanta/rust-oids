@@ -146,7 +146,7 @@ impl App {
 					let p0 = sensor.transform.position;
 					let a0 = sensor.transform.angle;
 					let radar_range = sensor.growing_radius() * 10.;
-					let p1 = *agent.state.target_position();
+					let p1 = agent.state.target_position();
 					batch_buffer.draw_lines(
 						Some(Style::DebugLines),
 						Matrix4::identity(),

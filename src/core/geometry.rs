@@ -1,7 +1,5 @@
 use cgmath;
 use cgmath::Vector2;
-#[allow(unused_attributes, unused)]
-#[macro_use]
 use cgmath::*;
 use core::util::Initial;
 

@@ -258,8 +258,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 		factory.create_pipeline_state(&shaders, primitive, rasterizer, init)
 	}
 
-	pub fn setup(&self, encoder: &mut gfx::Encoder<R, C>, camera_projection: M44, camera_view: M44, lights: &Vec<PointLight>) -> Result<()> {
-		let mut lights_buf = lights.clone();
+	pub fn setup(&self, encoder: &mut gfx::Encoder<R, C>, camera_projection: M44, camera_view: M44, lights: &[PointLight]) -> Result<()> {
+		let mut lights_buf = lights.to_owned();
 
 		let count = lights_buf.len();
 		while lights_buf.len() < MAX_NUM_TOTAL_LIGHTS {

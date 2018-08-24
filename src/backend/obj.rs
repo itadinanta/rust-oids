@@ -153,7 +153,7 @@ impl Shape {
 				let ratio = &[ratio1, ratio2];
 				(0..(2 * n))
 					.map(|i| {
-						let p = i as f32 * (PI / n as f32);
+						let p = f32::from(i) * (PI / f32::from(n));
 						let r = f32::max(damp, 0.01); // zero is bad!
 						damp *= ratio[i as usize % 2];
 						let (sp, cp) = p.sin_cos();

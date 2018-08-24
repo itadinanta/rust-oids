@@ -155,9 +155,9 @@ impl ToRgb<f32> for Hsl<f32> {
 			}
 		}
 
-		match self {
-			&Hsl { h, l, .. } if h == 0. => [l, l, l],
-			&Hsl { h, s, l } => {
+		match *self {
+			Hsl { h, l, .. } if h == 0. => [l, l, l],
+			Hsl { h, s, l } => {
 				let q = if l < 0.5 { l * (1. + s) } else { l + s - l * s };
 				let p = 2. * l - q;
 				let r = hue2rgb(p, q, h + 1. / 3.);

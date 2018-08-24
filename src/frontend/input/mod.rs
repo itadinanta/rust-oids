@@ -348,11 +348,11 @@ impl InputRead for InputState {
 #[allow(dead_code)]
 impl InputState {
 	pub fn event(&mut self, event: &Event) {
-		match event {
-			&Event::Key(state, key) => self.key(state, key),
-			&Event::Mouse(position) => self.mouse_at(position),
-			&Event::GamepadButton(id, state, button) => self.gamepad_button(id, state, button),
-			&Event::GamepadAxis(id, axis, position) => self.gamepad_axis_update(id, axis, position),
+		match *event {
+			Event::Key(state, key) => self.key(state, key),
+			Event::Mouse(position) => self.mouse_at(position),
+			Event::GamepadButton(id, state, button) => self.gamepad_button(id, state, button),
+			Event::GamepadAxis(id, axis, position) => self.gamepad_axis_update(id, axis, position),
 		}
 	}
 
@@ -410,14 +410,14 @@ impl InputState {
 	}
 
 	fn update_gamepad_button_pressed(&mut self) {
-		for (_, gamepad) in &mut self.gamepad {
+		for gamepad in self.gamepad.values_mut() {
 			gamepad.update_button_pressed();
 		}
 	}
 
 	fn update_dragging(&mut self, key: Key, pos: Position) {
-		let (drag_state, displacement) = match &self.drag_state {
-			&DragState::Nothing => {
+		let (drag_state, displacement) = match self.drag_state {
+			DragState::Nothing => {
 				if self.key_pressed(key) {
 					self.mouse_history.clear();
 					(DragState::Hold(key, pos), Dragging::Begin(key, pos))
@@ -425,7 +425,7 @@ impl InputState {
 					(DragState::Nothing, Dragging::Nothing)
 				}
 			}
-			&DragState::Hold(held, start) if held == key => {
+			DragState::Hold(held, start) if held == key => {
 				let hold = if self.key_pressed(key) {
 					(DragState::Hold(key, start), Dragging::Dragging(key, start, pos))
 				} else {

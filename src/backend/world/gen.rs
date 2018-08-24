@@ -264,8 +264,9 @@ impl Genome {
 
 	#[inline]
 	fn next_bits(&mut self, n: u8) -> i64 {
-		let bytes = (0..n).fold(0, |a, _| a << 1 | self.next_bit() as i64);
-		bytes
+		//use std::iter;
+		//iter::repeat_with(|| i64::from(self.next_bit())).take(usize::from(n)).fold(0, |a, bit| a << 1 | bit)
+		(0..n).fold(0, |a, _| a << 1 | i64::from(self.next_bit()))		
 	}
 
 	#[inline]
@@ -274,7 +275,7 @@ impl Genome {
 	}
 
 	fn next_i32(&mut self, min: i32, max: i32) -> i32 {
-		let diff = max as i64 - min as i64 + 1i64;
+		let diff = i64::from(max) - i64::from(min) + 1i64;
 		if diff <= 0 {
 			min
 		} else {

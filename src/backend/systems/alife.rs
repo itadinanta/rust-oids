@@ -63,7 +63,7 @@ impl System for AlifeSystem {
 		let (spores, corpses) = Self::update_minions(
 			outbox,
 			self.dt,
-			world.extent.clone(),
+			world.extent,
 			&mut world.agents_mut(agent::AgentType::Minion),
 			&self.eaten,
 		);
@@ -241,12 +241,12 @@ impl AlifeSystem {
 	}
 
 	fn crossover(dna: &gen::Dna, foreign_dna: &Option<gen::Dna>) -> gen::Dna {
-		match foreign_dna {
-			&Some(ref foreign) => gen::Genome::copy_from(&foreign)
+		match *foreign_dna {
+			Some(ref foreign) => gen::Genome::copy_from(&foreign)
 				.crossover(&mut rand::thread_rng(), dna)
 				.dna()
 				.clone(),
-			&None => dna.clone(),
+			None => dna.clone(),
 		}
 	}
 

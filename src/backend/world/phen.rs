@@ -126,12 +126,12 @@ impl Phenotype for Minion {
 			}
 		}
 		builder
-			.hunger(&gen.next_float(0., 0.9))
-			.haste(&gen.next_float(0., 0.9))
-			.prudence(&gen.next_float(0., 0.9))
-			.fear(&gen.next_float(0.1, 5.))
-			.rest(&gen.next_float(0.2, 1.))
-			.thrust(&gen.next_float(0.2, 1.))
+			.hunger(gen.next_float(0., 0.9))
+			.haste(gen.next_float(0., 0.9))
+			.prudence(gen.next_float(0., 0.9))
+			.fear(gen.next_float(0.1, 5.))
+			.rest(gen.next_float(0.2, 1.))
+			.thrust(gen.next_float(0.2, 1.))
 			.weights_in(&weights_in)
 			.weights_hidden(&weights_hidden)
 			.weights_out(&weights_out);
@@ -384,48 +384,48 @@ impl AgentBuilder {
 		self
 	}
 
-	pub fn hunger(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
-		self.brain.hunger = value.clone();
+	pub fn hunger(&mut self, value: <Brain as TypedBrain>::Parameter) -> &mut Self {
+		self.brain.hunger = value;
 		self
 	}
 
-	pub fn haste(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
-		self.brain.haste = value.clone();
+	pub fn haste(&mut self, value: <Brain as TypedBrain>::Parameter) -> &mut Self {
+		self.brain.haste = value;
 		self
 	}
 
-	pub fn prudence(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
-		self.brain.prudence = value.clone();
+	pub fn prudence(&mut self, value: <Brain as TypedBrain>::Parameter) -> &mut Self {
+		self.brain.prudence = value;
 		self
 	}
 
-	pub fn fear(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
-		self.brain.fear = value.clone();
+	pub fn fear(&mut self, value: <Brain as TypedBrain>::Parameter) -> &mut Self {
+		self.brain.fear = value;
 		self
 	}
 
-	pub fn rest(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
-		self.brain.rest = value.clone();
+	pub fn rest(&mut self, value: <Brain as TypedBrain>::Parameter) -> &mut Self {
+		self.brain.rest = value;
 		self
 	}
 
-	pub fn thrust(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
-		self.brain.thrust = value.clone();
+	pub fn thrust(&mut self, value: <Brain as TypedBrain>::Parameter) -> &mut Self {
+		self.brain.thrust = value;
 		self
 	}
 
 	pub fn weights_in(&mut self, weights_in: &<Brain as TypedBrain>::WeightMatrix) -> &mut Self {
-		self.brain.weights_in = weights_in.clone();
+		self.brain.weights_in = *weights_in;
 		self
 	}
 
 	pub fn weights_hidden(&mut self, weights_hidden: &<Brain as TypedBrain>::WeightMatrix) -> &mut Self {
-		self.brain.weights_hidden = weights_hidden.clone();
+		self.brain.weights_hidden = *weights_hidden;
 		self
 	}
 
 	pub fn weights_out(&mut self, weights_out: &<Brain as TypedBrain>::WeightMatrix) -> &mut Self {
-		self.brain.weights_out = weights_out.clone();
+		self.brain.weights_out = *weights_out;
 		self
 	}
 

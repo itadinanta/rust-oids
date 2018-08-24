@@ -268,13 +268,13 @@ impl<'f, 'font, R, F> Ui<'f, 'font, R, F> where
 	pub fn update_and_draw_screen<C>(&mut self, screen: &Screen, encoder: &mut Encoder<R, C>)
 		where C: CommandBuffer<R> {
 		let dims = (self.win_w as f32, self.win_h as f32);
-		let window_id = self.ui.window.clone();
+		let window_id = self.ui.window;
 		let mut app_events = Vec::with_capacity(1);
 		let widgets = screen.draw_widgets(&mut self.ui,
 										  window_id,
-										  self.style_label.clone(),
-										  self.style_value.clone(),
-										  self.style_button.clone(),
+										  self.style_label,
+										  self.style_value,
+										  self.style_button,
 										  &self.ids.clone(),
 										  &mut app_events);
 		let primitives = widgets.draw();
