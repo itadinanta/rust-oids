@@ -60,7 +60,7 @@ impl System for AlifeSystem {
 			&self.eaten,
 		);
 
-		let (spores, corpses) = Self::update_minions(
+		let MinionEndState(spores, corpses) = Self::update_minions(
 			outbox,
 			self.dt,
 			world.extent,
@@ -68,7 +68,7 @@ impl System for AlifeSystem {
 			&self.eaten,
 		);
 
-		let (hatch, fertilised) = Self::update_spores(
+		let SporeEndState(hatch, fertilised) = Self::update_spores(
 			self.dt,
 			&self.simulation_timer,
 			&mut world.agents_mut(agent::AgentType::Spore),
@@ -109,6 +109,13 @@ impl Default for AlifeSystem {
 		}
 	}
 }
+
+struct MinionEndState(
+	Box<[(geometry::Transform, gen::Dna)]>,
+	Box<[(Box<[geometry::Transform]>, gen::Dna)]>,
+);
+
+struct SporeEndState(Box<[(geometry::Transform, gen::Dna)]>, usize);
 
 impl AlifeSystem {
 	fn find_eaten_resources(minions: &agent::AgentMap, resources: &agent::AgentMap) -> StateMap {
@@ -154,10 +161,7 @@ impl AlifeSystem {
 		extent: geometry::Rect,
 		minions: &mut agent::AgentMap,
 		eaten: &StateMap,
-	) -> (
-		Box<[(geometry::Transform, gen::Dna)]>,
-		Box<[(Box<[geometry::Transform]>, gen::Dna)]>,
-	)
+	) -> MinionEndState
 	{
 		let mut spawns = Vec::new();
 		let mut corpses = Vec::new();
@@ -222,7 +226,7 @@ impl AlifeSystem {
 				}
 			}
 		}
-		(spawns.into_boxed_slice(), corpses.into_boxed_slice())
+		MinionEndState(spawns.into_boxed_slice(), corpses.into_boxed_slice())
 	}
 
 	fn update_resources(dt: Seconds, timer: &SimulationTimer, resources: &mut agent::AgentMap, eaten: &StateMap) {
@@ -254,7 +258,7 @@ impl AlifeSystem {
 		timer: &SimulationTimer,
 		spores: &mut agent::AgentMap,
 		touched: &GeneMap,
-	) -> (Box<[(geometry::Transform, gen::Dna)]>, usize)
+	) -> SporeEndState
 	{
 		let mut spawns = Vec::new();
 		let mut fertilise_count = 0usize;
@@ -285,6 +289,6 @@ impl AlifeSystem {
 				}
 			}
 		}
-		(spawns.into_boxed_slice(), fertilise_count)
+		SporeEndState(spawns.into_boxed_slice(), fertilise_count)
 	}
 }

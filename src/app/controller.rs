@@ -84,7 +84,7 @@ impl DefaultController {
 		view_transform: &V,
 		world_transform: &W,
 		dt: Seconds,
-	) -> (bool, Position)
+	) -> Position
 	where
 		V: ViewTransform,
 		W: WorldTransform,
@@ -94,7 +94,6 @@ impl DefaultController {
 		let mouse_view_pos = view_transform.to_view(mouse_window_pos);
 		let mouse_world_pos = world_transform.to_world(mouse_view_pos);
 
-		let mouse_left_pressed = input_state.key_pressed(input::Key::MouseLeft) && !input_state.any_ctrl_pressed();
 		if input_state.key_once(input::Key::MouseLeft) && input_state.any_ctrl_pressed() {
 			events.push(Event::PickMinion(mouse_world_pos));
 		};
@@ -128,17 +127,13 @@ impl DefaultController {
 			}
 			_ => {}
 		}
-		(mouse_left_pressed, mouse_world_pos)
+		mouse_world_pos
 	}
 
-	fn events_on_gamepad<I>(
-		input_state: &I,
-		events: &mut Vec<Event>,
-		mouse_left_pressed: bool,
-		mouse_world_pos: Position,
-	) where
-		I: input::InputRead,
-	{
+	fn events_on_gamepad<I>(input_state: &I, events: &mut Vec<Event>, mouse_world_pos: Position)
+	where I: input::InputRead {
+		let mouse_left_pressed = input_state.key_pressed(input::Key::MouseLeft) && !input_state.any_ctrl_pressed();
+
 		let firerate = input_state.gamepad_axis(0, input::Axis::L2);
 		let firepower = input_state.gamepad_axis(0, input::Axis::R2);
 		if firepower >= DEAD_ZONE {
@@ -204,9 +199,9 @@ impl InputController for DefaultController {
 
 		DefaultController::events_on_key_held(input_state, &mut events);
 		DefaultController::events_on_key_pressed_once(input_state, &mut events);
-		let (mouse_left_pressed, mouse_world_pos) =
+		let mouse_world_pos =
 			DefaultController::events_on_mouse_move(input_state, &mut events, view_transform, world_transform, dt);
-		DefaultController::events_on_gamepad(input_state, &mut events, mouse_left_pressed, mouse_world_pos);
+		DefaultController::events_on_gamepad(input_state, &mut events, mouse_world_pos);
 
 		events
 	}
