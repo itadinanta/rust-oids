@@ -180,12 +180,6 @@ impl Serializer {
 		}
 	}
 
-	#[allow(unused)]
-	pub fn to_string(world: &world::World) -> Result<String, serde_json::Error> {
-		let s_world = Self::save_snapshot(world);
-		serde_json::to_string_pretty(&s_world)
-	}
-
 	pub fn save(file_path: &path::Path, world: &world::World) -> io::Result<()> {
 		let out_file = fs::File::create(file_path)?;
 		let s_world = Self::save_snapshot(world);

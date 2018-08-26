@@ -31,6 +31,13 @@ pub struct Ids {
 
 pub type ImageMap<R> = conrod::image::Map<(ShaderResourceView<R, [f32; 4]>, (u32, u32))>;
 
+#[derive(Clone, Debug)]
+pub struct Styles {
+	pub label: text::Style,
+	pub value: text::Style,
+	pub button: button::Style,
+}
+
 pub struct Ui<'f, 'font, R, F>
 where
 	R: Resources,
@@ -42,9 +49,7 @@ where
 	win_w: u16,
 	win_h: u16,
 	hidpi_factor: f64,
-	style_label: text::Style,
-	style_value: text::Style,
-	style_button: button::Style,
+	styles: Styles,
 	ids: Ids,
 	app_events: Vec<app::Event>,
 	events: Vec<event::Input>,
@@ -63,9 +68,7 @@ impl Screen {
 		&self,
 		ui: &'e mut conrod::Ui,
 		root_window_id: widget::Id,
-		style_label: text::Style,
-		style_value: text::Style,
-		style_button: button::Style,
+		styles: &Styles,
 		ids: &Ids,
 		app_events: &mut Vec<app::Event>,
 	) -> conrod::UiCell<'e>
@@ -84,7 +87,7 @@ impl Screen {
 
 				widget::Text::new(&help_text)
 					.middle_of(ids.help_canvas)
-					.with_style(style_label)
+					.with_style(styles.label)
 					.set(ids.help_text, &mut widgets);
 			}
 			Screen::Main(ref frame_update) => {
@@ -125,12 +128,12 @@ impl Screen {
 
 					widget::Text::new(label)
 						.mid_left_of(panel_id)
-						.with_style(style_label)
+						.with_style(styles.label)
 						.set(label_id, &mut widgets);
 
 					widget::Text::new(value)
 						.mid_right_of(panel_id)
-						.with_style(style_value)
+						.with_style(styles.value)
 						.set(value_id, &mut widgets);
 
 					panel_id
@@ -160,13 +163,13 @@ impl Screen {
 						.label(label)
 						.mid_left_of(panel_id)
 						.kid_area_w_of(panel_id)
-						.with_style(style_button)
+						.with_style(styles.button)
 						.set(label_id, &mut widgets)
 						.was_clicked();
 
 					widget::Text::new(value)
 						.mid_right_of(panel_id)
-						.with_style(style_value)
+						.with_style(styles.value)
 						.set(value_id, &mut widgets);
 
 					pressed
@@ -301,9 +304,11 @@ where
 			win_w: w,
 			win_h: h,
 			hidpi_factor,
-			style_label,
-			style_value,
-			style_button,
+			styles: Styles {
+				label: style_label,
+				value: style_value,
+				button: style_button,
+			},
 			ids,
 			app_events: Vec::new(),
 			events: Vec::new(),
@@ -332,15 +337,7 @@ where
 		let dims = (f32::from(self.win_w), f32::from(self.win_h));
 		let window_id = self.ui.window;
 		let mut app_events = Vec::with_capacity(1);
-		let widgets = screen.draw_widgets(
-			&mut self.ui,
-			window_id,
-			self.style_label,
-			self.style_value,
-			self.style_button,
-			&self.ids.clone(),
-			&mut app_events,
-		);
+		let widgets = screen.draw_widgets(&mut self.ui, window_id, &self.styles, &self.ids, &mut app_events);
 		let primitives = widgets.draw();
 		self.renderer.fill(encoder, dims, primitives, &self.image_map);
 		self.renderer.draw(self.factory, encoder, &self.image_map);
