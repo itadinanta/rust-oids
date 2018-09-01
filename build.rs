@@ -25,9 +25,9 @@ fn main() {
 		println!(
 			"cargo:rustc-link-search=native={}",
 			Path::new(&current_dir)
-				.join("lib/x64",)
+				.join("lib/x64")
 				.to_str()
-				.expect("Invalid library path",)
+				.expect("Invalid library path")
 		)
 	}
 }
