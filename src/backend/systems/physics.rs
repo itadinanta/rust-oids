@@ -278,6 +278,7 @@ impl PhysicsSystem {
 		self.register(agent);
 	}
 
+	#[allow(too_many_arguments)]
 	fn build_fixture_for_segment(
 		world: &mut b2::World<AgentData>,
 		handle: b2::BodyHandle,

@@ -133,6 +133,7 @@ impl Emitter {
 }
 
 impl Particle {
+	#[allow(too_many_arguments)]
 	pub fn new(transform: Transform,
 			   direction: Velocity,
 			   tag: isize,

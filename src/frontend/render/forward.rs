@@ -51,7 +51,7 @@ impl VertexPosNormal {
 pub type M44 = cgmath::Matrix4<f32>;
 
 const MAX_NUM_TOTAL_LIGHTS: usize = 16;
-const MAX_NUM_TOTAL_TRANSFORM: usize = 256;
+const MAX_NUM_TOTAL_TRANSFORMS: usize = 256;
 
 pub const PREMULT: Blend = Blend {
 	color: BlendChannel {
@@ -139,18 +139,18 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 		let lights = factory.create_constant_buffer(MAX_NUM_TOTAL_LIGHTS);
 		let camera = factory.create_constant_buffer(1);
 		let fragment = factory.create_constant_buffer(1);
-		let model = factory.create_constant_buffer(MAX_NUM_TOTAL_TRANSFORM);
-		let material = factory.create_constant_buffer(MAX_NUM_TOTAL_TRANSFORM);
+		let model = factory.create_constant_buffer(MAX_NUM_TOTAL_TRANSFORMS);
+		let material = factory.create_constant_buffer(MAX_NUM_TOTAL_TRANSFORMS);
 
 		macro_rules! load_shaders {
 		( $ v: expr, $ f: expr) => { factory.create_shader_set(
 				& res.load(concat! ("shaders/forward/", $ v, ".vert"))?,
-				& res.load(concat ! ("shaders/forward/", $ f, ".frag")) ? ) };
+				& res.load(concat ! ("shaders/forward/", $ f, ".frag"))? ) };
 
 				( $ g: expr, $ v:expr, $ f: expr) => { factory.create_shader_set_with_geometry(
 				& res.load(concat! ("shaders/forward/", $ g, ".geom"))?,
-				& res.load(concat ! ("shaders/forward/", $ v, ".vert")) ?,
-				& res.load(concat ! ("shaders/forward/", $ f, ".frag")) ? )
+				& res.load(concat ! ("shaders/forward/", $ v, ".vert"))?,
+				& res.load(concat ! ("shaders/forward/", $ f, ".frag"))? )
 			}
 		};
 
@@ -286,6 +286,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 }
 
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C, shaded::Init<'static>> {
+	#[allow(too_many_arguments)]
 	pub fn draw_primitives(
 		&self, shader: Style,
 		encoder: &mut gfx::Encoder<R, C>,
