@@ -81,13 +81,13 @@ impl GenePool {
 
 	pub fn randomize(&mut self) {
 		let mut rnd = Randomizer::new();
-		self.gene_pool[self.round_robin] = rnd.seed().dna().clone();
+		self.gene_pool[self.round_robin] = rnd.seed().dna_cloned();
 	}
 
 	pub fn next(&mut self) -> Genome {
 		let gen = Genome::copy_from(&self.gene_pool[self.round_robin].clone());
 		let mutated = gen.mutate(&mut rand::thread_rng());
-		self.gene_pool[self.round_robin] = mutated.dna().clone();
+		self.gene_pool[self.round_robin] = mutated.dna_cloned();
 		self.round_robin = (self.round_robin + 1) % self.gene_pool.len();
 		gen
 	}
@@ -170,7 +170,7 @@ pub trait Generator {
 
 	fn npoly(&mut self, n: AttachmentIndex, upside_down: bool) -> Shape {
 		let radius: f32 = self.next_float(1.0, 2.0);
-		let ratio1 = f32::cos(consts::PI / n as f32);
+		let ratio1 = f32::cos(consts::PI / f32::from(n));
 		let corrected_radius = if upside_down { radius * ratio1 } else { radius };
 
 		if n <= MAX_POLY_SIDES {
@@ -264,8 +264,9 @@ impl Genome {
 
 	#[inline]
 	fn next_bits(&mut self, n: u8) -> i64 {
-		let bytes = (0..n).fold(0, |a, _| a << 1 | self.next_bit() as i64);
-		bytes
+		//use std::iter;
+		//iter::repeat_with(|| i64::from(self.next_bit())).take(usize::from(n)).fold(0, |a, bit| a << 1 | bit)
+		(0..n).fold(0, |a, _| a << 1 | i64::from(self.next_bit()))		
 	}
 
 	#[inline]
@@ -274,11 +275,11 @@ impl Genome {
 	}
 
 	fn next_i32(&mut self, min: i32, max: i32) -> i32 {
-		let diff = max as i64 - min as i64 + 1i64;
+		let diff = i64::from(max) - i64::from(min) + 1i64;
 		if diff <= 0 {
 			min
 		} else {
-			return (self.next_bits(Self::count_bits(diff as u64)) % diff + min as i64) as i32;
+			(self.next_bits(Self::count_bits(diff as u64)) % diff + i64::from(min)) as i32
 		}
 	}
 
@@ -322,8 +323,8 @@ impl Genome {
 		Genome::new(new_genes)
 	}
 
-	pub fn dna(&self) -> &Box<[u8]> {
-		&self.dna
+	pub fn dna_cloned(&self) -> Box<[u8]> {
+		self.dna.clone()
 	}
 }
 
@@ -349,7 +350,7 @@ impl Generator for Genome {
 			T: rand::Rand + num::Integer + num::ToPrimitive + num::FromPrimitive + Copy, {
 		num::NumCast::from(min)
 			.and_then(|a| num::NumCast::from(max).map(|b| self.next_i32(a, b)))
-			.and_then(|value| num::FromPrimitive::from_i32(value))
+			.and_then(num::FromPrimitive::from_i32)
 			.unwrap_or(min)
 	}
 }

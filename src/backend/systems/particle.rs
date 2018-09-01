@@ -1,31 +1,33 @@
 use super::*;
-use backend::obj;
-use core::geometry::{Transform, Motion, Position, Velocity, Acceleration};
 use app::constants::*;
-use num::Zero;
-use core::color::Rgba;
-use core::clock::{seconds, Seconds, SimulationTimer, TimerStopwatch};
+use backend::messagebus::{Inbox, Message, ReceiveDrain, Whiteboard};
+use backend::obj;
 use backend::world;
 use backend::world::particle::{EmitterAttachment, EmitterStyle};
-use backend::messagebus::{Inbox, Message, Whiteboard, ReceiveDrain};
-use std::collections::VecDeque;
-use std::collections::HashMap;
 use backend::world::AgentState;
-use std::iter::Iterator;
-use std::f32::consts;
-use rand;
-use rand::Rng;
+use cgmath::InnerSpace;
+use core::clock::{seconds, Seconds, SimulationTimer, TimerStopwatch};
+use core::color::Rgba;
+use core::geometry::{Acceleration, Motion, Position, Transform, Velocity};
 use num;
 use num::NumCast;
-use cgmath::InnerSpace;
+use num::Zero;
+use rand;
+use rand::Rng;
 use rayon::prelude::*;
+use std::collections::HashMap;
+use std::collections::VecDeque;
+use std::convert;
+use std::f32::consts;
+use std::iter::Iterator;
 
 type Phase = f32;
 
 const MAX_FADER: usize = world::particle::Fader::Count as usize;
 
 #[derive(Clone, Copy)]
-struct Fader<S> where S: Copy {
+struct Fader<S>
+where S: Copy {
 	value: S,
 	fade_rate: S,
 	target: S,
@@ -33,7 +35,9 @@ struct Fader<S> where S: Copy {
 
 type FaderList = [Option<Fader<f32>>; MAX_FADER];
 
-impl<S> Default for Fader<S> where S: num::Float {
+impl<S> Default for Fader<S>
+where S: num::Float
+{
 	fn default() -> Fader<S> {
 		Fader {
 			value: S::one(),
@@ -44,39 +48,32 @@ impl<S> Default for Fader<S> where S: num::Float {
 }
 
 #[allow(unused)]
-impl<S> Fader<S> where S: num::Float {
+impl<S> Fader<S>
+where S: num::Float
+{
 	fn new(value: S, fade_rate: S, target: S) -> Fader<S> {
-		Fader { value, fade_rate, target }
+		Fader {
+			value,
+			fade_rate,
+			target,
+		}
 	}
 
 	fn flat(value: S) -> Fader<S> {
-		Fader { value, fade_rate: S::zero(), target: value }
-	}
-
-	fn value(&self) -> S {
-		self.value
-	}
-
-	fn with_target(self, target: S) -> Self {
-		Fader {
-			target,
-			..self
-		}
-	}
-
-	fn with_fade_rate(self, fade_rate: S) -> Self {
-		Fader {
-			fade_rate,
-			..self
-		}
-	}
-
-	fn with_value(self, value: S) -> Self {
 		Fader {
 			value,
-			..self
+			fade_rate: S::zero(),
+			target: value,
 		}
 	}
+
+	fn value(&self) -> S { self.value }
+
+	fn with_target(self, target: S) -> Self { Fader { target, ..self } }
+
+	fn with_fade_rate(self, fade_rate: S) -> Self { Fader { fade_rate, ..self } }
+
+	fn with_value(self, value: S) -> Self { Fader { value, ..self } }
 
 	fn update(&mut self, dt: Seconds) -> S {
 		self.value = self.value + (self.target - self.value) * self.fade_rate * NumCast::from(dt.get()).unwrap();
@@ -174,65 +171,23 @@ impl Default for SimpleEmitter {
 
 #[allow(unused)]
 impl SimpleEmitter {
-	pub fn new(id: obj::Id) -> Self {
-		SimpleEmitter::default().with_id(id)
-	}
+	pub fn new(id: obj::Id) -> Self { SimpleEmitter::default().with_id(id) }
 
-	pub fn with_id(self, id: obj::Id) -> Self {
-		SimpleEmitter {
-			id,
-			..self
-		}
-	}
+	pub fn with_id(self, id: obj::Id) -> Self { SimpleEmitter { id, ..self } }
 
-	pub fn with_attached_to(self, attached_to: EmitterAttachment) -> Self {
-		SimpleEmitter {
-			attached_to,
-			..self
-		}
-	}
+	pub fn with_attached_to(self, attached_to: EmitterAttachment) -> Self { SimpleEmitter { attached_to, ..self } }
 
-	pub fn with_tag(self, tag: Tag) -> Self {
-		SimpleEmitter {
-			tag,
-			..self
-		}
-	}
+	pub fn with_tag(self, tag: Tag) -> Self { SimpleEmitter { tag, ..self } }
 
-	pub fn with_jitter(self, jitter: f32) -> Self {
-		SimpleEmitter {
-			jitter,
-			..self
-		}
-	}
+	pub fn with_jitter(self, jitter: f32) -> Self { SimpleEmitter { jitter, ..self } }
 
-	pub fn with_transform(self, transform: Transform) -> Self {
-		SimpleEmitter {
-			transform,
-			..self
-		}
-	}
+	pub fn with_transform(self, transform: Transform) -> Self { SimpleEmitter { transform, ..self } }
 
-	pub fn with_motion(self, motion: Motion) -> Self {
-		SimpleEmitter {
-			motion,
-			..self
-		}
-	}
+	pub fn with_motion(self, motion: Motion) -> Self { SimpleEmitter { motion, ..self } }
 
-	pub fn with_acceleration(self, acceleration: Acceleration) -> Self {
-		SimpleEmitter {
-			acceleration,
-			..self
-		}
-	}
+	pub fn with_acceleration(self, acceleration: Acceleration) -> Self { SimpleEmitter { acceleration, ..self } }
 
-	pub fn with_trail_length(self, trail_length: u8) -> Self {
-		SimpleEmitter {
-			trail_length,
-			..self
-		}
-	}
+	pub fn with_trail_length(self, trail_length: u8) -> Self { SimpleEmitter { trail_length, ..self } }
 
 	pub fn with_pulse(self, pulse: f32, pulse_rate: f32) -> Self {
 		SimpleEmitter {
@@ -250,12 +205,7 @@ impl SimpleEmitter {
 		}
 	}
 
-	pub fn with_ttl(self, ttl: Option<Seconds>) -> Self {
-		SimpleEmitter {
-			ttl,
-			..self
-		}
-	}
+	pub fn with_ttl(self, ttl: Option<Seconds>) -> Self { SimpleEmitter { ttl, ..self } }
 
 	pub fn with_color(self, color0: Rgba<f32>, color1: Rgba<f32>) -> Self {
 		SimpleEmitter {
@@ -291,45 +241,34 @@ impl SimpleEmitter {
 		self.with_faders([Some(fader_color), Some(fader_scale), Some(fader_effect), None])
 	}
 
-	pub fn with_4_faders(self, fader_color: Fader<f32>, fader_scale: Fader<f32>, fader_effect: Fader<f32>, fader_frequency: Fader<f32>) -> Self {
-		self.with_faders([Some(fader_color), Some(fader_scale), Some(fader_effect), Some(fader_frequency)])
+	pub fn with_4_faders(
+		self,
+		fader_color: Fader<f32>,
+		fader_scale: Fader<f32>,
+		fader_effect: Fader<f32>,
+		fader_frequency: Fader<f32>,
+	) -> Self
+	{
+		self.with_faders([
+			Some(fader_color),
+			Some(fader_scale),
+			Some(fader_effect),
+			Some(fader_frequency),
+		])
 	}
 
 	pub fn with_fader(self, index: world::particle::Fader, value: Option<Fader<f32>>) -> Self {
-		let mut faders = self.faders.clone();
+		let mut faders = self.faders;
 		faders[index as usize] = value;
-		SimpleEmitter {
-			faders,
-			..self
-		}
+		SimpleEmitter { faders, ..self }
 	}
 
-	pub fn with_faders(self, faders: FaderList) -> Self {
-		SimpleEmitter {
-			faders,
-			..self
-		}
-	}
+	pub fn with_faders(self, faders: FaderList) -> Self { SimpleEmitter { faders, ..self } }
 
-	pub fn with_lifespan(self, lifespan: Seconds) -> Self {
-		SimpleEmitter {
-			lifespan,
-			..self
-		}
-	}
+	pub fn with_lifespan(self, lifespan: Seconds) -> Self { SimpleEmitter { lifespan, ..self } }
 
-	pub fn with_cluster_size(self, cluster_size: u8) -> Self {
-		SimpleEmitter {
-			cluster_size,
-			..self
-		}
-	}
-	pub fn with_cluster_spread(self, cluster_spread: f32) -> Self {
-		SimpleEmitter {
-			cluster_spread,
-			..self
-		}
-	}
+	pub fn with_cluster_size(self, cluster_size: u8) -> Self { SimpleEmitter { cluster_size, ..self } }
+	pub fn with_cluster_spread(self, cluster_spread: f32) -> Self { SimpleEmitter { cluster_spread, ..self } }
 }
 
 impl Emitter for SimpleEmitter {
@@ -343,38 +282,44 @@ impl Emitter for SimpleEmitter {
 			self.phase = (self.phase + dt * self.phase_rate * jitter(0.1)) % 1.;
 			self.pulse = (self.pulse + dt * self.pulse_rate * jitter(0.1)) % 1.;
 			if self.pulse < pulse {
-				let particles = (0..self.cluster_size).map(|i| {
-					let spread = self.cluster_spread / self.cluster_size as f32 *
-						(i as f32 - (self.cluster_size as f32 - 1.) / 2.);
-					let alpha = consts::PI * 2. * (phase + spread);
-					let velocity =
-						Transform::from_angle(self.transform.angle + alpha + jitter(0.1) - 1.)
+				let particles = (0..self.cluster_size)
+					.map(|i| {
+						let cluster_size = <f32 as convert::From<_>>::from(self.cluster_size);
+						let spread = self.cluster_spread / cluster_size
+							* (<f32 as convert::From<_>>::from(i) - (cluster_size - 1.) / 2.);
+						let alpha = consts::PI * 2. * (phase + spread);
+						let velocity = Transform::from_angle(self.transform.angle + alpha + jitter(0.1) - 1.)
 							.apply_rotation(self.motion.velocity * jitter(0.1));
-					let frame_velocity = self.frame_motion.velocity;
-					Particle {
-						transform: Transform::new(self.transform.position,
-												  self.transform.angle + alpha + jitter(0.1) - 1.),
-						trail: VecDeque::new(),
-						motion: Motion::new(velocity + frame_velocity, self.motion.spin + jitter(0.1) - 1.),
-						acceleration: self.acceleration * jitter(0.5),
-					}
-				}).collect::<Vec<_>>().into_boxed_slice();
+						let frame_velocity = self.frame_motion.velocity;
+						Particle {
+							transform: Transform::new(
+								self.transform.position,
+								self.transform.angle + alpha + jitter(0.1) - 1.,
+							),
+							trail: VecDeque::new(),
+							motion: Motion::new(velocity + frame_velocity, self.motion.spin + jitter(0.1) - 1.),
+							acceleration: self.acceleration * jitter(0.5),
+						}
+					}).collect::<Vec<_>>()
+					.into_boxed_slice();
 				let id = *id_counter;
 				*id_counter = id + 1;
-				destination.insert(id,
-								   ParticleBatch {
-									   id,
-									   tag: self.tag,
-									   particles,
-									   color: self.color,
-									   effect: self.effect,
-									   age: seconds(0.),
-									   trail_length: self.trail_length,
-									   dampening: self.dampening,
-									   friction: self.friction,
-									   faders: self.faders,
-									   lifespan: self.lifespan,
-								   });
+				destination.insert(
+					id,
+					ParticleBatch {
+						id,
+						tag: self.tag,
+						particles,
+						color: self.color,
+						effect: self.effect,
+						age: seconds(0.),
+						trail_length: self.trail_length,
+						dampening: self.dampening,
+						friction: self.friction,
+						faders: self.faders,
+						lifespan: self.lifespan,
+					},
+				);
 			}
 		}
 		match self.ttl {
@@ -387,9 +332,7 @@ impl Emitter for SimpleEmitter {
 		}
 	}
 
-	fn attached_to(&self) -> EmitterAttachment {
-		self.attached_to
-	}
+	fn attached_to(&self) -> EmitterAttachment { self.attached_to }
 
 	fn update_transform(&mut self, transform: Transform, motion: Motion) {
 		self.transform = transform;
@@ -410,8 +353,7 @@ pub struct ParticleSystem {
 
 impl System for ParticleSystem {
 	fn attach(&mut self, bus: &mut PubSub) {
-		self.inbox = Some(bus.subscribe(Box::new(|m|
-			if let &Message::NewEmitter(_) = m { true } else { false })));
+		self.inbox = Some(bus.subscribe(Box::new(|m| if let Message::NewEmitter(_) = *m { true } else { false })));
 	}
 
 	fn clear(&mut self) {
@@ -423,58 +365,48 @@ impl System for ParticleSystem {
 		let mut emitters = Vec::new();
 		if let Some(ref inbox) = self.inbox {
 			for message in inbox.drain() {
-				match message {
-					Message::NewEmitter(emitter) => { emitters.push(emitter); }
-					_ => {}
+				if let Message::NewEmitter(emitter) = message {
+					emitters.push(emitter);
 				}
 			}
 		}
-		for source in emitters.into_iter() {
+		for source in emitters {
 			let emitter = match source.style {
-				EmitterStyle::Explosion { cluster_size, color } => {
-					SimpleEmitter::new(self.next_id())
-						.with_transform(source.transform.clone())
-						.with_motion(Motion::new(10. * Velocity::unit_x(), 0.))
-						.with_color(color, COLOR_TRANSPARENT)
-						.with_ttl(Some(seconds(0.5)))
-						.with_cluster_size(cluster_size)
-						.with_cluster_spread(0.5)
-						.with_2_faders(
-							Fader::new(0.0, 2.0, 1.0),
-							Fader::new(1.0, 0.7, 0.1))
-						.with_lifespan(seconds(3.0))
-				}
-				EmitterStyle::Ping { color } => {
-					SimpleEmitter::new(self.next_id())
-						.with_attached_to(source.attached_to)
-						.with_transform(source.transform.clone())
-						.with_color(color, COLOR_TRANSPARENT)
-						.with_ttl(Some(seconds(0.33)))
-						.with_4_faders(Fader::new(0.0, 4.0, 1.0),
-									   Fader::new(0.5, 0.7, 5.0),
-									   Fader::flat(1.),
-									   Fader::new(10., 1., 5.))
-						.with_cluster_size(1)
-						.with_lifespan(seconds(3.0))
-				}
-				EmitterStyle::Sparkle { cluster_size, color } => {
-					SimpleEmitter::new(self.next_id())
-						.with_jitter(0.)
-						.with_transform(source.transform.clone())
-						.with_motion(Motion::new(8. * Velocity::unit_x(), 0.))
-						.with_effect(COLOR_WHITE, [1., 1., 1., 16.0])
-						.with_color(color, COLOR_TRANSPARENT)
-						.with_ttl(Some(seconds(0.30)))
-						.with_pulse(1.0, 10.)
-						.with_phase(0.0, 1. / cluster_size as f32)
-						.with_3_faders(Fader::new(0.0, 1.2, 1.0),
-									   Fader::default(),
-									   Fader::default())
-						.with_cluster_size(cluster_size)
-						.with_trail_length(5)
-						.with_acceleration(-5. * Velocity::unit_y())
-						.with_lifespan(seconds(3.0))
-				}
+				EmitterStyle::Explosion { cluster_size, color } => SimpleEmitter::new(self.next_id())
+					.with_transform(source.transform.clone())
+					.with_motion(Motion::new(10. * Velocity::unit_x(), 0.))
+					.with_color(color, COLOR_TRANSPARENT)
+					.with_ttl(Some(seconds(0.5)))
+					.with_cluster_size(cluster_size)
+					.with_cluster_spread(0.5)
+					.with_2_faders(Fader::new(0.0, 2.0, 1.0), Fader::new(1.0, 0.7, 0.1))
+					.with_lifespan(seconds(3.0)),
+				EmitterStyle::Ping { color } => SimpleEmitter::new(self.next_id())
+					.with_attached_to(source.attached_to)
+					.with_transform(source.transform.clone())
+					.with_color(color, COLOR_TRANSPARENT)
+					.with_ttl(Some(seconds(0.33)))
+					.with_4_faders(
+						Fader::new(0.0, 4.0, 1.0),
+						Fader::new(0.5, 0.7, 5.0),
+						Fader::flat(1.),
+						Fader::new(10., 1., 5.),
+					).with_cluster_size(1)
+					.with_lifespan(seconds(3.0)),
+				EmitterStyle::Sparkle { cluster_size, color } => SimpleEmitter::new(self.next_id())
+					.with_jitter(0.)
+					.with_transform(source.transform.clone())
+					.with_motion(Motion::new(8. * Velocity::unit_x(), 0.))
+					.with_effect(COLOR_WHITE, [1., 1., 1., 16.0])
+					.with_color(color, COLOR_TRANSPARENT)
+					.with_ttl(Some(seconds(0.30)))
+					.with_pulse(1.0, 10.)
+					.with_phase(0.0, 1. / <f32 as convert::From<_>>::from(cluster_size))
+					.with_3_faders(Fader::new(0.0, 1.2, 1.0), Fader::default(), Fader::default())
+					.with_cluster_size(cluster_size)
+					.with_trail_length(5)
+					.with_acceleration(-5. * Velocity::unit_y())
+					.with_lifespan(seconds(3.0)),
 			};
 			self.emitters.insert(emitter.id, Box::new(emitter));
 		}
@@ -494,60 +426,56 @@ impl System for ParticleSystem {
 						Fader::new(0.0, 4.0, 1.0),
 						Fader::new(1.0, 1.1, 0.1),
 						Fader::default(),
-						Fader::new(1.0, 4.0, 0.0))
-					.with_cluster_size(3)
+						Fader::new(1.0, 4.0, 0.0),
+					).with_cluster_size(3)
 					.with_cluster_spread(0.15)
 					.with_lifespan(seconds(3.0));
 				self.emitters.insert(emitter.id, Box::new(emitter));
 			}
 		}
 
-		let orphan: Vec<obj::Id> = self.emitters.iter_mut().map(|(id, emitter)| {
-			let surviving = match emitter.attached_to() {
-				EmitterAttachment::None => { Some(id) }
-				EmitterAttachment::Agent(agent_id) => {
-					world.agent(agent_id)
-						.and_then(|agent| agent.segment(0))
-						.map(|segment| {
+		let orphan: Vec<obj::Id> = self
+			.emitters
+			.iter_mut()
+			.map(|(id, emitter)| {
+				let surviving = match emitter.attached_to() {
+					EmitterAttachment::None => Some(id),
+					EmitterAttachment::Agent(agent_id) => {
+						world.agent(agent_id).and_then(|agent| agent.segment(0)).map(|segment| {
 							emitter.update_transform(segment.transform.clone(), segment.motion.clone());
 							id
 						})
-				}
-				EmitterAttachment::Segment(agent_id, segment_id) => {
-					world.agent(agent_id)
+					}
+					EmitterAttachment::Segment(agent_id, segment_id) => world
+						.agent(agent_id)
 						.and_then(|agent| agent.segment(segment_id))
 						.map(|segment| {
 							emitter.update_transform(segment.transform.clone(), segment.motion.clone());
 							id
-						})
-				}
-				EmitterAttachment::Vertex(agent_id, segment_id, bone_id) => {
-					world.agent(agent_id)
+						}),
+					EmitterAttachment::Vertex(agent_id, segment_id, bone_id) => world
+						.agent(agent_id)
 						.and_then(|agent| agent.segment(segment_id))
 						.map(|segment| {
 							let vertex = segment.growing_scaled_vertex(bone_id as usize);
 							let vertex_angle = f32::atan2(vertex.y, vertex.x);
-							let transform = Transform::new(
-								segment.transform.apply(vertex),
-								segment.transform.angle + vertex_angle);
+							let transform =
+								Transform::new(segment.transform.apply(vertex), segment.transform.angle + vertex_angle);
 							emitter.update_transform(transform, segment.motion.clone());
 							id
-						})
+						}),
+				};
+				match surviving {
+					None => Some(id),
+					Some(_) => None,
 				}
-			};
-			match surviving {
-				None => Some(id),
-				Some(_) => None
-			}
-		})
-			.filter_map(|i| i)
-			.map(|i| *i)
+			}).filter_map(|i| i)
+			.cloned()
 			.collect();
 
 		for id in &orphan {
 			self.emitters.remove(id);
 		}
-
 	}
 
 	fn update(&mut self, _: &AgentState, dt: Seconds) {
@@ -559,7 +487,7 @@ impl System for ParticleSystem {
 	}
 
 	fn export(&self, world: &mut world::World, _outbox: &Outbox) {
-		for (_, particle_batch) in &self.particles {
+		for particle_batch in self.particles.values() {
 			for particle in &*particle_batch.particles {
 				let mut faders = [1.; MAX_FADER];
 				for (src, dest) in particle_batch.faders.iter().zip(faders.iter_mut()) {
@@ -569,10 +497,7 @@ impl System for ParticleSystem {
 					particle.transform.clone(),
 					particle.motion.velocity.normalize(),
 					particle_batch.tag,
-					particle.trail
-						.iter()
-						.map(|t| *t)
-						.collect::<Vec<_>>().into_boxed_slice(),
+					particle.trail.iter().cloned().collect::<Vec<_>>().into_boxed_slice(),
 					faders,
 					particle_batch.color,
 					particle_batch.effect,
@@ -622,47 +547,48 @@ impl ParticleSystem {
 
 	fn update_particles(&mut self) {
 		let dt = self.dt;
-		let expired: Vec<obj::Id> = self.particles
-			.par_iter_mut().map(|(id, particle_batch)| {
-			if particle_batch.age >= particle_batch.lifespan {
-				Some(*id)
-			} else {
-				for f in &mut particle_batch.faders {
-					if let &mut Some(ref mut v) = f {
-						v.update(dt);
-					}
-				};
-				for particle in &mut *particle_batch.particles {
-					let dt = dt.get() as f32;
-					// local acceleration is relative to the current velocity
-					let speed = particle.motion.velocity.magnitude();
-					let world_acceleration = {
-						// if particle is stationary, use world frame
-						if speed > 0.001 {
-							let axis_x = particle.motion.velocity.normalize();
-							let axis_y = Velocity::new(-axis_x.y, axis_x.x);
-							particle.acceleration.x * axis_x
-								+ particle.acceleration.y * axis_y
-						} else {
-							particle.acceleration
+		let expired: Vec<obj::Id> = self
+			.particles
+			.par_iter_mut()
+			.filter_map(|(id, particle_batch)| {
+				if particle_batch.age >= particle_batch.lifespan {
+					Some(*id)
+				} else {
+					for f in &mut particle_batch.faders {
+						if let Some(ref mut v) = *f {
+							v.update(dt);
 						}
-					};
-					while particle.trail.len() > particle_batch.trail_length as usize {
-						particle.trail.pop_back();
 					}
-					particle.trail.push_front(particle.transform.position);
-					particle.motion.velocity += dt * world_acceleration;
-					particle.transform.position += dt * particle.motion.velocity;
-					particle.transform.angle += dt * particle.motion.spin;
-					particle.motion.velocity *= 1. - (dt * particle_batch.friction);
-					particle.acceleration *= 1. - (dt * particle_batch.dampening);
-				};
-				particle_batch.age += dt;
-				None
-			}
-		}).filter_map(|i| i).collect();
+					for particle in &mut *particle_batch.particles {
+						let dt = dt.get() as f32;
+						// local acceleration is relative to the current velocity
+						let speed = particle.motion.velocity.magnitude();
+						let world_acceleration = {
+							// if particle is stationary, use world frame
+							if speed > 0.001 {
+								let axis_x = particle.motion.velocity.normalize();
+								let axis_y = Velocity::new(-axis_x.y, axis_x.x);
+								particle.acceleration.x * axis_x + particle.acceleration.y * axis_y
+							} else {
+								particle.acceleration
+							}
+						};
+						while particle.trail.len() > particle_batch.trail_length as usize {
+							particle.trail.pop_back();
+						}
+						particle.trail.push_front(particle.transform.position);
+						particle.motion.velocity += dt * world_acceleration;
+						particle.transform.position += dt * particle.motion.velocity;
+						particle.transform.angle += dt * particle.motion.spin;
+						particle.motion.velocity *= 1. - (dt * particle_batch.friction);
+						particle.acceleration *= 1. - (dt * particle_batch.dampening);
+					}
+					particle_batch.age += dt;
+					None
+				}
+			}).collect();
 
-		for id in expired.into_iter() {
+		for id in expired {
 			self.particles.remove(&id);
 		}
 	}

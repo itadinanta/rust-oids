@@ -28,7 +28,7 @@ where T: Clone + Initial
 	pub fn push(&mut self, value: T) {
 		let len = self.values.len();
 		if self.count < len {
-			self.count = self.count + 1;
+			self.count += 1;
 		}
 		self.values[self.ptr] = value;
 		self.ptr = (self.ptr + 1) % len;

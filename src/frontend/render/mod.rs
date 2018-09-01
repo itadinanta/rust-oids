@@ -3,8 +3,8 @@ pub mod formats;
 #[macro_use]
 mod forward;
 
-use core::geometry::M44;
 use core::geometry::Position;
+use core::geometry::M44;
 use core::resource::ResourceLoader;
 use std::clone::Clone;
 
@@ -87,12 +87,12 @@ impl Camera {
 				let near = 10.0;
 				let far = -near;
 				cgmath::ortho(-hw, hw, -hh, hh, near, far)
-			}.into(),
+			},
 			view: cgmath::Matrix4::look_at(
 				cgmath::Point3::new(center.x, center.y, 1.0),
 				cgmath::Point3::new(center.x, center.y, 0.0),
 				cgmath::Vector3::unit_y(),
-			).into(),
+			),
 		}
 	}
 }
@@ -573,8 +573,8 @@ impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: Reso
 			&index_buffer,
 			&models,
 			&materials,
-			&mut self.hdr_color,
-			&mut self.depth,
+			&self.hdr_color,
+			&self.depth,
 		)?;
 
 		Ok(())
@@ -606,8 +606,8 @@ impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: Reso
 			&index_buffer,
 			&models,
 			&materials,
-			&mut self.hdr_color,
-			&mut self.depth,
+			&self.hdr_color,
+			&self.depth,
 		)?;
 
 		Ok(())
@@ -620,7 +620,7 @@ impl<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>, L:
 	fn setup_frame(&mut self, camera: &Camera, background_color: formats::Rgba, lights: &[Light]) {
 		self.background_color = background_color;
 		let mut forward_lights: Vec<forward::PointLight> = Vec::new();
-		for p in lights.into_iter() {
+		for p in lights {
 			match p {
 				Light::PointLight {
 					position,
@@ -649,7 +649,7 @@ impl<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>, L:
 
 	fn resolve_frame_buffer(&mut self) {
 		self.pass_effects
-			.apply_all(&mut self.encoder, self.hdr_srv.clone(), self.frame_buffer.clone());
+			.apply_all(&mut self.encoder, &self.hdr_srv, &self.frame_buffer);
 	}
 
 	fn end_frame<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D) {

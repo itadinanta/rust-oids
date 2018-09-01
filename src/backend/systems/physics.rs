@@ -1,16 +1,7 @@
 use super::*;
-use std::collections::HashMap;
-use std::collections::HashSet;
-use std::rc::Rc;
-use std::cell::RefCell;
 use app::constants::*;
 use app::Event;
-use wrapped2d::b2;
-use wrapped2d::user_data::*;
-use wrapped2d::dynamics::world::callbacks::ContactAccess;
-use core::geometry::*;
-use core::geometry::Transform;
-use cgmath::InnerSpace;
+use backend::messagebus::{Inbox, Message, PubSub, ReceiveDrain, Whiteboard};
 use backend::obj;
 use backend::obj::*;
 use backend::world;
@@ -18,7 +9,16 @@ use backend::world::agent;
 use backend::world::segment;
 use backend::world::segment::Intent;
 use backend::world::segment::PilotRotation;
-use backend::messagebus::{PubSub, Inbox, Message, Whiteboard, ReceiveDrain};
+use cgmath::InnerSpace;
+use core::geometry::Transform;
+use core::geometry::*;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::rc::Rc;
+use wrapped2d::b2;
+use wrapped2d::dynamics::world::callbacks::ContactAccess;
+use wrapped2d::user_data::*;
 
 struct AgentData;
 
@@ -60,11 +60,10 @@ struct JointRef<'a> {
 
 impl System for PhysicsSystem {
 	fn attach(&mut self, bus: &mut PubSub) {
-		self.inbox = Some(bus.subscribe(Box::new(
-			|m| match m {
-				&Message::Event(Event::PickMinion(_)) => true,
-				_ => false
-			})));
+		self.inbox = Some(bus.subscribe(Box::new(|m| match *m {
+			Message::Event(Event::PickMinion(_)) => true,
+			_ => false,
+		})));
 	}
 
 	fn init(&mut self, world: &world::World) {
@@ -73,7 +72,9 @@ impl System for PhysicsSystem {
 	}
 
 	fn clear(&mut self) {
-		for i in &self.inbox { i.drain(); }
+		for i in &self.inbox {
+			i.drain();
+		}
 		self.touched.borrow_mut().clear();
 		self.handles.clear();
 		self.picked.clear();
@@ -110,17 +111,14 @@ impl System for PhysicsSystem {
 		};
 		self.picked.clear();
 		for message in messages {
-			match message {
-				Message::Event(Event::PickMinion(position)) => {
-					let picked = self.pick(position);
-					if let Some(picked_id) = picked {
-						self.picked.insert(picked_id);
-					}
+			if let Message::Event(Event::PickMinion(position)) = message {
+				let picked = self.pick(position);
+				if let Some(picked_id) = picked {
+					self.picked.insert(picked_id);
 				}
-				_ => {}
 			}
 		}
-		for (_, agent) in world.agents(agent::AgentType::Minion).iter() {
+		for agent in world.agents(agent::AgentType::Minion).values() {
 			if agent.state.growth() > 0. {
 				self.refresh_registration(agent)
 			}
@@ -132,20 +130,18 @@ impl System for PhysicsSystem {
 		let mut dynamic_updates = Vec::new();
 		let dt: f32 = dt_sec.into();
 		#[inline]
-		fn to_vec2(v: Position) -> b2::Vec2 { PhysicsSystem::p2v(&v) };
+		fn to_vec2(v: Position) -> b2::Vec2 { PhysicsSystem::p2v(v) };
 		#[inline]
-		fn from_vec2(v: &b2::Vec2) -> Position { PhysicsSystem::v2p(v) };
+		fn from_vec2(v: b2::Vec2) -> Position { PhysicsSystem::v2p(v) };
 		for (h, b) in self.world.bodies() {
 			let body = b.borrow();
-			let center = (*body).world_center().clone();
+			let center = *(*body).world_center();
 			let key = (*body).user_data();
-			if let Some(segment) = state.agent(key.agent_id)
-				.and_then(|c| c.segment(key.segment_index)) {
+			if let Some(segment) = state.agent(key.agent_id).and_then(|c| c.segment(key.segment_index)) {
 				match segment.state.intent {
-					Intent::Move(force) =>
-						dynamic_updates.push((h, Force(center, to_vec2(force)))),
+					Intent::Move(force) => dynamic_updates.push((h, Force(center, to_vec2(force)))),
 					Intent::Brake(force) => {
-						let linear_velocity = from_vec2((*body).linear_velocity());
+						let linear_velocity = from_vec2(*(*body).linear_velocity());
 						let comp = force.dot(linear_velocity);
 						if comp < 0. {
 							dynamic_updates.push((h, Force(center, to_vec2(force))));
@@ -153,30 +149,30 @@ impl System for PhysicsSystem {
 					}
 					Intent::PilotTo(force, ref target_angle) => {
 						if let Some(force) = force {
-							let linear_velocity = from_vec2((*body).linear_velocity());
+							let linear_velocity = from_vec2(*(*body).linear_velocity());
 							let speed2 = linear_velocity.magnitude2();
 							let drag_factor = (1. - speed2 * DRAG_COEFFICIENT).min(1.).max(0.);
 							dynamic_updates.push((h, Force(center, to_vec2(force * drag_factor))));
 						}
-						match target_angle {
-							&PilotRotation::LookAt(target) => {
-								let look_at_vector = target - from_vec2(&center);
+						match *target_angle {
+							PilotRotation::LookAt(target) => {
+								let look_at_vector = target - from_vec2(center);
 								let target_angle = f32::atan2(-look_at_vector.x, look_at_vector.y);
 								dynamic_updates.push((h, Transform(*(*body).position(), target_angle)));
 							}
-							&PilotRotation::Orientation(direction) => {
+							PilotRotation::Orientation(direction) => {
 								let target_angle = f32::atan2(-direction.x, direction.y);
 								dynamic_updates.push((h, Transform(*(*body).position(), target_angle)));
 							}
-							&PilotRotation::Turn(angle) => {
+							PilotRotation::Turn(angle) => {
 								dynamic_updates.push((h, Torque(angle)));
 							}
-							&PilotRotation::FromVelocity => {
-								let linear_velocity = from_vec2((*body).linear_velocity());
+							PilotRotation::FromVelocity => {
+								let linear_velocity = from_vec2(*(*body).linear_velocity());
 								let target_angle = f32::atan2(-linear_velocity.x, linear_velocity.y);
 								dynamic_updates.push((h, Transform(*(*body).position(), target_angle)));
 							}
-							&PilotRotation::None => {}
+							PilotRotation::None => {}
 							//TODO: try physics!
 							//let angle = (*body).angle();
 							//let norm_diff = math::normalize_rad(target_angle - angle);
@@ -184,8 +180,7 @@ impl System for PhysicsSystem {
 							//torques.push((h, norm_diff * COMPASS_SPRING_POWER));
 						}
 					}
-					Intent::RunAway(impulse) =>
-						dynamic_updates.push((h, LinearImpulse(center, to_vec2(impulse * dt)))),
+					Intent::RunAway(impulse) => dynamic_updates.push((h, LinearImpulse(center, to_vec2(impulse * dt)))),
 					_ => {}
 				}
 			}
@@ -194,16 +189,13 @@ impl System for PhysicsSystem {
 		for (h, update) in dynamic_updates {
 			let b = &mut self.world.body_mut(h);
 			match update {
-				BodyUpdate::Torque(torque) =>
-					b.apply_torque(torque, true),
-				BodyUpdate::AngularImpulse(impulse) =>
-					b.apply_angular_impulse(impulse, true),
-				BodyUpdate::Force(application_point, force) =>
-					b.apply_force(&force, &application_point, true),
-				BodyUpdate::LinearImpulse(application_point, impulse) =>
-					b.apply_linear_impulse(&impulse, &application_point, true),
-				BodyUpdate::Transform(translation, rotation) =>
-					b.set_transform(&translation, rotation),
+				BodyUpdate::Torque(torque) => b.apply_torque(torque, true),
+				BodyUpdate::AngularImpulse(impulse) => b.apply_angular_impulse(impulse, true),
+				BodyUpdate::Force(application_point, force) => b.apply_force(&force, &application_point, true),
+				BodyUpdate::LinearImpulse(application_point, impulse) => {
+					b.apply_linear_impulse(&impulse, &application_point, true)
+				}
+				BodyUpdate::Transform(translation, rotation) => b.set_transform(&translation, rotation),
 			}
 		}
 		self.world.step(dt, 8, 3);
@@ -222,7 +214,7 @@ impl System for PhysicsSystem {
 				if let Some(segment) = agent.segment_mut(key.segment_index) {
 					segment.transform_to(Transform::from_components(position.x, position.y, angle));
 					segment.motion_to(Motion::from_components(velocity.x, velocity.y, spin));
-					segment.state.last_touched = self.touched.borrow().get(key).map(|r| *r);
+					segment.state.last_touched = self.touched.borrow().get(key).cloned();
 				}
 			}
 		}
@@ -251,45 +243,34 @@ impl Default for PhysicsSystem {
 }
 
 impl PhysicsSystem {
-	fn p2v(p: &Position) -> b2::Vec2 {
-		b2::Vec2 { x: p.x, y: p.y }
-	}
+	fn p2v(p: Position) -> b2::Vec2 { b2::Vec2 { x: p.x, y: p.y } }
 
-	fn pr2v(p: &Position, radius: f32) -> b2::Vec2 {
+	fn pr2v(p: Position, radius: f32) -> b2::Vec2 {
 		b2::Vec2 {
 			x: p.x * radius,
 			y: p.y * radius,
 		}
 	}
 
-	fn v2p(p: &b2::Vec2) -> Position {
-		Position::new(p.x, p.y)
-	}
-
+	fn v2p(p: b2::Vec2) -> Position { Position::new(p.x, p.y) }
 
 	fn init_extent(&mut self) {
 		let extent = self.initial_extent;
 		let mut f_def = b2::FixtureDef::new();
 		let mut b_def = b2::BodyDef::new();
 		b_def.body_type = b2::BodyType::Static;
-		let refs = agent::Key::with_id(0xFFFFFFFFusize);
+		let refs = agent::Key::with_id(0xFFFF_FFFFusize);
 		let handle = self.world.create_body_with(&b_def, refs);
 
 		let mut rect = b2::ChainShape::new();
-		rect.create_loop(
-			&[
-				Self::p2v(&extent.bottom_left()),
-				Self::p2v(&extent.bottom_right()),
-				Self::p2v(&extent.top_right()),
-				Self::p2v(&extent.top_left()),
-			],
-		);
+		rect.create_loop(&[
+			Self::p2v(extent.bottom_left()),
+			Self::p2v(extent.bottom_right()),
+			Self::p2v(extent.top_right()),
+			Self::p2v(extent.top_left()),
+		]);
 
-		self.world.body_mut(handle).create_fixture_with(
-			&rect,
-			&mut f_def,
-			refs,
-		);
+		self.world.body_mut(handle).create_fixture_with(&rect, &mut f_def, refs);
 	}
 
 	fn refresh_registration(&mut self, agent: &world::agent::Agent) {
@@ -297,30 +278,40 @@ impl PhysicsSystem {
 		self.register(agent);
 	}
 
-	fn build_fixture_for_segment(world: &mut b2::World<AgentData>,
-								 handle: b2::BodyHandle,
-								 maturity: f32,
-								 object_id: obj::Id,
-								 segment_index: usize,
-								 refs: agent::Key,
-								 f_def: &mut b2::FixtureDef,
-								 mesh: &Mesh) {
-		fn make_circle_shape(world: &mut b2::World<AgentData>,
-							 handle: b2::BodyHandle,
-							 grown_radius: f32,
-							 f_def: &mut b2::FixtureDef,
-							 refs: agent::Key) {
+	#[allow(too_many_arguments)]
+	fn build_fixture_for_segment(
+		world: &mut b2::World<AgentData>,
+		handle: b2::BodyHandle,
+		maturity: f32,
+		object_id: obj::Id,
+		segment_index: usize,
+		refs: agent::Key,
+		f_def: &mut b2::FixtureDef,
+		mesh: &Mesh,
+	)
+	{
+		fn make_circle_shape(
+			world: &mut b2::World<AgentData>,
+			handle: b2::BodyHandle,
+			grown_radius: f32,
+			f_def: &mut b2::FixtureDef,
+			refs: agent::Key,
+		)
+		{
 			let mut circle_shape = b2::CircleShape::new();
 			circle_shape.set_radius(grown_radius);
 			world.body_mut(handle).create_fixture_with(&circle_shape, f_def, refs);
 		}
 
-		fn make_safe_poly_shape(world: &mut b2::World<AgentData>,
-								handle: b2::BodyHandle,
-								grown_radius: f32,
-								vertices: &[b2::Vec2],
-								f_def: &mut b2::FixtureDef,
-								refs: agent::Key) {
+		fn make_safe_poly_shape(
+			world: &mut b2::World<AgentData>,
+			handle: b2::BodyHandle,
+			grown_radius: f32,
+			vertices: &[b2::Vec2],
+			f_def: &mut b2::FixtureDef,
+			refs: agent::Key,
+		)
+		{
 			// from box2d code, checks unique vertices
 			let mut dupes = 0;
 			for (i, v1) in vertices.iter().enumerate() {
@@ -358,13 +349,13 @@ impl PhysicsSystem {
 				let offset = if n < 0 { 1 } else { 0 };
 				let mut vertices = Vec::new();
 				for i in 0..n.abs() {
-					vertices.push(Self::pr2v(&p[2 * i as usize + offset], grown_radius));
+					vertices.push(Self::pr2v(p[2 * i as usize + offset], grown_radius));
 				}
 				make_safe_poly_shape(world, handle, grown_radius, vertices.as_slice(), f_def, refs);
 			}
 			obj::Shape::Star { radius, n, .. } => {
 				let grown_radius = radius * maturity;
-				if grown_radius < 0.05 * n as f32 {
+				if grown_radius < 0.05 * f32::from(n) {
 					make_circle_shape(world, handle, grown_radius, f_def, refs);
 				} else {
 					let p = &mesh.vertices;
@@ -373,14 +364,14 @@ impl PhysicsSystem {
 						let i2 = (i * 2) as usize;
 						let i3 = ((i * 2 + (n * 2) - 1) % (n * 2)) as usize;
 						let (p1, p2, p3) = match mesh.winding() {
-							obj::Winding::CW => (&p[i1], &p[i2], &p[i3]),
-							obj::Winding::CCW => (&p[i1], &p[i3], &p[i2]),
+							obj::Winding::CW => (p[i1], p[i2], p[i3]),
+							obj::Winding::CCW => (p[i1], p[i3], p[i2]),
 						};
 						let quad_vertices = &[
 							b2::Vec2 { x: 0., y: 0. },
-							Self::pr2v(&p1, grown_radius),
-							Self::pr2v(&p2, grown_radius),
-							Self::pr2v(&p3, grown_radius),
+							Self::pr2v(p1, grown_radius),
+							Self::pr2v(p2, grown_radius),
+							Self::pr2v(p3, grown_radius),
 						];
 						let refs = agent::Key::with_bone(object_id, segment_index as u8, i as u8);
 						make_safe_poly_shape(world, handle, grown_radius, quad_vertices, f_def, refs);
@@ -391,8 +382,8 @@ impl PhysicsSystem {
 				let grown_radius = radius * maturity;
 				let p = &mesh.vertices;
 				let (p1, p2, p3) = match mesh.winding() {
-					obj::Winding::CW => (&p[0], &p[2], &p[1]),
-					obj::Winding::CCW => (&p[0], &p[1], &p[2]),
+					obj::Winding::CW => (p[0], p[2], p[1]),
+					obj::Winding::CCW => (p[0], p[1], p[2]),
 				};
 				let tri_vertices = &[
 					Self::pr2v(p1, grown_radius),
@@ -424,14 +415,23 @@ impl PhysicsSystem {
 				b_def.linear_damping = material.linear_damping;
 				b_def.angular_damping = material.angular_damping;
 				b_def.angle = transform.angle;
-				b_def.position = Self::pr2v(&transform.position, 1.);
-				b_def.linear_velocity = Self::pr2v(&segment.motion.velocity, 1.);
+				b_def.position = Self::pr2v(transform.position, 1.);
+				b_def.linear_velocity = Self::pr2v(segment.motion.velocity, 1.);
 				b_def.angular_velocity = segment.motion.spin;
 				let refs = agent::Key::with_segment(object_id, segment_index as u8);
 				let handle = world.create_body_with(&b_def, refs);
 				let mesh = segment.mesh();
 				let rest_angle = segment.rest_angle;
-				Self::build_fixture_for_segment(world, handle, segment.state.maturity(), object_id, segment_index, refs, &mut f_def, mesh);
+				Self::build_fixture_for_segment(
+					world,
+					handle,
+					segment.state.maturity(),
+					object_id,
+					segment_index,
+					refs,
+					&mut f_def,
+					mesh,
+				);
 
 				JointRef {
 					refs,
@@ -442,11 +442,10 @@ impl PhysicsSystem {
 					flags: segment.flags,
 					attachment: segment.attached_to,
 				}
-			})
-			.collect::<Vec<_>>()
+			}).collect::<Vec<_>>()
 	}
 
-	fn build_joints(world: &mut b2::World<AgentData>, joint_refs: &Vec<JointRef>) {
+	fn build_joints(world: &mut b2::World<AgentData>, joint_refs: &[JointRef]) {
 		for &JointRef {
 			handle: distal,
 			mesh,
@@ -456,17 +455,17 @@ impl PhysicsSystem {
 			flags,
 			..
 		} in joint_refs
-			{
-				if let Some(attachment) = attachment {
-					let upstream = &joint_refs[attachment.index as usize];
-					let medial = upstream.handle;
-					let angle_delta = rest_angle - upstream.rest_angle;//world.body(distal).angle() - world.body(medial).angle();
-					let v0 = upstream.mesh.vertices[attachment.attachment_point as usize] * upstream.growing_radius;
-					//let angle_delta = v0.x.atan2(-v0.y) as f32;//consts::PI;
-					let v1 = mesh.vertices[0] * growing_radius;
-					let a = b2::Vec2 { x: v0.x, y: v0.y };
-					let b = b2::Vec2 { x: v1.x, y: v1.y };
-					macro_rules! common_joint (
+		{
+			if let Some(attachment) = attachment {
+				let upstream = &joint_refs[attachment.index as usize];
+				let medial = upstream.handle;
+				let angle_delta = rest_angle - upstream.rest_angle; //world.body(distal).angle() - world.body(medial).angle();
+				let v0 = upstream.mesh.vertices[attachment.attachment_point as usize] * upstream.growing_radius;
+				//let angle_delta = v0.x.atan2(-v0.y) as f32;//consts::PI;
+				let v1 = mesh.vertices[0] * growing_radius;
+				let a = b2::Vec2 { x: v0.x, y: v0.y };
+				let b = b2::Vec2 { x: v1.x, y: v1.y };
+				macro_rules! common_joint (
 					($joint:ident) => {
 						$joint.collide_connected = false;
 						$joint.reference_angle = angle_delta;
@@ -475,20 +474,20 @@ impl PhysicsSystem {
 						world.create_joint_with(&$joint, ())
 					}
 				);
-					if flags.contains(world::segment::Flags::JOINT) {
-						let mut joint = b2::RevoluteJointDef::new(medial, distal);
-						joint.enable_limit = true;
-						joint.upper_angle = JOINT_UPPER_ANGLE;
-						joint.lower_angle = JOINT_LOWER_ANGLE;
-						common_joint!(joint);
-					} else {
-						let mut joint = b2::WeldJointDef::new(medial, distal);
-						joint.frequency = JOINT_FREQUENCY;
-						joint.damping_ratio = JOINT_DAMPING_RATIO;
-						common_joint!(joint);
-					}
+				if flags.contains(world::segment::Flags::JOINT) {
+					let mut joint = b2::RevoluteJointDef::new(medial, distal);
+					joint.enable_limit = true;
+					joint.upper_angle = JOINT_UPPER_ANGLE;
+					joint.lower_angle = JOINT_LOWER_ANGLE;
+					common_joint!(joint);
+				} else {
+					let mut joint = b2::WeldJointDef::new(medial, distal);
+					joint.frequency = JOINT_FREQUENCY;
+					joint.damping_ratio = JOINT_DAMPING_RATIO;
+					common_joint!(joint);
 				}
 			}
+		}
 	}
 
 	fn new_world(touched: ContactSet) -> b2::World<AgentData> {
@@ -498,7 +497,7 @@ impl PhysicsSystem {
 	}
 
 	pub fn pick(&self, pos: Position) -> Option<Id> {
-		let point = Self::p2v(&pos);
+		let point = Self::p2v(pos);
 		let eps = PICK_EPS;
 		let aabb = b2::AABB {
 			lower: b2::Vec2 {
@@ -537,14 +536,8 @@ impl b2::ContactListener<AgentData> for ContactListener {
 		let body_a = ca.fixture_a.user_data();
 		let body_b = ca.fixture_b.user_data();
 		if body_a.agent_id != body_b.agent_id {
-			self.touched.borrow_mut().insert(
-				body_a.no_bone(),
-				body_b.no_bone(),
-			);
-			self.touched.borrow_mut().insert(
-				body_b.no_bone(),
-				body_a.no_bone(),
-			);
+			self.touched.borrow_mut().insert(body_a.no_bone(), body_b.no_bone());
+			self.touched.borrow_mut().insert(body_b.no_bone(), body_a.no_bone());
 		}
 	}
 }

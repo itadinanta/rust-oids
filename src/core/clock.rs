@@ -1,6 +1,7 @@
 use num;
 use num::NumCast;
 use num::Zero;
+use std::convert;
 use std::fmt;
 use std::fmt::Display;
 use std::ops::*;
@@ -31,8 +32,8 @@ where T: Into<SecondsValue> {
 
 impl Seconds {
 	pub fn new(value: SecondsValue) -> Seconds { Seconds(value) }
-	pub fn get(&self) -> SecondsValue { self.0 }
-	pub fn times<F>(&self, other: F) -> Seconds
+	pub fn get(self) -> SecondsValue { self.0 }
+	pub fn times<F>(self, other: F) -> Seconds
 	where F: num::Float {
 		seconds(<f64 as NumCast>::from(other).unwrap() * self.0)
 	}
@@ -108,7 +109,9 @@ impl SystemTimer {
 impl Timer for SystemTimer {
 	fn seconds(&self) -> Seconds {
 		match self.t0.elapsed() {
-			Ok(dt) => Seconds((dt.as_secs() as SecondsValue) + (dt.subsec_nanos() as SecondsValue) * 1e-9),
+			Ok(dt) => Seconds(
+				(dt.as_secs() as SecondsValue) + <SecondsValue as convert::From<_>>::from(dt.subsec_nanos()) * 1e-9,
+			),
 			Err(_) => Seconds::zero(),
 		}
 	}
@@ -215,7 +218,7 @@ impl Hourglass {
 		left
 	}
 
-	pub fn delay(&mut self, delay_seconds: Seconds) { self.timeout = self.timeout + delay_seconds; }
+	pub fn delay(&mut self, delay_seconds: Seconds) { self.timeout += delay_seconds; }
 
 	#[allow(unused)]
 	pub fn elapsed<T>(&self, timer: &T) -> Seconds

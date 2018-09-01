@@ -123,7 +123,7 @@ impl Serializer {
 		}
 	}
 
-	pub fn restore_snapshot(src: World, world: &mut world::World) {
+	pub fn restore_snapshot(src: &World, world: &mut world::World) {
 		let timer = world.clock.clone();
 		world.extent.min.x = src.left;
 		world.extent.min.y = src.bottom;
@@ -135,7 +135,7 @@ impl Serializer {
 		world.resource_gene_pool.populate_from_base64(&src.resource_gene_pool, src.resource_gene_pool_index);
 
 		let mut registered = Vec::new();
-		for src_swarm in src.swarms.iter() {
+		for src_swarm in &src.swarms {
 			if let Some(agent_type) = agent::AgentType::from_usize(src_swarm.agent_type) {
 				let swarm = world.swarm_mut(&agent_type);
 				swarm.reset(src_swarm.seq);
@@ -173,17 +173,11 @@ impl Serializer {
 		let result: Result<World, _> = serde_json::from_str(source);
 		match result {
 			Ok(src) => {
-				Self::restore_snapshot(src, dest);
+				Self::restore_snapshot(&src, dest);
 				Ok(())
 			}
 			Err(e) => Err(e)
 		}
-	}
-
-	#[allow(unused)]
-	pub fn to_string(world: &world::World) -> Result<String, serde_json::Error> {
-		let s_world = Self::save_snapshot(world);
-		serde_json::to_string_pretty(&s_world)
 	}
 
 	pub fn save(file_path: &path::Path, world: &world::World) -> io::Result<()> {
@@ -196,7 +190,7 @@ impl Serializer {
 	pub fn load(file_path: &path::Path, world: &mut world::World) -> io::Result<()> {
 		let in_file = fs::File::open(file_path)?;
 		let src = serde_json::from_reader(in_file)?;
-		Self::restore_snapshot(src, world);
+		Self::restore_snapshot(&src, world);
 		Ok(())
 	}
 }

@@ -57,7 +57,7 @@ where S: Zero + Sub + Copy + AddAssign + SubAssign + Div<usize, Output = S>
 	fn smooth(&mut self, value: S) -> S {
 		let len = self.values.len();
 		if self.count < len {
-			self.count = self.count + 1;
+			self.count += 1;
 		} else {
 			self.acc -= self.values[self.ptr];
 		}
@@ -208,7 +208,7 @@ where T: cgmath::BaseFloat
 {
 	fn push(&mut self, d: Direction, weight: T) {
 		let v = Self::unit(d) * weight;
-		self.velocity = self.velocity + v * self.impulse;
+		self.velocity += v * self.impulse;
 		if self.velocity.magnitude() > self.limit {
 			self.velocity.normalize_to(self.limit);
 		}
@@ -259,8 +259,8 @@ where T: cgmath::BaseFloat
 		if let Some(destination) = self.target {
 			self.position += (destination - self.position) * self.inertia * dt;
 		} else {
-			self.position = self.position + self.velocity * dt;
-			self.velocity = self.velocity * T::exp(-dt / self.inertia);
+			self.position += self.velocity * dt;
+			self.velocity *= T::exp(-dt / self.inertia);
 		}
 	}
 }

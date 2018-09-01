@@ -22,11 +22,11 @@ pub trait Phenotype: Send + Sync {
 	fn develop(&self, gen: &mut Genome, id: Id, initial_state: agent::InitialState, timer: &Timer) -> agent::Agent;
 }
 
-pub fn phenotype_of(agent_type: &agent::AgentType) -> Box<Phenotype> {
+pub fn phenotype_of(agent_type: agent::AgentType) -> Box<Phenotype> {
 	match agent_type {
-		&agent::AgentType::Minion => Box::new(Minion {}),
-		&agent::AgentType::Spore => Box::new(Spore {}),
-		&agent::AgentType::Player => Box::new(Player {}),
+		agent::AgentType::Minion => Box::new(Minion {}),
+		agent::AgentType::Spore => Box::new(Spore {}),
+		agent::AgentType::Player => Box::new(Player {}),
 		_ => Box::new(Resource {}),
 	}
 }
@@ -54,7 +54,7 @@ impl Phenotype for Resource {
 				albedo: albedo.to_rgba(),
 				..Default::default()
 			},
-			gen.dna(),
+			gen.dna_cloned(),
 			segment::State::with_charge(initial_state.charge, 0., seconds(DEFAULT_CHARGE_DECAY_TIME)),
 		);
 		builder
@@ -81,7 +81,7 @@ impl Phenotype for Player {
 				albedo: albedo.to_rgba(),
 				..Default::default()
 			},
-			gen.dna(),
+			gen.dna_cloned(),
 			segment::State::with_charge(charge, charge, seconds(PLAYER_CHARGE_DECAY_TIME)),
 		);
 		builder
@@ -107,7 +107,7 @@ impl Phenotype for Minion {
 				albedo: albedo.to_rgba(),
 				..Default::default()
 			},
-			gen.dna(),
+			gen.dna_cloned(),
 			segment::State::with_charge(charge, charge, seconds(MINION_CHARGE_DECAY_TIME)),
 		);
 		builder
@@ -126,12 +126,12 @@ impl Phenotype for Minion {
 			}
 		}
 		builder
-			.hunger(&gen.next_float(0., 0.9))
-			.haste(&gen.next_float(0., 0.9))
-			.prudence(&gen.next_float(0., 0.9))
-			.fear(&gen.next_float(0.1, 5.))
-			.rest(&gen.next_float(0.2, 1.))
-			.thrust(&gen.next_float(0.2, 1.))
+			.hunger(gen.next_float(0., 0.9))
+			.haste(gen.next_float(0., 0.9))
+			.prudence(gen.next_float(0., 0.9))
+			.fear(gen.next_float(0.1, 5.))
+			.rest(gen.next_float(0.2, 1.))
+			.thrust(gen.next_float(0.2, 1.))
 			.weights_in(&weights_in)
 			.weights_hidden(&weights_hidden)
 			.weights_out(&weights_out);
@@ -253,7 +253,7 @@ impl Phenotype for Spore {
 				albedo: albedo.to_rgba(),
 				..Default::default()
 			},
-			gen.dna(),
+			gen.dna_cloned(),
 			segment::State::with_charge(charge, charge, seconds(DEFAULT_CHARGE_DECAY_TIME)),
 		);
 		builder
@@ -276,7 +276,7 @@ pub struct AgentBuilder {
 }
 
 impl AgentBuilder {
-	pub fn new(id: Id, material: Material, livery: Livery, dna: &Dna, state: segment::State) -> Self {
+	pub fn new(id: Id, material: Material, livery: Livery, dna: Dna, state: segment::State) -> Self {
 		AgentBuilder {
 			id,
 			material,
@@ -284,7 +284,7 @@ impl AgentBuilder {
 			state,
 			gender: 0u8,
 			brain: Brain::default(),
-			dna: dna.clone(),
+			dna,
 			segments: Vec::new(),
 		}
 	}
@@ -384,48 +384,48 @@ impl AgentBuilder {
 		self
 	}
 
-	pub fn hunger(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
-		self.brain.hunger = value.clone();
+	pub fn hunger(&mut self, value: <Brain as TypedBrain>::Parameter) -> &mut Self {
+		self.brain.hunger = value;
 		self
 	}
 
-	pub fn haste(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
-		self.brain.haste = value.clone();
+	pub fn haste(&mut self, value: <Brain as TypedBrain>::Parameter) -> &mut Self {
+		self.brain.haste = value;
 		self
 	}
 
-	pub fn prudence(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
-		self.brain.prudence = value.clone();
+	pub fn prudence(&mut self, value: <Brain as TypedBrain>::Parameter) -> &mut Self {
+		self.brain.prudence = value;
 		self
 	}
 
-	pub fn fear(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
-		self.brain.fear = value.clone();
+	pub fn fear(&mut self, value: <Brain as TypedBrain>::Parameter) -> &mut Self {
+		self.brain.fear = value;
 		self
 	}
 
-	pub fn rest(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
-		self.brain.rest = value.clone();
+	pub fn rest(&mut self, value: <Brain as TypedBrain>::Parameter) -> &mut Self {
+		self.brain.rest = value;
 		self
 	}
 
-	pub fn thrust(&mut self, value: &<Brain as TypedBrain>::Parameter) -> &mut Self {
-		self.brain.thrust = value.clone();
+	pub fn thrust(&mut self, value: <Brain as TypedBrain>::Parameter) -> &mut Self {
+		self.brain.thrust = value;
 		self
 	}
 
 	pub fn weights_in(&mut self, weights_in: &<Brain as TypedBrain>::WeightMatrix) -> &mut Self {
-		self.brain.weights_in = weights_in.clone();
+		self.brain.weights_in = *weights_in;
 		self
 	}
 
 	pub fn weights_hidden(&mut self, weights_hidden: &<Brain as TypedBrain>::WeightMatrix) -> &mut Self {
-		self.brain.weights_hidden = weights_hidden.clone();
+		self.brain.weights_hidden = *weights_hidden;
 		self
 	}
 
 	pub fn weights_out(&mut self, weights_out: &<Brain as TypedBrain>::WeightMatrix) -> &mut Self {
-		self.brain.weights_out = weights_out.clone();
+		self.brain.weights_out = *weights_out;
 		self
 	}
 

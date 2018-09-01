@@ -1,38 +1,38 @@
-pub mod alert;
-pub mod segment;
 pub mod agent;
-pub mod swarm;
+pub mod alert;
 pub mod gen;
-pub mod phen;
 pub mod particle;
 pub mod persist;
+pub mod phen;
+pub mod segment;
+pub mod swarm;
 
 use backend::obj;
 use backend::obj::*;
-use rand;
-use chrono::Utc;
 use chrono::DateTime;
-use std::f32::consts;
+use chrono::Utc;
+use rand;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::f32::consts;
+use std::fs;
 use std::io;
 use std::io::Write;
 use std::path;
-use std::fs;
 
-use app::constants::*;
-use core::clock::*;
-use core::color::Rgba;
-use core::geometry::*;
-use core::geometry::Transform;
-use core::resource::ResourceLoader;
-use serialize::base64::{self, ToBase64};
-use backend::messagebus::{Outbox, Message};
 use self::agent::Agent;
 use self::agent::AgentType;
 use self::agent::TypedAgent;
-use self::swarm::*;
 use self::particle::Particle;
+use self::swarm::*;
+use app::constants::*;
+use backend::messagebus::{Message, Outbox};
+use core::clock::*;
+use core::color::Rgba;
+use core::geometry::Transform;
+use core::geometry::*;
+use core::resource::ResourceLoader;
+use serialize::base64::{self, ToBase64};
 
 pub use self::alert::Alert;
 
@@ -55,9 +55,7 @@ pub struct World {
 }
 
 impl AgentState for World {
-	fn agent(&self, id: obj::Id) -> Option<&Agent> {
-		self.swarms.get(&id.type_of()).and_then(|m| m.get(id))
-	}
+	fn agent(&self, id: obj::Id) -> Option<&Agent> { self.swarms.get(&id.type_of()).and_then(|m| m.get(id)) }
 }
 
 #[derive(Clone)]
@@ -81,39 +79,36 @@ impl Feeder {
 }
 
 impl Transformable for Feeder {
-	fn transform(&self) -> &Transform {
-		&self.transform
-	}
-	fn transform_to(&mut self, t: Transform) {
-		self.transform = t;
-	}
+	fn transform(&self) -> &Transform { &self.transform }
+	fn transform_to(&mut self, t: Transform) { self.transform = t; }
 }
 
 impl World {
 	pub fn new<R>(res: &R, minion_gene_pool: &str) -> Self
-		where
-			R: ResourceLoader<u8>, {
+	where R: ResourceLoader<u8> {
 		let mut swarms = HashMap::new();
 		let types = AgentType::all();
 		let clock = SimulationTimer::new();
 		for t in types {
-			swarms.insert(*t, Swarm::new(*t, phen::phenotype_of(t)));
+			swarms.insert(*t, Swarm::new(*t, phen::phenotype_of(*t)));
 		}
 		fn default_gene_pool(_: io::Error) -> gen::GenePool {
 			gen::GenePool::parse_from_base64(DEFAULT_MINION_GENE_POOL)
 		}
 		let emitter_rate = Seconds::new(EMITTER_PERIOD);
 		let num_emitters: usize = 7;
-		let feeders = (0..num_emitters).map(|i| {
-			let (s, c) = (consts::PI * 2. * (i as f32 / num_emitters as f32)).sin_cos();
-			Feeder::new(c * EMITTER_DISTANCE, s * EMITTER_DISTANCE, emitter_rate)
-		}).collect::<Vec<_>>();
+		let feeders = (0..num_emitters)
+			.map(|i| {
+				let (s, c) = (consts::PI * 2. * (i as f32 / num_emitters as f32)).sin_cos();
+				Feeder::new(c * EMITTER_DISTANCE, s * EMITTER_DISTANCE, emitter_rate)
+			}).collect::<Vec<_>>();
 		World {
 			extent: Rect::new(-WORLD_RADIUS, -WORLD_RADIUS, WORLD_RADIUS, WORLD_RADIUS),
 			phase: COLOR_TRANSPARENT,
 			swarms,
 			feeders,
-			minion_gene_pool: res.load(minion_gene_pool)
+			minion_gene_pool: res
+				.load(minion_gene_pool)
 				.map(|data| gen::GenePool::parse_from_resource(&data))
 				.unwrap_or_else(default_gene_pool),
 			resource_gene_pool: gen::GenePool::parse_from_base64(DEFAULT_RESOURCE_GENE_POOL),
@@ -126,20 +121,24 @@ impl World {
 	}
 
 	pub fn clear(&mut self) {
-		for (_, swarm) in self.swarms.iter_mut() { swarm.clear(); }
+		for swarm in self.swarms.values_mut() {
+			swarm.clear();
+		}
 		self.registered.clear();
 		self.registered_player_id = None;
 		self.particles.clear();
 	}
 
-	pub fn tick(&mut self, dt: Seconds) {
-		self.clock.tick(dt);
-	}
+	pub fn tick(&mut self, dt: Seconds) { self.clock.tick(dt); }
 
 	pub fn seconds(&self) -> Seconds { self.clock.seconds() }
 
 	pub fn extinctions(&self) -> usize {
-		if self.regenerations > 1 { self.regenerations - 1 } else { 0usize }
+		if self.regenerations > 1 {
+			self.regenerations - 1
+		} else {
+			0usize
+		}
 	}
 
 	pub fn new_resource(&mut self, transform: Transform, motion: Motion) -> obj::Id {
@@ -153,7 +152,8 @@ impl World {
 				charge: DEFAULT_RESOURCE_CHARGE,
 				..Default::default()
 			},
-			&clock);
+			&clock,
+		);
 		self.register(id)
 	}
 
@@ -166,10 +166,9 @@ impl World {
 				charge: DEFAULT_RESOURCE_CHARGE,
 				..Default::default()
 			},
-			&clock);
-		let livery_color = self.agent(id).unwrap()
-			.segment(0).unwrap()
-			.livery.albedo;
+			&clock,
+		);
+		let livery_color = self.agent(id).unwrap().segment(0).unwrap().livery.albedo;
 		outbox.post(Message::NewEmitter(particle::Emitter::for_dead_minion(
 			transform,
 			livery_color,
@@ -188,9 +187,7 @@ impl World {
 			},
 			&clock,
 		);
-		let livery_color = self.agent(id).unwrap()
-			.segment(0).unwrap()
-			.livery.albedo;
+		let livery_color = self.agent(id).unwrap().segment(0).unwrap().livery.albedo;
 		outbox.post(Message::NewEmitter(particle::Emitter::for_new_spore(
 			transform,
 			livery_color,
@@ -210,9 +207,7 @@ impl World {
 			},
 			&clock,
 		);
-		let livery_color = self.agent(id).unwrap()
-			.segment(0).unwrap()
-			.livery.albedo;
+		let livery_color = self.agent(id).unwrap().segment(0).unwrap().livery.albedo;
 		outbox.post(Message::NewEmitter(particle::Emitter::for_new_minion(
 			transform,
 			livery_color,
@@ -254,13 +249,14 @@ impl World {
 		self.registered_player_id = Some(self.spawn_player(Position::new(0., 0.), Motion::default()))
 	}
 
-	pub fn spawn_player(&mut self, pos: Position, _motion: Motion) -> obj::Id {
+	pub fn spawn_player(&mut self, pos: Position, motion: Motion) -> obj::Id {
 		let mut gen = gen::Genome::copy_from(&[0, 0, 0, 0]);
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Player).spawn(
 			&mut gen,
 			agent::InitialState {
 				transform: Transform::new(pos, 0.),
+				motion,
 				charge: DEFAULT_MINION_CHARGE,
 				..Default::default()
 			},
@@ -269,24 +265,16 @@ impl World {
 		self.register(id)
 	}
 
-	pub fn get_player_agent_id(&self) -> Option<obj::Id> {
-		self.registered_player_id
-	}
+	pub fn get_player_agent_id(&self) -> Option<obj::Id> { self.registered_player_id }
 
 	fn get_player_segment_mut(&mut self) -> Option<&mut segment::Segment> {
-		self.registered_player_id.and_then(move |id|
-			self.agent_mut(id).and_then(|player_agent|
-				player_agent.segment_mut(0)
-			)
-		)
+		self.registered_player_id
+			.and_then(move |id| self.agent_mut(id).and_then(|player_agent| player_agent.segment_mut(0)))
 	}
 
 	pub fn get_player_segment(&self) -> Option<&segment::Segment> {
-		self.registered_player_id.and_then(move |id|
-			self.agent(id).and_then(|player_agent|
-				player_agent.segment(0)
-			)
-		)
+		self.registered_player_id
+			.and_then(move |id| self.agent(id).and_then(|player_agent| player_agent.segment(0)))
 	}
 	/*
 		pub fn get_player_world_position(&self) -> Option<Position> {
@@ -300,24 +288,27 @@ impl World {
 		}
 	*/
 	pub fn primary_fire(&mut self, outbox: &Outbox, bullet_speed: f32) {
-		self.get_player_segment_mut().map(move |segment| {
-			let angle = segment.transform.angle.clone();
+		let vectors = self.get_player_segment().map(move |segment| {
+			let angle = segment.transform.angle;
 			let scale = segment.growing_radius() + 0.5;
 			let forward_dir = Position::unit_y();
 			let transform = Transform::new(segment.transform.apply(scale * forward_dir), angle);
-			let motion = Motion::new(segment.motion.velocity + segment.transform.apply_rotation(bullet_speed * forward_dir), 0.);
+			let motion = Motion::new(
+				segment.motion.velocity + segment.transform.apply_rotation(bullet_speed * forward_dir),
+				0.,
+			);
 			(transform, motion)
-		})
-			.map(|(t, v)| {
-				outbox.post(Alert::NewBullet(0).into());
-				self.new_resource(t, v);
-			});
+		});
+		if let Some((transform, motion)) = vectors {
+			outbox.post(Alert::NewBullet(0).into());
+			self.new_resource(transform, motion);
+		}
 	}
 
 	pub fn set_player_intent(&mut self, intent: segment::Intent) {
-		self.get_player_segment_mut().map(|segment| {
+		if let Some(segment) = self.get_player_segment_mut() {
 			segment.state.intent = intent;
-		});
+		}
 	}
 
 	pub fn new_minion(&mut self, pos: Position, motion: Motion) -> obj::Id {
@@ -342,82 +333,54 @@ impl World {
 		id
 	}
 
-	pub fn registered(&mut self) -> Box<[Id]> {
-		self.registered
-			.drain()
-			.collect::<Vec<_>>()
-			.into_boxed_slice()
-	}
+	pub fn registered(&mut self) -> Box<[Id]> { self.registered.drain().collect::<Vec<_>>().into_boxed_slice() }
 
 	#[allow(dead_code)]
-	pub fn agent(&self, id: obj::Id) -> Option<&Agent> {
-		self.swarms.get(&id.type_of()).and_then(|m| m.get(id))
-	}
+	pub fn agent(&self, id: obj::Id) -> Option<&Agent> { self.swarms.get(&id.type_of()).and_then(|m| m.get(id)) }
 
 	pub fn for_all_agents<F>(&mut self, callback: &mut F)
-		where
-			F: FnMut(&mut Agent), {
-		for (_, swarm) in self.swarms.iter_mut() {
-			for (_, mut agent) in swarm.agents_mut().iter_mut() {
-				callback(&mut agent)
+	where F: FnMut(&mut Agent) {
+		for swarm in self.swarms.values_mut() {
+			for agent in swarm.agents_mut().values_mut() {
+				callback(agent)
 			}
 		}
 	}
 
 	pub fn agent_mut(&mut self, id: obj::Id) -> Option<&mut Agent> {
-		self.swarms.get_mut(&id.type_of()).and_then(
-			|m| m.get_mut(id),
-		)
+		self.swarms.get_mut(&id.type_of()).and_then(|m| m.get_mut(id))
 	}
 
-	pub fn agents(&self, agent_type: AgentType) -> &agent::AgentMap {
-		self.swarms.get(&agent_type).unwrap().agents()
-	}
+	pub fn agents(&self, agent_type: AgentType) -> &agent::AgentMap { self.swarms[&agent_type].agents() }
 
 	pub fn agents_mut(&mut self, agent_type: AgentType) -> &mut agent::AgentMap {
 		self.swarms.get_mut(&agent_type).unwrap().agents_mut()
 	}
 
-	pub fn swarm_mut(&mut self, agent_type: &AgentType) -> &mut Swarm {
-		self.swarms.get_mut(&agent_type).unwrap()
-	}
+	pub fn swarm_mut(&mut self, agent_type: &AgentType) -> &mut Swarm { self.swarms.get_mut(&agent_type).unwrap() }
 
-	pub fn feeders(&self) -> &[Feeder] {
-		self.feeders.as_slice()
-	}
+	pub fn feeders(&self) -> &[Feeder] { self.feeders.as_slice() }
 
-	pub fn feeders_mut(&mut self) -> &mut [Feeder] {
-		self.feeders.as_mut_slice()
-	}
+	pub fn feeders_mut(&mut self) -> &mut [Feeder] { self.feeders.as_mut_slice() }
 
-	pub fn swarms(&self) -> &SwarmMap {
-		&self.swarms
-	}
+	pub fn swarms(&self) -> &SwarmMap { &self.swarms }
 
 	pub fn phase(&self) -> Rgba { self.phase }
 
 	pub fn phase_mut(&mut self) -> &mut Rgba { &mut self.phase }
 
-	pub fn particles(&self) -> &[Particle] {
-		&self.particles
-	}
+	pub fn particles(&self) -> &[Particle] { &self.particles }
 
-	pub fn clear_particles(&mut self) {
-		self.particles.clear();
-	}
+	pub fn clear_particles(&mut self) { self.particles.clear(); }
 
-	pub fn add_particle(&mut self, particle: Particle) {
-		self.particles.push(particle);
-	}
+	pub fn add_particle(&mut self, particle: Particle) { self.particles.push(particle); }
 
-	pub fn cleanup_before(&mut self) {
-		self.clear_particles();
-	}
+	pub fn cleanup_before(&mut self) { self.clear_particles(); }
 
 	pub fn sweep(&mut self) -> Box<[Agent]> {
 		let mut v = Vec::new();
-		for (_, agents) in self.swarms.iter_mut() {
-			agents.free_resources(&mut v);
+		for swarm in self.swarms.values_mut() {
+			swarm.free_resources(&mut v);
 		}
 		v.into_boxed_slice()
 	}
@@ -437,10 +400,7 @@ impl World {
 		let mut f = fs::File::create(&file_name)?;
 		for (_, agent) in self.agents(agent::AgentType::Minion).iter() {
 			info!("{}", agent.dna().to_base64(base64::STANDARD));
-			f.write_fmt(format_args!(
-				"{}\n",
-				agent.dna().to_base64(base64::STANDARD)
-			))?;
+			f.write_fmt(format_args!("{}\n", agent.dna().to_base64(base64::STANDARD)))?;
 		}
 		Ok(file_name)
 	}

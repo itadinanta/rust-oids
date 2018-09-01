@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launchConfiguration type="org.eclipse.corrosion.run.CargoRunDelegate">
+    <stringAttribute key="ARGUMENTS" value=""/>
+    <stringAttribute key="OPTIONS" value=""/>
     <stringAttribute key="PROJECT" value="rust-oids"/>
     <stringAttribute key="RUN_ARGUMENTS" value=""/>
     <stringAttribute key="RUN_OPTIONS" value="--release"/>

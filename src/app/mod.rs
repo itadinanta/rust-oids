@@ -80,7 +80,7 @@ pub fn run(args: &[OsString]) {
 
 			// we look for the last save in ~/.config/rust-oids/saved_state
 			// but only if -n and -i are not specified
-			let user_home = dirs::home_dir().unwrap_or(path::PathBuf::from("."));
+			let user_home = dirs::home_dir().unwrap_or_else(|| path::PathBuf::from("."));
 			let config_home = user_home.join(CONFIG_DIR_HOME);
 			if !options.opt_present("n") && world_file.is_none() {
 				let mut max_path = None;
@@ -221,19 +221,19 @@ impl Systems {
 	}
 
 	fn init(&mut self, world: &world::World) {
-		for system in self.systems().iter_mut() {
+		for system in &mut self.systems() {
 			system.init(world);
 		}
 	}
 
 	fn clear(&mut self) {
-		for system in self.systems().iter_mut() {
+		for system in &mut self.systems() {
 			system.clear();
 		}
 	}
 
 	fn attach(&mut self, bus: &mut PubSub) {
-		for system in self.systems().iter_mut() {
+		for system in &mut self.systems() {
 			system.attach(bus);
 		}
 	}
@@ -339,20 +339,21 @@ impl App {
 	{
 		let system_timer = SystemTimer::new();
 		let mut bus = PubSub::new();
-		let alert_inbox = bus.subscribe(Box::new(|e| match e {
-			&Message::Alert(_) => true,
-			&Message::Event(_) => true,
+		let alert_inbox = bus.subscribe(Box::new(|e| match *e {
+			Message::Alert(_) => true,
+			Message::Event(_) => true,
 			_ => false,
 		}));
-		let reply_inbox = bus.subscribe(Box::new(|e| match e {
-			&Message::Event(Event::SelectMinion(_)) => true,
+		let reply_inbox = bus.subscribe(Box::new(|e| match *e {
+			Message::Event(Event::SelectMinion(_)) => true,
 			_ => false,
 		}));
 
 		let mut new_world = world::World::new(resource_loader, minion_gene_pool);
 		let last_saved = world_file.map(|world_file| {
-			world::persist::Serializer::load(&world_file, &mut new_world)
-				.expect(&format!("Could not load {:?}", &world_file));
+			if world::persist::Serializer::load(&world_file, &mut new_world).is_err() {
+				panic!(format!("Could not load {:?}", &world_file));
+			}
 			world_file
 		});
 
@@ -503,7 +504,10 @@ impl App {
 
 	fn select_minion(&mut self, id: Id) {
 		self.debug_flags |= DebugFlags::DEBUG_TARGETS;
-		self.world.agent_mut(id).map(|a| a.state.toggle_selection());
+		self.world
+			.agent_mut(id)
+			.iter_mut()
+			.for_each(|a| a.state.toggle_selection());
 	}
 
 	pub fn save_gene_pool_to_file(&self) {
@@ -590,7 +594,7 @@ impl App {
 			.registered()
 			.into_iter()
 			.filter_map(|id| self.world.agent(*id))
-			.map(|a| a.clone())
+			.cloned()
 			.collect();
 		self.systems.register(&found[..]);
 	}
@@ -620,10 +624,9 @@ impl App {
 	fn tick(&mut self, dt: Seconds) { self.world.tick(dt); }
 
 	pub fn receive(&mut self) {
-		for event in self.reply_inbox.drain().into_iter() {
-			match event {
-				Message::Event(event) => self.on_app_event(event),
-				_ => {}
+		for event in self.reply_inbox.drain() {
+			if let Message::Event(event) = event {
+				self.on_app_event(event)
 			}
 		}
 	}
@@ -632,15 +635,13 @@ impl App {
 	where
 		P: ui::AlertPlayer<world::alert::Alert, E> + ui::AlertPlayer<Event, E>,
 		E: Debug, {
-		for alert in self.alert_inbox.drain().into_iter() {
+		for alert in self.alert_inbox.drain() {
 			match alert {
-				Message::Event(ref alert) => match alert_player.play(alert) {
-					Err(e) => error!("Unable to play alert {:?}", e),
-					Ok(_) => (),
+				Message::Event(ref alert) => if let Err(e) = alert_player.play(alert) {
+					error!("Unable to play alert {:?}", e)
 				},
-				Message::Alert(ref alert) => match alert_player.play(alert) {
-					Err(e) => error!("Unable to play interaction {:?}", e),
-					Ok(_) => (),
+				Message::Alert(ref alert) => if let Err(e) = alert_player.play(alert) {
+					error!("Unable to play interaction {:?}", e)
 				},
 				_ => {}
 			}
@@ -675,7 +676,7 @@ impl App {
 		} else {
 			self.speed_factors.get()
 		};
-		let quantum = quantum_target.unwrap_or(num::clamp(target_duration, MIN_FRAME_LENGTH, MAX_FRAME_LENGTH));
+		let quantum = quantum_target.unwrap_or_else(|| num::clamp(target_duration, MIN_FRAME_LENGTH, MAX_FRAME_LENGTH));
 		let (dt, rounds) = if speed_factor <= 1.0 {
 			(Seconds::new(speed_factor * quantum), 1)
 		} else {

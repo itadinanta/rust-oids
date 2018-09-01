@@ -24,7 +24,7 @@ pub const MIN_FRAME_LENGTH: SecondsValue = (1.0 / 1000.0) as SecondsValue;
 pub const MAX_FRAME_LENGTH: SecondsValue = (1.0 / 30.0) as SecondsValue;
 pub const THRUST_POWER: f32 = 5000.;
 pub const POWER_BOOST: f32 = 100.;
-pub const DRAG_COEFFICIENT: f32 = 0.000001;
+pub const DRAG_COEFFICIENT: f32 = 0.000_001;
 #[allow(unused)]
 pub const COMPASS_SPRING_POWER: f32 = 1000.0;
 pub const JOINT_UPPER_ANGLE: f32 = consts::PI / 6.;
@@ -73,8 +73,8 @@ pub const RESTITUTION_PLAYER: f32 = 0.1;
 pub const FRICTION_DEFAULT: f32 = 0.7;
 pub const FRICTION_PLAYER: f32 = 0.6;
 pub const B2_LINEAR_SLOP: f32 = 0.005;
-pub const DEFAULT_MINION_GENE_POOL_FILE: &'static str = "minion_gene_pool.csv";
-pub const DEFAULT_MINION_GENE_POOL: &'static [&'static str] = &[
+pub const DEFAULT_MINION_GENE_POOL_FILE: &str = "minion_gene_pool.csv";
+pub const DEFAULT_MINION_GENE_POOL: &[&str] = &[
 	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 	"GzB2lQVwM00tTAm5gwajjf4wc0a5GzB2lQVwM00tTAm5gwajjf4wc0a5",
@@ -87,19 +87,19 @@ pub const COLOR_WHITE: [f32; 4] = [1.; 4];
 #[allow(unused)]
 pub const COLOR_BLACK: [f32; 4] = [0., 0., 0., 1.];
 
-pub const DEFAULT_RESOURCE_GENE_POOL: &'static [&'static str] = &["GyA21QoQ", "M00sWS0M"];
+pub const DEFAULT_RESOURCE_GENE_POOL: &[&str] = &["GyA21QoQ", "M00sWS0M"];
 
-pub const CONFIG_DIR_HOME: &'static str = ".config/rust-oids";
-pub const CONFIG_DIR_SAVED_STATE: &'static str = "saved_state";
-pub const CONFIG_DIR_RESOURCES: &'static str = "resources";
-pub const DUMP_FILE_PATTERN_CSV: &'static str = "%Y%m%d_%H%M%S.csv";
-pub const DUMP_FILE_PATTERN_JSON: &'static str = "%Y%m%d_%H%M%S.json";
+pub const CONFIG_DIR_HOME: &str = ".config/rust-oids";
+pub const CONFIG_DIR_SAVED_STATE: &str = "saved_state";
+pub const CONFIG_DIR_RESOURCES: &str = "resources";
+pub const DUMP_FILE_PATTERN_CSV: &str = "%Y%m%d_%H%M%S.csv";
+pub const DUMP_FILE_PATTERN_JSON: &str = "%Y%m%d_%H%M%S.json";
 
-pub const CAPTURE_FOLDER_TIMESTAMP_PATTERN: &'static str = "%Y%m%d_%H%M%S";
-pub const CAPTURE_FOLDER: &'static str = "capture";
-pub const CAPTURE_FILENAME_PREFIX: &'static str = "capture_";
+pub const CAPTURE_FOLDER_TIMESTAMP_PATTERN: &str = "%Y%m%d_%H%M%S";
+pub const CAPTURE_FOLDER: &str = "capture";
+pub const CAPTURE_FILENAME_PREFIX: &str = "capture_";
 
-pub const AMBIENT_LIGHTS: &'static [[f32; 4]] = &[
+pub const AMBIENT_LIGHTS: &[[f32; 4]] = &[
 	[1.0, 1.0, 1.0, 1.0],
 	[3.1, 3.1, 3.1, 1.0],
 	[10.0, 10.0, 10.0, 1.0],
@@ -111,9 +111,9 @@ pub const AMBIENT_LIGHTS: &'static [[f32; 4]] = &[
 	[0.31, 0.31, 0.31, 0.5],
 ];
 
-pub const SPEED_FACTORS: &'static [SpeedFactor] = &[1.0, 0.5, 0.2, 0.1, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0];
+pub const SPEED_FACTORS: &[SpeedFactor] = &[1.0, 0.5, 0.2, 0.1, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0];
 
-pub const BACKGROUNDS: &'static [[f32; 4]] = &[
+pub const BACKGROUNDS: &[[f32; 4]] = &[
 	[0.05, 0.07, 0.1, 1.0],
 	[0.5, 0.5, 0.5, 0.5],
 	[1.0, 1.0, 1.0, 1.0],

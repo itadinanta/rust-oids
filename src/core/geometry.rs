@@ -1,7 +1,5 @@
 use cgmath;
 use cgmath::Vector2;
-#[allow(unused_attributes, unused)]
-#[macro_use]
 use cgmath::*;
 use core::util::Initial;
 
@@ -154,7 +152,7 @@ pub struct PolygonType {
 }
 
 impl PolygonType {
-	fn classify_vertex(v0: &Position, v1: &Position, v2: &Position) -> VertexType {
+	fn classify_vertex(v0: Position, v1: Position, v2: Position) -> VertexType {
 		let x: f32 = (v1 - v0).perp_dot(v2 - v0);
 		if relative_eq!(x, 0.0f32) {
 			VertexType::Flat
@@ -170,7 +168,7 @@ impl PolygonType {
 
 		let n = v.len();
 		for i in 0..n {
-			let vertex_type = Self::classify_vertex(&v[(i + n - 1) % n], &v[i], &v[(i + 1) % n]);
+			let vertex_type = Self::classify_vertex(v[(i + n - 1) % n], v[i], v[(i + 1) % n]);
 			count[vertex_type as usize] += 1;
 		}
 

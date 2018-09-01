@@ -27,7 +27,7 @@ impl System for AnimationSystem {
 	}
 
 	fn export(&self, world: &mut world::World, _outbox: &Outbox) {
-		let phase = world.phase_mut()[1] as f64 + self.dt * self.speed * self.heartbeat_scale * self.background_animation_speed;
+		let phase = f64::from(world.phase_mut()[1]) + self.dt * self.speed * self.heartbeat_scale * self.background_animation_speed;
 		world.phase_mut()[0] = 0.5;
 		world.phase_mut()[1] = (phase % 1e+3) as f32;
 		for (_, agent) in &mut world.agents_mut(AgentType::Minion).iter_mut() {

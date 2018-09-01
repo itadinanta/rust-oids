@@ -25,7 +25,7 @@ use glutin::GlContext;
 use winit::{self, KeyboardInput, VirtualKeyCode, WindowEvent};
 
 pub fn make_resource_loader(config_home: &path::Path) -> ResourceLoader {
-	let res = ResourceLoaderBuilder::new()
+	ResourceLoaderBuilder::new()
 		.add(path::Path::new(CONFIG_DIR_RESOURCES))
 		.add(config_home.join(CONFIG_DIR_RESOURCES).as_path())
 		.add(config_home.join(CONFIG_DIR_SAVED_STATE).as_path())
@@ -37,9 +37,7 @@ pub fn make_resource_loader(config_home: &path::Path) -> ResourceLoader {
 			path::Path::new("/usr/share/rust-oids")
 				.join(CONFIG_DIR_RESOURCES)
 				.as_path(),
-		).build();
-
-	res
+		).build()
 }
 
 pub fn main_loop(
@@ -89,8 +87,8 @@ pub fn main_loop(
 
 	// Create a new game and run it.
 	let mut app = app::App::new(
-		w as u32,
-		h as u32,
+		u32::from(w),
+		u32::from(h),
 		VIEW_SCALE_BASE,
 		config_home,
 		&res,
@@ -98,7 +96,7 @@ pub fn main_loop(
 		world_file,
 	);
 
-	let mut ui = ui::conrod_ui::Ui::new(&res, &mut factory, &frame_buffer, window.hidpi_factor() as f64)
+	let mut ui = ui::conrod_ui::Ui::new(&res, &mut factory, &frame_buffer, f64::from(window.hidpi_factor()))
 		.expect("Unable to create UI");
 
 	let audio = audio::ThreadedSoundSystem::new(audio_device).expect("Failure in audio initialization");
@@ -115,8 +113,8 @@ pub fn main_loop(
 					ui.push_event(event);
 				}
 			}
-			match event {
-				winit::Event::WindowEvent { event, .. } => match event {
+			if let winit::Event::WindowEvent { event, .. } = event {
+				match event {
 					WindowEvent::Resized(new_width, new_height) => {
 						gfx_window_glutin::update_views(&window, &mut frame_buffer, &mut depth_buffer);
 						renderer.resize_to(&frame_buffer).expect("Unable to resize window");
@@ -131,11 +129,10 @@ pub fn main_loop(
 						},
 						..
 					} => renderer.rebuild().unwrap(),
-					e => {
-						mapper.translate(&e).map(|i| app.on_input_event(&i));
-					}
-				},
-				_ => {}
+					e => if let Some(i) = mapper.translate(&e) {
+						app.on_input_event(&i)
+					},
+				}
 			}
 		});
 

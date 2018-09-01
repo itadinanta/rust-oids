@@ -116,7 +116,7 @@ impl<M> ReceiveDrain<M> for Inbox<M> where M: Send + Clone {
 
 	fn purge(&self) {
 		'out: loop {
-			if let Err(_) = self.receiver.try_recv() {
+			if self.receiver.try_recv().is_err() {
 				break 'out;
 			}
 		}
