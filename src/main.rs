@@ -1,5 +1,6 @@
 #![allow(unknown_lints)]
-#![warn(clippy)] 
+#![feature(tool_lints)]
+#![warn(clippy::all)]
 
 mod app;
 mod backend;
@@ -27,10 +28,10 @@ extern crate wrapped2d;
 
 #[macro_use]
 extern crate gfx;
-extern crate gl;
-extern crate image;
 extern crate gfx_device_gl;
+extern crate gl;
 extern crate glutin;
+extern crate image;
 extern crate winit;
 
 extern crate pitch_calc;
@@ -44,7 +45,6 @@ extern crate rand;
 
 #[cfg(feature = "profiler")]
 extern crate cpuprofiler;
-
 
 #[macro_use]
 extern crate enum_primitive;
