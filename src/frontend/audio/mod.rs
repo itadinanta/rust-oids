@@ -3,7 +3,7 @@ mod multiplexer;
 use portaudio as pa;
 use sample;
 use std::thread;
-#[cfg(unix)]
+#[cfg(linux)]
 use thread_priority::*;
 use std::io;
 use std::sync::mpsc::channel;
@@ -227,7 +227,7 @@ impl SoundSystem for ThreadedSoundSystem {
 			};
 			let mut stream = portaudio.open_non_blocking_stream(settings, callback)
 				.expect("Unable to open audio stream, failure in audio thread");
-			#[cfg(unix)] {
+			#[cfg(linux)] {
 				// push up thread priority
 				let thread_id = thread_native_id();
 				assert!(set_thread_priority(thread_id,
@@ -257,7 +257,7 @@ impl SoundSystem for ThreadedSoundSystem {
 				}
 			}
 			info!("Closing audio stream");
-			#[cfg(unix)] {
+			#[cfg(linux)] {
 				// push down thread priority
 				let thread_id = thread_native_id();
 				assert!(set_thread_priority(thread_id,

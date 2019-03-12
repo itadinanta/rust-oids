@@ -64,7 +64,7 @@ conrod = { features = ["winit"], version = "0.58" }
 gilrs = "*"
 
 #
-[target.'cfg(unix)'.dependencies]
+[target.'cfg(linux)'.dependencies]
 thread-priority = "*"
 
 [package.metadata.deb]

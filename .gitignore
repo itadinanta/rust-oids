@@ -13,3 +13,6 @@ nohup.out
 capture/
 capture.ntp
 cmake-build-debug/
+.idea
+.DS_Store
+
