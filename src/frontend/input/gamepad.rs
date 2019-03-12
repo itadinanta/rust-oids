@@ -81,14 +81,23 @@ impl input::EventMapper<gilrs::Event> for GamepadEventLoop {
 }
 
 impl GamepadEventLoop {
-	pub fn new() -> Self {
-		let gilrs = Gilrs::new().unwrap();
-		for (_id, gamepad) in gilrs.gamepads() {
-			info!("{} is {:?}", gamepad.name(), gamepad.power_info());
-		}
-		GamepadEventLoop {
-			gilrs,
-		}
+	pub fn new() -> Option<Self> {
+		let result = Gilrs::new();
+
+        match result {
+            Err(err) => {
+                println!("Error initializing gamepad: {:?}", err);
+                None
+            }
+            Ok(gilrs) => {
+                for (_id, gamepad) in gilrs.gamepads() {
+                    info!("{} is {:?}", gamepad.name(), gamepad.power_info());
+                }
+                Some(GamepadEventLoop {
+                    gilrs,
+                })
+            }
+        }
 	}
 
 	pub fn poll_events<F>(&mut self, mut on_input_event: F)
