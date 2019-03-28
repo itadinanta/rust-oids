@@ -45,7 +45,7 @@ pub fn main_loop(
 )
 {
 	let mut events_loop = winit::EventsLoop::new();
-	let mut gamepad = GamepadEventLoop::new();
+	let mut maybe_gamepad = GamepadEventLoop::new();
 
 	let builder = winit::WindowBuilder::new().with_title("Rust-oids".to_string());
 	let builder = if let Some(monitor_index) = fullscreen {
@@ -86,7 +86,10 @@ pub fn main_loop(
 	app.init(app::SystemMode::Interactive);
 
 	'main: loop {
-		gamepad.poll_events(|event| app.on_input_event(&event));
+		maybe_gamepad = maybe_gamepad.and_then(|mut gamepad| {
+			gamepad.poll_events(|event| app.on_input_event(&event));
+			Some(gamepad)
+		});
 
 		events_loop.poll_events(|event| {
 			if app.has_ui_overlay() {
