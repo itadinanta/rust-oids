@@ -20,7 +20,7 @@
     <stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="${project_loc}/target/debug/rust-oids"/>
     <stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="rust-oids"/>
     <stringAttribute key="org.eclipse.cdt.launch.WORKING_DIRECTORY" value="${project_loc}"/>
-    <stringAttribute key="org.eclipse.corrosionBUILD_COMMAND" value="build"/>
+    <stringAttribute key="org.eclipse.corrosion.BUILD_COMMAND" value="build"/>
     <mapAttribute key="org.eclipse.debug.core.environmentVariables">
         <mapEntry key="DISPLAY" value=":0.0"/>
         <mapEntry key="RUST_BACKTRACE" value="1"/>

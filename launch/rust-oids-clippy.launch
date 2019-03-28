@@ -19,6 +19,6 @@
     <stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="rust-oids/target/debug/rust-oids"/>
     <stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="rust-oids"/>
     <stringAttribute key="org.eclipse.cdt.launch.WORKING_DIRECTORY" value="rust-oids"/>
-    <stringAttribute key="org.eclipse.corrosionBUILD_COMMAND" value="clippy"/>
+    <stringAttribute key="org.eclipse.corrosion.BUILD_COMMAND" value="build"/>
     <stringAttribute key="process_factory_id" value="org.eclipse.cdt.dsf.gdb.GdbProcessFactory"/>
 </launchConfiguration>
