@@ -43,12 +43,7 @@ pub enum Style {
 impl Appearance {
 	pub fn new(color: formats::Rgba, effect: formats::Float4) -> Self { Appearance { color, effect } }
 
-	pub fn rgba(color: formats::Rgba) -> Self {
-		Appearance {
-			color,
-			effect: [1., 0., 0., 0.],
-		}
-	}
+	pub fn rgba(color: formats::Rgba) -> Self { Appearance { color, effect: [1., 0., 0., 0.] } }
 }
 
 // pub type GFormat = Rgba;
@@ -257,20 +252,13 @@ where T: PrimitiveSequence
 			Vertex::new([-ratio, 1.0, 0.0], [0.5 - ratio * 0.5, 1.0]),
 		];
 
-		self.push_primitive(
-			style.unwrap_or(Style::Flat),
-			v,
-			QUAD_INDICES.to_vec(),
-			transform,
-			appearance,
-		).expect("Unable to draw quad");
+		self.push_primitive(style.unwrap_or(Style::Flat), v, QUAD_INDICES.to_vec(), transform, appearance)
+			.expect("Unable to draw quad");
 	}
 
 	fn draw_star(&mut self, style: Option<Style>, transform: M44, vertices: &[Position], appearance: Appearance) {
-		let mut v: Vec<_> = vertices
-			.iter()
-			.map(|v| Vertex::new([v.x, v.y, 0.0], [0.5 + v.x * 0.5, 0.5 + v.y * 0.5]))
-			.collect();
+		let mut v: Vec<_> =
+			vertices.iter().map(|v| Vertex::new([v.x, v.y, 0.0], [0.5 + v.x * 0.5, 0.5 + v.y * 0.5])).collect();
 		let n = v.len();
 		v.push(Vertex::default());
 
@@ -289,11 +277,8 @@ where T: PrimitiveSequence
 		let n = vertices.len();
 		if n > 1 {
 			let dv = 1. / (n - 1) as f32;
-			let v: Vec<_> = vertices
-				.iter()
-				.enumerate()
-				.map(|(i, v)| Vertex::new([v.x, v.y, 0.0], [0.5, i as f32 * dv]))
-				.collect();
+			let v: Vec<_> =
+				vertices.iter().enumerate().map(|(i, v)| Vertex::new([v.x, v.y, 0.0], [0.5, i as f32 * dv])).collect();
 			let mut i: Vec<VertexIndex> = Vec::new();
 			for k in 0..n - 1 {
 				i.push(k as VertexIndex);
@@ -312,7 +297,8 @@ where T: PrimitiveSequence
 			TRI_INDICES.to_vec(),
 			transform,
 			appearance,
-		).expect("Unable to draw ball");
+		)
+		.expect("Unable to draw ball");
 	}
 }
 
@@ -384,10 +370,7 @@ impl PrimitiveBatch {
 
 impl PrimitiveBuffer {
 	pub fn new() -> PrimitiveBuffer {
-		PrimitiveBuffer {
-			max_batch_len: 256,
-			batches: vec![Vec::new(); Style::Count as usize],
-		}
+		PrimitiveBuffer { max_batch_len: 256, batches: vec![Vec::new(); Style::Count as usize] }
 	}
 }
 
@@ -433,11 +416,7 @@ where
 }
 
 pub enum Light {
-	PointLight {
-		position: Position,
-		color: formats::Rgba,
-		attenuation: formats::Rgba,
-	},
+	PointLight { position: Position, color: formats::Rgba, attenuation: formats::Rgba },
 }
 
 pub trait Renderer<R: gfx::Resources, C: gfx::CommandBuffer<R>>: Draw {
@@ -550,22 +529,15 @@ impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: Reso
 	for ForwardRenderer<'e, 'l, R, C, F, L>
 {
 	fn push_batch(&mut self, batch: PrimitiveBatch) -> Result<()> {
-		let models: Vec<forward::ModelArgs> = batch
-			.transforms
-			.iter()
-			.map(|transform| forward::ModelArgs {
-				transform: (*transform).into(),
-			}).collect();
+		let models: Vec<forward::ModelArgs> =
+			batch.transforms.iter().map(|transform| forward::ModelArgs { transform: (*transform).into() }).collect();
 		let materials: Vec<forward::MaterialArgs> = batch
 			.appearances
 			.iter()
-			.map(|appearance| forward::MaterialArgs {
-				emissive: appearance.color,
-				effect: appearance.effect,
-			}).collect();
-		let (vertex_buffer, index_buffer) = self
-			.factory
-			.create_vertex_buffer_with_slice(batch.vertices.as_slice(), batch.indices.as_slice());
+			.map(|appearance| forward::MaterialArgs { emissive: appearance.color, effect: appearance.effect })
+			.collect();
+		let (vertex_buffer, index_buffer) =
+			self.factory.create_vertex_buffer_with_slice(batch.vertices.as_slice(), batch.indices.as_slice());
 		self.pass_forward_lighting.draw_primitives(
 			batch.style,
 			&mut self.encoder,
@@ -589,16 +561,10 @@ impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: Reso
 		appearance: Appearance,
 	) -> Result<()>
 	{
-		let models = vec![forward::ModelArgs {
-			transform: transform.into(),
-		}];
-		let materials = vec![forward::MaterialArgs {
-			emissive: appearance.color,
-			effect: appearance.effect,
-		}];
-		let (vertex_buffer, index_buffer) = self
-			.factory
-			.create_vertex_buffer_with_slice(vertices.as_slice(), indices.as_slice());
+		let models = vec![forward::ModelArgs { transform: transform.into() }];
+		let materials = vec![forward::MaterialArgs { emissive: appearance.color, effect: appearance.effect }];
+		let (vertex_buffer, index_buffer) =
+			self.factory.create_vertex_buffer_with_slice(vertices.as_slice(), indices.as_slice());
 		self.pass_forward_lighting.draw_primitives(
 			shader,
 			&mut self.encoder,
@@ -622,11 +588,7 @@ impl<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>, L:
 		let mut forward_lights: Vec<forward::PointLight> = Vec::new();
 		for p in lights {
 			match p {
-				Light::PointLight {
-					position,
-					color,
-					attenuation,
-				} => {
+				Light::PointLight { position, color, attenuation } => {
 					forward_lights.push(forward::PointLight {
 						propagation: *attenuation,
 						center: [position.x, position.y, 2.0, 1.0],
@@ -648,8 +610,7 @@ impl<'e, 'l, R: gfx::Resources, C: 'e + gfx::CommandBuffer<R>, F: Factory<R>, L:
 	}
 
 	fn resolve_frame_buffer(&mut self) {
-		self.pass_effects
-			.apply_all(&mut self.encoder, &self.hdr_srv, &self.frame_buffer);
+		self.pass_effects.apply_all(&mut self.encoder, &self.hdr_srv, &self.frame_buffer);
 	}
 
 	fn end_frame<D: gfx::Device<Resources = R, CommandBuffer = C>>(&mut self, device: &mut D) {

@@ -12,13 +12,7 @@ pub trait Initial {
 impl<T> History<T>
 where T: Clone + Initial
 {
-	pub fn new(n: usize) -> Self {
-		History {
-			values: vec![T::initial(); n],
-			count: 0,
-			ptr: 0,
-		}
-	}
+	pub fn new(n: usize) -> Self { History { values: vec![T::initial(); n], count: 0, ptr: 0 } }
 
 	pub fn clear(&mut self) {
 		self.count = 0;
@@ -47,12 +41,7 @@ where T: Clone + Initial
 	type Item = T;
 	type IntoIter = HistoryIntoIterator<'a, T>;
 
-	fn into_iter(self) -> Self::IntoIter {
-		HistoryIntoIterator {
-			history: self,
-			index: 0,
-		}
-	}
+	fn into_iter(self) -> Self::IntoIter { HistoryIntoIterator { history: self, index: 0 } }
 }
 
 impl<'a, T> Iterator for HistoryIntoIterator<'a, T>
@@ -80,12 +69,7 @@ pub struct Cycle<T: Copy> {
 impl<T> Cycle<T>
 where T: Copy
 {
-	pub fn new(items: &[T]) -> Cycle<T> {
-		Cycle {
-			items: items.to_vec().into_boxed_slice(),
-			index: 0,
-		}
-	}
+	pub fn new(items: &[T]) -> Cycle<T> { Cycle { items: items.to_vec().into_boxed_slice(), index: 0 } }
 
 	pub fn get(&self) -> T { self.items[self.index] }
 

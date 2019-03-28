@@ -1,15 +1,13 @@
-use winit;
-use winit::{WindowEvent, KeyboardInput, MouseScrollDelta};
+use core::geometry::Position;
 use frontend::input;
 use frontend::input::Key;
-use core::geometry::Position;
+use winit;
+use winit::{KeyboardInput, MouseScrollDelta, WindowEvent};
 
 pub struct WinitEventMapper;
 
 impl WinitEventMapper {
-	pub fn new() -> Self {
-		WinitEventMapper {}
-	}
+	pub fn new() -> Self { WinitEventMapper {} }
 }
 
 impl input::EventMapper<winit::WindowEvent> for WinitEventMapper {
@@ -121,29 +119,15 @@ impl input::EventMapper<winit::WindowEvent> for WinitEventMapper {
 		}
 		match *e {
 			WindowEvent::KeyboardInput {
-				input: KeyboardInput {
-					state: element_state,
-					virtual_keycode: vk,
-					..
-				},
+				input: KeyboardInput { state: element_state, virtual_keycode: vk, .. },
 				..
-			} => {
-				vk.and_then(keymap).and_then(|key| {
-					Some(input::Event::Key(state_map(element_state), key))
-				})
-			}
-			WindowEvent::MouseWheel {
-				delta: MouseScrollDelta::LineDelta(dx, dy),
-				..
-			} => mousewheelmap(dx, dy).and_then(|key| Some(input::Event::Key(input::State::Down, key))),
-			WindowEvent::MouseInput {
-				state: element_state,
-				button,
-				..
-			} => mousemap(button).and_then(|key| Some(input::Event::Key(state_map(element_state), key))),
-			WindowEvent::CursorMoved { position: (x, y), .. } => Some(
-				input::Event::Mouse(Position::new(x as f32, y as f32)),
-			),
+			} => vk.and_then(keymap).and_then(|key| Some(input::Event::Key(state_map(element_state), key))),
+			WindowEvent::MouseWheel { delta: MouseScrollDelta::LineDelta(dx, dy), .. } =>
+				mousewheelmap(dx, dy).and_then(|key| Some(input::Event::Key(input::State::Down, key))),
+			WindowEvent::MouseInput { state: element_state, button, .. } =>
+				mousemap(button).and_then(|key| Some(input::Event::Key(state_map(element_state), key))),
+			WindowEvent::CursorMoved { position: (x, y), .. } =>
+				Some(input::Event::Mouse(Position::new(x as f32, y as f32))),
 			_ => None,
 		}
 	}

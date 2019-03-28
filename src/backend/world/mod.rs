@@ -67,11 +67,7 @@ pub struct Feeder {
 
 impl Feeder {
 	pub fn new(x: f32, y: f32, rate: Seconds) -> Self {
-		Feeder {
-			transform: Transform::from_position(Position::new(x, y)),
-			rate,
-			intensity: 1.0,
-		}
+		Feeder { transform: Transform::from_position(Position::new(x, y)), rate, intensity: 1.0 }
 	}
 	pub fn rate(&self) -> Seconds { self.rate }
 	pub fn intensity(&self) -> f32 { self.intensity }
@@ -101,7 +97,8 @@ impl World {
 			.map(|i| {
 				let (s, c) = (consts::PI * 2. * (i as f32 / num_emitters as f32)).sin_cos();
 				Feeder::new(c * EMITTER_DISTANCE, s * EMITTER_DISTANCE, emitter_rate)
-			}).collect::<Vec<_>>();
+			})
+			.collect::<Vec<_>>();
 		World {
 			extent: Rect::new(-WORLD_RADIUS, -WORLD_RADIUS, WORLD_RADIUS, WORLD_RADIUS),
 			phase: COLOR_TRANSPARENT,
@@ -146,12 +143,7 @@ impl World {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Resource).spawn(
 			&mut gen,
-			agent::InitialState {
-				transform,
-				motion,
-				charge: DEFAULT_RESOURCE_CHARGE,
-				..Default::default()
-			},
+			agent::InitialState { transform, motion, charge: DEFAULT_RESOURCE_CHARGE, ..Default::default() },
 			&clock,
 		);
 		self.register(id)
@@ -161,18 +153,11 @@ impl World {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Resource).spawn(
 			&mut gen::Genome::copy_from(dna),
-			agent::InitialState {
-				transform: transform.clone(),
-				charge: DEFAULT_RESOURCE_CHARGE,
-				..Default::default()
-			},
+			agent::InitialState { transform: transform.clone(), charge: DEFAULT_RESOURCE_CHARGE, ..Default::default() },
 			&clock,
 		);
 		let livery_color = self.agent(id).unwrap().segment(0).unwrap().livery.albedo;
-		outbox.post(Message::NewEmitter(particle::Emitter::for_dead_minion(
-			transform,
-			livery_color,
-		)));
+		outbox.post(Message::NewEmitter(particle::Emitter::for_dead_minion(transform, livery_color)));
 		self.register(id)
 	}
 
@@ -180,19 +165,11 @@ impl World {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Spore).spawn(
 			&mut gen::Genome::copy_from(dna).mutate(&mut rand::thread_rng()),
-			agent::InitialState {
-				transform: transform.clone(),
-				charge: DEFAULT_SPORE_CHARGE,
-				..Default::default()
-			},
+			agent::InitialState { transform: transform.clone(), charge: DEFAULT_SPORE_CHARGE, ..Default::default() },
 			&clock,
 		);
 		let livery_color = self.agent(id).unwrap().segment(0).unwrap().livery.albedo;
-		outbox.post(Message::NewEmitter(particle::Emitter::for_new_spore(
-			transform,
-			livery_color,
-			id,
-		)));
+		outbox.post(Message::NewEmitter(particle::Emitter::for_new_spore(transform, livery_color, id)));
 		self.register(id)
 	}
 
@@ -200,18 +177,11 @@ impl World {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Minion).spawn(
 			&mut gen::Genome::copy_from(dna),
-			agent::InitialState {
-				transform: transform.clone(),
-				charge: DEFAULT_MINION_CHARGE,
-				..Default::default()
-			},
+			agent::InitialState { transform: transform.clone(), charge: DEFAULT_MINION_CHARGE, ..Default::default() },
 			&clock,
 		);
 		let livery_color = self.agent(id).unwrap().segment(0).unwrap().livery.albedo;
-		outbox.post(Message::NewEmitter(particle::Emitter::for_new_minion(
-			transform,
-			livery_color,
-		)));
+		outbox.post(Message::NewEmitter(particle::Emitter::for_new_minion(transform, livery_color)));
 		self.register(id)
 	}
 
@@ -273,8 +243,7 @@ impl World {
 	}
 
 	pub fn get_player_segment(&self) -> Option<&segment::Segment> {
-		self.registered_player_id
-			.and_then(move |id| self.agent(id).and_then(|player_agent| player_agent.segment(0)))
+		self.registered_player_id.and_then(move |id| self.agent(id).and_then(|player_agent| player_agent.segment(0)))
 	}
 	/*
 		pub fn get_player_world_position(&self) -> Option<Position> {
@@ -293,10 +262,8 @@ impl World {
 			let scale = segment.growing_radius() + 0.5;
 			let forward_dir = Position::unit_y();
 			let transform = Transform::new(segment.transform.apply(scale * forward_dir), angle);
-			let motion = Motion::new(
-				segment.motion.velocity + segment.transform.apply_rotation(bullet_speed * forward_dir),
-				0.,
-			);
+			let motion =
+				Motion::new(segment.motion.velocity + segment.transform.apply_rotation(bullet_speed * forward_dir), 0.);
 			(transform, motion)
 		});
 		if let Some((transform, motion)) = vectors {
@@ -317,12 +284,7 @@ impl World {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Minion).spawn(
 			&mut gen,
-			agent::InitialState {
-				transform: Transform::new(pos, angle),
-				motion,
-				charge: 0.3,
-				..Default::default()
-			},
+			agent::InitialState { transform: Transform::new(pos, angle), motion, charge: 0.3, ..Default::default() },
 			&clock,
 		);
 		self.register(id)

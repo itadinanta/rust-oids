@@ -1,20 +1,20 @@
 mod multiplexer;
 
+use app;
+use backend::world::Alert;
+use frontend::ui::AlertPlayer;
 use portaudio as pa;
 use sample;
+use sample::ToFrameSliceMut;
+use std::io;
+use std::sync::mpsc::channel;
+use std::sync::mpsc::SendError;
+use std::sync::mpsc::Sender;
+use std::sync::Arc;
+use std::sync::Mutex;
 use std::thread;
 #[cfg(unix)]
 use thread_priority::*;
-use std::io;
-use std::sync::mpsc::channel;
-use std::sync::mpsc::Sender;
-use std::sync::mpsc::SendError;
-use std::sync::Arc;
-use std::sync::Mutex;
-use app;
-use sample::ToFrameSliceMut;
-use frontend::ui::AlertPlayer;
-use backend::world::Alert;
 // Currently supports i8, i32, f32.
 //pub type AudioSample = f32;
 //pub type Input = AudioSample;
@@ -92,18 +92,17 @@ pub struct ThreadedSoundSystem {
 	trigger: Sender<SoundEffect>,
 }
 
-pub struct SoundSystemAlertPlayer<S> where S: SoundSystem {
+pub struct SoundSystemAlertPlayer<S>
+where S: SoundSystem {
 	sound_system: S,
 }
 
-impl<S> SoundSystemAlertPlayer<S> where S: SoundSystem {
-	fn open(&mut self) -> Result<(), Error> {
-		self.sound_system.open()
-	}
+impl<S> SoundSystemAlertPlayer<S>
+where S: SoundSystem
+{
+	fn open(&mut self) -> Result<(), Error> { self.sound_system.open() }
 
-	pub fn close(&mut self) -> Result<(), Error> {
-		self.sound_system.close()
-	}
+	pub fn close(&mut self) -> Result<(), Error> { self.sound_system.close() }
 }
 
 pub type ThreadedAlertPlayer = SoundSystemAlertPlayer<ThreadedSoundSystem>;
@@ -131,24 +130,23 @@ impl AlertPlayer<app::Event, self::Error> for SoundSystemAlertPlayer<ThreadedSou
 	fn play(&mut self, event: &app::Event) -> Result<(), self::Error> {
 		use app::Event;
 		let sound_effect = match *event {
-			Event::CamReset |
-			Event::NextLight |
-			Event::PrevLight |
-			Event::NextBackground |
-			Event::PrevBackground |
-			Event::NextSpeedFactor |
-			Event::PrevSpeedFactor |
-			Event::Reload |
-			Event::SaveGenePoolToFile |
-			Event::SaveWorldToFile |
-			Event::DeselectAll |
-			Event::ZoomReset |
-			Event::ToggleDebug => SoundEffect::UserOption,
+			Event::CamReset
+			| Event::NextLight
+			| Event::PrevLight
+			| Event::NextBackground
+			| Event::PrevBackground
+			| Event::NextSpeedFactor
+			| Event::PrevSpeedFactor
+			| Event::Reload
+			| Event::SaveGenePoolToFile
+			| Event::SaveWorldToFile
+			| Event::DeselectAll
+			| Event::ZoomReset
+			| Event::ToggleDebug => SoundEffect::UserOption,
 
 			Event::PickMinion(_) => SoundEffect::SelectMinion,
 
-			Event::NewMinion(_) |
-			Event::RandomizeMinion(_) => SoundEffect::NewMinion,
+			Event::NewMinion(_) | Event::RandomizeMinion(_) => SoundEffect::NewMinion,
 
 			Event::EndDrag(_, _, _) => SoundEffect::Release(0),
 			_ => SoundEffect::None,
@@ -159,17 +157,15 @@ impl AlertPlayer<app::Event, self::Error> for SoundSystemAlertPlayer<ThreadedSou
 	}
 }
 
-impl<S> Drop for SoundSystemAlertPlayer<S> where S: SoundSystem {
-	fn drop(&mut self) {
-		self.close().expect("Could not stop audio system");
-	}
+impl<S> Drop for SoundSystemAlertPlayer<S>
+where S: SoundSystem
+{
+	fn drop(&mut self) { self.close().expect("Could not stop audio system"); }
 }
 
 impl ThreadedAlertPlayer {
 	pub fn new(sound_system: ThreadedSoundSystem) -> Self {
-		let mut player = ThreadedAlertPlayer {
-			sound_system,
-		};
+		let mut player = ThreadedAlertPlayer { sound_system };
 		player.open().expect("Could not open sound system");
 		player
 	}
@@ -180,11 +176,13 @@ impl SoundSystem for ThreadedSoundSystem {
 		let (tx, rx) = channel();
 		let sound_thread = thread::Builder::new().name("SoundControl".to_string()).spawn(move || {
 			info!("Started sound control thread");
-			let portaudio = pa::PortAudio::new()
-				.expect("Unable to open portAudio");
+			let portaudio = pa::PortAudio::new().expect("Unable to open portAudio");
 
-			fn portaudio_device(portaudio: &pa::PortAudio, preferred_device: Option<pa::DeviceIndex>)
-								-> Result<(pa::DeviceIndex, String, f64), pa::Error> {
+			fn portaudio_device(
+				portaudio: &pa::PortAudio,
+				preferred_device: Option<pa::DeviceIndex>,
+			) -> Result<(pa::DeviceIndex, String, f64), pa::Error>
+			{
 				let device_count = portaudio.device_count()?;
 				info!("Detected {:?} devices", device_count);
 				let default_device = portaudio.default_output_device()?;
@@ -195,7 +193,8 @@ impl SoundSystem for ThreadedSoundSystem {
 					if let Ok((device_index, device_info)) = device_result {
 						if device_index == selected_device {
 							info!("Selecting device {:?} {}", device_index, device_info.name);
-							result = Ok((device_index, device_info.name.to_owned(), device_info.default_low_output_latency));
+							result =
+								Ok((device_index, device_info.name.to_owned(), device_info.default_low_output_latency));
 						} else {
 							info!("Found device {:?} {}", device_index, device_info.name);
 						}
@@ -208,7 +207,8 @@ impl SoundSystem for ThreadedSoundSystem {
 				portaudio_device(&portaudio, audio_device.map(|d| pa::DeviceIndex(d as u32))).unwrap();
 
 			const INTERLEAVED: bool = true;
-			let stream_parameters: pa::StreamParameters<f32> = pa::StreamParameters::new(device_index, CHANNELS as i32, INTERLEAVED, device_latency);
+			let stream_parameters: pa::StreamParameters<f32> =
+				pa::StreamParameters::new(device_index, CHANNELS as i32, INTERLEAVED, device_latency);
 			let settings = pa::OutputStreamSettings::new(stream_parameters, SAMPLE_HZ, FRAMES);
 
 			let dsp = Arc::new(Mutex::new(multiplexer::Multiplexer::new(SAMPLE_HZ, MAX_VOICES)));
@@ -216,8 +216,7 @@ impl SoundSystem for ThreadedSoundSystem {
 
 			let callback = move |pa::OutputStreamCallbackArgs { buffer, .. }| {
 				trace!("Callback start");
-				let buffer: &mut [[f32; CHANNELS as usize]] =
-					buffer.to_frame_slice_mut().unwrap();
+				let buffer: &mut [[f32; CHANNELS as usize]] = buffer.to_frame_slice_mut().unwrap();
 				sample::slice::equilibrium(buffer);
 				// uhm what?
 				dsp_handle.lock().unwrap().audio_requested(buffer);
@@ -225,14 +224,19 @@ impl SoundSystem for ThreadedSoundSystem {
 				trace!("Callback end");
 				pa::Continue
 			};
-			let mut stream = portaudio.open_non_blocking_stream(settings, callback)
+			let mut stream = portaudio
+				.open_non_blocking_stream(settings, callback)
 				.expect("Unable to open audio stream, failure in audio thread");
-			#[cfg(unix)] {
+			#[cfg(unix)]
+			{
 				// push up thread priority
 				let thread_id = thread_native_id();
-				assert!(set_thread_priority(thread_id,
-											ThreadPriority::Max,
-											ThreadSchedulePolicy::Normal(NormalThreadSchedulePolicy::Normal)).is_ok());
+				assert!(set_thread_priority(
+					thread_id,
+					ThreadPriority::Max,
+					ThreadSchedulePolicy::Normal(NormalThreadSchedulePolicy::Normal)
+				)
+				.is_ok());
 			}
 			stream.start().expect("Unable to start audio stream");
 			'sound_main: loop {
@@ -245,11 +249,10 @@ impl SoundSystem for ThreadedSoundSystem {
 						debug!("Mute and restart");
 						dsp.lock().unwrap().mute_all_voices()
 					}
-					Ok(sound_effect) => {
+					Ok(sound_effect) =>
 						if stream.is_active().unwrap_or(false) {
 							dsp.lock().unwrap().trigger(sound_effect)
-						}
-					}
+						},
 					Err(msg) => {
 						warn!("Received error {:?}", msg);
 						break 'sound_main;
@@ -257,12 +260,16 @@ impl SoundSystem for ThreadedSoundSystem {
 				}
 			}
 			info!("Closing audio stream");
-			#[cfg(unix)] {
+			#[cfg(unix)]
+			{
 				// push down thread priority
 				let thread_id = thread_native_id();
-				assert!(set_thread_priority(thread_id,
-											ThreadPriority::Specific(0),
-											ThreadSchedulePolicy::Normal(NormalThreadSchedulePolicy::Normal)).is_ok());
+				assert!(set_thread_priority(
+					thread_id,
+					ThreadPriority::Specific(0),
+					ThreadSchedulePolicy::Normal(NormalThreadSchedulePolicy::Normal)
+				)
+				.is_ok());
 			}
 			match stream.close() {
 				Err(msg) => error!("Unable to close audio stream: {:?}", msg),
@@ -273,15 +280,10 @@ impl SoundSystem for ThreadedSoundSystem {
 			info!("Terminated sound control thread");
 		})?;
 
-		Ok(ThreadedSoundSystem {
-			sound_thread: Some(sound_thread),
-			trigger: tx,
-		})
+		Ok(ThreadedSoundSystem { sound_thread: Some(sound_thread), trigger: tx })
 	}
 
-	fn open(&mut self) -> Result<(), self::Error> {
-		Ok(())
-	}
+	fn open(&mut self) -> Result<(), self::Error> { Ok(()) }
 
 	fn close(&mut self) -> Result<(), self::Error> {
 		self.trigger.send(SoundEffect::Eof).ok();

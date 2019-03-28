@@ -27,11 +27,7 @@ pub mod filesystem {
 			self
 		}
 
-		pub fn build(&self) -> ResourceLoader {
-			ResourceLoader {
-				roots: self.roots.clone().into_boxed_slice(),
-			}
-		}
+		pub fn build(&self) -> ResourceLoader { ResourceLoader { roots: self.roots.clone().into_boxed_slice() } }
 	}
 
 	impl super::ResourceLoader<u8> for ResourceLoader {
@@ -52,7 +48,8 @@ pub mod filesystem {
 					let mut path = path::PathBuf::from(r);
 					path.push(key);
 					path
-				}).find(|path| path.exists() && path.is_file())
+				})
+				.find(|path| path.exists() && path.is_file())
 			{
 				// and then either read it
 				Some(ref p) => load_from_path(p.as_path()),

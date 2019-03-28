@@ -1,8 +1,8 @@
-use std::f32::consts::*;
-use core::geometry::*;
-use core::geometry::Transform;
-use core::color;
 use app::constants::*;
+use core::color;
+use core::geometry::Transform;
+use core::geometry::*;
+use std::f32::consts::*;
 
 pub type Rgba = color::Rgba<f32>;
 
@@ -16,18 +16,9 @@ pub type AttachmentIndex = u8;
 pub enum Shape {
 	Ball { radius: f32 },
 	Box { radius: f32, ratio: f32 },
-	Star {
-		radius: f32,
-		n: u8,
-		ratio1: f32,
-		ratio2: f32,
-	},
+	Star { radius: f32, n: u8, ratio1: f32, ratio2: f32 },
 	Poly { radius: f32, n: i8 },
-	Triangle {
-		radius: f32,
-		angle1: f32,
-		angle2: f32,
-	},
+	Triangle { radius: f32, angle1: f32, angle2: f32 },
 }
 
 impl Shape {
@@ -61,9 +52,7 @@ impl Shape {
 		}
 	}
 
-	pub fn mid(&self) -> isize {
-		self.length() as isize / 2
-	}
+	pub fn mid(&self) -> isize { self.length() as isize / 2 }
 }
 
 #[derive(Clone, Copy)]
@@ -73,20 +62,13 @@ pub enum Winding {
 }
 
 impl Winding {
-	pub fn xunit(self) -> f32 {
-		f32::from(self as i16)
-	}
+	pub fn xunit(self) -> f32 { f32::from(self as i16) }
 }
 
 impl Shape {
-	pub fn new_ball(radius: f32) -> Self {
-		Shape::Ball { radius }
-	}
+	pub fn new_ball(radius: f32) -> Self { Shape::Ball { radius } }
 
-
-	pub fn new_box(radius: f32, ratio: f32) -> Self {
-		Shape::Box { radius, ratio }
-	}
+	pub fn new_box(radius: f32, ratio: f32) -> Self { Shape::Box { radius, ratio } }
 
 	pub fn new_star(n: u8, radius: f32, ratio1: f32, ratio2: f32) -> Self {
 		assert!(n > 1);
@@ -104,9 +86,7 @@ impl Shape {
 		Shape::Poly { radius, n }
 	}
 
-	pub fn new_triangle(radius: f32, angle1: f32, angle2: f32) -> Self {
-		Shape::Triangle { radius, angle1, angle2 }
-	}
+	pub fn new_triangle(radius: f32, angle1: f32, angle2: f32) -> Self { Shape::Triangle { radius, angle1, angle2 } }
 
 	pub fn vertices(&self, winding: Winding) -> Box<[Position]> {
 		let xunit = winding.xunit();
@@ -164,13 +144,10 @@ impl Shape {
 			Shape::Triangle { angle1, angle2, .. } => {
 				let (sa1, ca1) = angle1.sin_cos();
 				let (sa2, ca2) = angle2.sin_cos();
-				vec![
-					Position::new(0., 1.),
-					Position::new(xunit * sa1, ca1),
-					Position::new(xunit * sa2, ca2),
-				]
+				vec![Position::new(0., 1.), Position::new(xunit * sa1, ca1), Position::new(xunit * sa2, ca2)]
 			}
-		}.into_boxed_slice()
+		}
+		.into_boxed_slice()
 	}
 }
 
@@ -201,32 +178,30 @@ impl Mesh {
 			MeshFlags::CONVEX
 		} else {
 			let classifier = PolygonType::classify(vertices.as_ref());
-			if classifier.is_convex() { MeshFlags::CONVEX } else { MeshFlags::empty() }
+			if classifier.is_convex() {
+				MeshFlags::CONVEX
+			} else {
+				MeshFlags::empty()
+			}
 		};
-		Mesh {
-			shape,
-			flags: winding_flags | shape_flags,
-			vertices,
-		}
+		Mesh { shape, flags: winding_flags | shape_flags, vertices }
 	}
 
-	pub fn vertex(&self, index: usize) -> Position {
-		self.vertices[index % self.vertices.len()]
-	}
+	pub fn vertex(&self, index: usize) -> Position { self.vertices[index % self.vertices.len()] }
 
-	pub fn scaled_vertex(&self, index: usize) -> Position {
-		self.vertex(index) * self.shape.radius()
-	}
+	pub fn scaled_vertex(&self, index: usize) -> Position { self.vertex(index) * self.shape.radius() }
 
 	#[inline]
 	#[allow(dead_code)]
-	pub fn is_convex(&self) -> bool {
-		self.flags.contains(MeshFlags::CONVEX)
-	}
+	pub fn is_convex(&self) -> bool { self.flags.contains(MeshFlags::CONVEX) }
 
 	#[inline]
 	pub fn winding(&self) -> Winding {
-		if self.flags.contains(MeshFlags::CW) { Winding::CW } else { Winding::CCW }
+		if self.flags.contains(MeshFlags::CW) {
+			Winding::CW
+		} else {
+			Winding::CCW
+		}
 	}
 }
 
@@ -275,15 +250,7 @@ impl Default for Material {
 }
 
 impl Default for Livery {
-	fn default() -> Self {
-		Livery {
-			albedo: [1., 1., 1., 1.],
-			frequency: 0.5,
-			phase: 0.,
-			amplitude: 0.5,
-			seed: 0.,
-		}
-	}
+	fn default() -> Self { Livery { albedo: [1., 1., 1., 1.], frequency: 0.5, phase: 0., amplitude: 0.5, seed: 0. } }
 }
 
 pub trait Solid {

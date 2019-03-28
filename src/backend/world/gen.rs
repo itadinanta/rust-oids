@@ -1,25 +1,21 @@
-use std::fmt;
-use std::f32::consts;
-use num;
+use backend::obj::*;
 use csv;
-use std::cmp;
+use num;
 use rand;
 use rand::Rng;
-use backend::obj::*;
+use serialize::base64::{self, FromBase64, ToBase64};
+use std::cmp;
+use std::f32::consts;
+use std::fmt;
 use std::slice::Iter;
-use serialize::base64::{self, ToBase64, FromBase64};
 
 pub type Dna = Box<[u8]>;
 
 const MAX_POLY_SIDES: u8 = 8; // in conformity with box2d?
 
-fn bit_count(p: usize) -> usize {
-	p << 3
-}
+fn bit_count(p: usize) -> usize { p << 3 }
 
-fn split_bit(p: usize) -> (usize, u8) {
-	(p >> 3, (p & 0x7) as u8)
-}
+fn split_bit(p: usize) -> (usize, u8) { (p >> 3, (p & 0x7) as u8) }
 
 pub struct GenePool {
 	gene_pool: Box<[Dna]>,
@@ -27,19 +23,12 @@ pub struct GenePool {
 }
 
 impl GenePool {
-	pub fn gene_pool_iter(&self) -> Iter<Dna> {
-		self.gene_pool.iter()
-	}
-	pub fn gene_pool_index(&self) -> usize {
-		self.round_robin
-	}
+	pub fn gene_pool_iter(&self) -> Iter<Dna> { self.gene_pool.iter() }
+	pub fn gene_pool_index(&self) -> usize { self.round_robin }
 
 	pub fn populate_from_base64(&mut self, base64: &[String], round_robin: usize) {
-		self.gene_pool = base64
-			.iter()
-			.map(|s| s.from_base64().unwrap().into_boxed_slice())
-			.collect::<Vec<_>>()
-			.into_boxed_slice();
+		self.gene_pool =
+			base64.iter().map(|s| s.from_base64().unwrap().into_boxed_slice()).collect::<Vec<_>>().into_boxed_slice();
 		self.round_robin = round_robin;
 	}
 
@@ -61,22 +50,14 @@ impl GenePool {
 			let fields = row.unwrap();
 			gene_pool.push(fields[0].from_base64().unwrap().into_boxed_slice());
 		}
-		GenePool {
-			gene_pool: gene_pool.to_vec().into_boxed_slice(),
-			round_robin: 0,
-		}
+		GenePool { gene_pool: gene_pool.to_vec().into_boxed_slice(), round_robin: 0 }
 	}
 
-	pub fn len(&self) -> usize {
-		self.gene_pool.len()
-	}
+	pub fn len(&self) -> usize { self.gene_pool.len() }
 
 	#[allow(dead_code)]
 	pub fn new(gene_pool: &[Dna]) -> Self {
-		GenePool {
-			gene_pool: gene_pool.to_vec().into_boxed_slice(),
-			round_robin: 0,
-		}
+		GenePool { gene_pool: gene_pool.to_vec().into_boxed_slice(), round_robin: 0 }
 	}
 
 	pub fn randomize(&mut self) {
@@ -96,16 +77,12 @@ impl GenePool {
 #[allow(dead_code)]
 pub trait Generator {
 	fn next_float<T>(&mut self, min: T, max: T) -> T
-		where
-			T: rand::Rand + num::Float;
+	where T: rand::Rand + num::Float;
 
 	fn next_integer<T>(&mut self, min: T, max: T) -> T
-		where
-			T: rand::Rand + num::Integer + num::ToPrimitive + num::FromPrimitive + Copy;
+	where T: rand::Rand + num::Integer + num::ToPrimitive + num::FromPrimitive + Copy;
 
-	fn next_bool(&mut self) -> bool {
-		self.next_integer::<u8>(0, 1) == 1
-	}
+	fn next_bool(&mut self) -> bool { self.next_integer::<u8>(0, 1) == 1 }
 
 	fn ball(&mut self) -> Shape {
 		let radius: f32 = self.next_float(0.5, 0.75);
@@ -148,10 +125,7 @@ pub trait Generator {
 	fn star(&mut self) -> Shape {
 		let radius: f32 = self.next_float(1.0, 2.0);
 		// if pie slices are too small physics freaks out
-		let n = self.next_integer(
-			3,
-			if radius > 1.5 { MAX_POLY_SIDES } else { MAX_POLY_SIDES - 2 },
-		);
+		let n = self.next_integer(3, if radius > 1.5 { MAX_POLY_SIDES } else { MAX_POLY_SIDES - 2 });
 		let ratio1 = self.next_float(0.5, 1.0);
 		let ratio2 = self.next_float(0.7, 0.9) * (1. / ratio1);
 		Shape::new_star(n, radius, ratio1, ratio2)
@@ -188,29 +162,23 @@ pub trait Generator {
 
 #[allow(dead_code)]
 pub struct Randomizer<R>
-	where
-		R: rand::Rng,
-{
+where R: rand::Rng {
 	rng: R,
 }
 
 #[allow(dead_code)]
 impl Randomizer<rand::ThreadRng> {
-	pub fn new() -> Randomizer<rand::ThreadRng> {
-		Randomizer { rng: rand::thread_rng() }
-	}
+	pub fn new() -> Randomizer<rand::ThreadRng> { Randomizer { rng: rand::thread_rng() } }
 }
 
 impl Generator for Randomizer<rand::ThreadRng> {
 	fn next_float<T>(&mut self, min: T, max: T) -> T
-		where
-			T: rand::Rand + num::Float, {
+	where T: rand::Rand + num::Float {
 		self.rng.gen::<T>() * (max - min) + min
 	}
 
 	fn next_integer<T>(&mut self, min: T, max: T) -> T
-		where
-			T: rand::Rand + num::Integer + Copy, {
+	where T: rand::Rand + num::Integer + Copy {
 		self.rng.gen::<T>() % (max - min + T::one()) + min
 	}
 }
@@ -220,8 +188,7 @@ trait Seeder {
 }
 
 impl<R> Seeder for Randomizer<R>
-	where
-		R: rand::Rng,
+where R: rand::Rng
 {
 	fn seed(&mut self) -> Genome {
 		let mut dna = vec![0u8; 72];
@@ -239,20 +206,10 @@ pub struct Genome {
 
 impl Genome {
 	pub fn copy_from(dna: &[u8]) -> Self {
-		Genome {
-			ptr: 0,
-			bit_count: bit_count(dna.len()),
-			dna: dna.to_owned().into_boxed_slice(),
-		}
+		Genome { ptr: 0, bit_count: bit_count(dna.len()), dna: dna.to_owned().into_boxed_slice() }
 	}
 
-	pub fn new(dna: Vec<u8>) -> Self {
-		Genome {
-			ptr: 0,
-			bit_count: bit_count(dna.len()),
-			dna: dna.into_boxed_slice(),
-		}
-	}
+	pub fn new(dna: Vec<u8>) -> Self { Genome { ptr: 0, bit_count: bit_count(dna.len()), dna: dna.into_boxed_slice() } }
 
 	#[inline]
 	fn next_bit(&mut self) -> u8 {
@@ -265,14 +222,13 @@ impl Genome {
 	#[inline]
 	fn next_bits(&mut self, n: u8) -> i64 {
 		//use std::iter;
-		//iter::repeat_with(|| i64::from(self.next_bit())).take(usize::from(n)).fold(0, |a, bit| a << 1 | bit)
-		(0..n).fold(0, |a, _| a << 1 | i64::from(self.next_bit()))		
+		//iter::repeat_with(|| i64::from(self.next_bit())).take(usize::from(n)).fold(0,
+		// |a, bit| a << 1 | bit)
+		(0..n).fold(0, |a, _| a << 1 | i64::from(self.next_bit()))
 	}
 
 	#[inline]
-	fn count_bits(d: u64) -> u8 {
-		(64 - d.leading_zeros()) as u8
-	}
+	fn count_bits(d: u64) -> u8 { (64 - d.leading_zeros()) as u8 }
 
 	fn next_i32(&mut self, min: i32, max: i32) -> i32 {
 		let diff = i64::from(max) - i64::from(min) + 1i64;
@@ -323,31 +279,25 @@ impl Genome {
 		Genome::new(new_genes)
 	}
 
-	pub fn dna_cloned(&self) -> Box<[u8]> {
-		self.dna.clone()
-	}
+	pub fn dna_cloned(&self) -> Box<[u8]> { self.dna.clone() }
 }
 
 impl fmt::Display for Genome {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "{}", self.dna.to_base64(base64::STANDARD))
-	}
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", self.dna.to_base64(base64::STANDARD)) }
 }
 
 const BITS_FOR_FLOAT: u8 = 10;
 
 impl Generator for Genome {
 	fn next_float<T>(&mut self, min: T, max: T) -> T
-		where
-			T: rand::Rand + num::Float, {
+	where T: rand::Rand + num::Float {
 		let u0 = self.next_bits(BITS_FOR_FLOAT);
 		let n: T = T::from(u0).unwrap() / T::from(1 << BITS_FOR_FLOAT).unwrap();
 		n * (max - min) + min
 	}
 
 	fn next_integer<T>(&mut self, min: T, max: T) -> T
-		where
-			T: rand::Rand + num::Integer + num::ToPrimitive + num::FromPrimitive + Copy, {
+	where T: rand::Rand + num::Integer + num::ToPrimitive + num::FromPrimitive + Copy {
 		num::NumCast::from(min)
 			.and_then(|a| num::NumCast::from(max).map(|b| self.next_i32(a, b)))
 			.and_then(num::FromPrimitive::from_i32)

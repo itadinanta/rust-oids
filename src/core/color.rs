@@ -96,7 +96,6 @@ impl FromRgb<f32> for Hsl<f32> {
 	/// @param   Number  g       The green color value
 	/// @param   Number  b       The blue color value
 	/// @return  Array           The HSL representation
-	///
 	#[allow(clippy::float_cmp)]
 	#[allow(clippy::many_single_char_names)]
 	fn from_rgb(c: &Rgb<f32>) -> Self {
@@ -134,7 +133,6 @@ impl ToRgb<f32> for Hsl<f32> {
 	/// @param   Number  s       The saturation
 	/// @param   Number  l       The lightness
 	/// @return  Array           The RGB representation
-	///
 	fn to_rgb(&self) -> Rgb<f32> {
 		fn hue2rgb(p: f32, q: f32, t0: f32) -> f32 {
 			let t = if t0 < 0. {

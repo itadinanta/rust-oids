@@ -17,12 +17,7 @@ pub struct Viewport {
 
 impl Viewport {
 	pub fn rect(w: u32, h: u32, scale: f32) -> Viewport {
-		Viewport {
-			width: w,
-			height: h,
-			ratio: (w as f32 / h as f32),
-			scale,
-		}
+		Viewport { width: w, height: h, ratio: (w as f32 / h as f32), scale }
 	}
 
 	pub fn scale(&mut self, scale: f32) { self.scale = scale; }

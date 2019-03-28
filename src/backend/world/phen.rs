@@ -1,22 +1,22 @@
-use backend::obj::*;
-use std::f32::consts;
 use app::constants::*;
-use core::color;
-use core::color::ToRgb;
-use core::geometry::*;
-use core::geometry::Transform;
-use core::clock::Timer;
-use core::clock::seconds;
-use backend::world::segment;
-use backend::world::segment::*;
+use backend::obj::*;
 use backend::world::agent;
-use backend::world::agent::N_WEIGHTS;
 use backend::world::agent::Agent;
 use backend::world::agent::Brain;
 use backend::world::agent::TypedBrain;
+use backend::world::agent::N_WEIGHTS;
 use backend::world::gen::*;
+use backend::world::segment;
+use backend::world::segment::*;
 use cgmath;
 use cgmath::InnerSpace;
+use core::clock::seconds;
+use core::clock::Timer;
+use core::color;
+use core::color::ToRgb;
+use core::geometry::Transform;
+use core::geometry::*;
+use std::f32::consts;
 
 pub trait Phenotype: Send + Sync {
 	fn develop(&self, gen: &mut Genome, id: Id, initial_state: agent::InitialState, timer: &Timer) -> agent::Agent;
@@ -46,20 +46,15 @@ impl Phenotype for Resource {
 		let body = gen.eq_triangle();
 		let mut builder = AgentBuilder::new(
 			id,
-			Material {
-				density: DENSITY_RESOURCE,
-				..Default::default()
-			},
-			Livery {
-				albedo: albedo.to_rgba(),
-				..Default::default()
-			},
+			Material { density: DENSITY_RESOURCE, ..Default::default() },
+			Livery { albedo: albedo.to_rgba(), ..Default::default() },
 			gen.dna_cloned(),
 			segment::State::with_charge(initial_state.charge, 0., seconds(DEFAULT_CHARGE_DECAY_TIME)),
 		);
 		builder
 			.maturity(initial_state.maturity.unwrap_or(MATURITY_DEFAULT))
-			.start(initial_state.transform, initial_state.motion, &body).build(timer)
+			.start(initial_state.transform, initial_state.motion, &body)
+			.build(timer)
 	}
 }
 
@@ -77,10 +72,7 @@ impl Phenotype for Player {
 				linear_damping: LINEAR_DAMPING_PLAYER,
 				..Default::default()
 			},
-			Livery {
-				albedo: albedo.to_rgba(),
-				..Default::default()
-			},
+			Livery { albedo: albedo.to_rgba(), ..Default::default() },
 			gen.dna_cloned(),
 			segment::State::with_charge(charge, charge, seconds(PLAYER_CHARGE_DECAY_TIME)),
 		);
@@ -99,20 +91,12 @@ impl Phenotype for Minion {
 		let charge = initial_state.charge;
 		let mut builder = AgentBuilder::new(
 			id,
-			Material {
-				density: DENSITY_MINION,
-				..Default::default()
-			},
-			Livery {
-				albedo: albedo.to_rgba(),
-				..Default::default()
-			},
+			Material { density: DENSITY_MINION, ..Default::default() },
+			Livery { albedo: albedo.to_rgba(), ..Default::default() },
 			gen.dna_cloned(),
 			segment::State::with_charge(charge, charge, seconds(MINION_CHARGE_DECAY_TIME)),
 		);
-		builder
-			.maturity(initial_state.maturity.unwrap_or(MATURITY_MINION_DEFAULT))
-			.gender(gender);
+		builder.maturity(initial_state.maturity.unwrap_or(MATURITY_MINION_DEFAULT)).gender(gender);
 
 		// personality parameters
 		let mut weights_in = [[0.; N_WEIGHTS]; N_WEIGHTS];
@@ -141,72 +125,35 @@ impl Phenotype for Minion {
 		let head_shape = gen.iso_triangle();
 		let tail_shape = gen.vbar();
 		let i = ::std::cmp::max(torso_shape.length() as isize / 5, 1);
-		builder
-			.addr(
-				torso,
-				i,
-				&gen.star(),
-				Flags::ARM | Flags::JOINT | Flags::ACTUATOR | Flags::RUDDER,
-			)
-			.addl(
-				torso,
-				-i,
-				&gen.star(),
-				Flags::ARM | Flags::JOINT | Flags::ACTUATOR | Flags::RUDDER,
-			);
+		builder.addr(torso, i, &gen.star(), Flags::ARM | Flags::JOINT | Flags::ACTUATOR | Flags::RUDDER).addl(
+			torso,
+			-i,
+			&gen.star(),
+			Flags::ARM | Flags::JOINT | Flags::ACTUATOR | Flags::RUDDER,
+		);
 
-		let head = builder
-			.add(
-				torso,
-				0,
-				&head_shape,
-				Flags::HEAD | Flags::MOUTH | Flags::SENSOR | Flags::TRACKER,
-			)
-			.index();
-		builder
-			.addr(
-				head,
-				1,
-				&gen.triangle(),
-				Flags::HEAD | Flags::ACTUATOR | Flags::RUDDER,
-			)
-			.addl(
-				head,
-				-1,
-				&gen.triangle(),
-				Flags::HEAD | Flags::ACTUATOR | Flags::RUDDER,
-			);
+		let head =
+			builder.add(torso, 0, &head_shape, Flags::HEAD | Flags::MOUTH | Flags::SENSOR | Flags::TRACKER).index();
+		builder.addr(head, 1, &gen.triangle(), Flags::HEAD | Flags::ACTUATOR | Flags::RUDDER).addl(
+			head,
+			-1,
+			&gen.triangle(),
+			Flags::HEAD | Flags::ACTUATOR | Flags::RUDDER,
+		);
 
 		let mut belly = torso;
 		let mut belly_mid = torso_shape.mid();
 		while gen.next_integer(0, 3) == 0 {
 			let belly_shape = gen.any_poly();
 
-			belly = builder
-				.add(
-					belly,
-					belly_mid,
-					&belly_shape,
-					Flags::STORAGE | Flags::JOINT,
-				)
-				.index();
+			belly = builder.add(belly, belly_mid, &belly_shape, Flags::STORAGE | Flags::JOINT).index();
 			belly_mid = belly_shape.mid();
 			if belly_shape.length() > 6 {
 				if gen.next_integer(0, 1) == 0 {
-					builder.addr(
-						belly,
-						2,
-						&gen.star(),
-						Flags::ARM | Flags::ACTUATOR | Flags::RUDDER,
-					);
+					builder.addr(belly, 2, &gen.star(), Flags::ARM | Flags::ACTUATOR | Flags::RUDDER);
 				}
 				if gen.next_integer(0, 1) == 0 {
-					builder.addl(
-						belly,
-						-2,
-						&gen.star(),
-						Flags::ARM | Flags::ACTUATOR | Flags::RUDDER,
-					);
+					builder.addl(belly, -2, &gen.star(), Flags::ARM | Flags::ACTUATOR | Flags::RUDDER);
 				}
 			}
 			if belly > 20 {
@@ -215,24 +162,9 @@ impl Phenotype for Minion {
 		}
 		let leg_shape = gen.star();
 		builder
-			.addr(
-				belly,
-				belly_mid - 1,
-				&leg_shape,
-				Flags::LEG | Flags::ACTUATOR | Flags::THRUSTER,
-			)
-			.addl(
-				belly,
-				1 - belly_mid,
-				&leg_shape,
-				Flags::LEG | Flags::ACTUATOR | Flags::THRUSTER,
-			)
-			.add(
-				belly,
-				belly_mid,
-				&tail_shape,
-				Flags::TAIL | Flags::ACTUATOR | Flags::BRAKE,
-			)
+			.addr(belly, belly_mid - 1, &leg_shape, Flags::LEG | Flags::ACTUATOR | Flags::THRUSTER)
+			.addl(belly, 1 - belly_mid, &leg_shape, Flags::LEG | Flags::ACTUATOR | Flags::THRUSTER)
+			.add(belly, belly_mid, &tail_shape, Flags::TAIL | Flags::ACTUATOR | Flags::BRAKE)
 			.build(timer)
 	}
 }
@@ -245,14 +177,8 @@ impl Phenotype for Spore {
 		let charge = initial_state.charge;
 		let mut builder = AgentBuilder::new(
 			id,
-			Material {
-				density: DENSITY_SPORE,
-				..Default::default()
-			},
-			Livery {
-				albedo: albedo.to_rgba(),
-				..Default::default()
-			},
+			Material { density: DENSITY_SPORE, ..Default::default() },
+			Livery { albedo: albedo.to_rgba(), ..Default::default() },
 			gen.dna_cloned(),
 			segment::State::with_charge(charge, charge, seconds(DEFAULT_CHARGE_DECAY_TIME)),
 		);
@@ -277,16 +203,7 @@ pub struct AgentBuilder {
 
 impl AgentBuilder {
 	pub fn new(id: Id, material: Material, livery: Livery, dna: Dna, state: segment::State) -> Self {
-		AgentBuilder {
-			id,
-			material,
-			livery,
-			state,
-			gender: 0u8,
-			brain: Brain::default(),
-			dna,
-			segments: Vec::new(),
-		}
+		AgentBuilder { id, material, livery, state, gender: 0u8, brain: Brain::default(), dna, segments: Vec::new() }
 	}
 
 	pub fn start(&mut self, transform: Transform, motion: Motion, shape: &Shape) -> &mut Self {
@@ -310,43 +227,48 @@ impl AgentBuilder {
 	}
 
 	#[inline]
-	pub fn add(&mut self, parent_index: SegmentIndex, attachment_index_offset: isize, shape: &Shape, flags: segment::Flags)
-			   -> &mut Self {
-		self.addw(
-			parent_index,
-			attachment_index_offset,
-			shape,
-			Winding::CW,
-			flags | segment::Flags::MIDDLE,
-		)
+	pub fn add(
+		&mut self,
+		parent_index: SegmentIndex,
+		attachment_index_offset: isize,
+		shape: &Shape,
+		flags: segment::Flags,
+	) -> &mut Self
+	{
+		self.addw(parent_index, attachment_index_offset, shape, Winding::CW, flags | segment::Flags::MIDDLE)
 	}
 	#[inline]
-	pub fn addl(&mut self, parent_index: SegmentIndex, attachment_index_offset: isize, shape: &Shape, flags: segment::Flags)
-				-> &mut Self {
-		self.addw(
-			parent_index,
-			attachment_index_offset,
-			shape,
-			Winding::CCW,
-			flags | segment::Flags::LEFT,
-		)
+	pub fn addl(
+		&mut self,
+		parent_index: SegmentIndex,
+		attachment_index_offset: isize,
+		shape: &Shape,
+		flags: segment::Flags,
+	) -> &mut Self
+	{
+		self.addw(parent_index, attachment_index_offset, shape, Winding::CCW, flags | segment::Flags::LEFT)
 	}
 	#[inline]
-	pub fn addr(&mut self, parent_index: SegmentIndex, attachment_index_offset: isize, shape: &Shape, flags: segment::Flags)
-				-> &mut Self {
-		self.addw(
-			parent_index,
-			attachment_index_offset,
-			shape,
-			Winding::CW,
-			flags | segment::Flags::RIGHT,
-		)
+	pub fn addr(
+		&mut self,
+		parent_index: SegmentIndex,
+		attachment_index_offset: isize,
+		shape: &Shape,
+		flags: segment::Flags,
+	) -> &mut Self
+	{
+		self.addw(parent_index, attachment_index_offset, shape, Winding::CW, flags | segment::Flags::RIGHT)
 	}
 
 	pub fn addw(
-		&mut self, parent_index: SegmentIndex, attachment_index_offset: isize, shape: &Shape, winding: Winding,
+		&mut self,
+		parent_index: SegmentIndex,
+		attachment_index_offset: isize,
+		shape: &Shape,
+		winding: Winding,
 		flags: segment::Flags,
-	) -> &mut Self {
+	) -> &mut Self
+	{
 		let parent = self.segments[parent_index as usize].clone(); //urgh!;
 		let parent_pos = parent.transform.position;
 		let parent_angle = parent.transform.angle;
@@ -360,10 +282,7 @@ impl AgentBuilder {
 		let segment = self.new_segment(
 			shape,
 			winding,
-			Transform::new(
-				parent_pos + (p0.normalize_to(r0 + r1)),
-				consts::PI / 2. + angle,
-			),
+			Transform::new(parent_pos + (p0.normalize_to(r0 + r1)), consts::PI / 2. + angle),
 			Motion::default(),
 			parent.new_attachment(attachment_index as AttachmentIndex),
 			flags,
@@ -430,9 +349,15 @@ impl AgentBuilder {
 	}
 
 	fn new_segment(
-		&mut self, shape: &Shape, winding: Winding, transform: Transform, motion: Motion,
-		attachment: Option<segment::Attachment>, flags: segment::Flags,
-	) -> segment::Segment {
+		&mut self,
+		shape: &Shape,
+		winding: Winding,
+		transform: Transform,
+		motion: Motion,
+		attachment: Option<segment::Attachment>,
+		flags: segment::Flags,
+	) -> segment::Segment
+	{
 		let rest_angle = transform.angle;
 		segment::Segment {
 			index: self.segments.len() as SegmentIndex,
@@ -450,13 +375,6 @@ impl AgentBuilder {
 
 	pub fn build(&self, timer: &Timer) -> Agent {
 		// trace!("Agent {:?} has brain {:?}", self.id, self.brain);
-		Agent::new(
-			self.id,
-			self.gender,
-			&self.brain,
-			&self.dna,
-			self.segments.clone().into_boxed_slice(),
-			timer,
-		)
+		Agent::new(self.id, self.gender, &self.brain, &self.dna, self.segments.clone().into_boxed_slice(), timer)
 	}
 }

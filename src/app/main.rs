@@ -29,15 +29,9 @@ pub fn make_resource_loader(config_home: &path::Path) -> ResourceLoader {
 		.add(path::Path::new(CONFIG_DIR_RESOURCES))
 		.add(config_home.join(CONFIG_DIR_RESOURCES).as_path())
 		.add(config_home.join(CONFIG_DIR_SAVED_STATE).as_path())
-		.add(
-			path::Path::new("/usr/local/share/rust-oids")
-				.join(CONFIG_DIR_RESOURCES)
-				.as_path(),
-		).add(
-			path::Path::new("/usr/share/rust-oids")
-				.join(CONFIG_DIR_RESOURCES)
-				.as_path(),
-		).build()
+		.add(path::Path::new("/usr/local/share/rust-oids").join(CONFIG_DIR_RESOURCES).as_path())
+		.add(path::Path::new("/usr/share/rust-oids").join(CONFIG_DIR_RESOURCES).as_path())
+		.build()
 }
 
 pub fn main_loop(
@@ -55,17 +49,11 @@ pub fn main_loop(
 
 	let builder = winit::WindowBuilder::new().with_title("Rust-oids".to_string());
 	let builder = if let Some(monitor_index) = fullscreen {
-		let monitor = events_loop
-			.get_available_monitors()
-			.nth(monitor_index)
-			.expect("Please enter a valid monitor ID");
+		let monitor = events_loop.get_available_monitors().nth(monitor_index).expect("Please enter a valid monitor ID");
 		println!("Using {:?}", monitor.get_name());
 		builder.with_fullscreen(Some(monitor))
 	} else {
-		builder.with_dimensions(
-			width.unwrap_or(DEFAULT_WINDOW_WIDTH),
-			height.unwrap_or(DEFAULT_WINDOW_HEIGHT),
-		)
+		builder.with_dimensions(width.unwrap_or(DEFAULT_WINDOW_WIDTH), height.unwrap_or(DEFAULT_WINDOW_HEIGHT))
 	};
 	let context_builder = glutin::ContextBuilder::new().with_vsync(true);
 
@@ -86,15 +74,8 @@ pub fn main_loop(
 	let mapper = app::WinitEventMapper::new();
 
 	// Create a new game and run it.
-	let mut app = app::App::new(
-		u32::from(w),
-		u32::from(h),
-		VIEW_SCALE_BASE,
-		config_home,
-		&res,
-		minion_gene_pool,
-		world_file,
-	);
+	let mut app =
+		app::App::new(u32::from(w), u32::from(h), VIEW_SCALE_BASE, config_home, &res, minion_gene_pool, world_file);
 
 	let mut ui = ui::conrod_ui::Ui::new(&res, &mut factory, &frame_buffer, f64::from(window.hidpi_factor()))
 		.expect("Unable to create UI");
@@ -123,15 +104,13 @@ pub fn main_loop(
 					}
 					WindowEvent::Closed => app.quit(),
 					WindowEvent::KeyboardInput {
-						input: KeyboardInput {
-							virtual_keycode: Some(VirtualKeyCode::F5),
-							..
-						},
+						input: KeyboardInput { virtual_keycode: Some(VirtualKeyCode::F5), .. },
 						..
 					} => renderer.rebuild().unwrap(),
-					e => if let Some(i) = mapper.translate(&e) {
-						app.on_input_event(&i)
-					},
+					e =>
+						if let Some(i) = mapper.translate(&e) {
+							app.on_input_event(&i)
+						},
 				}
 			}
 		});
@@ -197,15 +176,7 @@ pub fn main_loop_headless(minion_gene_pool: &str, config_home: path::PathBuf, wo
 	const HEIGHT: u32 = 1024;
 	let res = make_resource_loader(&config_home);
 
-	let mut app = app::App::new(
-		WIDTH,
-		HEIGHT,
-		VIEW_SCALE_BASE,
-		config_home,
-		&res,
-		minion_gene_pool,
-		world_file,
-	);
+	let mut app = app::App::new(WIDTH, HEIGHT, VIEW_SCALE_BASE, config_home, &res, minion_gene_pool, world_file);
 	let mut no_audio = ui::NullAlertPlayer::new();
 	app.init(app::SystemMode::Batch);
 
@@ -214,7 +185,8 @@ pub fn main_loop_headless(minion_gene_pool: &str, config_home: path::PathBuf, wo
 
 	ctrlc::set_handler(move || {
 		r.store(false, Ordering::SeqCst);
-	}).expect("Error setting Ctrl-C handler");
+	})
+	.expect("Error setting Ctrl-C handler");
 
 	let wall_clock = SystemTimer::new();
 	let mut output_hourglass = Hourglass::new(seconds(LOG_INTERVAL), &wall_clock);

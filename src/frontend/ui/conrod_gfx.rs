@@ -13,8 +13,8 @@
 //copies of the Software, and to permit persons to whom the Software is
 //furnished to do so, subject to the following conditions:
 //
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
+//The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 //THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 //IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -25,17 +25,17 @@
 //SOFTWARE.
 #![allow(clippy::all)]
 
-use gfx::{self, Resources, Factory, texture, PipelineState};
 use gfx::handle::RenderTargetView;
 use gfx::traits::FactoryExt;
+use gfx::{self, texture, Factory, PipelineState, Resources};
 use std;
 
 use frontend::render::formats;
 
-use conrod::text::{rt, GlyphCache};
-use conrod::render;
 use conrod::color;
 use conrod::image;
+use conrod::render;
+use conrod::text::{rt, GlyphCache};
 use conrod::{Rect, Scalar};
 
 /// A `Command` describing a step in the drawing process.
@@ -47,7 +47,8 @@ pub enum Command<'a> {
 	Scizzor(gfx::Rect),
 }
 
-/// An iterator yielding `Command`s, produced by the `Renderer::commands` method.
+/// An iterator yielding `Command`s, produced by the `Renderer::commands`
+/// method.
 pub struct Commands<'a> {
 	commands: std::slice::Iter<'a, PreparedCommand>,
 	vertices: &'a [Vertex],
@@ -58,8 +59,8 @@ pub struct Commands<'a> {
 /// Each variant describes how to draw the contents of the vertex buffer.
 #[derive(Clone, Debug)]
 pub enum Draw<'a> {
-	/// A range of vertices representing triangles textured with the image in the
-	/// image_map at the given `widget::Id`.
+	/// A range of vertices representing triangles textured with the image in
+	/// the image_map at the given `widget::Id`.
 	Image(image::Id, &'a [Vertex]),
 	/// A range of vertices representing plain triangles.
 	Plain(&'a [Vertex]),
@@ -141,24 +142,24 @@ mod defines {
 	//it appears gfx_defines generates unsafe code
 	#![allow(unsafe_code)]
 
-	use gfx;
 	use super::ColorFormat;
+	use gfx;
 	// Vertex and pipeline declarations
 	gfx_defines! {
-        vertex Vertex {
-            pos: [f32; 2] = "a_Pos",
-            uv: [f32; 2] = "a_Uv",
-            color: [f32; 4] = "a_Color",
-            mode: u32 = "a_Mode",
-        }
+		vertex Vertex {
+			pos: [f32; 2] = "a_Pos",
+			uv: [f32; 2] = "a_Uv",
+			color: [f32; 4] = "a_Color",
+			mode: u32 = "a_Mode",
+		}
 
-        pipeline pipe {
-            vbuf: gfx::VertexBuffer<Vertex> = (),
-            color: gfx::TextureSampler<[f32; 4]> = "t_Color",
-            scissor: gfx::Scissor = (),
-            out: gfx::BlendTarget<ColorFormat> = ("f_Color", gfx::state::ColorMask::all(), gfx::preset::blend::ALPHA),
-        }
-    }
+		pipeline pipe {
+			vbuf: gfx::VertexBuffer<Vertex> = (),
+			color: gfx::TextureSampler<[f32; 4]> = "t_Color",
+			scissor: gfx::Scissor = (),
+			out: gfx::BlendTarget<ColorFormat> = ("f_Color", gfx::state::ColorMask::all(), gfx::preset::blend::ALPHA),
+		}
+	}
 }
 
 use self::defines::*;
@@ -166,14 +167,7 @@ use self::defines::*;
 // Convenience constructor
 #[allow(dead_code)]
 impl Vertex {
-	fn new(pos: [f32; 2], uv: [f32; 2], color: [f32; 4], mode: u32) -> Vertex {
-		Vertex {
-			pos,
-			uv,
-			color,
-			mode,
-		}
-	}
+	fn new(pos: [f32; 2], uv: [f32; 2], color: [f32; 4], mode: u32) -> Vertex { Vertex { pos, uv, color, mode } }
 }
 
 pub struct Renderer<'font, R: Resources> {
@@ -190,12 +184,13 @@ pub struct Renderer<'font, R: Resources> {
 }
 
 impl<'font, R: Resources> Renderer<'font, R> {
-	pub fn new<F: Factory<R>>(factory: &mut F, rtv: &RenderTargetView<R, ColorFormat>, dpi_factor: f64) -> Result<Self, RendererCreationError>
+	pub fn new<F: Factory<R>>(
+		factory: &mut F,
+		rtv: &RenderTargetView<R, ColorFormat>,
+		dpi_factor: f64,
+	) -> Result<Self, RendererCreationError>
 	{
-		let sampler_info = texture::SamplerInfo::new(
-			texture::FilterMethod::Bilinear,
-			texture::WrapMode::Clamp,
-		);
+		let sampler_info = texture::SamplerInfo::new(texture::FilterMethod::Bilinear, texture::WrapMode::Clamp);
 		let sampler = factory.create_sampler(sampler_info);
 
 		let vbuf = factory.create_vertex_buffer(&[]);
@@ -223,9 +218,7 @@ impl<'font, R: Resources> Renderer<'font, R> {
 			const SCALE_TOLERANCE: f32 = 0.1;
 			const POSITION_TOLERANCE: f32 = 0.1;
 
-			let cache = GlyphCache::new(width, height,
-										SCALE_TOLERANCE,
-										POSITION_TOLERANCE);
+			let cache = GlyphCache::new(width, height, SCALE_TOLERANCE, POSITION_TOLERANCE);
 
 			let data = vec![0; (width * height * 4) as usize];
 
@@ -249,23 +242,24 @@ impl<'font, R: Resources> Renderer<'font, R> {
 	/// Produce an `Iterator` yielding `Command`s.
 	pub fn commands(&self) -> Commands {
 		let Renderer { ref commands, ref vertices, .. } = *self;
-		Commands {
-			commands: commands.iter(),
-			vertices,
-		}
+		Commands { commands: commands.iter(), vertices }
 	}
 
-	/// Fill the inner vertex and command buffers by translating the given `primitives`.
+	/// Fill the inner vertex and command buffers by translating the given
+	/// `primitives`.
 	#[allow(clippy::many_single_char_names)]
-	pub fn fill<P, C>(&mut self,
-					  encoder: &mut gfx::Encoder<R, C>,
-					  dims: (f32, f32),
-					  mut primitives: P,
-					  image_map: &image::Map<(gfx::handle::ShaderResourceView<R, [f32; 4]>, (u32, u32))>)
-		where P: render::PrimitiveWalker,
-			  C: gfx::CommandBuffer<R>,
+	pub fn fill<P, C>(
+		&mut self,
+		encoder: &mut gfx::Encoder<R, C>,
+		dims: (f32, f32),
+		mut primitives: P,
+		image_map: &image::Map<(gfx::handle::ShaderResourceView<R, [f32; 4]>, (u32, u32))>,
+	) where
+		P: render::PrimitiveWalker,
+		C: gfx::CommandBuffer<R>,
 	{
-		let Renderer { ref mut commands, ref mut vertices, ref mut glyph_cache, ref mut cache_tex, dpi_factor, .. } = *self;
+		let Renderer { ref mut commands, ref mut vertices, ref mut glyph_cache, ref mut cache_tex, dpi_factor, .. } =
+			*self;
 
 		commands.clear();
 		vertices.clear();
@@ -277,19 +271,19 @@ impl<'font, R: Resources> Renderer<'font, R> {
 
 		let mut current_state = State::Plain { start: 0 };
 
-		// Switches to the `Plain` state and completes the previous `Command` if not already in the
-		// `Plain` state.
+		// Switches to the `Plain` state and completes the previous `Command` if not
+		// already in the `Plain` state.
 		macro_rules! switch_to_plain_state {
-            () => {
-                match current_state {
-                    State::Plain { .. } => (),
-                    State::Image { image_id, start } => {
-                        commands.push(PreparedCommand::Image(image_id, start..vertices.len()));
-                        current_state = State::Plain { start: vertices.len() };
-                    },
-                }
-            };
-        }
+			() => {
+				match current_state {
+					State::Plain { .. } => (),
+					State::Image { image_id, start } => {
+						commands.push(PreparedCommand::Image(image_id, start..vertices.len()));
+						current_state = State::Plain { start: vertices.len() };
+						}
+					}
+			};
+		}
 
 		// Framebuffer dimensions and the "dots per inch" factor.
 		let (screen_w, screen_h) = dims;
@@ -297,16 +291,12 @@ impl<'font, R: Resources> Renderer<'font, R> {
 		let half_win_w = win_w / 2.0;
 		let half_win_h = win_h / 2.0;
 
-		// Functions for converting for conrod scalar coords to GL vertex coords (-1.0 to 1.0).
+		// Functions for converting for conrod scalar coords to GL vertex coords (-1.0
+		// to 1.0).
 		let vx = |x: Scalar| (x * dpi_factor / half_win_w) as f32;
 		let vy = |y: Scalar| (y * dpi_factor / half_win_h) as f32;
 
-		let mut current_scizzor = gfx::Rect {
-			x: 0,
-			w: screen_w as u16,
-			y: 0,
-			h: screen_h as u16,
-		};
+		let mut current_scizzor = gfx::Rect { x: 0, w: screen_w as u16, y: 0, h: screen_h as u16 };
 
 		let rect_to_gfx_rect = |rect: Rect| {
 			let (w, h) = rect.w_h();
@@ -331,8 +321,7 @@ impl<'font, R: Resources> Renderer<'font, R> {
 			if new_scizzor != current_scizzor {
 				// Finish the current command.
 				match current_state {
-					State::Plain { start } =>
-						commands.push(PreparedCommand::Plain(start..vertices.len())),
+					State::Plain { start } => commands.push(PreparedCommand::Plain(start..vertices.len())),
 					State::Image { image_id, start } =>
 						commands.push(PreparedCommand::Image(image_id, start..vertices.len())),
 				}
@@ -354,12 +343,7 @@ impl<'font, R: Resources> Renderer<'font, R> {
 
 					let v = |x, y| {
 						// Convert from conrod Scalar range to GL range -1.0 to 1.0.
-						Vertex {
-							pos: [vx(x), vy(y)],
-							uv: [0.0, 0.0],
-							color,
-							mode: MODE_GEOMETRY,
-						}
+						Vertex { pos: [vx(x), vy(y)], uv: [0.0, 0.0], color, mode: MODE_GEOMETRY }
 					};
 
 					let mut push_v = |x, y| vertices.push(v(x, y));
@@ -384,13 +368,11 @@ impl<'font, R: Resources> Renderer<'font, R> {
 
 					let color = gamma_srgb_to_linear(color.into());
 
-					let v = |p: [Scalar; 2]| {
-						Vertex {
-							pos: [vx(p[0]), vy(p[1])],
-							uv: [0.0, 0.0],
-							color,
-							mode: MODE_GEOMETRY,
-						}
+					let v = |p: [Scalar; 2]| Vertex {
+						pos: [vx(p[0]), vy(p[1])],
+						uv: [0.0, 0.0],
+						color,
+						mode: MODE_GEOMETRY,
 					};
 
 					for triangle in triangles {
@@ -407,13 +389,11 @@ impl<'font, R: Resources> Renderer<'font, R> {
 
 					switch_to_plain_state!();
 
-					let v = |(p, c): ([Scalar; 2], color::Rgba)| {
-						Vertex {
-							pos: [vx(p[0]), vy(p[1])],
-							uv: [0.0, 0.0],
-							color: gamma_srgb_to_linear(c.into()),
-							mode: MODE_GEOMETRY,
-						}
+					let v = |(p, c): ([Scalar; 2], color::Rgba)| Vertex {
+						pos: [vx(p[0]), vy(p[1])],
+						uv: [0.0, 0.0],
+						color: gamma_srgb_to_linear(c.into()),
+						mode: MODE_GEOMETRY,
 					};
 
 					for triangle in triangles {
@@ -433,14 +413,16 @@ impl<'font, R: Resources> Renderer<'font, R> {
 						glyph_cache.queue_glyph(font_id.index(), glyph.clone());
 					}
 
-					glyph_cache.cache_queued(|rect, data| {
-						let offset = [rect.min.x as u16, rect.min.y as u16];
-						let size = [rect.width() as u16, rect.height() as u16];
+					glyph_cache
+						.cache_queued(|rect, data| {
+							let offset = [rect.min.x as u16, rect.min.y as u16];
+							let size = [rect.width() as u16, rect.height() as u16];
 
-						let new_data = data.iter().map(|x| [255, 255, 255, *x]).collect::<Vec<_>>();
+							let new_data = data.iter().map(|x| [255, 255, 255, *x]).collect::<Vec<_>>();
 
-						update_texture(encoder, &cache_tex, offset, size, &new_data);
-					}).unwrap();
+							update_texture(encoder, &cache_tex, offset, size, &new_data);
+						})
+						.unwrap();
 
 					let color = gamma_srgb_to_linear(color.to_fsa());
 					let cache_id = font_id.index();
@@ -449,22 +431,21 @@ impl<'font, R: Resources> Renderer<'font, R> {
 					// A closure to convert RustType rects to GL rects
 					let to_gl_rect = |screen_rect: rt::Rect<i32>| rt::Rect {
 						min: origin
-							+ (rt::vector(screen_rect.min.x as f32 / screen_w - 0.5,
-										  1.0 - screen_rect.min.y as f32 / screen_h - 0.5)) * 2.0,
+							+ (rt::vector(
+								screen_rect.min.x as f32 / screen_w - 0.5,
+								1.0 - screen_rect.min.y as f32 / screen_h - 0.5,
+							)) * 2.0,
 						max: origin
-							+ (rt::vector(screen_rect.max.x as f32 / screen_w - 0.5,
-										  1.0 - screen_rect.max.y as f32 / screen_h - 0.5)) * 2.0,
+							+ (rt::vector(
+								screen_rect.max.x as f32 / screen_w - 0.5,
+								1.0 - screen_rect.max.y as f32 / screen_h - 0.5,
+							)) * 2.0,
 					};
 
 					for g in positioned_glyphs {
 						if let Ok(Some((uv_rect, screen_rect))) = glyph_cache.rect_for(cache_id, g) {
 							let gl_rect = to_gl_rect(screen_rect);
-							let v = |p, t| Vertex {
-								pos: p,
-								uv: t,
-								color,
-								mode: MODE_TEXT,
-							};
+							let v = |p, t| Vertex { pos: p, uv: t, color, mode: MODE_TEXT };
 							let mut push_v = |p, t| vertices.push(v(p, t));
 							push_v([gl_rect.min.x, gl_rect.max.y], [uv_rect.min.x, uv_rect.max.y]);
 							push_v([gl_rect.min.x, gl_rect.min.y], [uv_rect.min.x, uv_rect.min.y]);
@@ -477,30 +458,22 @@ impl<'font, R: Resources> Renderer<'font, R> {
 				}
 
 				render::PrimitiveKind::Image { image_id, color, source_rect } => {
-
 					// Switch to the `Image` state for this image if we're not in it already.
 					let new_image_id = image_id;
 					match current_state {
-
 						// If we're already in the drawing mode for this image, we're done.
 						State::Image { image_id, .. } if image_id == new_image_id => (),
 
 						// If we were in the `Plain` drawing state, switch to Image drawing state.
 						State::Plain { start } => {
 							commands.push(PreparedCommand::Plain(start..vertices.len()));
-							current_state = State::Image {
-								image_id: new_image_id,
-								start: vertices.len(),
-							};
+							current_state = State::Image { image_id: new_image_id, start: vertices.len() };
 						}
 
 						// If we were drawing a different image, switch state to draw *this* image.
 						State::Image { image_id, start } => {
 							commands.push(PreparedCommand::Image(image_id, start..vertices.len()));
-							current_state = State::Image {
-								image_id: new_image_id,
-								start: vertices.len(),
-							};
+							current_state = State::Image { image_id: new_image_id, start: vertices.len() };
 						}
 					}
 
@@ -514,14 +487,12 @@ impl<'font, R: Resources> Renderer<'font, R> {
 					// Texture coordinates range:
 					// - left to right: 0.0 to 1.0
 					// - bottom to top: 1.0 to 0.0
-					// Note bottom and top are flipped in comparison to glium so that we don't need to flip images when loading
+					// Note bottom and top are flipped in comparison to glium so that we don't need
+					// to flip images when loading
 					let (uv_l, uv_r, uv_t, uv_b) = match source_rect {
 						Some(src_rect) => {
 							let (l, r, b, t) = src_rect.l_r_b_t();
-							((l / image_w) as f32,
-							 (r / image_w) as f32,
-							 (b / image_h) as f32,
-							 (t / image_h) as f32)
+							((l / image_w) as f32, (r / image_w) as f32, (b / image_h) as f32, (t / image_h) as f32)
 						}
 						None => (0.0, 1.0, 0.0, 1.0),
 					};
@@ -530,12 +501,7 @@ impl<'font, R: Resources> Renderer<'font, R> {
 						// Convert from conrod Scalar range to GL range -1.0 to 1.0.
 						let x = (x * dpi_factor as Scalar / half_win_w) as f32;
 						let y = (y * dpi_factor as Scalar / half_win_h) as f32;
-						Vertex {
-							pos: [x, y],
-							uv: t,
-							color,
-							mode: MODE_IMAGE,
-						}
+						Vertex { pos: [x, y], uv: t, color, mode: MODE_IMAGE }
 					};
 
 					let mut push_v = |x, y, t| vertices.push(v(x, y, t));
@@ -560,22 +526,26 @@ impl<'font, R: Resources> Renderer<'font, R> {
 
 		// Enter the final command.
 		match current_state {
-			State::Plain { start } =>
-				commands.push(PreparedCommand::Plain(start..vertices.len())),
-			State::Image { image_id, start } =>
-				commands.push(PreparedCommand::Image(image_id, start..vertices.len())),
+			State::Plain { start } => commands.push(PreparedCommand::Plain(start..vertices.len())),
+			State::Image { image_id, start } => commands.push(PreparedCommand::Image(image_id, start..vertices.len())),
 		}
 	}
 
 	/// Draws using the inner list of `Command`s to the given `display`.
 	///
-	/// Note: If you require more granular control over rendering, you may want to use the `fill`
-	/// and `commands` methods separately. This method is simply a convenience wrapper around those
-	/// methods for the case that the user does not require accessing or modifying conrod's draw
-	/// parameters, uniforms or generated draw commands.
-	pub fn draw<F, C>(&self, factory: &mut F, encoder: &mut gfx::Encoder<R, C>, image_map: &image::Map<(gfx::handle::ShaderResourceView<R, [f32; 4]>, (u32, u32))>)
-		where F: gfx::Factory<R>,
-			  C: gfx::CommandBuffer<R>,
+	/// Note: If you require more granular control over rendering, you may want
+	/// to use the `fill` and `commands` methods separately. This method is
+	/// simply a convenience wrapper around those methods for the case that the
+	/// user does not require accessing or modifying conrod's draw parameters,
+	/// uniforms or generated draw commands.
+	pub fn draw<F, C>(
+		&self,
+		factory: &mut F,
+		encoder: &mut gfx::Encoder<R, C>,
+		image_map: &image::Map<(gfx::handle::ShaderResourceView<R, [f32; 4]>, (u32, u32))>,
+	) where
+		F: gfx::Factory<R>,
+		C: gfx::CommandBuffer<R>,
 	{
 		let Renderer { ref pipeline, ref data, ref cache_tex_view, .. } = *self;
 
@@ -583,13 +553,11 @@ impl<'font, R: Resources> Renderer<'font, R> {
 
 		for command in self.commands() {
 			match command {
-
 				// Update the `scizzor` before continuing to draw.
 				Command::Scizzor(scizzor) => data.scissor = scizzor,
 
 				// Draw to the target with the given `draw` command.
 				Command::Draw(draw) => match draw {
-
 					// Draw text and plain 2D geometry.
 					Draw::Plain(verts) => {
 						data.color.0 = cache_tex_view.clone();
@@ -607,7 +575,7 @@ impl<'font, R: Resources> Renderer<'font, R> {
 						data.vbuf = vbuf;
 						encoder.draw(&slice, &pipeline, &data);
 					}
-				}
+				},
 			}
 		}
 	}
@@ -626,27 +594,31 @@ fn gamma_srgb_to_linear(c: [f32; 4]) -> [f32; 4] {
 }
 
 // Creates a gfx texture with the given data
-fn create_texture<F, R>(factory: &mut F, width: u32, height: u32, data: &[u8])
-						-> (gfx::handle::Texture<R, SurfaceFormat>, gfx::handle::ShaderResourceView<R, [f32; 4]>)
-	where R: gfx::Resources, F: gfx::Factory<R>
+fn create_texture<F, R>(
+	factory: &mut F,
+	width: u32,
+	height: u32,
+	data: &[u8],
+) -> (gfx::handle::Texture<R, SurfaceFormat>, gfx::handle::ShaderResourceView<R, [f32; 4]>)
+where
+	R: gfx::Resources,
+	F: gfx::Factory<R>,
 {
 	// Modified `Factory::create_texture_immutable_u8` for dynamic texture.
 	fn create_texture<T, F, R>(
 		factory: &mut F,
 		kind: gfx::texture::Kind,
 		data: &[&[u8]],
-	) -> Result<(
-		gfx::handle::Texture<R, T::Surface>,
-		gfx::handle::ShaderResourceView<R, T::View>
-	), gfx::CombinedError>
-		where F: gfx::Factory<R>,
-			  R: gfx::Resources,
-			  T: gfx::format::TextureFormat
+	) -> Result<(gfx::handle::Texture<R, T::Surface>, gfx::handle::ShaderResourceView<R, T::View>), gfx::CombinedError>
+	where
+		F: gfx::Factory<R>,
+		R: gfx::Resources,
+		T: gfx::format::TextureFormat,
 	{
-		use gfx::{format, texture};
-		use gfx::memory::Usage;
 		use gfx::memory::Bind;
 		use gfx::memory::Typed;
+		use gfx::memory::Usage;
+		use gfx::{format, texture};
 
 		let surface = <T::Surface as format::SurfaceTyped>::get_surface_type();
 		let num_slices = kind.get_num_slices().unwrap_or(1) as usize;
@@ -662,27 +634,25 @@ fn create_texture<F, R>(factory: &mut F, width: u32, height: u32, data: &[u8])
 		let raw = factory.create_texture_raw(desc, Some(cty), Some((data, gfx::texture::Mipmap::Provided)))?;
 		let levels = (0, raw.get_info().levels - 1);
 		let tex = Typed::new(raw);
-		let view = factory.view_texture_as_shader_resource::<T>(
-			&tex, levels, format::Swizzle::new(),
-		)?;
+		let view = factory.view_texture_as_shader_resource::<T>(&tex, levels, format::Swizzle::new())?;
 		Ok((tex, view))
 	}
 
-	let kind = texture::Kind::D2(
-		width as texture::Size,
-		height as texture::Size,
-		texture::AaMode::Single,
-	);
+	let kind = texture::Kind::D2(width as texture::Size, height as texture::Size, texture::AaMode::Single);
 	create_texture::<ColorFormat, F, R>(factory, kind, &[data]).unwrap()
 }
 
-// Updates a texture with the given data (used for updating the GlyphCache texture)
-fn update_texture<R, C>(encoder: &mut gfx::Encoder<R, C>,
-						texture: &gfx::handle::Texture<R, SurfaceFormat>,
-						offset: [u16; 2],
-						size: [u16; 2],
-						data: &[[u8; 4]])
-	where R: gfx::Resources, C: gfx::CommandBuffer<R>
+// Updates a texture with the given data (used for updating the GlyphCache
+// texture)
+fn update_texture<R, C>(
+	encoder: &mut gfx::Encoder<R, C>,
+	texture: &gfx::handle::Texture<R, SurfaceFormat>,
+	offset: [u16; 2],
+	size: [u16; 2],
+	data: &[[u8; 4]],
+) where
+	R: gfx::Resources,
+	C: gfx::CommandBuffer<R>,
 {
 	let info = texture::ImageInfoCommon {
 		xoffset: offset[0],
@@ -704,18 +674,14 @@ impl<'a> Iterator for Commands<'a> {
 		let Commands { ref mut commands, ref vertices } = *self;
 		commands.next().map(|command| match *command {
 			PreparedCommand::Scizzor(scizzor) => Command::Scizzor(scizzor),
-			PreparedCommand::Plain(ref range) =>
-				Command::Draw(Draw::Plain(&vertices[range.clone()])),
-			PreparedCommand::Image(id, ref range) =>
-				Command::Draw(Draw::Image(id, &vertices[range.clone()])),
+			PreparedCommand::Plain(ref range) => Command::Draw(Draw::Plain(&vertices[range.clone()])),
+			PreparedCommand::Image(id, ref range) => Command::Draw(Draw::Image(id, &vertices[range.clone()])),
 		})
 	}
 }
 
 impl From<gfx::PipelineStateError<String>> for RendererCreationError {
-	fn from(err: gfx::PipelineStateError<String>) -> Self {
-		RendererCreationError::PipelineState(err)
-	}
+	fn from(err: gfx::PipelineStateError<String>) -> Self { RendererCreationError::PipelineState(err) }
 }
 
 impl std::error::Error for RendererCreationError {

@@ -99,11 +99,7 @@ pub struct SystemTimer {
 }
 
 impl SystemTimer {
-	pub fn new() -> Self {
-		SystemTimer {
-			t0: time::SystemTime::now(),
-		}
-	}
+	pub fn new() -> Self { SystemTimer { t0: time::SystemTime::now() } }
 }
 
 impl Timer for SystemTimer {
@@ -132,11 +128,7 @@ impl Timer for SimulationTimer {
 }
 
 impl SimulationTimer {
-	pub fn new() -> Self {
-		SimulationTimer {
-			seconds: Seconds::zero(),
-		}
-	}
+	pub fn new() -> Self { SimulationTimer { seconds: Seconds::zero() } }
 	pub fn tick(&mut self, dt: Seconds) { self.seconds += dt }
 	//pub fn from<T>(source: T) -> Self where T: Timer { SimulationTimer {
 	// seconds: source.seconds() } }
@@ -197,11 +189,7 @@ impl fmt::Debug for Hourglass {
 #[allow(unused)]
 impl Hourglass {
 	pub fn new(seconds: Seconds, timer: &Timer) -> Self {
-		Hourglass {
-			stopwatch: TimerStopwatch::new(timer),
-			capacity: seconds,
-			timeout: seconds,
-		}
+		Hourglass { stopwatch: TimerStopwatch::new(timer), capacity: seconds, timeout: seconds }
 	}
 
 	pub fn renew<T>(&mut self, timer: &T)

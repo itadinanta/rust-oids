@@ -41,13 +41,7 @@ pub struct Exponential<S, T> {
 
 impl<S: Zero + Copy> MovingAverage<S> {
 	pub fn new(window_size: usize) -> Self {
-		MovingAverage {
-			ptr: 0,
-			count: 0,
-			last: S::zero(),
-			acc: S::zero(),
-			values: vec![S::zero(); window_size],
-		}
+		MovingAverage { ptr: 0, count: 0, last: S::zero(), acc: S::zero(), values: vec![S::zero(); window_size] }
 	}
 }
 
@@ -125,13 +119,7 @@ where
 	T: cgmath::BaseFloat,
 	M: IntervalSmooth<S, T>,
 {
-	pub fn new(input: S, smooth: M) -> Self {
-		LPF {
-			input,
-			smooth,
-			_interval: PhantomData,
-		}
-	}
+	pub fn new(input: S, smooth: M) -> Self { LPF { input, smooth, _interval: PhantomData } }
 
 	pub fn input(&mut self, target: S) { self.input = target; }
 	pub fn last_input(&self) -> S { self.input }
@@ -230,14 +218,7 @@ where T: cgmath::BaseFloat
 impl<T> Inertial<T>
 where T: cgmath::BaseFloat
 {
-	pub fn new(impulse: T, inertia: T, limit: T) -> Self {
-		Inertial {
-			impulse,
-			inertia,
-			limit,
-			..Default::default()
-		}
-	}
+	pub fn new(impulse: T, inertia: T, limit: T) -> Self { Inertial { impulse, inertia, limit, ..Default::default() } }
 
 	pub fn follow(&mut self, target: Option<cgmath::Vector2<T>>) { self.target = target; }
 

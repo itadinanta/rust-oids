@@ -1,9 +1,9 @@
-use backend::obj;
 use app::constants::*;
+use backend::obj;
 use core::clock::Seconds;
-use core::color::Rgba;
 use core::color::Fade;
-use core::geometry::{Transform, Motion, Position, Velocity};
+use core::color::Rgba;
+use core::geometry::{Motion, Position, Transform, Velocity};
 
 pub enum Fader {
 	Color = 0,
@@ -23,66 +23,37 @@ pub enum EmitterAttachment {
 }
 
 impl Default for EmitterAttachment {
-	fn default() -> EmitterAttachment {
-		EmitterAttachment::None
-	}
+	fn default() -> EmitterAttachment { EmitterAttachment::None }
 }
 
 #[derive(Clone)]
 pub enum EmitterStyle {
-	Explosion {
-		cluster_size: u8,
-		color: Rgba<f32>,
-	},
-	Ping {
-		color: Rgba<f32>,
-	},
-	Sparkle {
-		cluster_size: u8,
-		color: Rgba<f32>,
-	},
+	Explosion { cluster_size: u8, color: Rgba<f32> },
+	Ping { color: Rgba<f32> },
+	Sparkle { cluster_size: u8, color: Rgba<f32> },
 }
 
 impl Default for EmitterStyle {
-	fn default() -> EmitterStyle {
-		EmitterStyle::Explosion {
-			cluster_size: 10u8,
-			color: COLOR_SUNSHINE,
-		}
-	}
+	fn default() -> EmitterStyle { EmitterStyle::Explosion { cluster_size: 10u8, color: COLOR_SUNSHINE } }
 }
 
 impl EmitterStyle {
 	fn color_bang(color: Rgba<f32>, boost: f32) -> EmitterStyle {
 		EmitterStyle::Explosion {
 			cluster_size: 10u8,
-			color: [
-				color[0] * boost,
-				color[1] * boost,
-				color[2] * boost,
-				color[3]],
+			color: [color[0] * boost, color[1] * boost, color[2] * boost, color[3]],
 		}
 	}
 
 	fn color_sparkle(color: Rgba<f32>, boost: f32) -> EmitterStyle {
 		EmitterStyle::Sparkle {
 			cluster_size: 10u8,
-			color: [
-				color[0] * boost,
-				color[1] * boost,
-				color[2] * boost,
-				color[3]],
+			color: [color[0] * boost, color[1] * boost, color[2] * boost, color[3]],
 		}
 	}
 
 	fn color_ping(color: Rgba<f32>, boost: f32) -> EmitterStyle {
-		EmitterStyle::Ping {
-			color: [
-				color[0] * boost,
-				color[1] * boost,
-				color[2] * boost,
-				color[3]],
-		}
+		EmitterStyle::Ping { color: [color[0] * boost, color[1] * boost, color[2] * boost, color[3]] }
 	}
 }
 
@@ -117,58 +88,36 @@ impl Emitter {
 		}
 	}
 	pub fn for_new_minion(transform: Transform, color: Rgba<f32>) -> Emitter {
-		Emitter {
-			transform,
-			style: EmitterStyle::color_sparkle(color, 100.),
-			..Emitter::default()
-		}
+		Emitter { transform, style: EmitterStyle::color_sparkle(color, 100.), ..Emitter::default() }
 	}
 	pub fn for_dead_minion(transform: Transform, color: Rgba<f32>) -> Emitter {
-		Emitter {
-			transform,
-			style: EmitterStyle::color_bang(color, 100.),
-			..Emitter::default()
-		}
+		Emitter { transform, style: EmitterStyle::color_bang(color, 100.), ..Emitter::default() }
 	}
 }
 
 impl Particle {
 	#[allow(clippy::too_many_arguments)]
-	pub fn new(transform: Transform,
-			   direction: Velocity,
-			   tag: isize,
-			   trail: Box<[Position]>,
-			   faders: [f32; 4],
-			   color: (Rgba<f32>, Rgba<f32>),
-			   effect: (Rgba<f32>, Rgba<f32>),
-			   age: Seconds) -> Particle {
-		Particle {
-			transform,
-			direction,
-			tag,
-			trail,
-			faders,
-			color,
-			effect,
-			age,
-		}
+	pub fn new(
+		transform: Transform,
+		direction: Velocity,
+		tag: isize,
+		trail: Box<[Position]>,
+		faders: [f32; 4],
+		color: (Rgba<f32>, Rgba<f32>),
+		effect: (Rgba<f32>, Rgba<f32>),
+		age: Seconds,
+	) -> Particle
+	{
+		Particle { transform, direction, tag, trail, faders, color, effect, age }
 	}
 
-	pub fn transform(&self) -> Transform {
-		self.transform.clone()
-	}
+	pub fn transform(&self) -> Transform { self.transform.clone() }
 
-	pub fn trail(&self) -> &[Position] {
-		&self.trail
-	}
+	pub fn trail(&self) -> &[Position] { &self.trail }
 
-	pub fn scale(&self) -> f32 {
-		self.faders[Fader::Scale as usize]
-	}
+	pub fn scale(&self) -> f32 { self.faders[Fader::Scale as usize] }
 
-	pub fn color(&self) -> Rgba<f32> {
-		self.color.0.fade(self.color.1, self.faders[Fader::Color as usize])
-	}
+	pub fn color(&self) -> Rgba<f32> { self.color.0.fade(self.color.1, self.faders[Fader::Color as usize]) }
 
 	pub fn effect(&self) -> Rgba<f32> {
 		let effect = self.effect.0.fade(self.effect.1, self.faders[Fader::Effect as usize]);

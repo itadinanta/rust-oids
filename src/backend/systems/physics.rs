@@ -192,9 +192,8 @@ impl System for PhysicsSystem {
 				BodyUpdate::Torque(torque) => b.apply_torque(torque, true),
 				BodyUpdate::AngularImpulse(impulse) => b.apply_angular_impulse(impulse, true),
 				BodyUpdate::Force(application_point, force) => b.apply_force(&force, &application_point, true),
-				BodyUpdate::LinearImpulse(application_point, impulse) => {
-					b.apply_linear_impulse(&impulse, &application_point, true)
-				}
+				BodyUpdate::LinearImpulse(application_point, impulse) =>
+					b.apply_linear_impulse(&impulse, &application_point, true),
 				BodyUpdate::Transform(translation, rotation) => b.set_transform(&translation, rotation),
 			}
 		}
@@ -245,12 +244,7 @@ impl Default for PhysicsSystem {
 impl PhysicsSystem {
 	fn p2v(p: Position) -> b2::Vec2 { b2::Vec2 { x: p.x, y: p.y } }
 
-	fn pr2v(p: Position, radius: f32) -> b2::Vec2 {
-		b2::Vec2 {
-			x: p.x * radius,
-			y: p.y * radius,
-		}
-	}
+	fn pr2v(p: Position, radius: f32) -> b2::Vec2 { b2::Vec2 { x: p.x * radius, y: p.y * radius } }
 
 	fn v2p(p: b2::Vec2) -> Position { Position::new(p.x, p.y) }
 
@@ -385,11 +379,8 @@ impl PhysicsSystem {
 					obj::Winding::CW => (p[0], p[2], p[1]),
 					obj::Winding::CCW => (p[0], p[1], p[2]),
 				};
-				let tri_vertices = &[
-					Self::pr2v(p1, grown_radius),
-					Self::pr2v(p2, grown_radius),
-					Self::pr2v(p3, grown_radius),
-				];
+				let tri_vertices =
+					&[Self::pr2v(p1, grown_radius), Self::pr2v(p2, grown_radius), Self::pr2v(p3, grown_radius)];
 				make_safe_poly_shape(world, handle, grown_radius, tri_vertices, f_def, refs);
 			}
 		};
@@ -442,20 +433,12 @@ impl PhysicsSystem {
 					flags: segment.flags,
 					attachment: segment.attached_to,
 				}
-			}).collect::<Vec<_>>()
+			})
+			.collect::<Vec<_>>()
 	}
 
 	fn build_joints(world: &mut b2::World<AgentData>, joint_refs: &[JointRef]) {
-		for &JointRef {
-			handle: distal,
-			mesh,
-			growing_radius,
-			rest_angle,
-			attachment,
-			flags,
-			..
-		} in joint_refs
-		{
+		for &JointRef { handle: distal, mesh, growing_radius, rest_angle, attachment, flags, .. } in joint_refs {
 			if let Some(attachment) = attachment {
 				let upstream = &joint_refs[attachment.index as usize];
 				let medial = upstream.handle;
@@ -500,14 +483,8 @@ impl PhysicsSystem {
 		let point = Self::p2v(pos);
 		let eps = PICK_EPS;
 		let aabb = b2::AABB {
-			lower: b2::Vec2 {
-				x: pos.x - eps,
-				y: pos.y - eps,
-			},
-			upper: b2::Vec2 {
-				x: pos.x + eps,
-				y: pos.y + eps,
-			},
+			lower: b2::Vec2 { x: pos.x - eps, y: pos.y - eps },
+			upper: b2::Vec2 { x: pos.x + eps, y: pos.y + eps },
 		};
 		let mut result = None;
 		{

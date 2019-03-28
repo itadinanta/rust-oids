@@ -71,20 +71,12 @@ fn main() {
 		.appender(Appender::builder().build("stdout".to_string(), Box::new(ConsoleAppender::builder().build())))
 		.logger(Logger::builder().build("gfx_device_gl".to_string(), log::LevelFilter::Error))
 		.logger(Logger::builder().build("rust_oids".to_string(), log::LevelFilter::Info))
-		.build(
-			Root::builder()
-				.appender("stdout".to_string())
-				.build(log::LevelFilter::Info),
-		);
+		.build(Root::builder().appender("stdout".to_string()).build(log::LevelFilter::Info));
 	log4rs::init_config(config.unwrap()).unwrap();
 
 	#[cfg(feature = "profiler")]
 	{
-		cpuprofiler::PROFILER
-			.lock()
-			.unwrap()
-			.start("./rust-oids.profile")
-			.unwrap();
+		cpuprofiler::PROFILER.lock().unwrap().start("./rust-oids.profile").unwrap();
 	}
 
 	app::run(&args);

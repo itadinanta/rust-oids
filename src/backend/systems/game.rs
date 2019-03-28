@@ -43,7 +43,8 @@ struct Feeder {
 	emitted_velocity: f32,
 }
 
-impl Feeder where {
+impl Feeder //where
+{
 	fn new<T>(position: Position, rate: Seconds, timer: &T) -> Self
 	where T: Timer {
 		Feeder {
@@ -92,8 +93,7 @@ impl System for GameSystem {
 		// Add missing emitters - deletion not supported
 		for s in &source[self.feeders.len()..] {
 			//			let s = &source[i];
-			self.feeders
-				.push(Feeder::new(s.transform().position, s.rate(), &self.timer));
+			self.feeders.push(Feeder::new(s.transform().position, s.rate(), &self.timer));
 		}
 		for (i, d) in self.feeders.iter_mut().enumerate() {
 			d.position = source[i].transform().position;

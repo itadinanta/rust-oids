@@ -1,5 +1,5 @@
-use core::geometry::*;
 use core::clock::*;
+use core::geometry::*;
 
 #[derive(Clone, Copy, Debug)]
 pub enum VectorDirection {

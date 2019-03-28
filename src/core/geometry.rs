@@ -39,10 +39,7 @@ pub struct Rect {
 
 impl Rect {
 	pub fn new(left: f32, bottom: f32, right: f32, top: f32) -> Self {
-		Rect {
-			min: Position::new(left, bottom),
-			max: Position::new(right, top),
-		}
+		Rect { min: Position::new(left, bottom), max: Position::new(right, top) }
 	}
 
 	pub fn bottom_left(&self) -> Position { self.min }
@@ -62,21 +59,11 @@ impl Initial for Position {
 }
 
 impl Default for Transform {
-	fn default() -> Transform {
-		Transform {
-			position: Position::zero(),
-			angle: 0.,
-		}
-	}
+	fn default() -> Transform { Transform { position: Position::zero(), angle: 0. } }
 }
 
 impl Default for Motion {
-	fn default() -> Motion {
-		Motion {
-			velocity: Velocity::zero(),
-			spin: 0.,
-		}
-	}
+	fn default() -> Motion { Motion { velocity: Velocity::zero(), spin: 0. } }
 }
 
 #[allow(unused)]
@@ -85,19 +72,9 @@ impl Transform {
 
 	pub fn from_components(x: f32, y: f32, angle: f32) -> Self { Self::new(Position::new(x, y), angle) }
 
-	pub fn from_position(position: Position) -> Self {
-		Transform {
-			position,
-			..Transform::default()
-		}
-	}
+	pub fn from_position(position: Position) -> Self { Transform { position, ..Transform::default() } }
 
-	pub fn from_angle(angle: Angle) -> Self {
-		Transform {
-			angle,
-			..Transform::default()
-		}
-	}
+	pub fn from_angle(angle: Angle) -> Self { Transform { angle, ..Transform::default() } }
 
 	pub fn apply_rotation(&self, position: Position) -> Position {
 		if self.angle != 0. {

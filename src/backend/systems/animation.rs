@@ -1,9 +1,9 @@
 use super::*;
-use backend::world::AgentState;
-use backend::world::agent::AgentType;
 use backend::obj::Motionable;
+use backend::world::agent::AgentType;
+use backend::world::AgentState;
 use cgmath::InnerSpace;
-use core::clock::{seconds, Seconds, SimulationTimer, TimerStopwatch, SpeedFactor};
+use core::clock::{seconds, Seconds, SimulationTimer, SpeedFactor, TimerStopwatch};
 use num_traits::clamp;
 use std::f32::consts;
 
@@ -27,13 +27,16 @@ impl System for AnimationSystem {
 	}
 
 	fn export(&self, world: &mut world::World, _outbox: &Outbox) {
-		let phase = f64::from(world.phase_mut()[1]) + self.dt * self.speed * self.heartbeat_scale * self.background_animation_speed;
+		let phase = f64::from(world.phase_mut()[1])
+			+ self.dt * self.speed * self.heartbeat_scale * self.background_animation_speed;
 		world.phase_mut()[0] = 0.5;
 		world.phase_mut()[1] = (phase % 1e+3) as f32;
 		for (_, agent) in &mut world.agents_mut(AgentType::Minion).iter_mut() {
 			if agent.state.is_active() {
 				let energy = agent.state.energy();
-				agent.state.heartbeat((self.dt * self.speed * self.heartbeat_scale) as f32 * clamp(energy, 50.0f32, 200.0f32))
+				agent
+					.state
+					.heartbeat((self.dt * self.speed * self.heartbeat_scale) as f32 * clamp(energy, 50.0f32, 200.0f32))
 			}
 		}
 		for (_, agent) in &mut world.agents_mut(AgentType::Player).iter_mut() {

@@ -110,18 +110,11 @@ impl DefaultController {
 				events.push(Event::BeginDrag(from, from));
 			}
 			input::Dragging::Dragging(_, from, to) => {
-				events.push(Event::Drag(
-					world_transform.to_world(from),
-					world_transform.to_world(to),
-				));
+				events.push(Event::Drag(world_transform.to_world(from), world_transform.to_world(to)));
 			}
 			input::Dragging::End(_, from, to, prev) => {
 				let mouse_vel = (view_transform.to_view(prev) - to) / dt.into();
-				events.push(Event::EndDrag(
-					world_transform.to_world(from),
-					world_transform.to_world(to),
-					mouse_vel,
-				));
+				events.push(Event::EndDrag(world_transform.to_world(from), world_transform.to_world(to), mouse_vel));
 			}
 			_ => {}
 		}
@@ -142,10 +135,7 @@ impl DefaultController {
 
 	fn interpret_movement<I>(input_state: &I, events: &mut Vec<Event>, mouse_world_pos: Position)
 	where I: input::InputRead {
-		let yaw = Position {
-			x: input_state.gamepad_axis(0, RStickX),
-			y: input_state.gamepad_axis(0, RStickY),
-		};
+		let yaw = Position { x: input_state.gamepad_axis(0, RStickX), y: input_state.gamepad_axis(0, RStickY) };
 
 		let thrust = Position {
 			x: if input_state.key_pressed(Right) {
@@ -169,11 +159,7 @@ impl DefaultController {
 		let magnitude = thrust.magnitude2();
 		let mouse_left_pressed = input_state.key_pressed(MouseLeft) && !input_state.any_ctrl_pressed();
 		events.push(Event::VectorThrust(
-			if magnitude >= DEAD_ZONE {
-				Some(thrust / magnitude.max(1.))
-			} else {
-				None
-			},
+			if magnitude >= DEAD_ZONE { Some(thrust / magnitude.max(1.)) } else { None },
 			if input_state.key_pressed(PageUp) {
 				VectorDirection::Turn(TURN_SPEED)
 			} else if input_state.key_pressed(PageDown) {

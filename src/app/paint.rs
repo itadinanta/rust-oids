@@ -1,13 +1,14 @@
 use super::*;
 use frontend::render;
-use frontend::render::Style;
 use frontend::render::Draw;
+use frontend::render::Style;
 
 impl App {
 	pub fn environment(&self) -> Environment {
 		let light_color = self.lights.get();
 
-		let mut emitter_lights = self.world
+		let mut emitter_lights = self
+			.world
 			.feeders()
 			.iter()
 			.map(|e| {
@@ -18,7 +19,8 @@ impl App {
 						light_color[0] * intensity,
 						light_color[1] * intensity,
 						light_color[2] * intensity,
-						light_color[3]],
+						light_color[3],
+					],
 					attenuation: [0.2, 0.8, 0.1, 0.1],
 				}
 			})
@@ -32,18 +34,17 @@ impl App {
 					COLOR_SUNSHINE[0] * intensity,
 					COLOR_SUNSHINE[1] * intensity,
 					COLOR_SUNSHINE[2] * intensity,
-					1.0],
+					1.0,
+				],
 				attenuation: [0.0, 0.0, 0.1, 0.05],
 			});
 		}
 
-		Environment {
-			background_color: self.backgrounds.get(),
-			lights: emitter_lights.into_boxed_slice(),
-		}
+		Environment { background_color: self.backgrounds.get(), lights: emitter_lights.into_boxed_slice() }
 	}
 
-	fn paint_particles<R>(&self, renderer: &mut R) where R: render::DrawBuffer {
+	fn paint_particles<R>(&self, renderer: &mut R)
+	where R: render::DrawBuffer {
 		let mut batch = render::PrimitiveBuffer::new();
 		for particle in self.world.particles() {
 			let appearance = render::Appearance::new(particle.color(), particle.effect());
@@ -53,7 +54,8 @@ impl App {
 		renderer.draw_buffer(batch);
 	}
 
-	fn paint_particles_trails<R>(&self, renderer: &mut R) where R: render::DrawBuffer {
+	fn paint_particles_trails<R>(&self, renderer: &mut R)
+	where R: render::DrawBuffer {
 		let mut batch = render::PrimitiveBuffer::new();
 		for particle in self.world.particles() {
 			use cgmath::SquareMatrix;
@@ -63,7 +65,8 @@ impl App {
 		renderer.draw_buffer(batch);
 	}
 
-	fn paint_minions<R>(&self, renderer: &mut R) where R: render::DrawBuffer {
+	fn paint_minions<R>(&self, renderer: &mut R)
+	where R: render::DrawBuffer {
 		for (_, swarm) in self.world.swarms().iter() {
 			let mut batch_buffer = render::PrimitiveBuffer::new();
 			for (_, agent) in swarm.agents().iter() {
@@ -102,7 +105,7 @@ impl App {
 	}
 
 	fn paint_extent<R>(&self, renderer: &mut R)
-		where R: render::Draw {
+	where R: render::Draw {
 		use cgmath::SquareMatrix;
 		let extent = &self.world.extent;
 		let points = &[
@@ -112,12 +115,7 @@ impl App {
 			Position::new(extent.max.x, extent.min.y),
 			extent.min,
 		];
-		renderer.draw_lines(
-			None,
-			Matrix4::identity(),
-			points,
-			render::Appearance::rgba(self.lights.get()),
-		);
+		renderer.draw_lines(None, Matrix4::identity(), points, render::Appearance::rgba(self.lights.get()));
 		renderer.draw_quad(
 			Some(Style::Stage),
 			Matrix4::from_scale(extent.max.x - extent.min.x),
@@ -126,7 +124,8 @@ impl App {
 		);
 	}
 
-	fn paint_feeders<R>(&self, renderer: &mut R) where R: render::DrawBuffer {
+	fn paint_feeders<R>(&self, renderer: &mut R)
+	where R: render::DrawBuffer {
 		let mut batch_buffer = render::PrimitiveBuffer::new();
 		for e in self.world.feeders() {
 			let transform = Self::from_transform(&e.transform());
@@ -136,7 +135,7 @@ impl App {
 	}
 
 	fn paint_hud<R>(&self, renderer: &mut R)
-		where R: render::DrawBuffer {
+	where R: render::DrawBuffer {
 		if self.debug_flags.contains(DebugFlags::DEBUG_TARGETS) {
 			let mut batch_buffer = render::PrimitiveBuffer::new();
 			use cgmath::*;
@@ -212,7 +211,7 @@ impl App {
 	}
 
 	pub fn paint<R>(&self, renderer: &mut R)
-		where R: render::Draw + render::DrawBatch + render::DrawBuffer {
+	where R: render::Draw + render::DrawBatch + render::DrawBuffer {
 		self.paint_feeders(renderer);
 		self.paint_minions(renderer);
 		self.paint_particles(renderer);

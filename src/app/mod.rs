@@ -58,23 +58,14 @@ pub fn run(args: &[OsString]) {
 	let mut opt = Options::new();
 	opt.optflag("t", "terminal", "Headless mode");
 	opt.optopt("f", "fullscreen", "Fullscreen mode on monitor X", "0");
-	opt.optopt(
-		"i",
-		"initial",
-		"Start from specific snapshot",
-		"~/.config/rust-oids/saved_state/20180423_234300.json",
-	);
+	opt.optopt("i", "initial", "Start from specific snapshot", "~/.config/rust-oids/saved_state/20180423_234300.json");
 	opt.optflag("n", "new", "Ignore last snapshot, start from new population");
 	opt.optopt("w", "width", "Window width", "1024");
 	opt.optopt("h", "height", "Window height", "1024");
 	opt.optopt("a", "audio_device", "Audio device index (portaudio)", "0");
 	match opt.parse(args) {
 		Ok(options) => {
-			let pool_file_name = options
-				.free
-				.get(1)
-				.map(String::as_str)
-				.unwrap_or(DEFAULT_MINION_GENE_POOL_FILE);
+			let pool_file_name = options.free.get(1).map(String::as_str).unwrap_or(DEFAULT_MINION_GENE_POOL_FILE);
 
 			let mut world_file: Option<path::PathBuf> = options.opt_str("i").map(|s| path::Path::new(&s).to_owned());
 
@@ -110,15 +101,7 @@ pub fn run(args: &[OsString]) {
 				let height = options.opt_default("h", "1024").and_then(|v| v.parse::<u32>().ok());
 				let audio_device = options.opt_default("a", "0").and_then(|v| v.parse::<usize>().ok());
 
-				main::main_loop(
-					pool_file_name,
-					config_home,
-					world_file,
-					fullscreen,
-					width,
-					height,
-					audio_device,
-				);
+				main::main_loop(pool_file_name, config_home, world_file, fullscreen, width, height, audio_device);
 			}
 		}
 		Err(message) => {
@@ -275,7 +258,6 @@ pub struct App {
 	is_paused: bool,
 	is_capturing: bool,
 	// interactions: Vec<Event>,
-	//
 	camera: math::Inertial<f32>,
 	is_camera_tracking: bool,
 	lights: Cycle<Rgba>,
@@ -423,10 +405,7 @@ impl App {
 					VectorDirection::FromVelocity => segment::PilotRotation::FromVelocity,
 				};
 				self.is_camera_tracking = true;
-				self.set_player_intent(segment::Intent::PilotTo(
-					thrust.map(|v| v * THRUST_POWER),
-					pilot_rotation,
-				));
+				self.set_player_intent(segment::Intent::PilotTo(thrust.map(|v| v * THRUST_POWER), pilot_rotation));
 			}
 			Event::PrimaryTrigger(speed, rate) => self.primary_fire(
 				BULLET_SPEED_SCALE * speed,
@@ -504,10 +483,7 @@ impl App {
 
 	fn select_minion(&mut self, id: Id) {
 		self.debug_flags |= DebugFlags::DEBUG_TARGETS;
-		self.world
-			.agent_mut(id)
-			.iter_mut()
-			.for_each(|a| a.state.toggle_selection());
+		self.world.agent_mut(id).iter_mut().for_each(|a| a.state.toggle_selection());
 	}
 
 	pub fn save_gene_pool_to_file(&self) {
@@ -572,10 +548,7 @@ impl App {
 		use cgmath::Rotation3;
 		let position = transform.position;
 		let angle = transform.angle;
-		let rot = Matrix4::from(cgmath::Quaternion::from_axis_angle(
-			cgmath::Vector3::unit_z(),
-			cgmath::Rad(angle),
-		));
+		let rot = Matrix4::from(cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Rad(angle)));
 		let trans = Matrix4::from_translation(cgmath::Vector3::new(position.x, position.y, 0.0));
 
 		trans * rot
@@ -589,13 +562,8 @@ impl App {
 
 	fn register_all(&mut self) {
 		// registered() drains the list, so this can be called only once per frame
-		let found: Vec<agent::Agent> = self
-			.world
-			.registered()
-			.iter()
-			.filter_map(|id| self.world.agent(*id))
-			.cloned()
-			.collect();
+		let found: Vec<agent::Agent> =
+			self.world.registered().iter().filter_map(|id| self.world.agent(*id)).cloned().collect();
 		self.systems.register(&found[..]);
 	}
 
@@ -611,12 +579,8 @@ impl App {
 	}
 
 	fn update_systems(&mut self, dt: Seconds) {
-		self.systems
-			.for_each_par_write(&self.world, &|s, world| s.step(&world, dt));
-		self.systems
-			.for_each_read(&mut self.world, &self.bus, &|s, mut world, outbox| {
-				s.apply(&mut world, outbox)
-			});
+		self.systems.for_each_par_write(&self.world, &|s, world| s.step(&world, dt));
+		self.systems.for_each_read(&mut self.world, &self.bus, &|s, mut world, outbox| s.apply(&mut world, outbox));
 	}
 
 	fn cleanup_after(&mut self) { self.register_all(); }
@@ -637,12 +601,14 @@ impl App {
 		E: Debug, {
 		for alert in self.alert_inbox.drain() {
 			match alert {
-				Message::Event(ref alert) => if let Err(e) = alert_player.play(alert) {
-					error!("Unable to play alert {:?}", e)
-				},
-				Message::Alert(ref alert) => if let Err(e) = alert_player.play(alert) {
-					error!("Unable to play interaction {:?}", e)
-				},
+				Message::Event(ref alert) =>
+					if let Err(e) = alert_player.play(alert) {
+						error!("Unable to play alert {:?}", e)
+					},
+				Message::Alert(ref alert) =>
+					if let Err(e) = alert_player.play(alert) {
+						error!("Unable to play interaction {:?}", e)
+					},
 				_ => {}
 			}
 		}
@@ -656,13 +622,9 @@ impl App {
 
 		let frame_time_smooth = self.frame_smooth.smooth(frame_time);
 
-		let player_follow = if self.is_camera_tracking {
-			self.world.get_player_segment().map(|s| s.transform.position)
-		} else {
-			None
-		};
-		self.viewport
-			.scale(VIEW_SCALE_BASE / self.zoom.update(frame_time_smooth.get() as f32));
+		let player_follow =
+			if self.is_camera_tracking { self.world.get_player_segment().map(|s| s.transform.position) } else { None };
+		self.viewport.scale(VIEW_SCALE_BASE / self.zoom.update(frame_time_smooth.get() as f32));
 		self.camera.set_inertia(CAMERA_INERTIA * self.zoom.get());
 		self.camera.follow(player_follow);
 		self.camera.update(frame_time_smooth);
@@ -671,11 +633,7 @@ impl App {
 
 		self.update_input::<DefaultController>(frame_time_smooth);
 		self.receive();
-		let speed_factor = if self.is_paused {
-			0.0 as SpeedFactor
-		} else {
-			self.speed_factors.get()
-		};
+		let speed_factor = if self.is_paused { 0.0 as SpeedFactor } else { self.speed_factors.get() };
 		let quantum = quantum_target.unwrap_or_else(|| num::clamp(target_duration, MIN_FRAME_LENGTH, MAX_FRAME_LENGTH));
 		let (dt, rounds) = if speed_factor <= 1.0 {
 			(Seconds::new(speed_factor * quantum), 1)

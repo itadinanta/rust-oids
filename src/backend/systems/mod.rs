@@ -1,19 +1,19 @@
-pub mod physics;
-pub mod animation;
 pub mod ai;
 pub mod alife;
+pub mod animation;
 pub mod game;
 pub mod particle;
+pub mod physics;
 
-pub use self::physics::PhysicsSystem;
-pub use self::animation::AnimationSystem;
-pub use self::game::GameSystem;
 pub use self::ai::AiSystem;
 pub use self::alife::AlifeSystem;
+pub use self::animation::AnimationSystem;
+pub use self::game::GameSystem;
 pub use self::particle::ParticleSystem;
+pub use self::physics::PhysicsSystem;
 
+use backend::messagebus::{Outbox, PubSub};
 use backend::world;
-use backend::messagebus::{PubSub, Outbox};
 
 use core::clock::Seconds;
 
@@ -32,7 +32,5 @@ pub trait System {
 		self.update(world, dt)
 	}
 
-	fn apply(&self, world: &mut world::World, outbox: &Outbox) {
-		self.export(world, outbox)
-	}
+	fn apply(&self, world: &mut world::World, outbox: &Outbox) { self.export(world, outbox) }
 }

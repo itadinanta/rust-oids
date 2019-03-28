@@ -44,15 +44,7 @@ impl Capture {
 			let h = self.h;
 			let mut buf: Vec<[u8; 3]> = vec![[0u8; 3]; (w * h) as usize];
 			unsafe {
-				gl::ReadPixels(
-					0,
-					0,
-					w as i32,
-					h as i32,
-					gl::RGB,
-					gl::UNSIGNED_BYTE,
-					buf.as_mut_ptr() as *mut _,
-				);
+				gl::ReadPixels(0, 0, w as i32, h as i32, gl::RGB, gl::UNSIGNED_BYTE, buf.as_mut_ptr() as *mut _);
 			}
 			self.seq += 1;
 			let filename = self.capture_prefix.clone() + &format!("{:08}.png", self.seq);
@@ -83,11 +75,7 @@ impl Capture {
 	pub fn start(&mut self) {
 		match create_dir_all(self.capture_path.clone()) {
 			Ok(_) => self.enabled = true,
-			Err(msg) => error!(
-				"Could not create capture directory {}: {}",
-				self.capture_path.to_str().unwrap(),
-				msg
-			),
+			Err(msg) => error!("Could not create capture directory {}: {}", self.capture_path.to_str().unwrap(), msg),
 		}
 	}
 

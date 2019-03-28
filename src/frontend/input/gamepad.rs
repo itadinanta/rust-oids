@@ -37,7 +37,7 @@ impl input::EventMapper<gilrs::Event> for GamepadEventLoop {
 				gilrs::Button::DPadLeft => Some(GamepadDPadLeft),
 				gilrs::Button::DPadRight => Some(GamepadDPadRight),
 
-				_ => None
+				_ => None,
 			}
 		}
 
@@ -48,17 +48,16 @@ impl input::EventMapper<gilrs::Event> for GamepadEventLoop {
 				gilrs::Axis::LeftStickY => Some(LStickY),
 				gilrs::Axis::RightStickX => Some(RStickX),
 				gilrs::Axis::RightStickY => Some(RStickY),
-				_ => None
+				_ => None,
 			}
 		}
-
 
 		fn from_button(axis: gilrs::Button) -> Option<input::Axis> {
 			use frontend::input::Axis::*;
 			match axis {
 				gilrs::Button::LeftTrigger2 => Some(L2),
 				gilrs::Button::RightTrigger2 => Some(R2),
-				_ => None
+				_ => None,
 			}
 		}
 
@@ -68,14 +67,12 @@ impl input::EventMapper<gilrs::Event> for GamepadEventLoop {
 			gilrs::EventType::ButtonReleased(button, _) =>
 				to_key(button).map(|key| input::Event::GamepadButton(e.id, input::State::Up, key)),
 			gilrs::EventType::ButtonChanged(gilrs::Button::RightTrigger2, value, _) =>
-				from_button(gilrs::Button::RightTrigger2)
-					.map(|axis| input::Event::GamepadAxis(e.id, value, axis)),
+				from_button(gilrs::Button::RightTrigger2).map(|axis| input::Event::GamepadAxis(e.id, value, axis)),
 			gilrs::EventType::ButtonChanged(gilrs::Button::LeftTrigger2, value, _) =>
-				from_button(gilrs::Button::LeftTrigger2)
-					.map(|axis| input::Event::GamepadAxis(e.id, value, axis)),
+				from_button(gilrs::Button::LeftTrigger2).map(|axis| input::Event::GamepadAxis(e.id, value, axis)),
 			gilrs::EventType::AxisChanged(axis, value, _) =>
 				from_axis(axis).map(|axis| input::Event::GamepadAxis(e.id, value, axis)),
-			_ => None
+			_ => None,
 		}
 	}
 }
@@ -86,18 +83,16 @@ impl GamepadEventLoop {
 		for (_id, gamepad) in gilrs.gamepads() {
 			info!("{} is {:?}", gamepad.name(), gamepad.power_info());
 		}
-		GamepadEventLoop {
-			gilrs,
-		}
+		GamepadEventLoop { gilrs }
 	}
 
 	pub fn poll_events<F>(&mut self, mut on_input_event: F)
-		where F: FnMut(input::Event) {
+	where F: FnMut(input::Event) {
 		while let Some(ev) = self.gilrs.next_event() {
 			self.gilrs.update(&ev);
 			trace!("{:?}", ev);
 			self.translate(&ev).map(&mut on_input_event);
-		};
+		}
 		self.gilrs.inc();
 	}
 }

@@ -38,34 +38,16 @@ type FaderList = [Option<Fader<f32>>; MAX_FADER];
 impl<S> Default for Fader<S>
 where S: num::Float
 {
-	fn default() -> Fader<S> {
-		Fader {
-			value: S::one(),
-			fade_rate: NumCast::from(0.95).unwrap(),
-			target: S::zero(),
-		}
-	}
+	fn default() -> Fader<S> { Fader { value: S::one(), fade_rate: NumCast::from(0.95).unwrap(), target: S::zero() } }
 }
 
 #[allow(unused)]
 impl<S> Fader<S>
 where S: num::Float
 {
-	fn new(value: S, fade_rate: S, target: S) -> Fader<S> {
-		Fader {
-			value,
-			fade_rate,
-			target,
-		}
-	}
+	fn new(value: S, fade_rate: S, target: S) -> Fader<S> { Fader { value, fade_rate, target } }
 
-	fn flat(value: S) -> Fader<S> {
-		Fader {
-			value,
-			fade_rate: S::zero(),
-			target: value,
-		}
-	}
+	fn flat(value: S) -> Fader<S> { Fader { value, fade_rate: S::zero(), target: value } }
 
 	fn value(&self) -> S { self.value }
 
@@ -189,45 +171,21 @@ impl SimpleEmitter {
 
 	pub fn with_trail_length(self, trail_length: u8) -> Self { SimpleEmitter { trail_length, ..self } }
 
-	pub fn with_pulse(self, pulse: f32, pulse_rate: f32) -> Self {
-		SimpleEmitter {
-			pulse,
-			pulse_rate,
-			..self
-		}
-	}
+	pub fn with_pulse(self, pulse: f32, pulse_rate: f32) -> Self { SimpleEmitter { pulse, pulse_rate, ..self } }
 
-	pub fn with_phase(self, phase: f32, phase_rate: f32) -> Self {
-		SimpleEmitter {
-			phase,
-			phase_rate,
-			..self
-		}
-	}
+	pub fn with_phase(self, phase: f32, phase_rate: f32) -> Self { SimpleEmitter { phase, phase_rate, ..self } }
 
 	pub fn with_ttl(self, ttl: Option<Seconds>) -> Self { SimpleEmitter { ttl, ..self } }
 
 	pub fn with_color(self, color0: Rgba<f32>, color1: Rgba<f32>) -> Self {
-		SimpleEmitter {
-			color: (color0, color1),
-			..self
-		}
+		SimpleEmitter { color: (color0, color1), ..self }
 	}
 
 	pub fn with_effect(self, effect0: Rgba<f32>, effect1: Rgba<f32>) -> Self {
-		SimpleEmitter {
-			effect: (effect0, effect1),
-			..self
-		}
+		SimpleEmitter { effect: (effect0, effect1), ..self }
 	}
 
-	pub fn with_friction(self, friction: f32, dampening: f32) -> Self {
-		SimpleEmitter {
-			friction,
-			dampening,
-			..self
-		}
-	}
+	pub fn with_friction(self, friction: f32, dampening: f32) -> Self { SimpleEmitter { friction, dampening, ..self } }
 
 	pub fn with_1_fader(self, fader_color: Fader<f32>) -> Self {
 		self.with_faders([Some(fader_color), None, None, None])
@@ -249,12 +207,7 @@ impl SimpleEmitter {
 		fader_frequency: Fader<f32>,
 	) -> Self
 	{
-		self.with_faders([
-			Some(fader_color),
-			Some(fader_scale),
-			Some(fader_effect),
-			Some(fader_frequency),
-		])
+		self.with_faders([Some(fader_color), Some(fader_scale), Some(fader_effect), Some(fader_frequency)])
 	}
 
 	pub fn with_fader(self, index: world::particle::Fader, value: Option<Fader<f32>>) -> Self {
@@ -300,26 +253,24 @@ impl Emitter for SimpleEmitter {
 							motion: Motion::new(velocity + frame_velocity, self.motion.spin + jitter(0.1) - 1.),
 							acceleration: self.acceleration * jitter(0.5),
 						}
-					}).collect::<Vec<_>>()
+					})
+					.collect::<Vec<_>>()
 					.into_boxed_slice();
 				let id = *id_counter;
 				*id_counter = id + 1;
-				destination.insert(
+				destination.insert(id, ParticleBatch {
 					id,
-					ParticleBatch {
-						id,
-						tag: self.tag,
-						particles,
-						color: self.color,
-						effect: self.effect,
-						age: seconds(0.),
-						trail_length: self.trail_length,
-						dampening: self.dampening,
-						friction: self.friction,
-						faders: self.faders,
-						lifespan: self.lifespan,
-					},
-				);
+					tag: self.tag,
+					particles,
+					color: self.color,
+					effect: self.effect,
+					age: seconds(0.),
+					trail_length: self.trail_length,
+					dampening: self.dampening,
+					friction: self.friction,
+					faders: self.faders,
+					lifespan: self.lifespan,
+				});
 			}
 		}
 		match self.ttl {
@@ -391,7 +342,8 @@ impl System for ParticleSystem {
 						Fader::new(0.5, 0.7, 5.0),
 						Fader::flat(1.),
 						Fader::new(10., 1., 5.),
-					).with_cluster_size(1)
+					)
+					.with_cluster_size(1)
 					.with_lifespan(seconds(3.0)),
 				EmitterStyle::Sparkle { cluster_size, color } => SimpleEmitter::new(self.next_id())
 					.with_jitter(0.)
@@ -427,7 +379,8 @@ impl System for ParticleSystem {
 						Fader::new(1.0, 1.1, 0.1),
 						Fader::default(),
 						Fader::new(1.0, 4.0, 0.0),
-					).with_cluster_size(3)
+					)
+					.with_cluster_size(3)
 					.with_cluster_spread(0.15)
 					.with_lifespan(seconds(3.0));
 				self.emitters.insert(emitter.id, Box::new(emitter));
@@ -440,23 +393,18 @@ impl System for ParticleSystem {
 			.map(|(id, emitter)| {
 				let surviving = match emitter.attached_to() {
 					EmitterAttachment::None => Some(id),
-					EmitterAttachment::Agent(agent_id) => {
+					EmitterAttachment::Agent(agent_id) =>
 						world.agent(agent_id).and_then(|agent| agent.segment(0)).map(|segment| {
 							emitter.update_transform(segment.transform.clone(), segment.motion.clone());
 							id
-						})
-					}
-					EmitterAttachment::Segment(agent_id, segment_id) => world
-						.agent(agent_id)
-						.and_then(|agent| agent.segment(segment_id))
-						.map(|segment| {
+						}),
+					EmitterAttachment::Segment(agent_id, segment_id) =>
+						world.agent(agent_id).and_then(|agent| agent.segment(segment_id)).map(|segment| {
 							emitter.update_transform(segment.transform.clone(), segment.motion.clone());
 							id
 						}),
-					EmitterAttachment::Vertex(agent_id, segment_id, bone_id) => world
-						.agent(agent_id)
-						.and_then(|agent| agent.segment(segment_id))
-						.map(|segment| {
+					EmitterAttachment::Vertex(agent_id, segment_id, bone_id) =>
+						world.agent(agent_id).and_then(|agent| agent.segment(segment_id)).map(|segment| {
 							let vertex = segment.growing_scaled_vertex(bone_id as usize);
 							let vertex_angle = f32::atan2(vertex.y, vertex.x);
 							let transform =
@@ -469,7 +417,8 @@ impl System for ParticleSystem {
 					None => Some(id),
 					Some(_) => None,
 				}
-			}).filter_map(|i| i)
+			})
+			.filter_map(|i| i)
 			.cloned()
 			.collect();
 
@@ -586,7 +535,8 @@ impl ParticleSystem {
 					particle_batch.age += dt;
 					None
 				}
-			}).collect();
+			})
+			.collect();
 
 		for id in expired {
 			self.particles.remove(&id);

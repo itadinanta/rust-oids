@@ -1,11 +1,11 @@
 use backend::obj;
 use backend::obj::*;
 use backend::world::agent;
+use core::clock::Seconds;
+use core::geometry::Transform;
+use core::geometry::*;
 use core::math;
 use core::math::ExponentialFilter;
-use core::geometry::*;
-use core::geometry::Transform;
-use core::clock::Seconds;
 use num::Zero;
 
 #[derive(Clone)]
@@ -54,7 +54,9 @@ impl State {
 	pub fn age_frames(&self) -> usize { self.age_frames }
 
 	pub fn charge(&self) -> f32 { self.charge.get() }
-	pub fn reset_charge(&mut self, current_charge: f32, target_charge: f32) { self.charge.reset_to(target_charge, current_charge); }
+	pub fn reset_charge(&mut self, current_charge: f32, target_charge: f32) {
+		self.charge.reset_to(target_charge, current_charge);
+	}
 	pub fn set_output_charge(&mut self, charge: f32) { self.charge.force_to(charge); }
 	pub fn target_charge(&self) -> f32 { self.charge.last_input() }
 	pub fn set_target_charge(&mut self, target_charge: f32) { self.charge.input(target_charge); }
@@ -134,9 +136,7 @@ impl Segment {
 		})
 	}
 
-	pub fn growing_radius(&self) -> f32 {
-		self.state.maturity * self.mesh.shape.radius()
-	}
+	pub fn growing_radius(&self) -> f32 { self.state.maturity * self.mesh.shape.radius() }
 
 	pub fn growing_scaled_vertex(&self, index: usize) -> Position {
 		self.state.maturity * self.mesh.scaled_vertex(index)
@@ -147,47 +147,28 @@ impl obj::Drawable for Segment {
 	fn color(&self) -> Rgba {
 		let rgba = self.livery.albedo;
 		let c = 5. * ((self.state.charge.get() * 0.99) + 0.01);
-		[
-			rgba[0] * c,
-			rgba[1] * c,
-			rgba[2] * c,
-			rgba[3] * self.material.density,
-		]
+		[rgba[0] * c, rgba[1] * c, rgba[2] * c, rgba[3] * self.material.density]
 	}
 }
 
 impl Transformable for Segment {
-	fn transform(&self) -> &Transform {
-		&self.transform
-	}
+	fn transform(&self) -> &Transform { &self.transform }
 
-	fn transform_to(&mut self, t: Transform) {
-		self.transform = t;
-	}
+	fn transform_to(&mut self, t: Transform) { self.transform = t; }
 }
 
 impl Motionable for Segment {
-	fn motion(&self) -> &Motion {
-		&self.motion
-	}
+	fn motion(&self) -> &Motion { &self.motion }
 
-	fn motion_to(&mut self, m: Motion) {
-		self.motion = m;
-	}
+	fn motion_to(&mut self, m: Motion) { self.motion = m; }
 }
 
 impl obj::Geometry for Segment {
-	fn mesh(&self) -> &Mesh {
-		&self.mesh
-	}
+	fn mesh(&self) -> &Mesh { &self.mesh }
 }
 
 impl obj::Solid for Segment {
-	fn material(&self) -> &Material {
-		&self.material
-	}
+	fn material(&self) -> &Material { &self.material }
 
-	fn livery(&self) -> &Livery {
-		&self.livery
-	}
+	fn livery(&self) -> &Livery { &self.livery }
 }

@@ -1,14 +1,14 @@
-use std::io;
-use std::fs;
-use std::path;
 use backend::world;
 use backend::world::agent;
 use backend::world::gen;
-use num_traits::FromPrimitive;
-use core::geometry;
 use core::clock;
+use core::geometry;
+use num_traits::FromPrimitive;
 use serde_json;
-use serialize::base64::{self, ToBase64, FromBase64};
+use serialize::base64::{self, FromBase64, ToBase64};
+use std::fs;
+use std::io;
+use std::path;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Segment {
@@ -91,24 +91,14 @@ impl Serializer {
 		}
 
 		fn serialize_segment(src: &world::segment::Segment) -> Segment {
-			Segment {
-				charge: src.state.charge(),
-				target_charge: src.state.target_charge(),
-			}
+			Segment { charge: src.state.charge(), target_charge: src.state.target_charge() }
 		}
 
-		let swarms = world.swarms()
-			.iter()
-			.map(|(_k, v)| serialize_swarm(v))
-			.collect();
-		let minion_gene_pool: Vec<_> = world.minion_gene_pool
-			.gene_pool_iter()
-			.map(|dna| dna.to_base64(base64::STANDARD))
-			.collect();
-		let resource_gene_pool: Vec<_> = world.resource_gene_pool
-			.gene_pool_iter()
-			.map(|dna| dna.to_base64(base64::STANDARD))
-			.collect();
+		let swarms = world.swarms().iter().map(|(_k, v)| serialize_swarm(v)).collect();
+		let minion_gene_pool: Vec<_> =
+			world.minion_gene_pool.gene_pool_iter().map(|dna| dna.to_base64(base64::STANDARD)).collect();
+		let resource_gene_pool: Vec<_> =
+			world.resource_gene_pool.gene_pool_iter().map(|dna| dna.to_base64(base64::STANDARD)).collect();
 		World {
 			left: world.extent.min.x,
 			bottom: world.extent.min.y,
@@ -141,27 +131,40 @@ impl Serializer {
 				swarm.reset(src_swarm.seq);
 				for src_agent in &src_swarm.agents {
 					if let Ok(dna) = src_agent.dna.from_base64() {
-						let id = swarm.rebuild(src_agent.id, &mut gen::Genome::new(dna), agent::InitialState {
-							transform: geometry::Transform::from_components(src_agent.x, src_agent.y, src_agent.angle),
-							motion: geometry::Motion::from_components(src_agent.vx, src_agent.vy, src_agent.spin),
-							age_seconds: clock::seconds(src_agent.age_seconds),
-							age_frames: src_agent.age_frames,
-							maturity: Some(src_agent.maturity),
-							..Default::default()
-						}, &timer);
+						let id = swarm.rebuild(
+							src_agent.id,
+							&mut gen::Genome::new(dna),
+							agent::InitialState {
+								transform: geometry::Transform::from_components(
+									src_agent.x,
+									src_agent.y,
+									src_agent.angle,
+								),
+								motion: geometry::Motion::from_components(src_agent.vx, src_agent.vy, src_agent.spin),
+								age_seconds: clock::seconds(src_agent.age_seconds),
+								age_frames: src_agent.age_frames,
+								maturity: Some(src_agent.maturity),
+								..Default::default()
+							},
+							&timer,
+						);
 						if let Some(agent) = swarm.get_mut(id) {
 							agent.state.restore(src_agent.flags, src_agent.phase, src_agent.energy);
 
-							for (src_segment, dest_segment) in src_agent.segments.iter().zip(agent.segments_mut().iter_mut()) {
+							for (src_segment, dest_segment) in
+								src_agent.segments.iter().zip(agent.segments_mut().iter_mut())
+							{
 								dest_segment.state.restore(src_segment.charge, src_segment.target_charge);
-							};
+							}
 							registered.push(id);
 						}
 					}
 				}
 			}
 		}
-		world.registered_player_id = world.swarms().get(&agent::AgentType::Player)
+		world.registered_player_id = world
+			.swarms()
+			.get(&agent::AgentType::Player)
 			.and_then(|swarm| swarm.agents().iter().next().map(|(k, _s)| *k));
 		for id in registered {
 			world.register(id);
@@ -176,7 +179,7 @@ impl Serializer {
 				Self::restore_snapshot(&src, dest);
 				Ok(())
 			}
-			Err(e) => Err(e)
+			Err(e) => Err(e),
 		}
 	}
 

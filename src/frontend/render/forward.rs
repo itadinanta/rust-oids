@@ -1,18 +1,17 @@
-use std::result;
 use cgmath;
+use core::resource;
+use frontend::render::formats;
+use frontend::render::RenderFactoryExt;
+use frontend::render::Result;
+use frontend::render::Style;
 use gfx;
 use gfx::state::ColorMask;
-use gfx::traits::FactoryExt;
 use gfx::state::{Blend, BlendChannel, BlendValue, Equation, Factor};
-use frontend::render::Style;
-use frontend::render::Result;
-use frontend::render::RenderFactoryExt;
-use frontend::render::formats;
-use core::resource;
+use gfx::traits::FactoryExt;
+use std::result;
 
 pub type PrimitiveIndex = i16;
 pub type VertexIndex = u16;
-
 
 gfx_vertex_struct!(VertexPosNormal {
 	pos: [f32; 3] = "a_Pos",
@@ -26,26 +25,16 @@ pub type Vertex = VertexPosNormal;
 
 macro_rules! new_vertex {
 	($pos:expr, $tex_coord:expr) => {
-		Vertex {
-			pos: $pos,
-			normal: [0., 0., 1.],
-			tangent: [1., 0., 0.],
-			tex_coord: $tex_coord,
-			primitive_index: 0,
-		}
-	}
+		Vertex { pos: $pos, normal: [0., 0., 1.], tangent: [1., 0., 0.], tex_coord: $tex_coord, primitive_index: 0 }
+	};
 }
 
 impl Default for VertexPosNormal {
-	fn default() -> Self {
-		new_vertex!([0.; 3], [0.5, 0.5])
-	}
+	fn default() -> Self { new_vertex!([0.; 3], [0.5, 0.5]) }
 }
 
 impl VertexPosNormal {
-	pub fn new(pos: [f32; 3], tex_coord: [f32; 2]) -> VertexPosNormal {
-		new_vertex!(pos, tex_coord)
-	}
+	pub fn new(pos: [f32; 3], tex_coord: [f32; 2]) -> VertexPosNormal { new_vertex!(pos, tex_coord) }
 }
 
 pub type M44 = cgmath::Matrix4<f32>;
@@ -59,11 +48,7 @@ pub const PREMULT: Blend = Blend {
 		source: Factor::One,
 		destination: Factor::OneMinus(BlendValue::SourceAlpha),
 	},
-	alpha: BlendChannel {
-		equation: Equation::Add,
-		source: Factor::One,
-		destination: Factor::One,
-	},
+	alpha: BlendChannel { equation: Equation::Add, source: Factor::One, destination: Factor::One },
 };
 
 gfx_defines!(
@@ -121,7 +106,7 @@ pub type ShadedInit<'f> = shaded::Init<'f>;
 use std::marker::PhantomData;
 
 pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>, D>
-	where D: gfx::pso::PipelineInit {
+where D: gfx::pso::PipelineInit {
 	camera: gfx::handle::Buffer<R, CameraArgs>,
 	model: gfx::handle::Buffer<R, ModelArgs>,
 	fragment: gfx::handle::Buffer<R, FragmentArgs>,
@@ -132,10 +117,10 @@ pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>, D>
 }
 
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
-	where D: gfx::pso::PipelineInit + Clone {
+where D: gfx::pso::PipelineInit + Clone
+{
 	pub fn new<F>(factory: &mut F, res: &resource::ResourceLoader<u8>, init: D) -> Result<ForwardLighting<R, C, D>>
-		where
-			F: gfx::Factory<R>, {
+	where F: gfx::Factory<R> {
 		let lights = factory.create_constant_buffer(MAX_NUM_TOTAL_LIGHTS);
 		let camera = factory.create_constant_buffer(1);
 		let fragment = factory.create_constant_buffer(1);
@@ -143,15 +128,20 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 		let material = factory.create_constant_buffer(MAX_NUM_TOTAL_TRANSFORMS);
 
 		macro_rules! load_shaders {
-		( $ v: expr, $ f: expr) => { factory.create_shader_set(
-				& res.load(concat! ("shaders/forward/", $ v, ".vert"))?,
-				& res.load(concat ! ("shaders/forward/", $ f, ".frag"))? ) };
+			($v:expr, $f:expr) => {
+				factory.create_shader_set(
+					&res.load(concat!("shaders/forward/", $v, ".vert"))?,
+					&res.load(concat!("shaders/forward/", $f, ".frag"))?,
+					)
+			};
 
-				( $ g: expr, $ v:expr, $ f: expr) => { factory.create_shader_set_with_geometry(
-				& res.load(concat! ("shaders/forward/", $ g, ".geom"))?,
-				& res.load(concat ! ("shaders/forward/", $ v, ".vert"))?,
-				& res.load(concat ! ("shaders/forward/", $ f, ".frag"))? )
-			}
+			($g:expr, $v:expr, $f:expr) => {
+				factory.create_shader_set_with_geometry(
+					&res.load(concat!("shaders/forward/", $g, ".geom"))?,
+					&res.load(concat!("shaders/forward/", $v, ".vert"))?,
+					&res.load(concat!("shaders/forward/", $f, ".frag"))?,
+					)
+			};
 		};
 
 		let flat_shaders = load_shaders!("lighting", "lighting_flat")?;
@@ -161,104 +151,60 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 		let particle_shaders = load_shaders!("unlit", "ripple_particle")?;
 		let ball_shaders = load_shaders!("point_ball", "lighting", "lighting_poly")?;
 
-		let solid_rasterizer = gfx::state::Rasterizer {
-			samples: Some(gfx::state::MultiSample),
-			..gfx::state::Rasterizer::new_fill()
-		};
+		let solid_rasterizer =
+			gfx::state::Rasterizer { samples: Some(gfx::state::MultiSample), ..gfx::state::Rasterizer::new_fill() };
 
-		let line_rasterizer = gfx::state::Rasterizer {
-			method: gfx::state::RasterMethod::Line(2),
-			..solid_rasterizer
-		};
-		let debug_line_rasterizer = gfx::state::Rasterizer {
-			method: gfx::state::RasterMethod::Line(1),
-			..solid_rasterizer
-		};
+		let line_rasterizer = gfx::state::Rasterizer { method: gfx::state::RasterMethod::Line(2), ..solid_rasterizer };
+		let debug_line_rasterizer =
+			gfx::state::Rasterizer { method: gfx::state::RasterMethod::Line(1), ..solid_rasterizer };
 
-		let ball_pso = Self::new_pso(
-			factory,
-			&ball_shaders,
-			gfx::Primitive::TriangleList,
-			solid_rasterizer,
-			init.clone(),
-		)?;
-		let poly_pso = Self::new_pso(
-			factory,
-			&solid_shaders,
-			gfx::Primitive::TriangleList,
-			solid_rasterizer,
-			init.clone(),
-		)?;
-		let stage_pso = Self::new_pso(
-			factory,
-			&stage_shaders,
-			gfx::Primitive::TriangleList,
-			solid_rasterizer,
-			init.clone(),
-		)?;
-		let particle_pso = Self::new_pso(
-			factory,
-			&particle_shaders,
-			gfx::Primitive::TriangleList,
-			solid_rasterizer,
-			init.clone(),
-		)?;
-		let wireframe_pso = Self::new_pso(
-			factory,
-			&wire_shaders,
-			gfx::Primitive::TriangleList,
-			line_rasterizer,
-			init.clone(),
-		)?;
-		let lit_pso = Self::new_pso(
-			factory,
-			&solid_shaders,
-			gfx::Primitive::TriangleList,
-			solid_rasterizer,
-			init.clone(),
-		)?;
-		let lines_pso = Self::new_pso(
-			factory,
-			&flat_shaders,
-			gfx::Primitive::LineList,
-			line_rasterizer,
-			init.clone(),
-		)?;
-		let debug_lines_pso = Self::new_pso(
-			factory,
-			&flat_shaders,
-			gfx::Primitive::LineList,
-			debug_line_rasterizer,
-			init,
-		)?;
+		let ball_pso =
+			Self::new_pso(factory, &ball_shaders, gfx::Primitive::TriangleList, solid_rasterizer, init.clone())?;
+		let poly_pso =
+			Self::new_pso(factory, &solid_shaders, gfx::Primitive::TriangleList, solid_rasterizer, init.clone())?;
+		let stage_pso =
+			Self::new_pso(factory, &stage_shaders, gfx::Primitive::TriangleList, solid_rasterizer, init.clone())?;
+		let particle_pso =
+			Self::new_pso(factory, &particle_shaders, gfx::Primitive::TriangleList, solid_rasterizer, init.clone())?;
+		let wireframe_pso =
+			Self::new_pso(factory, &wire_shaders, gfx::Primitive::TriangleList, line_rasterizer, init.clone())?;
+		let lit_pso =
+			Self::new_pso(factory, &solid_shaders, gfx::Primitive::TriangleList, solid_rasterizer, init.clone())?;
+		let lines_pso = Self::new_pso(factory, &flat_shaders, gfx::Primitive::LineList, line_rasterizer, init.clone())?;
+		let debug_lines_pso =
+			Self::new_pso(factory, &flat_shaders, gfx::Primitive::LineList, debug_line_rasterizer, init)?;
 		Ok(ForwardLighting {
 			camera,
 			model,
 			fragment,
 			material,
 			lights,
-			pso: [
-				ball_pso,
-				poly_pso,
-				stage_pso,
-				particle_pso,
-				wireframe_pso,
-				lit_pso,
-				lines_pso,
-				debug_lines_pso,
-			],
+			pso: [ball_pso, poly_pso, stage_pso, particle_pso, wireframe_pso, lit_pso, lines_pso, debug_lines_pso],
 			_buffer: PhantomData,
 		})
 	}
 
-	fn new_pso<F>(factory: &mut F, shaders: &gfx::ShaderSet<R>, primitive: gfx::Primitive, rasterizer: gfx::state::Rasterizer, init: D)
-				  -> result::Result<gfx::pso::PipelineState<R, D::Meta>, gfx::PipelineStateError<String>>
-		where
-			F: gfx::Factory<R>, {
+	fn new_pso<F>(
+		factory: &mut F,
+		shaders: &gfx::ShaderSet<R>,
+		primitive: gfx::Primitive,
+		rasterizer: gfx::state::Rasterizer,
+		init: D,
+	) -> result::Result<gfx::pso::PipelineState<R, D::Meta>, gfx::PipelineStateError<String>>
+	where
+		F: gfx::Factory<R>,
+	{
 		factory.create_pipeline_state(&shaders, primitive, rasterizer, init)
 	}
 
-	pub fn setup(&self, encoder: &mut gfx::Encoder<R, C>, camera_projection: M44, camera_view: M44, lights: &[PointLight]) -> Result<()> {
+	pub fn setup(
+		&self,
+		encoder: &mut gfx::Encoder<R, C>,
+		camera_projection: M44,
+		camera_view: M44,
+		lights: &[PointLight],
+	) -> Result<()>
+	{
 		let mut lights_buf = lights.to_owned();
 
 		let count = lights_buf.len();
@@ -270,16 +216,11 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 			})
 		}
 
-		encoder.update_buffer(
-			&self.lights,
-			&lights_buf[..],
-			0)?;
-		encoder.update_constant_buffer(
-			&self.camera,
-			&CameraArgs {
-				proj: camera_projection.into(),
-				view: camera_view.into(),
-			});
+		encoder.update_buffer(&self.lights, &lights_buf[..], 0)?;
+		encoder.update_constant_buffer(&self.camera, &CameraArgs {
+			proj: camera_projection.into(),
+			view: camera_view.into(),
+		});
 		encoder.update_constant_buffer(&self.fragment, &FragmentArgs { light_count: count as i32 });
 		Ok(())
 	}
@@ -288,7 +229,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C, shaded::Init<'static>> {
 	#[allow(clippy::too_many_arguments)]
 	pub fn draw_primitives(
-		&self, shader: Style,
+		&self,
+		shader: Style,
 		encoder: &mut gfx::Encoder<R, C>,
 		vertices: gfx::handle::Buffer<R, VertexPosNormal>,
 		indices: &gfx::Slice<R>,
@@ -296,22 +238,20 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C, shaded::
 		materials: &[MaterialArgs],
 		color_buffer: &gfx::handle::RenderTargetView<R, formats::RenderColorFormat>,
 		depth_buffer: &gfx::handle::DepthStencilView<R, formats::RenderDepthFormat>,
-	) -> Result<()> {
+	) -> Result<()>
+	{
 		encoder.update_buffer(&self.model, &models, 0)?;
 		encoder.update_buffer(&self.material, &materials, 0)?;
-		encoder.draw(
-			indices,
-			&self.pso[shader as usize],
-			&shaded::Data {
-				vbuf: vertices,
-				fragment_args: self.fragment.clone(),
-				material_args: self.material.clone(),
-				camera_args: self.camera.clone(),
-				model_args: self.model.clone(),
-				lights: self.lights.clone(),
-				color_target: color_buffer.clone(),
-				depth_target: depth_buffer.clone(),
-			});
+		encoder.draw(indices, &self.pso[shader as usize], &shaded::Data {
+			vbuf: vertices,
+			fragment_args: self.fragment.clone(),
+			material_args: self.material.clone(),
+			camera_args: self.camera.clone(),
+			model_args: self.model.clone(),
+			lights: self.lights.clone(),
+			color_target: color_buffer.clone(),
+			depth_target: depth_buffer.clone(),
+		});
 		Ok(())
 	}
 }

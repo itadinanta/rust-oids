@@ -3,13 +3,13 @@ pub mod gamepad;
 
 pub use self::gamepad::GamepadEventLoop;
 
-use core::geometry;
-use core::util::History;
-use core::geometry::Position;
-use core::view::ViewTransform;
 use bit_set::BitSet;
-use std::iter::Iterator;
+use core::geometry;
+use core::geometry::Position;
+use core::util::History;
+use core::view::ViewTransform;
 use std::collections::HashMap;
+use std::iter::Iterator;
 
 #[derive(Clone)]
 enum DragState {
@@ -251,22 +251,15 @@ impl GamepadState {
 		};
 	}
 
-	pub fn button_pressed(&self, b: Key) -> bool {
-		self.button_pressed.contains(b as usize)
-	}
+	pub fn button_pressed(&self, b: Key) -> bool { self.button_pressed.contains(b as usize) }
 
 	pub fn button_once(&self, b: Key) -> bool {
-		self.button_pressed.contains(b as usize) &&
-			!self.button_pressed_last.contains(b as usize)
+		self.button_pressed.contains(b as usize) && !self.button_pressed_last.contains(b as usize)
 	}
 
-	pub fn update_button_pressed(&mut self) {
-		self.button_pressed_last = self.button_pressed.clone();
-	}
+	pub fn update_button_pressed(&mut self) { self.button_pressed_last = self.button_pressed.clone(); }
 
-	fn axis(&mut self, value: AxisValue, axis: Axis) {
-		self.axis[axis as usize] = value;
-	}
+	fn axis(&mut self, value: AxisValue, axis: Axis) { self.axis[axis as usize] = value; }
 }
 
 pub trait InputRead {
@@ -286,13 +279,10 @@ pub trait InputRead {
 
 #[allow(dead_code)]
 impl InputRead for InputState {
-	fn key_pressed(&self, b: Key) -> bool {
-		self.key_pressed.contains(b as usize)
-	}
+	fn key_pressed(&self, b: Key) -> bool { self.key_pressed.contains(b as usize) }
 
 	fn key_once(&self, b: Key) -> bool {
-		self.key_pressed.contains(b as usize) &&
-			!self.key_pressed_last.contains(b as usize)
+		self.key_pressed.contains(b as usize) && !self.key_pressed_last.contains(b as usize)
 	}
 
 	fn any_key_pressed(&self, b: &[Key]) -> bool {
@@ -300,17 +290,11 @@ impl InputRead for InputState {
 		!self.key_pressed.is_disjoint(&other)
 	}
 
-	fn any_ctrl_pressed(&self) -> bool {
-		self.any_key_pressed(&[Key::LCtrl, Key::RCtrl])
-	}
+	fn any_ctrl_pressed(&self) -> bool { self.any_key_pressed(&[Key::LCtrl, Key::RCtrl]) }
 
-	fn any_alt_pressed(&self) -> bool {
-		self.any_key_pressed(&[Key::LAlt, Key::RAlt])
-	}
+	fn any_alt_pressed(&self) -> bool { self.any_key_pressed(&[Key::LAlt, Key::RAlt]) }
 
-	fn any_super_pressed(&self) -> bool {
-		self.any_key_pressed(&[Key::LSuper, Key::RSuper])
-	}
+	fn any_super_pressed(&self) -> bool { self.any_key_pressed(&[Key::LSuper, Key::RSuper]) }
 
 	fn chord_pressed(&self, b: &[Key]) -> bool {
 		let other: BitSet = b.iter().map(|k| *k as usize).collect();
@@ -318,31 +302,20 @@ impl InputRead for InputState {
 	}
 
 	fn gamepad_button_pressed(&self, gamepad_id: usize, b: Key) -> bool {
-		self.gamepad.get(&gamepad_id)
-			.map(|gamepad| gamepad.button_pressed(b))
-			.unwrap_or_default()
+		self.gamepad.get(&gamepad_id).map(|gamepad| gamepad.button_pressed(b)).unwrap_or_default()
 	}
 
 	fn gamepad_axis(&self, gamepad_id: usize, axis: Axis) -> AxisValue {
-		self.gamepad(gamepad_id)
-			.or_else(|| self.gamepad(0))
-			.map(|state| state.axis[axis as usize])
-			.unwrap_or_default()
+		self.gamepad(gamepad_id).or_else(|| self.gamepad(0)).map(|state| state.axis[axis as usize]).unwrap_or_default()
 	}
 
 	fn gamepad_button_once(&self, gamepad_id: usize, b: Key) -> bool {
-		self.gamepad.get(&gamepad_id)
-			.map(|gamepad| gamepad.button_once(b))
-			.unwrap_or_default()
+		self.gamepad.get(&gamepad_id).map(|gamepad| gamepad.button_once(b)).unwrap_or_default()
 	}
 
-	fn mouse_position(&self) -> Position {
-		self.mouse_position
-	}
+	fn mouse_position(&self) -> Position { self.mouse_position }
 
-	fn dragging(&self) -> Dragging {
-		self.dragging.clone()
-	}
+	fn dragging(&self) -> Dragging { self.dragging.clone() }
 }
 
 #[allow(dead_code)]
@@ -356,7 +329,8 @@ impl InputState {
 		}
 	}
 
-	pub fn pre_update<V>(&mut self, view_transform: &V) where V: ViewTransform {
+	pub fn pre_update<V>(&mut self, view_transform: &V)
+	where V: ViewTransform {
 		let mouse_window_pos = self.mouse_position();
 		let mouse_view_pos = view_transform.to_view(mouse_window_pos);
 		// TODO: generalise, for any button. Only RMB is supported otherwise
@@ -369,13 +343,9 @@ impl InputState {
 		self.update_gamepad_button_pressed();
 	}
 
-	fn gamepad(&self, gamepad_id: usize) -> Option<&GamepadState> {
-		self.gamepad.get(&gamepad_id)
-	}
+	fn gamepad(&self, gamepad_id: usize) -> Option<&GamepadState> { self.gamepad.get(&gamepad_id) }
 
-	fn mouse_at(&mut self, pos: Position) {
-		self.mouse_position = pos;
-	}
+	fn mouse_at(&mut self, pos: Position) { self.mouse_position = pos; }
 
 	fn key(&mut self, state: State, b: Key) {
 		match state {
@@ -385,9 +355,7 @@ impl InputState {
 	}
 
 	fn gamepad_mut(&mut self, gamepad_id: usize) -> &mut GamepadState {
-		self.gamepad
-			.entry(gamepad_id)
-			.or_insert_with(GamepadState::default)
+		self.gamepad.entry(gamepad_id).or_insert_with(GamepadState::default)
 	}
 
 	fn gamepad_button(&mut self, gamepad_id: usize, state: State, button: Key) {
@@ -399,9 +367,7 @@ impl InputState {
 		self.gamepad_mut(gamepad_id).axis(value, axis);
 	}
 
-	fn update_key_pressed(&mut self) {
-		self.key_pressed_last = self.key_pressed.clone();
-	}
+	fn update_key_pressed(&mut self) { self.key_pressed_last = self.key_pressed.clone(); }
 
 	fn update_mouse_scroll(&mut self) {
 		// Scroll events don't release keys, ever
@@ -417,14 +383,13 @@ impl InputState {
 
 	fn update_dragging(&mut self, key: Key, pos: Position) {
 		let (drag_state, displacement) = match self.drag_state {
-			DragState::Nothing => {
+			DragState::Nothing =>
 				if self.key_pressed(key) {
 					self.mouse_history.clear();
 					(DragState::Hold(key, pos), Dragging::Begin(key, pos))
 				} else {
 					(DragState::Nothing, Dragging::Nothing)
-				}
-			}
+				},
 			DragState::Hold(held, start) if held == key => {
 				let hold = if self.key_pressed(key) {
 					(DragState::Hold(key, start), Dragging::Dragging(key, start, pos))

@@ -96,7 +96,8 @@ impl Screen {
 					.iter()
 					.map(|&WidgetIdGroup { panel_row_id, .. }| {
 						(panel_row_id, widget::Canvas::new().color(conrod::color::TRANSPARENT))
-					}).collect::<Vec<_>>();
+					})
+					.collect::<Vec<_>>();
 
 				widget::Canvas::new()
 					.pad(50.0)
@@ -111,12 +112,7 @@ impl Screen {
 				                      label: &str,
 				                      value: &str|
 				 -> widget::Id {
-					let WidgetIdGroup {
-						panel_id,
-						label_id,
-						value_id,
-						panel_row_id,
-					} = ids_iter.next().unwrap().clone();
+					let WidgetIdGroup { panel_id, label_id, value_id, panel_row_id } = ids_iter.next().unwrap().clone();
 
 					widget::Canvas::new()
 						.mid_left_of(panel_row_id)
@@ -126,10 +122,7 @@ impl Screen {
 						.h(60.0)
 						.set(panel_id, &mut widgets);
 
-					widget::Text::new(label)
-						.mid_left_of(panel_id)
-						.with_style(styles.label)
-						.set(label_id, &mut widgets);
+					widget::Text::new(label).mid_left_of(panel_id).with_style(styles.label).set(label_id, &mut widgets);
 
 					widget::Text::new(value)
 						.mid_right_of(panel_id)
@@ -144,12 +137,7 @@ impl Screen {
 				                         label: &str,
 				                         value: &str|
 				 -> bool {
-					let WidgetIdGroup {
-						panel_id,
-						label_id,
-						value_id,
-						panel_row_id,
-					} = ids_iter.next().unwrap().clone();
+					let WidgetIdGroup { panel_id, label_id, value_id, panel_row_id } = ids_iter.next().unwrap().clone();
 
 					widget::Canvas::new()
 						.mid_left_of(panel_row_id)
@@ -181,45 +169,15 @@ impl Screen {
 					"Sim Frames",
 					&format!("{}", frame_update.simulation.count),
 				);
-				txt_with_label(
-					&mut ids_iter,
-					&mut widgets,
-					"Vid Frames",
-					&format!("{}", frame_update.count),
-				);
-				txt_with_label(
-					&mut ids_iter,
-					&mut widgets,
-					"Elapsed",
-					&format!("{:.3}", frame_update.elapsed),
-				);
-				txt_with_label(
-					&mut ids_iter,
-					&mut widgets,
-					"Sim dt",
-					&format!("{:.3}", frame_update.simulation.dt),
-				);
-				txt_with_label(
-					&mut ids_iter,
-					&mut widgets,
-					"Vid dt",
-					&format!("{:.3}", frame_update.dt),
-				);
-				if button_with_label(
-					&mut ids_iter,
-					&mut widgets,
-					">>",
-					&format!("x{}", frame_update.speed_factor),
-				) {
+				txt_with_label(&mut ids_iter, &mut widgets, "Vid Frames", &format!("{}", frame_update.count));
+				txt_with_label(&mut ids_iter, &mut widgets, "Elapsed", &format!("{:.3}", frame_update.elapsed));
+				txt_with_label(&mut ids_iter, &mut widgets, "Sim dt", &format!("{:.3}", frame_update.simulation.dt));
+				txt_with_label(&mut ids_iter, &mut widgets, "Vid dt", &format!("{:.3}", frame_update.dt));
+				if button_with_label(&mut ids_iter, &mut widgets, ">>", &format!("x{}", frame_update.speed_factor)) {
 					info!("Button pressed");
 					app_events.push(app::Event::PrevSpeedFactor);
 				}
-				txt_with_label(
-					&mut ids_iter,
-					&mut widgets,
-					"Avg dt",
-					&format!("{:.3}", frame_update.duration_smooth),
-				);
+				txt_with_label(&mut ids_iter, &mut widgets, "Avg dt", &format!("{:.3}", frame_update.duration_smooth));
 				txt_with_label(&mut ids_iter, &mut widgets, "FPS", &format!("{:.1}", frame_update.fps));
 				txt_with_label(
 					&mut ids_iter,
@@ -257,17 +215,12 @@ where
 		let renderer = conrod_gfx::Renderer::new(factory, frame_buffer, hidpi_factor).unwrap();
 		let image_map = conrod::image::Map::new();
 		let (w, h, _, _) = frame_buffer.get_dimensions();
-		let mut ui = conrod::UiBuilder::new([f64::from(w), f64::from(h)])
-			.theme(theme::default_theme())
-			.build();
+		let mut ui = conrod::UiBuilder::new([f64::from(w), f64::from(h)]).theme(theme::default_theme()).build();
 
 		Self::load_font(res, &mut ui.fonts, "fonts/FreeSans.ttf")?;
 
-		let style_label = text::Style {
-			color: Some(conrod::color::LIGHT_GRAY),
-			font_size: Some(14),
-			..Default::default()
-		};
+		let style_label =
+			text::Style { color: Some(conrod::color::LIGHT_GRAY), font_size: Some(14), ..Default::default() };
 		let style_button = button::Style {
 			label_color: Some(conrod::color::LIGHT_GRAY),
 			label_font_size: Some(14),
@@ -275,11 +228,7 @@ where
 			label_x: Some(conrod::position::Relative::Align(conrod::position::Align::Start)),
 			..Default::default()
 		};
-		let style_value = text::Style {
-			color: Some(conrod::color::GREEN),
-			font_size: Some(14),
-			..Default::default()
-		};
+		let style_value = text::Style { color: Some(conrod::color::GREEN), font_size: Some(14), ..Default::default() };
 		const MAX_HUD_LABELS: usize = 10;
 		let ids = Ids {
 			help_canvas: ui.widget_id_generator().next(),
@@ -293,7 +242,8 @@ where
 					panel_id: ui.widget_id_generator().next(),
 					label_id: ui.widget_id_generator().next(),
 					value_id: ui.widget_id_generator().next(),
-				}).collect(),
+				})
+				.collect(),
 		};
 
 		Ok(Ui {
@@ -304,11 +254,7 @@ where
 			win_w: w,
 			win_h: h,
 			hidpi_factor,
-			styles: Styles {
-				label: style_label,
-				value: style_value,
-				button: style_button,
-			},
+			styles: Styles { label: style_label, value: style_value, button: style_button },
 			ids,
 			app_events: Vec::new(),
 			events: Vec::new(),

@@ -27,37 +27,18 @@ impl Identified for Key {
 }
 
 impl Default for Key {
-	fn default() -> Key {
-		Key {
-			agent_id: 0xdead_beef,
-			segment_index: 0,
-			bone_index: 0,
-		}
-	}
+	fn default() -> Key { Key { agent_id: 0xdead_beef, segment_index: 0, bone_index: 0 } }
 }
 
 impl Key {
-	pub fn with_id(id: obj::Id) -> Key {
-		Key {
-			agent_id: id,
-			..Default::default()
-		}
-	}
+	pub fn with_id(id: obj::Id) -> Key { Key { agent_id: id, ..Default::default() } }
 
 	pub fn with_segment(id: obj::Id, segment_index: obj::SegmentIndex) -> Key {
-		Key {
-			agent_id: id,
-			segment_index,
-			..Default::default()
-		}
+		Key { agent_id: id, segment_index, ..Default::default() }
 	}
 
 	pub fn with_bone(agent_id: obj::Id, segment_index: obj::SegmentIndex, bone_index: obj::BoneIndex) -> Key {
-		Key {
-			agent_id,
-			segment_index,
-			bone_index,
-		}
+		Key { agent_id, segment_index, bone_index }
 	}
 
 	pub fn no_bone(&self) -> Key { Key { bone_index: 0, ..*self } }
@@ -399,24 +380,20 @@ impl Agent {
 	pub fn brain(&self) -> &Brain { &self.brain }
 
 	pub fn first_segment(&self, flags: segment::Flags) -> Option<Segment> {
-		self.segments
-			.iter()
-			.find(|segment| segment.flags.contains(flags))
-			.cloned()
+		self.segments.iter().find(|segment| segment.flags.contains(flags)).cloned()
 	}
 
 	pub fn reset_body_charge(&mut self) {
-		self.segments[0]
-			.state
-			.reset_charge(PLAYER_CHARGE_INITIAL_VALUE, PLAYER_CHARGE_REST_VALUE)
+		self.segments[0].state.reset_charge(PLAYER_CHARGE_INITIAL_VALUE, PLAYER_CHARGE_REST_VALUE)
 	}
 
 	pub fn new(id: Id, gender: u8, brain: &Brain, dna: &Dna, segments: Box<[Segment]>, timer: &Timer) -> Self {
 		const SCALE: f32 = 100.;
-		let max_energy = SCALE * segments
-			.iter()
-			.filter(|s| s.flags.contains(segment::Flags::STORAGE))
-			.fold(0., |a, s| a + s.mesh.shape.radius().powi(2));
+		let max_energy = SCALE
+			* segments
+				.iter()
+				.filter(|s| s.flags.contains(segment::Flags::STORAGE))
+				.fold(0., |a, s| a + s.mesh.shape.radius().powi(2));
 		Agent {
 			id,
 			state: State {

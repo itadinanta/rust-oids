@@ -1,12 +1,12 @@
 use super::*;
 use app::constants::*;
 use backend::obj;
-use backend::obj::Transformable;
 use backend::obj::Identified;
+use backend::obj::Transformable;
 use backend::world;
 use backend::world::agent;
-use backend::world::agent::TypedAgent;
 use backend::world::agent::Personality;
+use backend::world::agent::TypedAgent;
 use backend::world::segment;
 use backend::world::segment::Intent;
 use cgmath::*;
@@ -29,12 +29,7 @@ impl System for AiSystem {
 	}
 
 	fn import(&mut self, world: &world::World) {
-		self.beacons = world
-			.feeders()
-			.iter()
-			.map(|e| e.transform().position)
-			.collect::<Vec<_>>()
-			.into_boxed_slice();
+		self.beacons = world.feeders().iter().map(|e| e.transform().position).collect::<Vec<_>>().into_boxed_slice();
 		self.targets = world
 			.agents(agent::AgentType::Resource)
 			.iter()
@@ -44,35 +39,18 @@ impl System for AiSystem {
 	}
 
 	fn export(&self, world: &mut world::World, _outbox: &Outbox) {
-		Self::update_minions(
-			&self.targets,
-			&self.beacons,
-			&mut world.agents_mut(agent::AgentType::Minion),
-		);
+		Self::update_minions(&self.targets, &self.beacons, &mut world.agents_mut(agent::AgentType::Minion));
 	}
 }
 
 impl Default for AiSystem {
-	fn default() -> Self {
-		AiSystem {
-			beacons: Box::new([]),
-			targets: HashMap::new(),
-		}
-	}
+	fn default() -> Self { AiSystem { beacons: Box::new([]), targets: HashMap::new() } }
 }
 
 impl AiSystem {
 	fn update_minions(targets: &IdPositionMap, beacons: &[Position], minions: &mut agent::AgentMap) {
 		fn nearest_beacon<'a>(beacons: &'a [Position], p: &'a Position) -> &'a Position {
-			beacons
-				.iter()
-				.fold1(|n, b| {
-					if (p - n).magnitude2() < (p - b).magnitude2() {
-						n
-					} else {
-						b
-					}
-				}).unwrap_or(p)
+			beacons.iter().fold1(|n, b| if (p - n).magnitude2() < (p - b).magnitude2() { n } else { b }).unwrap_or(p)
 		}
 
 		for (_, agent) in minions.iter_mut() {
@@ -94,9 +72,7 @@ impl AiSystem {
 				};
 				// and failing that again, we target
 				match new_target {
-					None => agent
-						.state
-						.retarget(None, *nearest_beacon(beacons, &current_target_position)),
+					None => agent.state.retarget(None, *nearest_beacon(beacons, &current_target_position)),
 					Some((id, position)) => agent.state.retarget(Some(id), position),
 				};
 				// find where our target is in the world
@@ -132,8 +108,9 @@ impl AiSystem {
 								}
 							}
 						} else if (flags.contains(segment::Flags::RUDDER | segment::Flags::LEFT)
-							&& r[0] > brain.hunger())
-							|| (flags.contains(segment::Flags::RUDDER | segment::Flags::RIGHT) && r[1] > brain.hunger())
+							&& r[0] > brain.hunger()) || (flags
+							.contains(segment::Flags::RUDDER | segment::Flags::RIGHT)
+							&& r[1] > brain.hunger())
 						{
 							Intent::Move(-f)
 						} else if flags.contains(segment::Flags::THRUSTER) && r[2] > brain.haste() {
