@@ -395,7 +395,7 @@ impl PrimitiveSequence for PrimitiveBuffer {
 	fn push_batch(&mut self, batch: PrimitiveBatch) -> Result<()> {
 		let batch_list = &mut self.batches[batch.style as usize];
 		let is_empty = batch_list.is_empty();
-		let last_len = batch_list.last_mut().map(|l| l.len()).unwrap_or(0);
+		let last_len = batch_list.last().map(PrimitiveBatch::len).unwrap_or(0);
 		if is_empty || last_len + batch.len() > self.max_batch_len {
 			batch_list.push(batch);
 			Ok(())

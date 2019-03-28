@@ -214,7 +214,7 @@ impl AlifeSystem {
 				if agent.state.energy() < 1. {
 					let transforms = agent
 						.segments
-						.into_iter()
+						.iter()
 						.map(|segment| segment.transform.clone())
 						.collect::<Vec<_>>();
 					corpses.push((transforms.into_boxed_slice(), agent.dna().clone()));

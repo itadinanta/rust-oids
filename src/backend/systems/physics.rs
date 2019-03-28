@@ -278,7 +278,7 @@ impl PhysicsSystem {
 		self.register(agent);
 	}
 
-	#[allow(too_many_arguments)]
+	#[allow(clippy::too_many_arguments)]
 	fn build_fixture_for_segment(
 		world: &mut b2::World<AgentData>,
 		handle: b2::BodyHandle,
@@ -399,7 +399,7 @@ impl PhysicsSystem {
 		let object_id = agent.id();
 		let segments = agent.segments();
 		segments
-			.into_iter()
+			.iter()
 			.enumerate()
 			.map(|(segment_index, segment)| {
 				let material = segment.material();

@@ -125,6 +125,6 @@ impl<M> ReceiveDrain<M> for Inbox<M> where M: Send + Clone {
 
 pub trait DrainInto<M, T>: ReceiveDrain<M> where M: Send + Clone + Into<Option<T>> {
 	fn drain_into(&self) -> Vec<T> {
-		self.drain().into_iter().map(|i| i.into()).filter_map(|i| i).collect::<Vec<T>>()
+		self.drain().into_iter().map(Into::into).filter_map(|i| i).collect::<Vec<T>>()
 	}
 }

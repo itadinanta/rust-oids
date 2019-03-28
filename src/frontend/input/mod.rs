@@ -296,7 +296,7 @@ impl InputRead for InputState {
 	}
 
 	fn any_key_pressed(&self, b: &[Key]) -> bool {
-		let other: BitSet = b.into_iter().map(|k| *k as usize).collect();
+		let other: BitSet = b.iter().map(|k| *k as usize).collect();
 		!self.key_pressed.is_disjoint(&other)
 	}
 
@@ -313,7 +313,7 @@ impl InputRead for InputState {
 	}
 
 	fn chord_pressed(&self, b: &[Key]) -> bool {
-		let other: BitSet = b.into_iter().map(|k| *k as usize).collect();
+		let other: BitSet = b.iter().map(|k| *k as usize).collect();
 		self.key_pressed.is_superset(&other)
 	}
 

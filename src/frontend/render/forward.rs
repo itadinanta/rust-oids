@@ -286,7 +286,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 }
 
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C, shaded::Init<'static>> {
-	#[allow(too_many_arguments)]
+	#[allow(clippy::too_many_arguments)]
 	pub fn draw_primitives(
 		&self, shader: Style,
 		encoder: &mut gfx::Encoder<R, C>,

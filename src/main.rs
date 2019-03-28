@@ -1,5 +1,4 @@
 #![allow(unknown_lints)]
-#![feature(tool_lints)]
 #![warn(clippy::all)]
 
 mod app;

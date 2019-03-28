@@ -194,7 +194,7 @@ where
 	fn rest(&self) -> S { self.rest.into() }
 	fn thrust(&self) -> S { self.thrust.into() }
 
-	#[allow(let_and_return)]
+	#[allow(clippy::let_and_return)]
 	fn response(&self, input: &InputVector<S>) -> OutputVector<S> {
 		let output_in = Self::layer(input, &self.weights_in);
 		let output_hidden = Self::layer(&output_in, &self.weights_hidden);

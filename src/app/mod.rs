@@ -73,7 +73,7 @@ pub fn run(args: &[OsString]) {
 			let pool_file_name = options
 				.free
 				.get(1)
-				.map(|n| n.as_str())
+				.map(String::as_str)
 				.unwrap_or(DEFAULT_MINION_GENE_POOL_FILE);
 
 			let mut world_file: Option<path::PathBuf> = options.opt_str("i").map(|s| path::Path::new(&s).to_owned());
@@ -592,7 +592,7 @@ impl App {
 		let found: Vec<agent::Agent> = self
 			.world
 			.registered()
-			.into_iter()
+			.iter()
 			.filter_map(|id| self.world.agent(*id))
 			.cloned()
 			.collect();

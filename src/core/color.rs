@@ -97,8 +97,8 @@ impl FromRgb<f32> for Hsl<f32> {
 	/// @param   Number  b       The blue color value
 	/// @return  Array           The HSL representation
 	///
-	#[allow(float_cmp)]
-	#[allow(many_single_char_names)]
+	#[allow(clippy::float_cmp)]
+	#[allow(clippy::many_single_char_names)]
 	fn from_rgb(c: &Rgb<f32>) -> Self {
 		let (r, g, b) = (c[0], c[1], c[2]);
 		let max = f32::max(r, f32::max(g, b));
