@@ -107,7 +107,7 @@ impl Screen {
 					.flow_down(&splits)
 					.set(ids.hud_canvas, &mut widgets);
 				let mut ids_iter = ids.hud_labels.iter();
-				let txt_with_label = |ids_iter: &mut Iterator<Item = &WidgetIdGroup>,
+				let txt_with_label = |ids_iter: &mut dyn Iterator<Item = &WidgetIdGroup>,
 				                      mut widgets: &mut conrod::UiCell<'e>,
 				                      label: &str,
 				                      value: &str|
@@ -132,7 +132,7 @@ impl Screen {
 					panel_id
 				};
 
-				let button_with_label = |ids_iter: &mut Iterator<Item = &WidgetIdGroup>,
+				let button_with_label = |ids_iter: &mut dyn Iterator<Item = &WidgetIdGroup>,
 				                         mut widgets: &mut conrod::UiCell<'e>,
 				                         label: &str,
 				                         value: &str|

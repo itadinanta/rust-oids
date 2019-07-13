@@ -119,8 +119,14 @@ where D: gfx::pso::PipelineInit {
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
 where D: gfx::pso::PipelineInit + Clone
 {
-	pub fn new<F>(factory: &mut F, res: &resource::ResourceLoader<u8>, init: D) -> Result<ForwardLighting<R, C, D>>
-	where F: gfx::Factory<R> {
+	pub fn new<F>(
+		factory: &mut F,
+		res: &dyn resource::ResourceLoader<u8>,
+		init: D,
+	) -> Result<ForwardLighting<R, C, D>>
+	where
+		F: gfx::Factory<R>,
+	{
 		let lights = factory.create_constant_buffer(MAX_NUM_TOTAL_LIGHTS);
 		let camera = factory.create_constant_buffer(1);
 		let fragment = factory.create_constant_buffer(1);

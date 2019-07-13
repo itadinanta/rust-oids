@@ -134,7 +134,7 @@ where T: systems::System
 	fn unregister(&mut self, agent: &world::agent::Agent) { self.ptr.write().unwrap().unregister(agent) }
 
 	fn step(&mut self, world: &world::World, dt: Seconds) { self.ptr.write().unwrap().step(world, dt) }
-	fn apply(&self, world: &mut world::World, outbox: &Outbox) { self.ptr.read().unwrap().apply(world, outbox) }
+	fn apply(&self, world: &mut world::World, outbox: &dyn Outbox) { self.ptr.read().unwrap().apply(world, outbox) }
 }
 
 // unsafe?
@@ -164,7 +164,7 @@ pub struct Systems {
 impl Systems {
 	fn set_mode(&mut self, mode: SystemMode) { self.mode = mode; }
 
-	fn systems(&mut self) -> Vec<Box<(systems::System + Send)>> {
+	fn systems(&mut self) -> Vec<Box<dyn systems::System + Send>> {
 		match self.mode {
 			SystemMode::Interactive => vec![
 				SendSystem::boxed(self.physics.clone()),
@@ -224,14 +224,19 @@ impl Systems {
 	fn for_each_read(
 		&mut self,
 		world: &mut world::World,
-		outbox: &Outbox,
-		apply: &(Fn(&mut systems::System, &mut world::World, &Outbox) + Sync),
+		outbox: &dyn Outbox,
+		apply: &(dyn Fn(&mut dyn systems::System, &mut world::World, &dyn Outbox) + Sync),
 	)
 	{
 		self.systems().iter_mut().for_each(|r| apply(&mut (**r), world, outbox))
 	}
 
-	fn for_each_par_write(&mut self, world: &world::World, apply: &(Fn(&mut systems::System, &world::World) + Sync)) {
+	fn for_each_par_write(
+		&mut self,
+		world: &world::World,
+		apply: &(dyn Fn(&mut dyn systems::System, &world::World) + Sync),
+	)
+	{
 		self.systems().par_iter_mut().for_each(|r| apply(&mut (**r), world))
 	}
 }
@@ -519,7 +524,10 @@ impl App {
 		self.systems.clear();
 		self.world.clear();
 		if let Some(ref world_file) = self.last_saved {
-			world::persist::Serializer::load(&world_file, &mut self.world).is_ok();
+			let load_status = world::persist::Serializer::load(&world_file, &mut self.world);
+			if load_status.is_err() {
+				warn!("Unable to load world from checkpoint. The checkpoint was not found.");
+			}
 		};
 		self.bus.post(world::alert::Alert::RestartFromCheckpoint.into())
 	}

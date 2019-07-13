@@ -12,12 +12,12 @@ use std::collections::HashSet;
 pub struct Swarm {
 	seq: Id,
 	agent_type: AgentType,
-	phenotype: Box<phen::Phenotype>,
+	phenotype: Box<dyn phen::Phenotype>,
 	agents: agent::AgentMap,
 }
 
 impl Swarm {
-	pub fn new(agent_type: AgentType, phenotype: Box<phen::Phenotype>) -> Swarm {
+	pub fn new(agent_type: AgentType, phenotype: Box<dyn phen::Phenotype>) -> Swarm {
 		Swarm { seq: 0, agent_type, phenotype, agents: HashMap::new() }
 	}
 
@@ -65,7 +65,7 @@ impl Swarm {
 	#[allow(dead_code)]
 	pub fn is_empty(&self) -> bool { self.agents.is_empty() }
 
-	pub fn spawn(&mut self, genome: &mut Genome, initial_state: agent::InitialState, timer: &Timer) -> Id {
+	pub fn spawn(&mut self, genome: &mut Genome, initial_state: agent::InitialState, timer: &dyn Timer) -> Id {
 		let id = self.next_id();
 		match id.type_of() {
 			AgentType::Minion | AgentType::Spore => debug!("spawn: {} as {}", genome, id.type_of()),
@@ -76,7 +76,14 @@ impl Swarm {
 		//		self.insert(entity)
 	}
 
-	pub fn rebuild(&mut self, id: Id, genome: &mut Genome, initial_state: agent::InitialState, timer: &Timer) -> Id {
+	pub fn rebuild(
+		&mut self,
+		id: Id,
+		genome: &mut Genome,
+		initial_state: agent::InitialState,
+		timer: &dyn Timer,
+	) -> Id
+	{
 		let entity = self.phenotype.develop(genome, id, initial_state, timer);
 		self.insert(entity)
 	}

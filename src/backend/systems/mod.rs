@@ -24,13 +24,13 @@ pub trait System {
 	fn register(&mut self, _: &world::agent::Agent) {}
 	fn unregister(&mut self, _: &world::agent::Agent) {}
 	fn import(&mut self, _: &world::World) {}
-	fn update(&mut self, _world_state: &world::AgentState, _dt: Seconds) {}
-	fn export(&self, _: &mut world::World, _: &Outbox) {}
+	fn update(&mut self, _world_state: &dyn world::AgentState, _dt: Seconds) {}
+	fn export(&self, _: &mut world::World, _: &dyn Outbox) {}
 
 	fn step(&mut self, world: &world::World, dt: Seconds) {
 		self.import(world);
 		self.update(world, dt)
 	}
 
-	fn apply(&self, world: &mut world::World, outbox: &Outbox) { self.export(world, outbox) }
+	fn apply(&self, world: &mut world::World, outbox: &dyn Outbox) { self.export(world, outbox) }
 }

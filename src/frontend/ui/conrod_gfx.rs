@@ -615,10 +615,10 @@ where
 		R: gfx::Resources,
 		T: gfx::format::TextureFormat,
 	{
+		use gfx::format;
 		use gfx::memory::Bind;
 		use gfx::memory::Typed;
 		use gfx::memory::Usage;
-		use gfx::{format, texture};
 
 		let surface = <T::Surface as format::SurfaceTyped>::get_surface_type();
 		let num_slices = kind.get_num_slices().unwrap_or(1) as usize;

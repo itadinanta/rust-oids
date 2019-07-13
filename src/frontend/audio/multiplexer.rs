@@ -207,7 +207,7 @@ where
 		self.waveform.sample(t)
 	}
 
-	fn signal_function(self, tone: Tone<T, S>, envelope: Envelope<T, S>, pan: S) -> Box<Fn(T) -> [S; CHANNELS]>
+	fn signal_function(self, tone: Tone<T, S>, envelope: Envelope<T, S>, pan: S) -> Box<dyn Fn(T) -> [S; CHANNELS]>
 	where T: FloatConst {
 		let c_pan = [S::one() - pan, pan];
 		let duration: T = NumCast::from(tone.duration.get()).unwrap();

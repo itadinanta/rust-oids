@@ -45,12 +45,12 @@ impl System for AlifeSystem {
 			Self::find_touched_spores(&world.agents(agent::AgentType::Minion), &world.agents(agent::AgentType::Spore));
 	}
 
-	fn update(&mut self, _: &AgentState, dt: Seconds) {
+	fn update(&mut self, _: &dyn AgentState, dt: Seconds) {
 		self.dt = dt;
 		self.simulation_timer.tick(dt);
 	}
 
-	fn export(&self, world: &mut world::World, outbox: &Outbox) {
+	fn export(&self, world: &mut world::World, outbox: &dyn Outbox) {
 		Self::update_resources(
 			self.dt,
 			&self.simulation_timer,
@@ -144,7 +144,7 @@ impl AlifeSystem {
 	}
 
 	fn update_minions(
-		outbox: &Outbox,
+		outbox: &dyn Outbox,
 		dt: Seconds,
 		extent: geometry::Rect,
 		minions: &mut agent::AgentMap,

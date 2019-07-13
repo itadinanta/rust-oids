@@ -16,7 +16,6 @@ format_macro_bodies = true
 use_small_heuristics = "Max"
 use_field_init_shorthand = true
 
-fn_args_density = "Tall"
 where_single_line = true
 fn_single_line = true
 struct_lit_single_line = true

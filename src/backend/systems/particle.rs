@@ -296,7 +296,7 @@ pub struct ParticleSystem {
 	id_counter: usize,
 	inbox: Option<Inbox>,
 	particles: HashMap<obj::Id, ParticleBatch>,
-	emitters: HashMap<obj::Id, Box<Emitter>>,
+	emitters: HashMap<obj::Id, Box<dyn Emitter>>,
 	dt: Seconds,
 	simulation_timer: SimulationTimer,
 	simulation_clock: TimerStopwatch,
@@ -427,7 +427,7 @@ impl System for ParticleSystem {
 		}
 	}
 
-	fn update(&mut self, _: &AgentState, dt: Seconds) {
+	fn update(&mut self, _: &dyn AgentState, dt: Seconds) {
 		self.dt = dt;
 		self.simulation_timer.tick(dt);
 
@@ -435,7 +435,7 @@ impl System for ParticleSystem {
 		self.update_particles();
 	}
 
-	fn export(&self, world: &mut world::World, _outbox: &Outbox) {
+	fn export(&self, world: &mut world::World, _outbox: &dyn Outbox) {
 		for particle_batch in self.particles.values() {
 			for particle in &*particle_batch.particles {
 				let mut faders = [1.; MAX_FADER];

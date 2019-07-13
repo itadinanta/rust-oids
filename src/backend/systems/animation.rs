@@ -20,13 +20,13 @@ pub struct AnimationSystem {
 }
 
 impl System for AnimationSystem {
-	fn update(&mut self, _: &AgentState, dt: Seconds) {
+	fn update(&mut self, _: &dyn AgentState, dt: Seconds) {
 		self.dt = dt;
 		self.simulation_timer.tick(dt);
 		self.animation_timer.tick(dt.times(self.speed));
 	}
 
-	fn export(&self, world: &mut world::World, _outbox: &Outbox) {
+	fn export(&self, world: &mut world::World, _outbox: &dyn Outbox) {
 		let phase = f64::from(world.phase_mut()[1])
 			+ self.dt * self.speed * self.heartbeat_scale * self.background_animation_speed;
 		world.phase_mut()[0] = 0.5;

@@ -125,7 +125,7 @@ impl System for PhysicsSystem {
 		}
 	}
 
-	fn update(&mut self, state: &world::AgentState, dt_sec: Seconds) {
+	fn update(&mut self, state: &dyn world::AgentState, dt_sec: Seconds) {
 		use self::BodyUpdate::*;
 		let mut dynamic_updates = Vec::new();
 		let dt: f32 = dt_sec.into();
@@ -200,7 +200,7 @@ impl System for PhysicsSystem {
 		self.world.step(dt, 8, 3);
 	}
 
-	fn export(&self, world: &mut world::World, outbox: &Outbox) {
+	fn export(&self, world: &mut world::World, outbox: &dyn Outbox) {
 		for (_, b) in self.world.bodies() {
 			let body = b.borrow();
 			let position = (*body).position();

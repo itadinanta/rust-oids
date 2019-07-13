@@ -49,7 +49,7 @@ where M: Send + Clone {
 
 struct Filter<M>
 where M: Send {
-	accept: Box<Fn(&M) -> bool>,
+	accept: Box<dyn Fn(&M) -> bool>,
 	sender: Sender<M>,
 }
 
@@ -64,7 +64,7 @@ pub trait Outbox<M = Message> {
 
 pub trait Whiteboard<M = Message>
 where M: Send + Clone {
-	fn subscribe(&mut self, accept: Box<Fn(&M) -> bool>) -> Inbox<M>;
+	fn subscribe(&mut self, accept: Box<dyn Fn(&M) -> bool>) -> Inbox<M>;
 }
 
 pub struct Inbox<M = Message>
@@ -78,7 +78,10 @@ where M: Send + Clone
 	fn post(&self, message: M) {
 		for filter in &self.filters {
 			if (*filter.accept)(&message) {
-				filter.sender.send(message.clone()).is_ok();
+				let send_status = filter.sender.send(message.clone());
+				if send_status.is_err() {
+					debug!("Dropped message");
+				}
 			}
 		}
 	}
@@ -93,7 +96,7 @@ where M: Send + Clone
 impl<M> Whiteboard<M> for PubSub<M>
 where M: Send + Clone
 {
-	fn subscribe(&mut self, accept: Box<Fn(&M) -> bool>) -> Inbox<M> {
+	fn subscribe(&mut self, accept: Box<dyn Fn(&M) -> bool>) -> Inbox<M> {
 		let (sender, receiver) = mpsc::channel();
 		self.filters.push(Filter { accept, sender });
 		Inbox { receiver }

@@ -84,8 +84,15 @@ pub struct PostLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 }
 
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
-	pub fn new<F>(factory: &mut F, res: &resource::ResourceLoader<u8>, w: u16, h: u16) -> Result<PostLighting<R, C>>
-	where F: gfx::Factory<R> {
+	pub fn new<F>(
+		factory: &mut F,
+		res: &dyn resource::ResourceLoader<u8>,
+		w: u16,
+		h: u16,
+	) -> Result<PostLighting<R, C>>
+	where
+		F: gfx::Factory<R>,
+	{
 		let full_screen_triangle = vec![
 			BlitVertex { pos: [-1., -1.], tex_coord: [0., 0.] },
 			BlitVertex { pos: [-1., 3.], tex_coord: [0., 2.] },

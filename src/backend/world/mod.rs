@@ -149,7 +149,7 @@ impl World {
 		self.register(id)
 	}
 
-	pub fn decay_to_resource(&mut self, outbox: &Outbox, transform: Transform, dna: &gen::Dna) -> obj::Id {
+	pub fn decay_to_resource(&mut self, outbox: &dyn Outbox, transform: Transform, dna: &gen::Dna) -> obj::Id {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Resource).spawn(
 			&mut gen::Genome::copy_from(dna),
@@ -161,7 +161,7 @@ impl World {
 		self.register(id)
 	}
 
-	pub fn new_spore(&mut self, outbox: &Outbox, transform: Transform, dna: &gen::Dna) -> obj::Id {
+	pub fn new_spore(&mut self, outbox: &dyn Outbox, transform: Transform, dna: &gen::Dna) -> obj::Id {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Spore).spawn(
 			&mut gen::Genome::copy_from(dna).mutate(&mut rand::thread_rng()),
@@ -173,7 +173,7 @@ impl World {
 		self.register(id)
 	}
 
-	pub fn hatch_spore(&mut self, outbox: &Outbox, transform: Transform, dna: &gen::Dna) -> obj::Id {
+	pub fn hatch_spore(&mut self, outbox: &dyn Outbox, transform: Transform, dna: &gen::Dna) -> obj::Id {
 		let clock = self.clock.clone();
 		let id = self.swarm_mut(&AgentType::Minion).spawn(
 			&mut gen::Genome::copy_from(dna),
@@ -256,7 +256,7 @@ impl World {
 			)
 		}
 	*/
-	pub fn primary_fire(&mut self, outbox: &Outbox, bullet_speed: f32) {
+	pub fn primary_fire(&mut self, outbox: &dyn Outbox, bullet_speed: f32) {
 		let vectors = self.get_player_segment().map(move |segment| {
 			let angle = segment.transform.angle;
 			let scale = segment.growing_radius() + 0.5;
@@ -349,7 +349,9 @@ impl World {
 
 	pub fn serialize(&self, containing_dir: &path::Path) -> io::Result<path::PathBuf> {
 		let now: DateTime<Utc> = Utc::now();
-		fs::create_dir_all(containing_dir).is_ok();
+		if fs::create_dir_all(containing_dir).is_err() {
+			debug!("Did not create {} (existing?)", containing_dir.display());
+		}
 		let file_name = containing_dir.join(now.format(DUMP_FILE_PATTERN_JSON).to_string());
 		persist::Serializer::save(file_name.as_path(), self)?;
 		Ok(file_name)
@@ -358,7 +360,9 @@ impl World {
 	pub fn dump(&self, containing_dir: &path::Path) -> io::Result<path::PathBuf> {
 		let now: DateTime<Utc> = Utc::now();
 		let file_name = containing_dir.join(now.format(DUMP_FILE_PATTERN_CSV).to_string());
-		fs::create_dir_all(containing_dir).is_ok();
+		if fs::create_dir_all(containing_dir).is_err() {
+			debug!("Did not create {} (existing?)", containing_dir.display());
+		}
 		let mut f = fs::File::create(&file_name)?;
 		for (_, agent) in self.agents(agent::AgentType::Minion).iter() {
 			info!("{}", agent.dna().to_base64(base64::STANDARD));

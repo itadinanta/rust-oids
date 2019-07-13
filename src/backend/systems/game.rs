@@ -100,7 +100,7 @@ impl System for GameSystem {
 		}
 	}
 
-	fn update(&mut self, _: &world::AgentState, dt: Seconds) {
+	fn update(&mut self, _: &dyn world::AgentState, dt: Seconds) {
 		let rng = &mut rand::thread_rng();
 		self.dt = dt;
 
@@ -136,7 +136,7 @@ impl System for GameSystem {
 		self.playerstate.trigger_held = false;
 	}
 
-	fn export(&self, world: &mut world::World, outbox: &Outbox) {
+	fn export(&self, world: &mut world::World, outbox: &dyn Outbox) {
 		for e in &self.feeders {
 			for _ in e.spawned..e.to_spawn {
 				let r = e.angle;

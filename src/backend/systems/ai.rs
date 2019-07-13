@@ -38,7 +38,7 @@ impl System for AiSystem {
 			.collect::<HashMap<_, _>>();
 	}
 
-	fn export(&self, world: &mut world::World, _outbox: &Outbox) {
+	fn export(&self, world: &mut world::World, _outbox: &dyn Outbox) {
 		Self::update_minions(&self.targets, &self.beacons, &mut world.agents_mut(agent::AgentType::Minion));
 	}
 }

@@ -387,7 +387,7 @@ impl Agent {
 		self.segments[0].state.reset_charge(PLAYER_CHARGE_INITIAL_VALUE, PLAYER_CHARGE_REST_VALUE)
 	}
 
-	pub fn new(id: Id, gender: u8, brain: &Brain, dna: &Dna, segments: Box<[Segment]>, timer: &Timer) -> Self {
+	pub fn new(id: Id, gender: u8, brain: &Brain, dna: &Dna, segments: Box<[Segment]>, timer: &dyn Timer) -> Self {
 		const SCALE: f32 = 100.;
 		let max_energy = SCALE
 			* segments
