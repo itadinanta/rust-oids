@@ -33,9 +33,8 @@ csv = "0.15"
 rustc-serialize="*"
 image = "*"
 wrapped2d = "0.4.0"
-gfx = "0.17"
-gfx_core = "0.8"
-gfx_device_gl = "0.15"
+gfx = "0.18"
+gfx_device_gl = "0.16.2"
 #sound
 sample="*"
 pitch_calc="*"
@@ -61,7 +60,7 @@ conrod = { features = ["winit"], version = "0.58" }
 #conrod = { features = ["winit"], git = "https://github.com/itadinanta/conrod", branch = "branch/winit_0.10.0" }
 
 #controller
-gilrs = "*"
+gilrs = "0.6"
 
 #
 [target.'cfg(linux)'.dependencies]
