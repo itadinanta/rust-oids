@@ -35,7 +35,10 @@ extern crate winit;
 
 extern crate pitch_calc;
 extern crate portaudio;
-extern crate sample;
+extern crate dasp;
+extern crate dasp_slice;
+extern crate dasp_sample;
+extern crate dasp_signal;
 
 extern crate itertools;
 extern crate num;
@@ -56,7 +59,7 @@ extern crate gilrs;
 
 extern crate dirs;
 extern crate rayon;
-#[cfg(linux)]
+#[cfg(target_os="linux")]
 extern crate thread_priority;
 
 extern crate rustc_serialize as serialize;

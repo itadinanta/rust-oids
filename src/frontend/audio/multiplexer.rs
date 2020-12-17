@@ -7,7 +7,8 @@ use num;
 use num::NumCast;
 use num_traits::FloatConst;
 use pitch_calc::{Letter, LetterOctave};
-use sample;
+use dasp;
+use dasp_signal;
 use std::collections::HashMap;
 use std::f32;
 use std::f64;
@@ -181,7 +182,7 @@ where
 impl<T, S> Oscillator<T, S>
 where
 	T: num::Float + 'static,
-	S: num::Float + sample::Sample + 'static,
+	S: num::Float + dasp::Sample + 'static,
 {
 	fn sin() -> Self { Oscillator { waveform: Waveform::Sin } }
 
@@ -214,7 +215,7 @@ where
 		Box::new(move |t: T| {
 			let t = NumCast::from(t).unwrap();
 			let val = tone.amplitude * envelope.gain(duration, t) * self.sample((t * tone.pitch).fract());
-			sample::Frame::from_fn(|channel| (val * c_pan[channel]).to_sample())
+			dasp::Frame::from_fn(|channel| (val * c_pan[channel]).to_sample())
 		})
 	}
 }
@@ -274,7 +275,7 @@ where S: num::Float
 pub struct SignalBuilder<T, S>
 where
 	T: num::Float,
-	S: num::Float + sample::Sample, {
+	S: num::Float + dasp::Sample, {
 	oscillator: Oscillator<T, S>,
 	tone: Vec<Tone<T, S>>,
 	envelope: Envelope<T, S>,
@@ -287,7 +288,7 @@ where
 impl<T, S> SignalBuilder<T, S>
 where
 	T: num::Float + 'static,
-	S: num::Float + sample::Sample + 'static,
+	S: num::Float + dasp::Sample + 'static,
 {
 	fn new() -> Self {
 		SignalBuilder {
@@ -505,7 +506,7 @@ impl Multiplexer {
 	}
 
 	pub fn audio_requested(&mut self, buffer: &mut [StereoFrame]) {
-		sample::slice::equilibrium(buffer);
+		dasp_slice::equilibrium(buffer);
 		let mut terminated_voices = BitSet::with_capacity(self.voices.len());
 		for voice_index in &self.playing_voice_index {
 			let voice = self.voices[voice_index].clone();
@@ -571,10 +572,10 @@ where S: num::Float
 impl<S, T> Signal<S, [T; CHANNELS]>
 where
 	S: num::Float,
-	T: num::Float + sample::Sample,
+	T: num::Float + dasp::Sample,
 {
 	fn with_delay(self, time: Seconds, tail: Seconds, wet_dry: T, feedback: T) -> Self {
-		use sample::Signal;
+		use dasp_signal::Signal;
 		let wet_ratio = wet_dry;
 		let dry_ratio: T = T::one() - wet_dry;
 		let source_length = self.frames.len();
@@ -582,7 +583,7 @@ where
 		let delay_length = (time * sample_rate).round() as usize;
 		let tail_length = (tail * sample_rate).round() as usize;
 		let dest_length = source_length + tail_length;
-		let mut delay_buffer: Vec<[T; CHANNELS]> = sample::signal::equilibrium().take(delay_length).collect();
+		let mut delay_buffer: Vec<[T; CHANNELS]> = dasp_signal::equilibrium().take(delay_length).collect();
 		let mut dest_buffer: Vec<[T; CHANNELS]> = Vec::with_capacity(source_length + tail_length);
 
 		for i in 0..dest_length {
@@ -590,9 +591,9 @@ where
 			let src = *self.frames.get(i).unwrap_or(&[T::zero(), T::zero()]);
 			let delay_effect = delay_buffer[tram_ptr];
 			let wet: [T; CHANNELS] =
-				sample::Frame::from_fn(move |channel| wet_ratio * src[channel] + delay_effect[channel]);
-			dest_buffer.push(sample::Frame::from_fn(move |channel| dry_ratio * src[channel] + wet[channel]));
-			delay_buffer[tram_ptr] = sample::Frame::from_fn(move |channel| feedback * wet[CHANNELS - 1 - channel]); // ping-pong
+				dasp::Frame::from_fn(move |channel| wet_ratio * src[channel] + delay_effect[channel]);
+			dest_buffer.push(dasp::Frame::from_fn(move |channel| dry_ratio * src[channel] + wet[channel]));
+			delay_buffer[tram_ptr] = dasp::Frame::from_fn(move |channel| feedback * wet[CHANNELS - 1 - channel]); // ping-pong
 		}
 		self::Signal { sample_rate: self.sample_rate, frames: dest_buffer.into_boxed_slice() }
 	}

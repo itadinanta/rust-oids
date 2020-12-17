@@ -4,8 +4,8 @@ use app;
 use backend::world::Alert;
 use frontend::ui::AlertPlayer;
 use portaudio as pa;
-use sample;
-use sample::ToFrameSliceMut;
+use dasp_slice;
+use dasp_slice::ToFrameSliceMut;
 use std::io;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::SendError;
@@ -13,7 +13,7 @@ use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
-#[cfg(linux)]
+#[cfg(target_os="linux")]
 use thread_priority::*;
 // Currently supports i8, i32, f32.
 //pub type AudioSample = f32;
@@ -217,7 +217,7 @@ impl SoundSystem for ThreadedSoundSystem {
 			let callback = move |pa::OutputStreamCallbackArgs { buffer, .. }| {
 				trace!("Callback start");
 				let buffer: &mut [[f32; CHANNELS as usize]] = buffer.to_frame_slice_mut().unwrap();
-				sample::slice::equilibrium(buffer);
+				dasp_slice::equilibrium(buffer);
 				// uhm what?
 				dsp_handle.lock().unwrap().audio_requested(buffer);
 
@@ -227,16 +227,10 @@ impl SoundSystem for ThreadedSoundSystem {
 			let mut stream = portaudio
 				.open_non_blocking_stream(settings, callback)
 				.expect("Unable to open audio stream, failure in audio thread");
-			#[cfg(linux)]
+			#[cfg(target_os="linux")]
 			{
 				// push up thread priority
-				let thread_id = thread_native_id();
-				assert!(set_thread_priority(
-					thread_id,
-					ThreadPriority::Max,
-					ThreadSchedulePolicy::Normal(NormalThreadSchedulePolicy::Normal)
-				)
-				.is_ok());
+				assert!(set_current_thread_priority(ThreadPriority::Max).is_ok());
 			}
 			stream.start().expect("Unable to start audio stream");
 			'sound_main: loop {
@@ -260,16 +254,10 @@ impl SoundSystem for ThreadedSoundSystem {
 				}
 			}
 			info!("Closing audio stream");
-			#[cfg(linux)]
+			#[cfg(target_os="linux")]
 			{
 				// push down thread priority
-				let thread_id = thread_native_id();
-				assert!(set_thread_priority(
-					thread_id,
-					ThreadPriority::Specific(0),
-					ThreadSchedulePolicy::Normal(NormalThreadSchedulePolicy::Normal)
-				)
-				.is_ok());
+				assert!(set_current_thread_priority(ThreadPriority::Specific(0)).is_ok());
 			}
 			match stream.close() {
 				Err(msg) => error!("Unable to close audio stream: {:?}", msg),

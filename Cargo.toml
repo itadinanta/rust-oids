@@ -36,7 +36,10 @@ wrapped2d = "0.4.0"
 gfx = "0.18"
 gfx_device_gl = "0.16.2"
 #sound
-sample="*"
+dasp="0.11.0"
+dasp_slice="0.11.0"
+dasp_sample="0.11.0"
+dasp_signal="0.11.0"
 pitch_calc="*"
 portaudio="*"
 
@@ -63,7 +66,7 @@ conrod = { features = ["winit"], version = "0.58" }
 gilrs = "0.6"
 
 #
-[target.'cfg(linux)'.dependencies]
+[target.'cfg(target_os="linux")'.dependencies]
 thread-priority = "*"
 
 [package.metadata.deb]

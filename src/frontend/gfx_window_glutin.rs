@@ -37,14 +37,14 @@ use std;
 /// use gfx_core::format::{DepthStencil, Rgba8};
 ///
 /// fn main() {
-/// 	let events_loop = glutin::EventsLoop::new();
-/// 	let window_builder = glutin::WindowBuilder::new().with_title("Example".to_string());
-/// 	let context = glutin::ContextBuilder::new();
-/// 	let (window, device, factory, rtv, stv) =
-/// 		gfx_window_glutin::init::<Rgba8, DepthStencil>(window_builder, context, &events_loop);
+///    let events_loop = glutin::EventsLoop::new();
+///    let window_builder = glutin::WindowBuilder::new().with_title("Example".to_string());
+///    let context = glutin::ContextBuilder::new();
+///    let (window, device, factory, rtv, stv) =
+///        gfx_window_glutin::init::<Rgba8, DepthStencil>(window_builder, context, &events_loop);
 ///
-/// 	// your code
-/// 	}
+///   // your code
+///    }
 /// ```
 pub fn init<Cf, Df>(
 	window: glutin::WindowBuilder,
