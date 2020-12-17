@@ -64,11 +64,7 @@ impl Feeder //where
 impl System for GameSystem {
 	fn attach(&mut self, bus: &mut PubSub) {
 		self.inbox = Some(bus.subscribe(Box::new(|ev| {
-			if let Message::Event(Event::PrimaryFire(_, _)) = *ev {
-				true
-			} else {
-				false
-			}
+			matches!(*ev, Message::Event(Event::PrimaryFire(_, _)))
 		})));
 	}
 

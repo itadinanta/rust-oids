@@ -17,7 +17,7 @@ const ZERO_SECONDS: Seconds = Seconds(0.0);
 
 impl Display for Seconds {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		if self.0 > 0.5 as SecondsValue {
+		if self.0 > 0.5 {
 			write!(f, "{:.3}s", self.0)
 		} else {
 			write!(f, "{:.1}ms", self.0 * 1000.0)

@@ -324,15 +324,8 @@ impl App {
 	{
 		let system_timer = SystemTimer::new();
 		let mut bus = PubSub::new();
-		let alert_inbox = bus.subscribe(Box::new(|e| match *e {
-			Message::Alert(_) => true,
-			Message::Event(_) => true,
-			_ => false,
-		}));
-		let reply_inbox = bus.subscribe(Box::new(|e| match *e {
-			Message::Event(Event::SelectMinion(_)) => true,
-			_ => false,
-		}));
+		let alert_inbox = bus.subscribe(Box::new(|e| matches!(*e, Message::Alert(_)|Message::Event(_))));
+		let reply_inbox = bus.subscribe(Box::new(|e| matches!(*e, Message::Event(Event::SelectMinion(_)))));
 
 		let mut new_world = world::World::new(resource_loader, minion_gene_pool);
 		let last_saved = world_file.map(|world_file| {
@@ -639,7 +632,7 @@ impl App {
 
 		self.update_input::<DefaultController>(frame_time_smooth);
 		self.receive();
-		let speed_factor = if self.is_paused { 0.0 as SpeedFactor } else { self.speed_factors.get() };
+		let speed_factor = if self.is_paused { 0.0 } else { self.speed_factors.get() };
 		let quantum = quantum_target.unwrap_or_else(|| num::clamp(target_duration, MIN_FRAME_LENGTH, MAX_FRAME_LENGTH));
 		let (dt, rounds) = if speed_factor <= 1.0 {
 			(Seconds::new(speed_factor * quantum), 1)

@@ -303,7 +303,7 @@ pub struct ParticleSystem {
 
 impl System for ParticleSystem {
 	fn attach(&mut self, bus: &mut PubSub) {
-		self.inbox = Some(bus.subscribe(Box::new(|m| if let Message::NewEmitter(_) = *m { true } else { false })));
+		self.inbox = Some(bus.subscribe(Box::new(|m| matches!(*m, Message::NewEmitter(_)))));
 	}
 
 	fn clear(&mut self) {

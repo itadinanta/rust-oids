@@ -85,9 +85,9 @@ pub fn main_loop(
 	app.init(app::SystemMode::Interactive);
 
 	'main: loop {
-		maybe_gamepad = maybe_gamepad.and_then(|mut gamepad| {
+		maybe_gamepad = maybe_gamepad.map(|mut gamepad| {
 			gamepad.poll_events(|event| app.on_input_event(&event));
-			Some(gamepad)
+			gamepad
 		});
 
 		events_loop.poll_events(|event| {
