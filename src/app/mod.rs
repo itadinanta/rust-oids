@@ -226,8 +226,7 @@ impl Systems {
 		world: &mut world::World,
 		outbox: &dyn Outbox,
 		apply: &(dyn Fn(&mut dyn systems::System, &mut world::World, &dyn Outbox) + Sync),
-	)
-	{
+	) {
 		self.systems().iter_mut().for_each(|r| apply(&mut (**r), world, outbox))
 	}
 
@@ -235,8 +234,7 @@ impl Systems {
 		&mut self,
 		world: &world::World,
 		apply: &(dyn Fn(&mut dyn systems::System, &world::World) + Sync),
-	)
-	{
+	) {
 		self.systems().par_iter_mut().for_each(|r| apply(&mut (**r), world))
 	}
 }

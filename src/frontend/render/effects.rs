@@ -120,7 +120,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 					&res.load(concat!("shaders/effects/", $v, ".vert"))?,
 					&res.load(concat!("shaders/effects/", $f, ".frag"))?,
 					$s::new(),
-					)
+				)
 			};
 		};
 
@@ -199,8 +199,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		pso: &gfx::pso::PipelineState<R, postprocess::Meta>,
 		src: &gfx::handle::ShaderResourceView<R, [f32; 4]>,
 		dst: &gfx::handle::RenderTargetView<R, RenderColorFormat>,
-	)
-	{
+	) {
 		encoder.draw(&self.index_buffer_slice, pso, &postprocess::Data {
 			vbuf: self.vertex_buffer.clone(),
 			src: (src.clone(), self.nearest_sampler.clone()),
@@ -213,8 +212,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		encoder: &mut gfx::Encoder<R, C>,
 		raw_hdr_src: &gfx::handle::ShaderResourceView<R, [f32; 4]>,
 		color_target: &gfx::handle::RenderTargetView<R, ScreenColorFormat>,
-	)
-	{
+	) {
 		let ping_pong_full = &self.ping_pong_full[..];
 		let ping_pong_half = &self.ping_pong_half[..];
 

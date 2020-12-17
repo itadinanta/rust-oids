@@ -149,8 +149,7 @@ impl AlifeSystem {
 		extent: geometry::Rect,
 		minions: &mut agent::AgentMap,
 		eaten: &StateMap,
-	) -> MinionEndState
-	{
+	) -> MinionEndState {
 		let mut spawns = Vec::new();
 		let mut corpses = Vec::new();
 		for agent in minions.values_mut() {
@@ -238,8 +237,7 @@ impl AlifeSystem {
 		timer: &SimulationTimer,
 		spores: &mut agent::AgentMap,
 		touched: &GeneMap,
-	) -> SporeEndState
-	{
+	) -> SporeEndState {
 		let mut spawns = Vec::new();
 		let mut fertilise_count = 0usize;
 		for (spore_id, spore) in spores.iter_mut() {

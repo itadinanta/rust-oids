@@ -138,7 +138,7 @@ where D: gfx::pso::PipelineInit + Clone
 				factory.create_shader_set(
 					&res.load(concat!("shaders/forward/", $v, ".vert"))?,
 					&res.load(concat!("shaders/forward/", $f, ".frag"))?,
-					)
+				)
 			};
 
 			($g:expr, $v:expr, $f:expr) => {
@@ -146,7 +146,7 @@ where D: gfx::pso::PipelineInit + Clone
 					&res.load(concat!("shaders/forward/", $g, ".geom"))?,
 					&res.load(concat!("shaders/forward/", $v, ".vert"))?,
 					&res.load(concat!("shaders/forward/", $f, ".frag"))?,
-					)
+				)
 			};
 		};
 
@@ -209,8 +209,7 @@ where D: gfx::pso::PipelineInit + Clone
 		camera_projection: M44,
 		camera_view: M44,
 		lights: &[PointLight],
-	) -> Result<()>
-	{
+	) -> Result<()> {
 		let mut lights_buf = lights.to_owned();
 
 		let count = lights_buf.len();
@@ -244,8 +243,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> ForwardLighting<R, C, shaded::
 		materials: &[MaterialArgs],
 		color_buffer: &gfx::handle::RenderTargetView<R, formats::RenderColorFormat>,
 		depth_buffer: &gfx::handle::DepthStencilView<R, formats::RenderDepthFormat>,
-	) -> Result<()>
-	{
+	) -> Result<()> {
 		encoder.update_buffer(&self.model, &models, 0)?;
 		encoder.update_buffer(&self.material, &materials, 0)?;
 		encoder.draw(indices, &self.pso[shader as usize], &shaded::Data {

@@ -233,8 +233,7 @@ impl AgentBuilder {
 		attachment_index_offset: isize,
 		shape: &Shape,
 		flags: segment::Flags,
-	) -> &mut Self
-	{
+	) -> &mut Self {
 		self.addw(parent_index, attachment_index_offset, shape, Winding::CW, flags | segment::Flags::MIDDLE)
 	}
 	#[inline]
@@ -244,8 +243,7 @@ impl AgentBuilder {
 		attachment_index_offset: isize,
 		shape: &Shape,
 		flags: segment::Flags,
-	) -> &mut Self
-	{
+	) -> &mut Self {
 		self.addw(parent_index, attachment_index_offset, shape, Winding::CCW, flags | segment::Flags::LEFT)
 	}
 	#[inline]
@@ -255,8 +253,7 @@ impl AgentBuilder {
 		attachment_index_offset: isize,
 		shape: &Shape,
 		flags: segment::Flags,
-	) -> &mut Self
-	{
+	) -> &mut Self {
 		self.addw(parent_index, attachment_index_offset, shape, Winding::CW, flags | segment::Flags::RIGHT)
 	}
 
@@ -267,8 +264,7 @@ impl AgentBuilder {
 		shape: &Shape,
 		winding: Winding,
 		flags: segment::Flags,
-	) -> &mut Self
-	{
+	) -> &mut Self {
 		let parent = self.segments[parent_index as usize].clone(); //urgh!;
 		let parent_pos = parent.transform.position;
 		let parent_angle = parent.transform.angle;
@@ -356,8 +352,7 @@ impl AgentBuilder {
 		motion: Motion,
 		attachment: Option<segment::Attachment>,
 		flags: segment::Flags,
-	) -> segment::Segment
-	{
+	) -> segment::Segment {
 		let rest_angle = transform.angle;
 		segment::Segment {
 			index: self.segments.len() as SegmentIndex,

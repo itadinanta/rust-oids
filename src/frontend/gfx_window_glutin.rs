@@ -127,8 +127,7 @@ pub fn init_raw(
 	device_gl::Factory,
 	handle::RawRenderTargetView<R>,
 	handle::RawDepthStencilView<R>,
-)
-{
+) {
 	let window = {
 		let color_total_bits = color_format.0.get_total_bits();
 		let alpha_bits = color_format.0.get_alpha_stencil_bits();
@@ -154,8 +153,7 @@ pub fn init_existing_raw(
 	window: &glutin::GlWindow,
 	color_format: format::Format,
 	ds_format: format::Format,
-) -> (device_gl::Device, device_gl::Factory, handle::RawRenderTargetView<R>, handle::RawDepthStencilView<R>)
-{
+) -> (device_gl::Device, device_gl::Factory, handle::RawRenderTargetView<R>, handle::RawDepthStencilView<R>) {
 	unsafe { window.make_current().unwrap() };
 	let (device, factory) = device_gl::create(|s| window.get_proc_address(s) as *const std::os::raw::c_void);
 
@@ -192,8 +190,7 @@ pub fn update_views_raw(
 	old_dimensions: texture::Dimensions,
 	color_format: format::Format,
 	ds_format: format::Format,
-) -> Option<(handle::RawRenderTargetView<R>, handle::RawDepthStencilView<R>)>
-{
+) -> Option<(handle::RawRenderTargetView<R>, handle::RawDepthStencilView<R>)> {
 	let dim = get_window_dimensions(window);
 	if dim != old_dimensions {
 		Some(device_gl::create_main_targets_raw(dim, color_format.0, ds_format.0))

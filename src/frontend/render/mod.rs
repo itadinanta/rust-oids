@@ -110,8 +110,7 @@ trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 		gs_code: &[u8],
 		vs_code: &[u8],
 		ps_code: &[u8],
-	) -> Result<gfx::ShaderSet<R>>
-	{
+	) -> Result<gfx::ShaderSet<R>> {
 		let gs = self.create_shader_geometry(gs_code)?;
 		let vs = self.create_shader_vertex(vs_code)?;
 		let ps = self.create_shader_pixel(ps_code)?;
@@ -122,8 +121,7 @@ trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 		&mut self,
 		width: gfx::texture::Size,
 		height: gfx::texture::Size,
-	) -> Result<formats::RenderSurfaceWithDepth<R>>
-	{
+	) -> Result<formats::RenderSurfaceWithDepth<R>> {
 		let (_, color_resource, color_target) = self.create_msaa_render_target(formats::MSAA_MODE, width, height)?;
 		let (_, _, depth_target) = self.create_msaa_depth(formats::MSAA_MODE, width, height)?;
 		Ok((color_resource, color_target, depth_target))
@@ -134,8 +132,7 @@ trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 		aa: gfx::texture::AaMode,
 		width: gfx::texture::Size,
 		height: gfx::texture::Size,
-	) -> Result<formats::DepthSurface<R>>
-	{
+	) -> Result<formats::DepthSurface<R>> {
 		let kind = gfx::texture::Kind::D2(width, height, aa);
 		let tex = self.create_texture(
 			kind,
@@ -158,8 +155,7 @@ trait RenderFactoryExt<R: gfx::Resources>: gfx::traits::FactoryExt<R> {
 		aa: gfx::texture::AaMode,
 		width: gfx::texture::Size,
 		height: gfx::texture::Size,
-	) -> Result<formats::RenderSurface<R>>
-	{
+	) -> Result<formats::RenderSurface<R>> {
 		let kind = gfx::texture::Kind::D2(width, height, aa);
 		let tex = self.create_texture(
 			kind,
@@ -332,8 +328,7 @@ impl PrimitiveSequence for PrimitiveBatch {
 		indices: Vec<VertexIndex>,
 		transform: M44,
 		appearance: Appearance,
-	) -> Result<()>
-	{
+	) -> Result<()> {
 		self.push_primitive_buffers(shader, vertices, indices)?;
 		self.transforms.push(transform);
 		self.appearances.push(appearance);
@@ -347,8 +342,7 @@ impl PrimitiveBatch {
 		shader: Style,
 		mut vertices: Vec<Vertex>,
 		mut indices: Vec<VertexIndex>,
-	) -> Result<()>
-	{
+	) -> Result<()> {
 		self.style = shader;
 		let primitive_offset = self.transforms.len();
 		if primitive_offset > PrimitiveIndex::max_value() as usize {
@@ -394,8 +388,7 @@ impl PrimitiveSequence for PrimitiveBuffer {
 		indices: Vec<VertexIndex>,
 		transform: M44,
 		appearance: Appearance,
-	) -> Result<()>
-	{
+	) -> Result<()> {
 		self.push_batch(PrimitiveBatch {
 			style,
 			vertices,
@@ -455,8 +448,7 @@ impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone,
 		encoder: &'e mut gfx::Encoder<R, C>,
 		res: &'l L,
 		frame_buffer: &gfx::handle::RenderTargetView<R, formats::ScreenColorFormat>,
-	) -> Result<ForwardRenderer<'e, 'l, R, C, F, L>>
-	{
+	) -> Result<ForwardRenderer<'e, 'l, R, C, F, L>> {
 		let my_factory = factory.clone();
 
 		let (w, h, _, _) = frame_buffer.get_dimensions();
@@ -493,8 +485,7 @@ impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R> + Clone,
 	pub fn resize_to(
 		&mut self,
 		frame_buffer: &gfx::handle::RenderTargetView<R, formats::ScreenColorFormat>,
-	) -> Result<()>
-	{
+	) -> Result<()> {
 		// TODO: this thing leaks?
 		let (w, h, _, _) = frame_buffer.get_dimensions();
 		let (hdr_srv, hdr_color_buffer, depth_buffer) = self.factory.create_msaa_surfaces(w, h)?;
@@ -559,8 +550,7 @@ impl<'e, 'l, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Factory<R>, L: Reso
 		indices: Vec<VertexIndex>,
 		transform: M44,
 		appearance: Appearance,
-	) -> Result<()>
-	{
+	) -> Result<()> {
 		let models = vec![forward::ModelArgs { transform: transform.into() }];
 		let materials = vec![forward::MaterialArgs { emissive: appearance.color, effect: appearance.effect }];
 		let (vertex_buffer, index_buffer) =

@@ -188,8 +188,7 @@ impl<'font, R: Resources> Renderer<'font, R> {
 		factory: &mut F,
 		rtv: &RenderTargetView<R, ColorFormat>,
 		dpi_factor: f64,
-	) -> Result<Self, RendererCreationError>
-	{
+	) -> Result<Self, RendererCreationError> {
 		let sampler_info = texture::SamplerInfo::new(texture::FilterMethod::Bilinear, texture::WrapMode::Clamp);
 		let sampler = factory.create_sampler(sampler_info);
 
@@ -280,8 +279,8 @@ impl<'font, R: Resources> Renderer<'font, R> {
 					State::Image { image_id, start } => {
 						commands.push(PreparedCommand::Image(image_id, start..vertices.len()));
 						current_state = State::Plain { start: vertices.len() };
-						}
 					}
+				}
 			};
 		}
 
@@ -683,7 +682,6 @@ impl<'a> Iterator for Commands<'a> {
 impl From<gfx::PipelineStateError<String>> for RendererCreationError {
 	fn from(err: gfx::PipelineStateError<String>) -> Self { RendererCreationError::PipelineState(err) }
 }
-
 
 impl std::fmt::Display for RendererCreationError {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {

@@ -106,8 +106,7 @@ impl Particle {
 		color: (Rgba<f32>, Rgba<f32>),
 		effect: (Rgba<f32>, Rgba<f32>),
 		age: Seconds,
-	) -> Particle
-	{
+	) -> Particle {
 		Particle { transform, direction, tag, trail, faders, color, effect, age }
 	}
 

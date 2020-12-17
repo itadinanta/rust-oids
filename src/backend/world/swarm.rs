@@ -72,8 +72,8 @@ impl Swarm {
 			_ => {}
 		}
 		self.rebuild(id, genome, initial_state, timer)
-		//		let entity = self.phenotype.develop(genome, id, initial_state, timer);
-		//		self.insert(entity)
+		//		let entity = self.phenotype.develop(genome, id, initial_state,
+		// timer); 		self.insert(entity)
 	}
 
 	pub fn rebuild(
@@ -82,8 +82,7 @@ impl Swarm {
 		genome: &mut Genome,
 		initial_state: agent::InitialState,
 		timer: &dyn Timer,
-	) -> Id
-	{
+	) -> Id {
 		let entity = self.phenotype.develop(genome, id, initial_state, timer);
 		self.insert(entity)
 	}

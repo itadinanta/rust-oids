@@ -71,8 +71,7 @@ impl Screen {
 		styles: &Styles,
 		ids: &Ids,
 		app_events: &mut Vec<app::Event>,
-	) -> conrod::UiCell<'e>
-	{
+	) -> conrod::UiCell<'e> {
 		let mut widgets = ui.set_widgets();
 		//let mut app_events = Vec::with_capacity(1);
 		match *self {

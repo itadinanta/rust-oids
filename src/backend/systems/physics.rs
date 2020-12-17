@@ -282,16 +282,14 @@ impl PhysicsSystem {
 		refs: agent::Key,
 		f_def: &mut b2::FixtureDef,
 		mesh: &Mesh,
-	)
-	{
+	) {
 		fn make_circle_shape(
 			world: &mut b2::World<AgentData>,
 			handle: b2::BodyHandle,
 			grown_radius: f32,
 			f_def: &mut b2::FixtureDef,
 			refs: agent::Key,
-		)
-		{
+		) {
 			let mut circle_shape = b2::CircleShape::new();
 			circle_shape.set_radius(grown_radius);
 			world.body_mut(handle).create_fixture_with(&circle_shape, f_def, refs);
@@ -304,8 +302,7 @@ impl PhysicsSystem {
 			vertices: &[b2::Vec2],
 			f_def: &mut b2::FixtureDef,
 			refs: agent::Key,
-		)
-		{
+		) {
 			// from box2d code, checks unique vertices
 			let mut dupes = 0;
 			for (i, v1) in vertices.iter().enumerate() {

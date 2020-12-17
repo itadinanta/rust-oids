@@ -42,8 +42,7 @@ pub fn main_loop(
 	width: Option<u32>,
 	height: Option<u32>,
 	audio_device: Option<usize>,
-)
-{
+) {
 	let mut events_loop = winit::EventsLoop::new();
 	let mut maybe_gamepad = GamepadEventLoop::new();
 

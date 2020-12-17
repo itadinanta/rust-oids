@@ -2,13 +2,13 @@
 
 use bit_set::BitSet;
 use core::clock::{seconds, Seconds};
+use dasp;
+use dasp_signal;
 use frontend::audio::SoundEffect;
 use num;
 use num::NumCast;
 use num_traits::FloatConst;
 use pitch_calc::{Letter, LetterOctave};
-use dasp;
-use dasp_signal;
 use std::collections::HashMap;
 use std::f32;
 use std::f64;
@@ -593,7 +593,8 @@ where
 			let wet: [T; CHANNELS] =
 				dasp::Frame::from_fn(move |channel| wet_ratio * src[channel] + delay_effect[channel]);
 			dest_buffer.push(dasp::Frame::from_fn(move |channel| dry_ratio * src[channel] + wet[channel]));
-			delay_buffer[tram_ptr] = dasp::Frame::from_fn(move |channel| feedback * wet[CHANNELS - 1 - channel]); // ping-pong
+			delay_buffer[tram_ptr] = dasp::Frame::from_fn(move |channel| feedback * wet[CHANNELS - 1 - channel]);
+			// ping-pong
 		}
 		self::Signal { sample_rate: self.sample_rate, frames: dest_buffer.into_boxed_slice() }
 	}

@@ -205,8 +205,7 @@ impl SimpleEmitter {
 		fader_scale: Fader<f32>,
 		fader_effect: Fader<f32>,
 		fader_frequency: Fader<f32>,
-	) -> Self
-	{
+	) -> Self {
 		self.with_faders([Some(fader_color), Some(fader_scale), Some(fader_effect), Some(fader_frequency)])
 	}
 

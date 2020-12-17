@@ -2,10 +2,10 @@ mod multiplexer;
 
 use app;
 use backend::world::Alert;
-use frontend::ui::AlertPlayer;
-use portaudio as pa;
 use dasp_slice;
 use dasp_slice::ToFrameSliceMut;
+use frontend::ui::AlertPlayer;
+use portaudio as pa;
 use std::io;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::SendError;
@@ -13,7 +13,7 @@ use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
-#[cfg(target_os="linux")]
+#[cfg(target_os = "linux")]
 use thread_priority::*;
 // Currently supports i8, i32, f32.
 //pub type AudioSample = f32;
@@ -181,8 +181,7 @@ impl SoundSystem for ThreadedSoundSystem {
 			fn portaudio_device(
 				portaudio: &pa::PortAudio,
 				preferred_device: Option<pa::DeviceIndex>,
-			) -> Result<(pa::DeviceIndex, String, f64), pa::Error>
-			{
+			) -> Result<(pa::DeviceIndex, String, f64), pa::Error> {
 				let device_count = portaudio.device_count()?;
 				info!("Detected {:?} devices", device_count);
 				let default_device = portaudio.default_output_device()?;
@@ -227,7 +226,7 @@ impl SoundSystem for ThreadedSoundSystem {
 			let mut stream = portaudio
 				.open_non_blocking_stream(settings, callback)
 				.expect("Unable to open audio stream, failure in audio thread");
-			#[cfg(target_os="linux")]
+			#[cfg(target_os = "linux")]
 			{
 				// push up thread priority
 				assert!(set_current_thread_priority(ThreadPriority::Max).is_ok());
@@ -254,7 +253,7 @@ impl SoundSystem for ThreadedSoundSystem {
 				}
 			}
 			info!("Closing audio stream");
-			#[cfg(target_os="linux")]
+			#[cfg(target_os = "linux")]
 			{
 				// push down thread priority
 				assert!(set_current_thread_priority(ThreadPriority::Specific(0)).is_ok());

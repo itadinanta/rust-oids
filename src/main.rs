@@ -33,12 +33,12 @@ extern crate glutin;
 extern crate image;
 extern crate winit;
 
-extern crate pitch_calc;
-extern crate portaudio;
 extern crate dasp;
-extern crate dasp_slice;
 extern crate dasp_sample;
 extern crate dasp_signal;
+extern crate dasp_slice;
+extern crate pitch_calc;
+extern crate portaudio;
 
 extern crate itertools;
 extern crate num;
@@ -59,7 +59,7 @@ extern crate gilrs;
 
 extern crate dirs;
 extern crate rayon;
-#[cfg(target_os="linux")]
+#[cfg(target_os = "linux")]
 extern crate thread_priority;
 
 extern crate rustc_serialize as serialize;
