@@ -63,7 +63,7 @@ conrod = { features = ["winit"], version = "0.58" }
 #conrod = { features = ["winit"], git = "https://github.com/itadinanta/conrod", branch = "branch/winit_0.10.0" }
 
 #controller
-gilrs = "0.6"
+gilrs = "*"
 
 #
 [target.'cfg(target_os="linux")'.dependencies]

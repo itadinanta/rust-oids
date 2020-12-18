@@ -55,9 +55,7 @@ pub enum SoundEffect {
 }
 
 impl From<pa::Error> for self::Error {
-	fn from(_: pa::Error) -> Self {
-		self::Error::SystemInit
-	}
+	fn from(_: pa::Error) -> Self { self::Error::SystemInit }
 }
 
 impl From<SendError<SoundEffect>> for self::Error {
@@ -69,9 +67,7 @@ impl From<SendError<SoundEffect>> for self::Error {
 }
 
 impl From<io::Error> for self::Error {
-	fn from(_: io::Error) -> Self {
-		self::Error::ThreadJoin
-	}
+	fn from(_: io::Error) -> Self { self::Error::ThreadJoin }
 }
 
 pub trait SoundSystem: Sized {

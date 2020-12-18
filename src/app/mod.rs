@@ -324,7 +324,7 @@ impl App {
 	{
 		let system_timer = SystemTimer::new();
 		let mut bus = PubSub::new();
-		let alert_inbox = bus.subscribe(Box::new(|e| matches!(*e, Message::Alert(_)|Message::Event(_))));
+		let alert_inbox = bus.subscribe(Box::new(|e| matches!(*e, Message::Alert(_) | Message::Event(_))));
 		let reply_inbox = bus.subscribe(Box::new(|e| matches!(*e, Message::Event(Event::SelectMinion(_)))));
 
 		let mut new_world = world::World::new(resource_loader, minion_gene_pool);

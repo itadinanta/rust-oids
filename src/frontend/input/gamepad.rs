@@ -1,6 +1,6 @@
 use gilrs;
 use gilrs::Gilrs;
-// use gilrs::ev::filter::{Filter, Repeat};
+use std::collections::HashMap;
 
 use frontend::input;
 use frontend::input::EventMapper;
@@ -8,6 +8,7 @@ use frontend::input::EventMapper;
 pub struct GamepadEventLoop {
 	//	repeat_filter: Repeat,
 	gilrs: Gilrs,
+	gamepad_ids: HashMap<gilrs::GamepadId, usize>,
 }
 
 impl input::EventMapper<gilrs::Event> for GamepadEventLoop {
@@ -63,15 +64,17 @@ impl input::EventMapper<gilrs::Event> for GamepadEventLoop {
 
 		match e.event {
 			gilrs::EventType::ButtonPressed(button, _) =>
-				to_key(button).map(|key| input::Event::GamepadButton(e.id, input::State::Down, key)),
+				to_key(button).map(|key| input::Event::GamepadButton(self.map_id(e.id), input::State::Down, key)),
 			gilrs::EventType::ButtonReleased(button, _) =>
-				to_key(button).map(|key| input::Event::GamepadButton(e.id, input::State::Up, key)),
+				to_key(button).map(|key| input::Event::GamepadButton(self.map_id(e.id), input::State::Up, key)),
 			gilrs::EventType::ButtonChanged(gilrs::Button::RightTrigger2, value, _) =>
-				from_button(gilrs::Button::RightTrigger2).map(|axis| input::Event::GamepadAxis(e.id, value, axis)),
+				from_button(gilrs::Button::RightTrigger2)
+					.map(|axis| input::Event::GamepadAxis(self.map_id(e.id), value, axis)),
 			gilrs::EventType::ButtonChanged(gilrs::Button::LeftTrigger2, value, _) =>
-				from_button(gilrs::Button::LeftTrigger2).map(|axis| input::Event::GamepadAxis(e.id, value, axis)),
+				from_button(gilrs::Button::LeftTrigger2)
+					.map(|axis| input::Event::GamepadAxis(self.map_id(e.id), value, axis)),
 			gilrs::EventType::AxisChanged(axis, value, _) =>
-				from_axis(axis).map(|axis| input::Event::GamepadAxis(e.id, value, axis)),
+				from_axis(axis).map(|axis| input::Event::GamepadAxis(self.map_id(e.id), value, axis)),
 			_ => None,
 		}
 	}
@@ -80,6 +83,7 @@ impl input::EventMapper<gilrs::Event> for GamepadEventLoop {
 impl GamepadEventLoop {
 	pub fn new() -> Option<Self> {
 		let result = Gilrs::new();
+		let mut gamepad_ids = HashMap::new();
 
 		match result {
 			Err(err) => {
@@ -89,10 +93,16 @@ impl GamepadEventLoop {
 			Ok(gilrs) => {
 				for (_id, gamepad) in gilrs.gamepads() {
 					info!("{} is {:?}", gamepad.name(), gamepad.power_info());
+					let next_index = gamepad_ids.len() + 1;
+					gamepad_ids.insert(gamepad.id(), next_index);
 				}
-				Some(GamepadEventLoop { gilrs })
+				Some(GamepadEventLoop { gilrs, gamepad_ids })
 			}
 		}
+	}
+
+	pub fn map_id(&self, gilrs_id: gilrs::GamepadId) -> usize {
+		self.gamepad_ids.get(&gilrs_id).copied().unwrap_or_default()
 	}
 
 	pub fn poll_events<F>(&mut self, mut on_input_event: F)
