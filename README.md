@@ -145,7 +145,7 @@ Gamepad is supported (tested with DS4, in Windows via [DS4Windows](http://ds4win
 
 ### License
 
-Copyright 2016-2018 Nicola Orru
+Copyright 2016-2020 Nicola Orru
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
