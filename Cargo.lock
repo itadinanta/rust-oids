@@ -1478,7 +1478,7 @@ dependencies = [
 
 [[package]]
 name = "rust-oids"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "bit-set 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
