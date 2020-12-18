@@ -71,7 +71,7 @@ thread-priority = "*"
 
 [package.metadata.deb]
 maintainer = "Nico Orru <nigu.orru@gmail.com>"
-copyright = "2016-2018, Nico Orru <nigu.orru@gmail.com>"
+copyright = "2016-2020, Nico Orru <nigu.orru@gmail.com>"
 license-file = ["LICENSE", "4"]
 extended-description = """A Rust-based A-life playground. \
 https://github.com/itadinanta/rust-oids"""
