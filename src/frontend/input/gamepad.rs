@@ -92,8 +92,8 @@ impl GamepadEventLoop {
 			}
 			Ok(gilrs) => {
 				for (_id, gamepad) in gilrs.gamepads() {
-					info!("{} is {:?}", gamepad.name(), gamepad.power_info());
-					let next_index = gamepad_ids.len() + 1;
+					info!("{} [{:?}] is {:?}", gamepad.name(), gamepad.id(), gamepad.power_info());
+					let next_index = gamepad_ids.len();
 					gamepad_ids.insert(gamepad.id(), next_index);
 				}
 				Some(GamepadEventLoop { gilrs, gamepad_ids })
