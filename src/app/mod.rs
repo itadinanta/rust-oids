@@ -330,7 +330,7 @@ impl App {
 		let mut new_world = world::World::new(resource_loader, minion_gene_pool);
 		let last_saved = world_file.map(|world_file| {
 			if world::persist::Serializer::load(&world_file, &mut new_world).is_err() {
-				panic!(format!("Could not load {:?}", &world_file));
+				panic!("Could not load {:?}", &world_file);
 			}
 			world_file
 		});
