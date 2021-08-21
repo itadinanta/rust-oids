@@ -90,8 +90,8 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 		w: u16,
 		h: u16,
 	) -> Result<PostLighting<R, C>>
-	where
-		F: gfx::Factory<R>,
+		where
+			F: gfx::Factory<R>,
 	{
 		let full_screen_triangle = vec![
 			BlitVertex { pos: [-1., -1.], tex_coord: [0., 0.] },
@@ -122,7 +122,7 @@ impl<R: gfx::Resources, C: gfx::CommandBuffer<R>> PostLighting<R, C> {
 					$s::new(),
 				)
 			};
-		};
+		}
 
 		let tone_map_pso = load_pipeline_simple!("luminance", "exposure_tone_map", tone_map)?;
 		let resolve_msaa_pso = load_pipeline_simple!("identity", "msaa4x_resolve", postprocess)?;

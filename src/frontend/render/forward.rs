@@ -106,7 +106,7 @@ pub type ShadedInit<'f> = shaded::Init<'f>;
 use std::marker::PhantomData;
 
 pub struct ForwardLighting<R: gfx::Resources, C: gfx::CommandBuffer<R>, D>
-where D: gfx::pso::PipelineInit {
+	where D: gfx::pso::PipelineInit {
 	camera: gfx::handle::Buffer<R, CameraArgs>,
 	model: gfx::handle::Buffer<R, ModelArgs>,
 	fragment: gfx::handle::Buffer<R, FragmentArgs>,
@@ -117,15 +117,15 @@ where D: gfx::pso::PipelineInit {
 }
 
 impl<R: gfx::Resources, C: gfx::CommandBuffer<R>, D> ForwardLighting<R, C, D>
-where D: gfx::pso::PipelineInit + Clone
+	where D: gfx::pso::PipelineInit + Clone
 {
 	pub fn new<F>(
 		factory: &mut F,
 		res: &dyn resource::ResourceLoader<u8>,
 		init: D,
 	) -> Result<ForwardLighting<R, C, D>>
-	where
-		F: gfx::Factory<R>,
+		where
+			F: gfx::Factory<R>,
 	{
 		let lights = factory.create_constant_buffer(MAX_NUM_TOTAL_LIGHTS);
 		let camera = factory.create_constant_buffer(1);
@@ -148,7 +148,7 @@ where D: gfx::pso::PipelineInit + Clone
 					&res.load(concat!("shaders/forward/", $f, ".frag"))?,
 				)
 			};
-		};
+		}
 
 		let flat_shaders = load_shaders!("lighting", "lighting_flat")?;
 		let wire_shaders = load_shaders!("lighting", "lighting_poly")?;
@@ -197,8 +197,8 @@ where D: gfx::pso::PipelineInit + Clone
 		rasterizer: gfx::state::Rasterizer,
 		init: D,
 	) -> result::Result<gfx::pso::PipelineState<R, D::Meta>, gfx::PipelineStateError<String>>
-	where
-		F: gfx::Factory<R>,
+		where
+			F: gfx::Factory<R>,
 	{
 		factory.create_pipeline_state(&shaders, primitive, rasterizer, init)
 	}
