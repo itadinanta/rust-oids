@@ -127,9 +127,9 @@ impl System for PhysicsSystem {
 		let mut dynamic_updates = Vec::new();
 		let dt: f32 = dt_sec.into();
 		#[inline]
-		fn to_vec2(v: Position) -> b2::Vec2 { PhysicsSystem::p2v(v) };
+		fn to_vec2(v: Position) -> b2::Vec2 { PhysicsSystem::p2v(v) }
 		#[inline]
-		fn from_vec2(v: b2::Vec2) -> Position { PhysicsSystem::v2p(v) };
+		fn from_vec2(v: b2::Vec2) -> Position { PhysicsSystem::v2p(v) }
 		for (h, b) in self.world.bodies() {
 			let body = b.borrow();
 			let center = *(*body).world_center();
